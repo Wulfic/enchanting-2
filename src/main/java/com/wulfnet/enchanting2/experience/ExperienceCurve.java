@@ -84,6 +84,44 @@ public final class ExperienceCurve {
 		return new Position(low, (int) Math.min(into, cap));
 	}
 
+	/**
+	 * Largest points-to-next whose progress float stays exact. One float step near 1 is {@code 2^-24}, so the stored
+	 * progress overshoots {@code p / n} by at most {@code n * 2^-24 <= 0.125} points, and nothing reads it as {@code p + 1}.
+	 */
+	public static final int EXACT_PROGRESS_LIMIT = 1 << 21;
+
+	public static boolean exactProgressFits(int pointsToNext) {
+		return pointsToNext <= EXACT_PROGRESS_LIMIT;
+	}
+
+	/**
+	 * The progress float for {@code points} into a level of {@code pointsToNext}: the smallest float {@code f} with
+	 * {@code f * n >= p}. Vanilla stores {@code p / n} rounded to nearest, and its {@code floor(progress * n)} reads that
+	 * back as {@code p - 1} whenever the float rounds down. The smallest float keeps the bar where vanilla draws it: 0
+	 * points is exactly 0, never a visible sliver.
+	 */
+	public static float storedProgress(int points, int pointsToNext) {
+		float progress = (float) ((double) points / pointsToNext);
+		// Round-to-nearest is at most half a step low, so this runs at most once.
+		while ((double) progress * pointsToNext < points) {
+			progress = Math.nextUp(progress);
+		}
+		return progress;
+	}
+
+	/**
+	 * Points into the level, from either stored form: ours (just at or above {@code p}), or vanilla's {@code p / n},
+	 * which can sit just under {@code p}. The 0.25 offset rounds both to {@code p}. Clamped to {@code [0, n - 1]}; NaN
+	 * reads as 0.
+	 */
+	public static int readPoints(float progress, int pointsToNext) {
+		double points = Math.floor((double) progress * pointsToNext + 0.25);
+		if (!(points > 0)) {
+			return 0;
+		}
+		return (int) Math.min(points, pointsToNext - 1L);
+	}
+
 	/** Sum of vanilla points-to-next over levels {@code [0, level)}, with the per-level clamp applied. */
 	private static long vanillaSum(int level) {
 		return arithmeticSum(0, Math.min(level, 15), 7, 2, 0)

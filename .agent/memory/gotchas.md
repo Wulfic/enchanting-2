@@ -179,3 +179,40 @@ would drop the server's config copy right after it arrives.
 **Cause:** `ConfigFiles.load` described startup policy, but reload has a different policy.
 **Fix:** `load` only says the file wasn't changed. `ServerConfigs` logs the outcome: defaults at startup, previous config on reload.
 **Affects:** src/main/java/com/wulfnet/enchanting2/config/ConfigFiles.java, ServerConfigs.java
+
+## 2026-10-06 — Vanilla XP progress is a float; `floor(progress × needed)` drifts by 1 point
+**Context:** 3B GameTests on the real `Player` methods.
+**Trap:** 29 + 157 points lands on 30 + 49, not 50. +/-10000 at level 20 + 10 comes back as 20 + 9. This is plain
+vanilla (same curve at those levels): `p/n` stored as a float, multiplied back, reads `p − ε` and floors down.
+**Fix:** 3B.7 TAIL snap stores the smallest float ≥ `p/n` and reads with a +0.25 offset (decisions.md 2026-10-06).
+**Affects:** src/gametest/.../ExperienceGameTest.java
+
+## 2026-10-06 — GameTests share one live server; batches are per test environment
+**Context:** `ConfigWiringGameTest`'s reload test rewrites the config file and `/reload`s mid-run.
+**Trap:** tests in the same batch run together, so any test that reads `ServerConfigs.get(server)` can see its temporary
+values (`flatten_after_level: 41`). `GameTestBatchFactory` groups by environment and runs batches one at a time.
+**Fix:** a test that mutates shared server state gets its own `environment = "enchanting2:<name>"`, with a
+`data/enchanting2/test_environment/<name>.json` (`minecraft:all_of`, no definitions) in `src/gametest/resources`.
+Readers of the live config assert it's the default first, so a leak fails loudly instead of silently.
+Also: `GameTestHelper#makeMockServerPlayerInLevel()` is `@Deprecated(forRemoval)` in 1.21.11 with no replacement; it
+still works. Expect javac removal warnings.
+**Affects:** src/gametest/
+
+## 2026-10-06 — Vanilla `totalExperience` wraps to 0 at MAX instead of clamping
+**Context:** a 3B.7 GameTest set `totalExperience = MAX` and gave 5 points, expecting it to stay MAX.
+**Trap:** `giveExperiencePoints` does `Mth.clamp(totalExperience + amount, 0, MAX)` with an `int` add. MAX + 5 overflows
+negative first, so the clamp gives 0. The Phase 3 audit said "vanilla clamps it at MAX", and that was wrong.
+Separately, the server sends the XP packet only when `totalExperience != lastSentExp`. A change that leaves the total
+alone (removing points while it's 0, which `/xp set levels` leaves it at) never reaches the client.
+**Fix:** the snap sets `lastSentExp = -1` whenever it changes progress. The wrap itself is vanilla score
+behavior and is left alone (owner to decide).
+**Affects:** src/main/java/com/wulfnet/enchanting2/mixin/PlayerMixin.java, ServerPlayerAccessor.java
+
+## 2026-10-06 — `runGameTest` JVM dies with "paging file is too small" (DOS error 1455)
+**Context:** a full `./gradlew build` while the owner's other workspace had several JVMs up. Windows commit headroom
+was about 2.6 GB, even with 10 GB of physical RAM free.
+**Trap:** the GameTest server fails to reserve its heap in about 20 s. The build stops before `:test`, so
+`build/test-results` still shows the previous run's counts.
+**Fix:** don't kill java (the other instance's tests). Run `./gradlew test`, then `./gradlew runGameTest`, then
+`build`. Always read the test counts from a run whose task actually executed.
+**Affects:** build environment only

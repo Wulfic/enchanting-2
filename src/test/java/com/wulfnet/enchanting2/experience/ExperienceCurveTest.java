@@ -1,11 +1,13 @@
 package com.wulfnet.enchanting2.experience;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.wulfnet.enchanting2.config.ExperienceSection;
 import com.wulfnet.enchanting2.experience.ExperienceCurve.Position;
 import java.util.List;
+import java.util.Random;
 import org.junit.jupiter.api.Test;
 
 class ExperienceCurveTest {
@@ -142,5 +144,70 @@ class ExperienceCurveTest {
 		assertEquals(7, ExperienceCurve.pointsToNext(VANILLA, -1));
 		assertEquals(new Position(MAX, 111), ExperienceCurve.fromTotal(DEFAULTS, Long.MAX_VALUE));
 		assertEquals(new Position(MAX, MAX - 1), ExperienceCurve.fromTotal(VANILLA, Long.MAX_VALUE));
+	}
+
+	/** What every vanilla reader computes ({@code /xp query}, the client bar): {@code Mth.floor(progress * (float) n)}. */
+	private static int vanillaFloor(float progress, int needed) {
+		return (int) Math.floor(progress * (float) needed);
+	}
+
+	private static void assertExactAt(int needed, int points) {
+		float stored = ExperienceCurve.storedProgress(points, needed);
+		String at = points + "/" + needed;
+		assertTrue(stored >= 0 && stored < 1, "stored progress in [0, 1) at " + at + ": " + stored);
+		assertEquals(points, vanillaFloor(stored, needed), "vanilla floor of our form at " + at);
+		double ahead = (double) stored * needed - points;
+		assertTrue(ahead >= 0 && ahead <= 0.125, "bar never visibly ahead at " + at + ": +" + ahead + " points");
+		assertEquals(points, ExperienceCurve.readPoints(stored, needed), "readPoints of our form at " + at);
+		assertEquals(points, ExperienceCurve.readPoints((float) points / (float) needed, needed),
+				"readPoints of vanilla's p/n form at " + at);
+	}
+
+	@Test
+	void storedProgressReadsBackExactlyForEverySmallCost() {
+		for (int needed = 1; needed <= 2_000; needed++) {
+			for (int points = 0; points < needed; points++) {
+				assertExactAt(needed, points);
+			}
+		}
+	}
+
+	@Test
+	void storedProgressReadsBackExactlyUpToTheFloatLimit() {
+		Random random = new Random(42);
+		int limit = ExperienceCurve.EXACT_PROGRESS_LIMIT;
+		for (int needed : List.of(112, 1_000_000, 233_489, limit - 1, limit)) {
+			for (int points : List.of(0, 1, needed / 2, needed - 2, needed - 1)) {
+				assertExactAt(needed, Math.max(0, points));
+			}
+			for (int i = 0; i < 20_000; i++) {
+				assertExactAt(needed, random.nextInt(needed));
+			}
+		}
+	}
+
+	@Test
+	void zeroPointsIsAnEmptyBar() {
+		for (int needed : List.of(1, 7, 112, ExperienceCurve.EXACT_PROGRESS_LIMIT)) {
+			assertEquals(0.0F, ExperienceCurve.storedProgress(0, needed), "needed " + needed);
+		}
+	}
+
+	@Test
+	void exactProgressFitsOnlyUpToTwoToTheTwentyOne() {
+		assertTrue(ExperienceCurve.exactProgressFits(1));
+		assertTrue(ExperienceCurve.exactProgressFits(1 << 21));
+		assertFalse(ExperienceCurve.exactProgressFits((1 << 21) + 1));
+		assertFalse(ExperienceCurve.exactProgressFits(MAX));
+		assertTrue(ExperienceSection.MAX_FIXED_POINTS_PER_LEVEL <= ExperienceCurve.EXACT_PROGRESS_LIMIT,
+				"every configurable fixed cost must be exact");
+	}
+
+	@Test
+	void readPointsClampsBadProgress() {
+		assertEquals(0, ExperienceCurve.readPoints(-0.5F, 112));
+		assertEquals(111, ExperienceCurve.readPoints(1.0F, 112));
+		assertEquals(111, ExperienceCurve.readPoints(7.0F, 112));
+		assertEquals(0, ExperienceCurve.readPoints(Float.NaN, 112));
 	}
 }

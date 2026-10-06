@@ -161,6 +161,10 @@ Total points at level L (L ≥ 30) = `1395 + 112 × (L − 30)`. 1395 is vanilla
 - No admin level cap (owner, 2026-10-06). The only limit is `Integer.MAX_VALUE`, and a level never wraps negative.
   The service clamps points-to-next to `[1, Integer.MAX_VALUE]`. That also fixes vanilla's own overflow: `112 + 9(L − 30)`
   goes negative near L ≈ 238.6M, and the client then hides the XP bar.
+- Points into a level are exact. Vanilla stores progress as the float `p/n`, and `floor(progress × n)` can read it
+  back one short, so 29 + 157 points lands on 30 + 49. `giveExperiencePoints` keeps its vanilla body, then snaps to
+  the exact total and stores the smallest float `f` with `f × n ≥ p`, which every vanilla reader floors to `p`. `/xp set points` stores the same
+  form. Old `p/n` saves read correctly.
 - Death drop stays vanilla (`min(7 × level, 100)` points) unless configured otherwise.
 
 ### Config

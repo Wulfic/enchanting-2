@@ -246,7 +246,8 @@ bar only if the result is `> 0`). Everything else uses levels only and needs no 
 `/xp add levels`; already `IntMath.saturatedAdd`, so it never wraps), `setExperienceLevels`, `onEnchantmentPerformed`,
 `getBaseExperienceReward` (death drop `min(7L, 100)`, stays vanilla per DESIGN), `restoreFrom`/`PlayerList.respawn`
 (keepInventory copies the three fields), the XP packet, `Gui`, `EnchantmentMenu`, `AnvilMenu`, `PlayerPredicate`.
-`totalExperience` is the score, not curve state (vanilla clamps it at `Integer.MAX_VALUE`).
+`totalExperience` is the score, not curve state. **Correction (3B.7):** vanilla does `clamp(total + amount, 0, MAX)` with
+an `int` add, so at MAX it wraps negative and resets to 0. It doesn't clamp at MAX.
 **Vanilla bug fixed on the way:** `112 + 9(L − 30)` overflows `int` near L ≈ 238.6M. The needed points go negative, and
 the client hides the bar. The service clamps to `[1, Integer.MAX_VALUE]`.
 **Approach:** one `@Inject(HEAD, cancellable)` on `getXpNeededForNextLevel` (not an `@Overwrite`, so other mods' injects
@@ -274,21 +275,49 @@ mod keeps every stored level (DESIGN §2a).
       round-trip `fromTotal(totalPoints(x)) == x` over a spread of levels including both sides of 30 and near MAX.
       Done: 12 tests, sums brute-force checked past the clamp level. Mutation: dropping the clamp fails 4.
 
-### Stage 3B — Wiring → commit
-- [ ] 3B.1 `experience/PlayerExperience` (main, MC side): `section(Player)` (server holder or client source) and
+### Stage 3B — Wiring → commit  ✅ 2026-10-06 (except the owner HUD check in 3B.6)
+- [x] 3B.1 `experience/PlayerExperience` (main, MC side): `section(Player)` (server holder or client source) and
       `setClientSource(Supplier<ExperienceSection>)`. Default client source = the vanilla curve.
-- [ ] 3B.2 `mixin/PlayerMixin` (`getXpNeededForNextLevel` → `ExperienceCurve.pointsToNext`), registered in
+- [x] 3B.2 `mixin/PlayerMixin` (`getXpNeededForNextLevel` → `ExperienceCurve.pointsToNext`), registered in
       `enchanting2.mixins.json`. `Enchanting2Client` sets the client source from `ClientConfigState.serverCopy()`.
-- [ ] 3B.3 GameTests `ExperienceGameTest` (mock `ServerPlayer`, default config): needed = 112 at 30/31/49/99/9999;
+- [x] 3B.3 GameTests `ExperienceGameTest` (mock `ServerPlayer`, default config): needed = 112 at 30/31/49/99/9999;
       `/xp set points` path (`setExperiencePoints`) and query (`floor(progress × needed)`) above 30; points across the 30
       boundary land on the right level + points; spending levels from 40 → 25; level near `Integer.MAX_VALUE` + points →
       `MAX`, never negative, needed > 0.
-- [ ] 3B.4 Add-then-remove N points is lossless (level and floor points equal before and after), from mid-level above
+      The 30 crossing failed (29 + 157 points → 30 + **49**, expected 50) until 3B.7. It's float drift, same root
+      cause as 3B.4.
+      Also: `ConfigWiringGameTest`'s reload test moved to its own environment `enchanting2:config_reload`, so it runs
+      in its own batch and never changes the live config under these tests.
+- [x] 3B.4 Add-then-remove N points is lossless (level and floor points equal before and after), from mid-level above
       and below 30. If it fails because of float progress, stop and plan the exact-math sub-step.
-- [ ] 3B.5 Death: `restoreFrom(old, false)` with keepInventory on (level/progress copied) and off (reset to 0). The
+      **Failed: 3 of 20 cases lose 1 point** (fixed by 3B.7). +/-10000 at 20+10 → 20+9. +/-500 and +/-10000 at 1000+111 → 1000+110.
+- [x] 3B.5 Death: `restoreFrom(old, false)` with keepInventory on (level/progress copied) and off (reset to 0). The
       gamerule is restored in `finally`. Save/reload: `saveWithoutId` → `load` into a fresh player at level 2,000,000,000
       with progress → identical.
-- [ ] 3B.6 `./gradlew build` green. state.md, gotchas if any. Owner check added to the 1.6 `runClient` list: HUD at level
+- [x] 3B.7 **Exact XP via TAIL snap (owner chose TAIL snap over HEAD cancel / waive, 2026-10-06).** Vanilla has the
+      same drift: 20+10 is all vanilla curve, and 29→30 uses vanilla's own 107/112. The cause: progress is a float,
+      and `floor(progress × needed)` reads `p/n` back as `p − ε`.
+      The vanilla body still runs, so other mods' injects into `giveExperiencePoints` keep working.
+      - [x] a. `ExperienceCurve` (pure): `readPoints(progress, n)` = `floor(progress × n + 0.25)` clamped to `[0, n−1]`.
+        It reads both stored forms, vanilla's `p/n` and ours. `storedProgress(p, n)` = the smallest float `f` with `f × n ≥ p`
+        (first tried `(p + 0.5)/n`: exact, but the bar sat half a point ahead, ~13 px at level 0).
+        `exactProgressFits(n)` is `n ≤ 2^21`. JUnit: for every n in 1..2000 and sampled n up to 2^21, for every p,
+        vanilla `floor(stored × n)` gives `p`, and `readPoints` of both forms gives `p`. Above 2^21 it reports false.
+      - [x] b. `PlayerMixin`, HEAD of `giveExperiencePoints`: record the exact total
+        (`totalPoints(level) + readPoints`), or −1 when n doesn't fit. TAIL: skip if −1 or `amount == 0`. Target =
+        `fromTotal(max(0, before + amount))`. If the target n fits, apply the level delta via `giveExperienceLevels(Δ)`
+        (sound plus resync) and store `storedProgress`. If progress changed on a `ServerPlayer`, set `lastSentExp = −1`.
+        Vanilla only syncs when `totalExperience` changes, so without this the client goes stale while the total is
+        clamped at 0.
+      - [x] c. `ServerPlayerMixin`: `@Accessor lastSentExp` (get/set). `setExperiencePoints` at `RETURN` (catches the
+        early return too) stores `storedProgress(clamp(points, 0, n−1), n)` when n fits.
+      - [x] d. GameTests: 3B.3 crossing + 3B.4 go green with the asserts unchanged. New: a legacy `p/n` progress at 20+10
+        gets +1 → 20+11. With `totalExperience` clamped at 0, removing points sets `lastSentExp` to −1. (At MAX it
+        wraps to 0; see gotchas.)
+      - [x] e. DESIGN §3 Implementation bullet. decisions.md entry. gotchas: the `totalExperience` sync gap.
+      Fallback: no snap when n > 2^21 (vanilla curve past level ~233k only; config caps the fixed cost at 1,000,000).
+      Not doing: replacing the vanilla body; touching `increaseScore` / the `totalExperience` clamp.
+- [x] 3B.6 `./gradlew build` green (73 JUnit + 18 GameTests). state.md, gotchas if any. Owner check added to the 1.6 `runClient` list: HUD at level
       ~1,000,000 shows the bar and the right number.
 
 ## Phase 4 — Enchantment rules engine

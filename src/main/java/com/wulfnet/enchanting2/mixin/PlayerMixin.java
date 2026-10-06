@@ -1,0 +1,83 @@
+package com.wulfnet.enchanting2.mixin;
+
+import com.wulfnet.enchanting2.config.ExperienceSection;
+import com.wulfnet.enchanting2.experience.ExperienceCurve;
+import com.wulfnet.enchanting2.experience.ExperienceCurve.Position;
+import com.wulfnet.enchanting2.experience.PlayerExperience;
+import net.minecraft.world.entity.player.Player;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+/**
+ * DESIGN §3. Every points-to-next read goes through {@code getXpNeededForNextLevel} (javap audit in TODO.md Phase 3).
+ * A cancellable HEAD inject rather than an {@code @Overwrite}, so other mods' injects on it still run.
+ * <p>
+ * {@code giveExperiencePoints} keeps its vanilla body, so other mods' injects there still run too. Its float math
+ * drifts by a point, so the TAIL snaps level and progress to the exact total recorded at HEAD (decisions.md,
+ * 2026-10-06). A nested call (another mod giving points from inside it) clears the record, and the outer call then
+ * keeps vanilla's result.
+ */
+@Mixin(Player.class)
+abstract class PlayerMixin {
+	@Shadow
+	public int experienceLevel;
+
+	@Shadow
+	public float experienceProgress;
+
+	/** Exact total points at HEAD of {@code giveExperiencePoints}; -1 when there is nothing to snap to. */
+	@Unique
+	private long enchanting2$totalBefore = -1;
+
+	@Shadow
+	public abstract void giveExperienceLevels(int levels);
+
+	@Inject(method = "getXpNeededForNextLevel", at = @At("HEAD"), cancellable = true)
+	private void enchanting2$pointsToNext(CallbackInfoReturnable<Integer> cir) {
+		Player self = (Player) (Object) this;
+		cir.setReturnValue(ExperienceCurve.pointsToNext(PlayerExperience.section(self), experienceLevel));
+	}
+
+	@Inject(method = "giveExperiencePoints", at = @At("HEAD"))
+	private void enchanting2$recordTotal(int amount, CallbackInfo ci) {
+		ExperienceSection section = PlayerExperience.section((Player) (Object) this);
+		int needed = ExperienceCurve.pointsToNext(section, experienceLevel);
+		enchanting2$totalBefore = ExperienceCurve.exactProgressFits(needed)
+				? ExperienceCurve.totalPoints(section,
+						new Position(experienceLevel, ExperienceCurve.readPoints(experienceProgress, needed)))
+				: -1;
+	}
+
+	@Inject(method = "giveExperiencePoints", at = @At("TAIL"))
+	private void enchanting2$snapToExact(int amount, CallbackInfo ci) {
+		long before = enchanting2$totalBefore;
+		enchanting2$totalBefore = -1;
+		if (before < 0 || amount == 0) {
+			return;
+		}
+		ExperienceSection section = PlayerExperience.section((Player) (Object) this);
+		Position target = ExperienceCurve.fromTotal(section, before + amount);
+		int needed = ExperienceCurve.pointsToNext(section, target.level());
+		if (!ExperienceCurve.exactProgressFits(needed)) {
+			return;
+		}
+		if (target.level() != experienceLevel) {
+			// Both are in [0, MAX], so the difference fits an int. This plays the level-up sound and, on a
+			// ServerPlayer, resyncs the client.
+			giveExperienceLevels(target.level() - experienceLevel);
+		}
+		float progress = ExperienceCurve.storedProgress(target.pointsIntoLevel(), needed);
+		if (progress != experienceProgress) {
+			experienceProgress = progress;
+			// Vanilla only syncs when totalExperience changes, and removing points while it is 0 leaves it at 0.
+			if ((Object) this instanceof ServerPlayerAccessor server) {
+				server.enchanting2$setLastSentExp(-1);
+			}
+		}
+	}
+}

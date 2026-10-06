@@ -61,9 +61,11 @@ public class ConfigWiringGameTest {
 
 	/**
 	 * One sequence, because every step edits the shared config file. It runs inside the GameTest run dir, which
-	 * {@code clearRunDirectory} wipes, and it refuses to run anywhere else.
+	 * {@code clearRunDirectory} wipes, and it refuses to run anywhere else. It runs in its own environment because batches
+	 * are grouped by environment and run one at a time. Otherwise tests that read the live config (ExperienceGameTest)
+	 * would see this test's temporary values.
 	 */
-	@GameTest(maxTicks = 1200)
+	@GameTest(maxTicks = 1200, environment = "enchanting2:config_reload")
 	public void reloadRereadsTheFileAndKeepsThePreviousConfigOnGarbage(GameTestHelper helper) {
 		MinecraftServer server = helper.getLevel().getServer();
 		Path file = ServerConfigs.commonFile();

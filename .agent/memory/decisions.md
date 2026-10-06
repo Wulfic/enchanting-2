@@ -359,3 +359,19 @@ MAX without wrapping. Only points-to-next needs a clamp (vanilla's formula overf
 rewritten (2A guard); delete it and boot to regenerate.
 **Affects:** src/main/java/com/wulfnet/enchanting2/config/ExperienceSection.java, src/client/.../client/ConfigScreen.java,
 lang/en_us.json, docs/DESIGN.md §3
+
+## 2026-10-06 — Exact XP points: TAIL snap on `giveExperiencePoints`, stored as the smallest float ≥ `p/n`
+**Context:** 3B GameTests showed vanilla's float progress loses a point. 29 + 157 → 30 + 49, and some add/remove round
+trips come back one short. DESIGN §3 makes "add-then-remove is lossless" an acceptance criterion.
+**Choice:** (owner) TAIL snap. HEAD records the exact total. The vanilla body runs unchanged. TAIL resets level and
+progress to `ExperienceCurve.fromTotal(before + amount)` and stores progress as the smallest float `f` with `f × n ≥ p`. That form floors to `p`
+under vanilla's `floor(progress × n)` for any n ≤ 2^21, overshoots by ≤ 0.125 points, and is exactly 0 at 0 points. Our reader, `floor(progress × n + 0.25)`, accepts both it and
+vanilla's `p/n`, so existing saves read correctly.
+**Why:** Exact, and other mods' injects into `giveExperiencePoints` (XP multipliers, Mending redirects) still run.
+**Rejected:** HEAD cancel replacing the body: simpler, but it skips other mods' later injects without any error.
+Waiving the criterion: it leaves vanilla's ±1 drift and needs a DESIGN change.
+Storing `(p + 0.5)/n`: also exact, but the bar draws half a point ahead, about 13 px of fill at level 0 with 0 XP.
+**Trade-off accepted:** two injects instead of one. If the snap moves the level, the level-up sound plays from our
+`giveExperienceLevels(Δ)` call. No snap when n > 2^21 (vanilla curve past ~233k only).
+**Affects:** src/main/java/com/wulfnet/enchanting2/experience/ExperienceCurve.java, mixin/PlayerMixin.java,
+mixin/ServerPlayerMixin.java
