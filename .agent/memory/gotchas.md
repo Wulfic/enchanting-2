@@ -75,3 +75,15 @@ rule that silently doesn't load is indistinguishable from one that doesn't match
 class of invisible-failure problem that got `mem0` dropped. Probe with a real command
 rather than assuming the rules are live.
 **Affects:** `.claude/settings.json`, `.claude/skills/guard-destructive/SKILL.md`
+
+## 2026-10-06 — Fortune "not working" on most blocks is a vanilla anti-duplication design
+**Symptom:** Fortune does nothing on logs, sand, dirt, etc., which looks like a bug to fix.
+**Cause:** Multiplying a block that drops itself (or drops something that crafts back into
+it) is an infinite loop: mine 1, get 3, place them, mine again. Vanilla caps melon at
+9 slices and glowstone at 4 dust, exactly one block's worth, for this reason. Silk Touch +
+Fortune on ores is the same loop.
+**Fix:** Don't multiply self-drops. Add non-placeable byproduct drops instead (DESIGN §6,
+Q13), and keep any loop-creating mode behind an off-by-default toggle with a warning.
+**Dead ends:** A blocklist of storage blocks only. It misses plain self-dropping blocks
+(logs, sand), which loop just as well.
+**Affects:** DESIGN.md §4, §6; Phase 8

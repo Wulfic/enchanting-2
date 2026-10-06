@@ -127,3 +127,103 @@ an extra installed artifact per clone and silently rewrites messages; revisit on
 trailer still slips through.
 **Affects:** `.claude/settings.json`, `.claude/skills/git-github/SKILL.md`,
 `.github/skills/git-github/SKILL.md`
+
+## 2026-10-06 — Enchantment 2: platform, mappings, config stack
+**Context:** Starting a Fabric 1.21.11 mod (Enchantment 2). Needed mappings, a config format,
+and a Mod Menu screen without making dedicated servers carry GUI libraries.
+**Choice:** Mojang official mappings. Mod ID `enchantment2`, package
+`com.wulfnet.enchantment2`, private repo, 1.21.11 only for v1. Config is JSON5 via Jankson
+(bundled jar-in-jar); the screen is Mod Menu + YACL, both optional client dependencies.
+**Why:** 1.21.11 is the last Yarn release and 26.x is unobfuscated Mojang names, so Mojang
+mappings turn the planned 26.x port into a version bump instead of a rename. Keeping config
+I/O off YACL means the server needs only Fabric API, and a missing GUI library degrades to
+file-only config instead of a crash.
+**Rejected:** Yarn (dead end after 1.21.11). YACL as the config serializer (would make it a
+hard server dependency). Cloth Config (works with Mod Menu too; YACL is the more actively
+maintained of the two on recent versions). Targeting 26.x now (owner: finish and test on
+1.21.11 first).
+**Affects:** `build.gradle`, `gradle.properties`, `src/main/java/.../config/`, `src/client/`
+
+## 2026-10-06 — Enchantment 2: vanilla enchantments modified via EnchantmentEvents.MODIFY
+**Context:** Need higher max levels and relaxed exclusive sets on vanilla enchantments.
+In 1.21.x enchantments are data-driven registry entries.
+**Choice:** Fabric API `EnchantmentEvents.MODIFY` edits the builder at registry load; we ship
+no override JSON for vanilla IDs.
+**Why:** Override JSONs replace the whole definition and silently clobber other mods' and
+datapacks' changes. MODIFY layers on top. The registry syncs to clients, so the new limits
+display correctly without a custom packet.
+**Rejected:** Shipping replacement `data/minecraft/enchantment/*.json` (clobbers others).
+Mixins into enchantment logic (data already covers it).
+**Affects:** `enchantment/ConflictFamilies`, DESIGN.md §2, §4, §8
+
+## 2026-10-06 — Enchantment 2: cost model and table design
+**Context:** The rough plan's cost section contradicted itself (1 base level vs. 2 per level
+vs. an Efficiency base of 5). The vanilla table is random and opaque.
+**Choice:** Default 0 base + 1 XP level per enchantment level. Mending = base 2 + 2 × other
+non-curse levels, defined as `2 × O_out` when newly added and `2 × (O_out − O_in)` when
+already present, so cost is independent of build order. Lapis = min(enchant cost, 64), at
+both table and anvil. Table is a deterministic picker listing every applicable enchantment,
+Mending included. Vanilla bookshelf rules are kept: power tier = 1 + floor(shelves×4/15), and
+15 shelves unlocks max levels. Silk Touch beats Fortune by default, with a config toggle.
+**Why:** The owner wants Mending to be "properly expensive". Order independence stops players
+gaming it by applying Mending first. Keeping vanilla shelf rules means existing builds work
+unchanged. Fortune multiplying silk-touched ore is an infinite duplication loop, so it's
+opt-in only.
+**Rejected:** Mending as a FIXED 2 (from the draft; contradicts the owner's worked examples).
+A surcharge only on levels added in the same operation (order-dependent and exploitable).
+Keeping the random 3-offer table (owner wants readable, chosen enchantments).
+**Affects:** `enchanting/CostModel`, enchanting table menu/screen, anvil mixin, DESIGN.md §5–6
+
+## 2026-10-06 — Enchantment 2: max levels raised to 5 with exceptions
+**Context:** Owner asked for "max 5 where applicable" and deferred edge cases to the agent.
+**Choice:** All multi-level vanilla enchantments go to 5, except Depth Strider (stays 3)
+and Quick Charge (4). Lure and Riptide go to 5 conditionally on a GameTest.
+**Why:** Depth Strider's water-movement attribute is already at full effect at level 3, so
+levels 4–5 would cost XP for nothing. Quick Charge 5 means zero charge time, which has
+historically broken crossbows. Lure and Riptide are plausible but unverified on 1.21.11.
+**Rejected:** A blanket 5 (ships no-op and broken levels).
+**Affects:** DESIGN.md §8, Phase 4.4 tests
+
+## 2026-10-06 — Enchantment 2: lapis only where vanilla uses it (amends the cost-model entry)
+**Context:** The cost-model entry above said lapis is charged at both the table and the anvil.
+The anvil has no lapis slot, so that needed a new UI or a hidden inventory pull.
+**Choice:** Lapis is charged only at the enchanting table (1 per XP level of enchant cost,
+capped at 64). The anvil never costs lapis.
+**Why:** Owner: "only require lapis where vanilla required it." No new UI, and no surprise
+inventory drain.
+**Rejected:** Pulling lapis from the player's inventory at the anvil (invisible cost).
+Adding a third anvil slot (larger UI change for no gameplay gain).
+**Affects:** `enchanting/CostModel`, anvil mixin, DESIGN.md §5
+
+## 2026-10-06 — Enchantment 2: Fortune multiplies natural blocks, gated by a placed-block tracker
+**Context:** The owner wants Fortune to work on axes, shovels and hoes (option B: multiply the
+block's own drop). On its own that's the infinite place-and-mine loop vanilla avoids (see
+gotchas.md).
+**Choice:** Fortune multiplies blocks in `fortune_multiplies/<tool>` tags, but only natural
+ones. A placed-block tracker, ported from mcMMO-Singleplayer's `PlacedBlockTracker` +
+`BlockRules`, marks hand-placed, piston-moved, falling-block-landed, generator-formed and
+golem-formed blocks as ineligible. Stored per chunk via the Fabric Data Attachment API.
+Fails closed. Ancient debris is hard-excluded.
+**Why:** The owner's mcMMO port already proved the pattern, including the three-pass piston
+move. Per-chunk storage scales to multiplayer servers. Failing closed is required because
+the failure here is item duplication, not a free XP payout.
+**Rejected:** Option A, byproduct-only bonus drops (owner preferred B). mcMMO's single
+world-wide file (fine for singleplayer, but unbounded memory and rewrites on a busy server).
+mcMMO's fail-open behavior (a duplication bug, not a harmless XP payout). Ignoring falling
+blocks (mcMMO doesn't need it, but sand and gravel are in our shovel tag, so ignoring them
+launders placed blocks).
+**Affects:** `compat/PlacedBlockTracker`, Fortune loot hook, DESIGN.md §6, TODO Phase 8
+
+## 2026-10-06 — Enchantment 2: curses are a discount, removable at a repay cost
+**Context:** A deterministic table means nobody would choose a curse, so curses would only be
+a loot punishment.
+**Choice:** Each curse on the result item discounts `enchant_cost` by its `discount_percent`
+(cap 45%, rounds up). Curses are offered at the table as optional picks with a negative cost
+line. The grindstone Cleanse mode removes one for max(30, the discount it earned on the
+item's current enchantments). New curses: Fragility, Weight, Greed, Fumbling, Hunger.
+**Why:** It turns curses into a real trade-off that fits the transparent cost model. The
+repay-the-discount removal cost stops "curse → enchant cheap → cleanse" being a free
+discount on expensive Mending builds.
+**Rejected:** A flat removal cost only (exploitable on large builds). Curses on loot in
+exchange for over-cap levels (max levels are the design's hard ceiling).
+**Affects:** `enchanting/CostModel`, grindstone mixin, table screen, DESIGN.md §5a, §6
