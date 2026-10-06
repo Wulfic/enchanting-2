@@ -139,3 +139,11 @@ guessing names from older versions' docs.
 **Fix:** take tag names from the jar (`data/minecraft/tags/item/enchantable/`). Phase 10 enchantment JSON needs a
 GameTest/dev-server boot for exactly this reason.
 **Affects:** Phase 10 data enchantments
+
+## 2026-10-06 — `EnchantmentEvents.MODIFY` runs before any `MinecraftServer` exists (unverified: `/reload`)
+**Symptom:** (anticipated while planning Phase 2) a per-server config holder can't feed `MODIFY`.
+**Cause:** in 1.21.x enchantments are a dynamic registry, loaded with the world's datapacks before the server object
+is built (dedicated: in `Main`; integrated: in `WorldOpenFlows`). They're probably not reloaded by `/reload` either.
+**Fix:** Phase 4 code reads the config file directly in `MODIFY`. TODO 4.0 probes `/reload` on the dev server before
+DESIGN §2's "requires /reload or restart" is trusted.
+**Affects:** Phase 4, DESIGN §2

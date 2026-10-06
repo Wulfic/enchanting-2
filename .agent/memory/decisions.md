@@ -285,3 +285,22 @@ Per-server state only (no statics). Modded client on a vanilla server = vanilla.
 **Rejected (Fortune on old chunks):** "no bonus in pre-install chunks". It permanently kills Fortune around spawn
 and the base. A config toggle was more code for a case the owner doesn't care about.
 **Affects:** docs/DESIGN.md §2a, all phases
+
+## 2026-10-06 — Phase 2 config: who edits, when it reloads, how files are written
+**Context:** Phase 2 planning. Needed to decide in-game editing rights, how a running server picks up edits, and how
+code that writes config files avoids destroying an admin's hand edits.
+**Choice:** (owner) Only the SP/LAN host edits in-game. On a dedicated server the screen is read-only for everyone,
+ops included, and there is no C2S write packet. (owner) A running server re-reads the config on vanilla `/reload`
+(`END_DATA_PACK_RELOAD`, success only). (owner) Losing `enchanting2:` enchantments on uninstall is accepted and
+documented, with no restore mirror. (agent) The loader writes a file only when it is absent and never rewrites an
+existing one, including invalid or future-schema files. The GUI save backs up to `.bak`, verifies the copy, then
+writes temp + atomic move. An unparseable file on `/reload` keeps the previous config. Each phase adds its own keys.
+Config lives on the `MinecraftServer` through a duck-interface mixin. Sync sends strict-JSON text.
+**Why:** No remote write path means nothing to secure. `/reload` is the one command admins already know. A loader
+that "fixes" files would erase comments and the admin's intent on every typo. Falling back to defaults mid-game on a
+typo would silently reset a live server. Keys with no behavior behind them would ship dead toggles in the GUI.
+**Rejected:** op editing via C2S (more surface and tests for a convenience). A custom `/enchanting2 reload` command
+(a second command to learn). A file watcher. A restore mirror in `custom_data` (every enchant/extract path must
+keep it in sync, which is a dupe risk). A static config holder (breaks integrated-server world switching, §2a).
+**Affects:** src/main/java/com/wulfnet/enchanting2/config/, mixin/MinecraftServerMixin, network/ConfigSyncPayload,
+src/client/.../client/, DESIGN §2 Config

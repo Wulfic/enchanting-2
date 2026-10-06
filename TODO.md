@@ -120,18 +120,79 @@ from the example mod; the wrapper jar is checked against Gradle's published SHA-
       **Result:** items survive. Only the unknown enchantment is dropped (WARN). See gotchas.md and DESIGN §2a.
       Still to check: player inventory, at the 1.6 `runClient` check.
 
-## Phase 2 — Config system
-**Goal:** validated JSON5 config, synced server→client, editable from Mod Menu.
-- [ ] 2.1 `config/` model: `CommonConfig`, `ClientConfig`, `EnchantmentOverrides`, `schema_version`
-- [ ] 2.2 Loader + validator on Jankson (bundled jar-in-jar, no GUI dependency on the server):
-      invalid value → default + WARN log (key, bad value, default)
-- [ ] 2.3 Unit tests: missing file, malformed file, out-of-range value, unknown enchantment ID,
-      future schema_version
-- [ ] 2.4 `network/ConfigSyncPayload` S2C on join; client keeps the server copy separately
-- [ ] 2.5 `client/` Mod Menu + YACL screen (both optional; guarded by `isModLoaded`), read-only
-      when connected to a remote server, "requires /reload" hint on registry-affecting keys.
-      Includes the `silk_fortune_mode` toggle with its duplication warning.
-- [ ] 2.6 GameTest/integration: a client-side edit cannot change server behavior
+## Phase 2 — Config system (Tier 2: three stages, one commit each)
+**Goal:** validated JSON5 config, owned per `MinecraftServer`, reloaded on `/reload`, synced
+server→client, editable from Mod Menu by the SP/LAN host only.
+**Owner answers (2026-10-06):** in-game editing is for the SP/LAN host only. On a dedicated server
+the screen is read-only, ops included, and there's no C2S write packet. A running server picks up
+file edits on vanilla `/reload`. Removal losing `enchanting2:` enchantments is accepted and documented.
+**Approach:** pure-Java core (`config/`, no MC imports) so the JUnit tests run without
+`fabric-loader-junit`. Then thin server wiring, then the client screen.
+Each later phase adds **its own** config section and keys along with the code that reads them.
+Phase 2 ships only the framework plus the `experience` section (DESIGN §3, consumed in Phase 3).
+**Not doing:** keys for Phases 4–10 (they land with their behavior. `silk_fortune_mode` → Phase 8,
+registry "requires restart" hints → Phase 4). No `client.json5` until a phase needs a client-only key.
+No op editing over the network. No file watcher. No migration code (schema 1 is the first).
+**Blast radius:** the code writes files in `config/enchanting2/`, so its guards are part of the work:
+- the loader writes **only when the file is absent**. It never rewrites an existing file, including
+  invalid or future-version ones.
+- the GUI save (SP host) copies the current file to `<name>.json5.bak`, checks the copy byte for byte,
+  then writes a temp file and does an atomic move. It refuses to save over a `schema_version` newer
+  than it understands.
+- an unparseable file on `/reload` keeps the previous in-memory config (WARN). It doesn't silently
+  fall back to defaults mid-game.
+Repo-side: additive. The only edits to existing files are `build.gradle`, `gradle.properties`,
+`fabric.mod.json`, the mixin json and `Enchanting2*.java`.
+**Rollback:** `git revert <stage commit>` per stage. Runtime: the `.bak` restores the previous config
+(`mv run/client/config/enchanting2/common.json5.bak run/client/config/enchanting2/common.json5`).
+
+### Stage 2A — Core (pure Java, no MC classes) → commit
+- [ ] 2A.1 `build.gradle`: `include implementation "blue.endless:jankson:${jankson_version}"`
+      (jar-in-jar). First confirm the Maven coordinates with research-docs.
+- [ ] 2A.2 `config/ConfigIssue` (key, bad value, default, reason) and `config/ConfigReader`
+      (typed reads on a Jankson `JsonObject`: `int(key, def, min, max)`, `bool`, `enumValue`). Collects
+      issues and flags unknown keys (typo detection).
+- [ ] 2A.3 `config/ExperienceSection` record (the §3 keys, defaults and ranges) and `config/CommonConfig`
+      record (`schema_version`, `experience`). `CommonConfig.defaults()`.
+- [ ] 2A.4 `config/EnchantmentOverrides`: map keyed by enchantment ID from `enchantments.json5`. Rejects
+      malformed IDs. Unknown IDs are checked later through an injected `Predicate<String> isKnown`
+      (the registry exists only at runtime). Entries have no fields yet; Phase 4/5/9 add them.
+- [ ] 2A.5 `config/ConfigFiles`: `load(path)` → `LoadResult(config, issues, source = FILE|DEFAULTS_WRITTEN|
+      DEFAULTS_UNPARSEABLE, futureSchema)`, `writeDefaultsIfAbsent`, `saveWithBackup`. JSON5 with comments.
+- [ ] 2A.6 JUnit `ConfigFilesTest` (temp dir): missing → defaults written; malformed → defaults and the
+      file is **byte-identical** afterwards; one out-of-range key → only that key defaults; wrong type;
+      unknown key; future `schema_version` → best-effort load + save refused, file untouched; defaults
+      round-trip with zero issues; `saveWithBackup` → `.bak` equals the old bytes; malformed and
+      unknown enchantment IDs.
+
+### Stage 2B — Server wiring → commit
+- [ ] 2B.1 `mixin/MinecraftServerMixin` + `config/ServerConfigHolder` duck interface: config lives on the
+      server instance (DESIGN §2a, no statics). Loaded at `SERVER_STARTING`, every issue logged as WARN.
+- [ ] 2B.2 `/reload`: `END_DATA_PACK_RELOAD` (success only) re-reads the files. Unparseable → keep the
+      previous config + WARN. Then re-sync to every player.
+- [ ] 2B.3 `network/ConfigSyncPayload` S2C (strict-JSON text of `CommonConfig`, length-capped on decode),
+      sent on join and after `/reload`.
+- [ ] 2B.4 Vanilla client → disconnect at join with a message naming the mod (`canSend` false; DESIGN §2a).
+      First check with research-docs whether the configuration phase is the right hook.
+- [ ] 2B.5 GameTests: the holder is non-null and matches the file. The payload codec round-trips.
+      `/reload` with a bad value → that key defaults and nothing else changes.
+- [ ] 2B.6 Dev server (`scripts/dev-server-smoke.sh`): first boot writes defaults. A bad value + `/reload`
+      → WARN names the key. Unparseable + `/reload` → previous config kept.
+
+### Stage 2C — Client → commit
+- [ ] 2C.1 `build.gradle`: Mod Menu + YACL as `modCompileOnly` + `modLocalRuntime` (mcMMO-Singleplayer
+      pattern). `fabric.mod.json` `suggests`, `modmenu` entrypoint. Confirm the repo URLs with research-docs.
+- [ ] 2C.2 `client/ClientConfigState`: the server copy (cleared on disconnect), kept apart from the local
+      file. Pure resolver `effective(connection, local, serverCopy)`: remote → server copy (or vanilla if the
+      server never sent one), SP/LAN host → own file.
+- [ ] 2C.3 `client/ModMenuIntegration` → `client/ConfigScreen` (YACL). Only class-loaded when
+      `isModLoaded("yet_another_config_lib_v3")`. Without YACL: Mod Menu shows no screen, no crash.
+      Remote → every option read-only, with a "server-controlled" banner.
+      SP/LAN host → `saveWithBackup`, then apply on the server thread (`server.execute`), then re-sync.
+- [ ] 2C.4 JUnit: the resolver never returns the local file on a remote connection. Covers the old 2.6
+      ("a client-side edit cannot change server behavior") together with the absence of any C2S config path.
+- [ ] 2C.5 Owner check in `runClient` (folded into the 1.6 check): screen opens, SP edit persists and makes
+      a `.bak`, LAN guest sees read-only.
 
 ## Phase 3 — Experience curve
 **Goal:** DESIGN §3 acceptance list passes.
@@ -147,6 +208,10 @@ from the example mod; the wrapper jar is checked against Gradle's published SHA-
 ## Phase 4 — Enchantment rules engine
 **Goal:** applicability is mandatory, conflict families are configurable, max levels are
 overridden, and duplicate IDs can't occur.
+- [ ] 4.0 Probe (dev server): does `/reload` re-run `EnchantmentEvents.MODIFY`? Enchantments are
+      likely a world-load registry, so probably not, and max-level/conflict keys then need a restart.
+      `MODIFY` runs before the `MinecraftServer` exists, so it reads the config file through
+      `ConfigFiles.load`, not the server holder. Fix DESIGN §2 ("/reload or restart") and the screen hint to match.
 - [ ] 4.1 `enchantment/ConflictFamilies` + `EnchantmentEvents.MODIFY` hook: relax
       `exclusive_set` per config, apply `max_level_override`
 - [ ] 4.2 `enchantment/EnchantRules`: `canApply(item, ench, level) → Result(reason)`, the one
@@ -194,7 +259,8 @@ overridden, and duplicate IDs can't occur.
 - [ ] 7.5 GameTests: forged C2S payloads (inapplicable enchant, over max, unaffordable) are rejected
 
 ## Phase 8 — Conflict effect resolution + Fortune on all tools
-- [ ] 8.1 Silk/Fortune behavior per Q5 (loot-table modification, not item hacks)
+- [ ] 8.1 Silk/Fortune behavior per Q5 (loot-table modification, not item hacks). Adds the
+      `silk_fortune_mode` key and its screen toggle with the duplication warning (moved from Phase 2).
 - [ ] 8.2 Damage-family stacking, Protection family (keep EPF cap), Mending + Infinity
 - [ ] 8.3 Riptide/Loyalty/Channeling per Q11
 - [ ] 8.4 `compat/PlacedBlockTracker`: MC-free core ported from

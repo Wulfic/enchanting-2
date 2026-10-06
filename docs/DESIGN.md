@@ -80,6 +80,13 @@ of a rename across the whole codebase.
   to its default and logs a WARN naming the key, the bad value and the default.
 - Gameplay config syncs to clients on join (S2C packet). On a remote server, the client
   screen shows server values read-only.
+- Only the singleplayer/LAN host edits config in-game. On a dedicated server the screen is
+  read-only for everyone, ops included. Admins edit the file, and vanilla `/reload` re-reads it
+  and re-syncs it (owner, 2026-10-06).
+- Our code never rewrites an existing config file on load. An invalid value only produces a WARN.
+  The in-game save keeps a `.bak` of the previous file. An unparseable file on `/reload` keeps
+  the previous config.
+- Each section is added by the phase that implements its behavior, so no key is a dead toggle.
 - Packages: `config`, `experience`, `enchanting`, `anvil`, `enchantment`, `compat`,
   `registry`, `network`, `client`, `mixin`.
 
@@ -106,7 +113,8 @@ without losing anything, and it works the same in singleplayer, LAN and on a ded
 - **New `enchanting2:` enchantments are lost, but their items are kept** (measured on 1.21.11,
   Phase 1.10). Vanilla drops the unknown enchantment from the item and logs a WARN. The item and
   its other enchantments stay. A book holding only new enchantments becomes an empty enchanted
-  book. This is permanent once the chunk saves, so reinstalling won't restore it. Player
+  book. This is permanent once the chunk saves, so reinstalling won't restore it. The owner
+  accepted this on 2026-10-06: it is documented in the README, with no restore mirror. Player
   inventories are expected to behave the same, but that's unmeasured until the `runClient` check.
 
 **Singleplayer, LAN and dedicated servers**
