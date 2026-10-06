@@ -2,7 +2,9 @@
 	"required": true,
 	"package": "com.wulfnet.enchanting2.mixin",
 	"compatibilityLevel": "JAVA_21",
-	"mixins": [],
+	"mixins": [
+		"MinecraftServerMixin"
+	],
 	"injectors": {
 		"defaultRequire": 1
 	}

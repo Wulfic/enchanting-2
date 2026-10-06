@@ -177,6 +177,29 @@ class ConfigParseTest {
 	}
 
 	@Test
+	void strictRenderIsCommentFreeAndRoundTrips() throws SyntaxError {
+		var config = new CommonConfig(new ExperienceSection(false, 12, 345, 6789));
+		String json = ConfigFiles.renderStrict(config, CommonConfig.CODEC);
+		assertFalse(json.contains("//") || json.contains("/*"), json);
+		assertFalse(json.contains("\n"), json);
+		assertEquals(config, ConfigFiles.parseSynced(json, CommonConfig.CODEC));
+	}
+
+	@Test
+	void syncedTextFromANewerServerKeepsKnownKeys() throws SyntaxError {
+		String json = "{\"schema_version\":2,\"experience\":{\"flatten_after_level\":40,\"new_key\":true},"
+				+ "\"new_section\":{}}";
+		var config = ConfigFiles.parseSynced(json, CommonConfig.CODEC);
+		assertEquals(40, config.experience().flattenAfterLevel());
+		assertEquals(ExperienceSection.DEFAULTS.fixedPointsPerLevel(), config.experience().fixedPointsPerLevel());
+	}
+
+	@Test
+	void syncedGarbageThrows() {
+		assertThrows(SyntaxError.class, () -> ConfigFiles.parseSynced("{\"experience\": {", CommonConfig.CODEC));
+	}
+
+	@Test
 	void overridesRecordRejectsMalformedIds() {
 		assertThrows(IllegalArgumentException.class,
 				() -> new EnchantmentOverrides(Map.of("sharpness", new EnchantmentOverrides.Entry())));

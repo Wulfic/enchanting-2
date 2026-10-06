@@ -1,5 +1,7 @@
 package com.wulfnet.enchanting2;
 
+import com.wulfnet.enchanting2.config.ServerConfigs;
+import com.wulfnet.enchanting2.network.ServerNetworking;
 import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +12,9 @@ public final class Enchanting2 implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		ServerNetworking.registerPayloads();
+		ServerNetworking.registerServer();
+		ServerConfigs.register();
 		LOGGER.info("Enchanting 2 initialized");
 	}
 }

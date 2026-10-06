@@ -313,3 +313,16 @@ value ("FIXED"), and `preserve_vanilla_curve_below_threshold: false` had no defi
 A missing key reads as its default, so adding a mode key later doesn't break existing files.
 **Rejected:** Keeping `post_threshold_mode` with FIXED only. Inventing a second curve mode now.
 **Affects:** docs/DESIGN.md §3, src/main/java/com/wulfnet/enchanting2/config/ExperienceSection.java
+
+## 2026-10-06 — Network protocol number in every payload ID; mismatch disconnects at join
+**Context:** Stage 2B adds the first payload and the vanilla-client disconnect. We had to decide what happens when the
+client's Enchanting 2 version differs from the server's.
+**Choice:** (owner) A protocol check. (agent) `NetworkProtocol.VERSION` is part of every payload ID
+(`enchanting2:v1/config_sync`). In the configuration phase the server checks `canSend` for its own config-sync type.
+If that fails, the client's advertised channels decide the message: none in `enchanting2:` means a vanilla client,
+`enchanting2:v<M>/…` means protocol M versus N. Bump `VERSION` only when a payload's wire format changes, not on every release.
+**Why:** Versioned IDs mean mismatched packets can never be decoded against the wrong codec, so there's no garbage
+decode or generic network-error kick. Detection needs no extra handshake packet.
+**Rejected:** exact mod-version match (every patch forces everyone to update at once). No check (Phase 6b/7 C2S
+packets would fail to decode with a generic message). A separate hello packet (one more payload for the same information).
+**Affects:** src/main/java/com/wulfnet/enchanting2/network/

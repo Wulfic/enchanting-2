@@ -5,6 +5,13 @@
 #   scripts/dev-server-smoke.sh                  # boot + stop
 #   scripts/dev-server-smoke.sh commands.txt     # boot, send each line as a console command, stop
 #
+# Lines in the commands file:
+#   <command>          typed into the server console
+#   @sh <shell>        run with bash from the repo root between console commands (dev-only; output to stderr)
+#   @expect <regex>    after the run, the server output must contain a line matching this (grep -E)
+#   @allow-error <re>  an enchanting2 ERROR line matching this is expected, not a failure
+#   # comment, blank   ignored
+#
 # Never kills java by name: another mod's server may be running on this machine (port 25565).
 set -euo pipefail
 
@@ -49,7 +56,12 @@ feed_console() {
 	done
 	if [[ -n "$COMMANDS_FILE" ]]; then
 		while IFS= read -r cmd || [[ -n "$cmd" ]]; do
-			[[ -z "$cmd" || "$cmd" == \#* ]] && continue
+			[[ -z "$cmd" || "$cmd" == \#* || "$cmd" == @expect\ * || "$cmd" == @allow-error\ * ]] && continue
+			if [[ "$cmd" == @sh\ * ]]; then
+				echo "dev-server-smoke: \$ ${cmd#@sh }" >&2
+				bash -c "${cmd#@sh }" >&2 || echo "dev-server-smoke: @sh step failed: ${cmd#@sh }" >&2
+				continue
+			fi
 			echo "$cmd"
 			sleep 1
 		done < "$COMMANDS_FILE"
@@ -73,10 +85,27 @@ fi
 fail=0
 grep -q 'Done (' "$OUT" || { echo "FAIL: server never finished starting" >&2; fail=1; }
 grep -q 'Enchanting 2 initialized' "$OUT" || { echo "FAIL: mod did not initialize" >&2; fail=1; }
-if grep -E '/(ERROR|FATAL)\]' "$OUT" | grep -qi 'enchanting2'; then
+allowed=()
+expected=()
+if [[ -n "$COMMANDS_FILE" ]]; then
+	while IFS= read -r line || [[ -n "$line" ]]; do
+		case "$line" in
+			@allow-error\ *) allowed+=("${line#@allow-error }") ;;
+			@expect\ *) expected+=("${line#@expect }") ;;
+		esac
+	done < "$COMMANDS_FILE"
+fi
+errors=$(grep -E '/(ERROR|FATAL)\]' "$OUT" | grep -i 'enchanting2' || true)
+for re in "${allowed[@]}"; do
+	errors=$(grep -vE -- "$re" <<< "$errors" || true)
+done
+if [[ -n "$errors" ]]; then
 	echo "FAIL: enchanting2 logged errors:" >&2
-	grep -E '/(ERROR|FATAL)\]' "$OUT" | grep -i 'enchanting2' >&2
+	echo "$errors" >&2
 	fail=1
 fi
+for re in "${expected[@]}"; do
+	grep -qE -- "$re" "$OUT" || { echo "FAIL: expected a line matching: $re" >&2; fail=1; }
+done
 (( fail == 0 )) && echo "dev-server-smoke: OK"
 exit $fail

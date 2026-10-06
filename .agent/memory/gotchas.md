@@ -160,3 +160,22 @@ DESIGN §2's "requires /reload or restart" is trusted.
 **Fix:** `ConfigFiles.parse` builds a fresh `Jankson` per call. `ConfigReader.keys()` sorts. Validation rejects
 non-`Long` numbers. Duplicate keys are a known blind spot, documented here rather than worked around.
 **Affects:** src/main/java/com/wulfnet/enchanting2/config/ConfigFiles.java, ConfigReader.java
+
+## 2026-10-06 — Jankson `JsonGrammar.STRICT` is pretty-printed
+**Symptom:** The "no newlines" assertion on the network JSON failed. STRICT means quoted keys and no comments, not compact.
+**Fix:** `ConfigFiles.WIRE` is built with `JsonGrammar.builder()` and every flag spelled out. `COMPACT` exists, but its
+quoting and comma defaults aren't documented, so it isn't used.
+**Affects:** src/main/java/com/wulfnet/enchanting2/config/ConfigFiles.java
+
+## 2026-10-06 — Client: clear per-server state on configuration `INIT`, not configuration `DISCONNECT`
+**Symptom:** (found while designing Stage 2B, from Fabric networking 5.1.6 sources) the docs don't say whether
+`ClientConfigurationConnectionEvents.DISCONNECT` fires when configuration hands off to play. If it does, clearing there
+would drop the server's config copy right after it arrives.
+**Fix:** `ClientConfigState` clears on configuration `INIT` (each new connection) and on play `DISCONNECT`.
+**Affects:** src/client/java/com/wulfnet/enchanting2/client/ClientConfigState.java
+
+## 2026-10-06 — A loader must not log what its caller does with a failure
+**Symptom:** On `/reload` with an unparseable file, the log said "Using defaults", and the next line said "Kept the previous config".
+**Cause:** `ConfigFiles.load` described startup policy, but reload has a different policy.
+**Fix:** `load` only says the file wasn't changed. `ServerConfigs` logs the outcome: defaults at startup, previous config on reload.
+**Affects:** src/main/java/com/wulfnet/enchanting2/config/ConfigFiles.java, ServerConfigs.java

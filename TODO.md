@@ -160,19 +160,46 @@ Repo-side: additive. The only edits to existing files are `build.gradle`, `gradl
 - [x] 2A.6 `ConfigParseTest` (20) + `ConfigFilesTest` (12): every case listed in the plan, plus BOM, null, wrong-type
       section, create failure, and wrong-file-name refusal (no disk change).
 
-### Stage 2B — Server wiring → commit
-- [ ] 2B.1 `mixin/MinecraftServerMixin` + `config/ServerConfigHolder` duck interface: config lives on the
-      server instance (DESIGN §2a, no statics). Loaded at `SERVER_STARTING`, every issue logged as WARN.
-- [ ] 2B.2 `/reload`: `END_DATA_PACK_RELOAD` (success only) re-reads the files. Unparseable → keep the
-      previous config + WARN. Then re-sync to every player.
-- [ ] 2B.3 `network/ConfigSyncPayload` S2C (strict-JSON text of `CommonConfig`, length-capped on decode),
-      sent on join and after `/reload`.
-- [ ] 2B.4 Vanilla client → disconnect at join with a message naming the mod (`canSend` false; DESIGN §2a).
-      First check with research-docs whether the configuration phase is the right hook.
-- [ ] 2B.5 GameTests: the holder is non-null and matches the file. The payload codec round-trips.
-      `/reload` with a bad value → that key defaults and nothing else changes.
-- [ ] 2B.6 Dev server (`scripts/dev-server-smoke.sh`): first boot writes defaults. A bad value + `/reload`
-      → WARN names the key. Unparseable + `/reload` → previous config kept.
+### Stage 2B — Server wiring → commit  ✅ 2026-10-06
+**Owner (2026-10-06):** clients on a different Enchanting 2 network protocol are disconnected with a message
+naming both protocol numbers (not an exact mod-version match, and not "no check").
+**Researched (Fabric networking 5.1.6 sources, mapped MC jar):** `ServerConfigurationConnectionEvents.CONFIGURE` +
+`ServerConfigurationNetworking.canSend(handler, type)` → `handler.disconnect(...)` is the documented pattern. It runs
+on netty threads, so the holder field is `volatile` and the config is an immutable record.
+**Scope change:** a minimal client receiver moves here from 2C.2. Without one, `canSend` is false for every modded
+client and they would all be disconnected. The resolver and the screen stay in 2C.
+- [x] 2B.1 `network/NetworkProtocol` (pure Java): `VERSION = 1`. Every payload ID is `enchanting2:v<N>/<name>`.
+      `classify(Collection<String> clientChannels)` → MATCH / VANILLA (no `enchanting2:` channel) /
+      MISMATCH(client versions), plus the disconnect text. The text is literal, not translatable: a vanilla client has
+      no lang file for us. JUnit: `NetworkProtocolTest`.
+- [x] 2B.2 `config/ServerConfigHolder` duck interface + `mixin/MinecraftServerMixin` (a `volatile` field) +
+      `config/ServerConfigs` (`get(server)`, never null: an unset holder logs an ERROR once and returns defaults).
+- [x] 2B.3 Folded into `config/ServerConfigs` (one class, no separate lifecycle class): `SERVER_STARTING` → `ConfigFiles.load(configDir/enchanting2/common.json5)`.
+      `END_DATA_PACK_RELOAD` (success only) → reload. UNREADABLE keeps the previous config + WARN. Anything else
+      replaces it (bad keys default, per the 2A tests). Then re-send to every player who `canSend`.
+- [x] 2B.4 `network/ConfigSyncPayload` (`enchanting2:v1/config_sync`): strict-JSON text, `stringUtf8(262144)`.
+      Registered for configuration S2C and play S2C. `ConfigFiles.renderStrict` / `parseSynced` for the text.
+- [x] 2B.5 `network/ServerNetworking`: `CONFIGURE` → classify → disconnect, or send the config in the configuration
+      phase. A client therefore holds the config before play starts. It is sent again at play `JOIN`, so a `/reload`
+      during a player's configuration phase can't leave them stale.
+- [x] 2B.6 Client: `client/ClientConfigState` (server copy, cleared on disconnect) + configuration and play receivers
+      in `Enchanting2Client`. A payload that fails to parse logs a WARN and keeps the previous copy.
+- [x] 2B.7 GameTests (`ConfigWiringGameTest`): the holder is set and equals `ConfigFiles.load` of the file. The
+      payload round-trips through `FriendlyByteBuf`, and oversize text fails decode. One sequence on the shared
+      file: bad value + `/reload` → that key defaults and a marker key changes. Unparseable + `/reload` → the
+      marker is kept. The test then restores the original text. The file lives in the GameTest run dir, which
+      `clearRunDirectory` wipes.
+- [x] 2B.8 Dev server: `scripts/dev-server-smoke.sh` gains a `@sh <cmd>` line directive.
+      `scripts/checks/config-reload.txt`: first boot writes defaults. A bad value + `reload` → a WARN names the key.
+      Garbage + `reload` → an ERROR, and the previous config is kept. Then the file is restored. It touches only
+      `run/server/config/enchanting2/common.json5` (generated, reproducible: delete it and boot).
+      Also `@expect <regex>` and `@allow-error <regex>`. Passed 2026-10-06; the file was restored byte for byte.
+- [ ] 2B.9 Owner (with 1.6/2C.5, in `runClient`): join the dev server (`localhost:25566`) with a **vanilla** client →
+      the disconnect screen names Enchanting 2. The join check is unit-tested (`NetworkProtocolTest`), but the live
+      kick needs a real vanilla client, which the GameTest harness can't provide.
+**Blast radius:** additive code. Runtime writes go only to `config/enchanting2/common.json5`, and only if absent (2A guards).
+Test and dev-check overwrites stay inside throwaway run dirs.
+**Rollback:** `git revert <2B commit>`. Dev run dir: `rm run/server/config/enchanting2/common.json5`, then boot to regenerate.
 
 ### Stage 2C — Client → commit
 - [ ] 2C.1 `build.gradle`: Mod Menu + YACL as `modCompileOnly` + `modLocalRuntime` (mcMMO-Singleplayer

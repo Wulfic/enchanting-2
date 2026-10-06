@@ -8,13 +8,15 @@
 **Branch:** main (commit straight to main and push; no CI; see decisions.md)
 
 ## Where we are
-Phase 1 is done except 1.6 (`runClient` by the owner). Phase 2 plan approved (owner said "continue", 2026-10-06).
-**Stage 2A is done** (pure-Java config core in `config/`, Jankson jar-in-jar). `./gradlew build`: 35 JUnit + 4 GameTests.
-The experience keys `post_threshold_mode` and `preserve_vanilla_curve_below_threshold` were dropped (owner, decisions.md).
+Phase 1 is done except 1.6 (`runClient` by the owner). **Stages 2A and 2B are done.** 2B: config on `MinecraftServer` (mixin),
+`/reload` re-read, `enchanting2:v1/config_sync` S2C (config phase + play join + after reload), and a protocol/vanilla
+join check (owner chose the protocol check, decisions.md). `./gradlew build`: 51 JUnit + 8 GameTests.
+`scripts/dev-server-smoke.sh scripts/checks/config-reload.txt` passes.
 
 ## What's next
-1. Stage 2B (server wiring: holder mixin, `/reload`, sync payload, vanilla-client disconnect), then stop for review.
-2. Owner, for 1.6 + 2C.5: `runClient` → SP world → open to LAN → quit → reopen; player-inventory removal check.
+1. **Owner review of 2B** (stopped here at the owner's request: stop after each major section).
+2. Stage 2C (client: Mod Menu + YACL screen, resolver), then stop for review.
+3. Owner, for 1.6 + 2B.9 + 2C.5: `runClient` → SP world → open to LAN → quit → reopen; vanilla client vs dev server; player-inventory removal check.
 
 ## Open questions / blockers
 - None open. (Restore mirror: rejected, decisions.md 2026-10-06.)

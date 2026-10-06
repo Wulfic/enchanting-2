@@ -1,0 +1,21 @@
+# Stage 2B.8: config load and /reload on the dev server.
+#   scripts/dev-server-smoke.sh scripts/checks/config-reload.txt
+# Touches only run/server/config/enchanting2/common.json5 (generated: delete it and boot to regenerate). It is
+# backed up to build/ first and restored at the end; if the run dies midway, restore with
+#   cp build/dev-check-common.json5.orig run/server/config/enchanting2/common.json5
+@sh test -f run/server/config/enchanting2/common.json5 && cp run/server/config/enchanting2/common.json5 build/dev-check-common.json5.orig
+@sh printf '{ schema_version: 1, experience: { fixed_points_per_level: -5, flatten_after_level: 41 } }' > run/server/config/enchanting2/common.json5
+reload
+@sh sleep 5
+@sh printf '{ experience: {' > run/server/config/enchanting2/common.json5
+reload
+@sh sleep 5
+@sh cp build/dev-check-common.json5.orig run/server/config/enchanting2/common.json5
+reload
+@sh sleep 5
+@expect (Loaded|Reloaded) .*common\.json5 \((FILE|CREATED)
+@expect experience\.fixed_points_per_level = -5: must be between
+@expect Reloaded .*common\.json5 \(FILE, 1 issue
+@expect Kept the previous Enchanting 2 config
+@expect Reloaded .*common\.json5 \(FILE, 0 issue
+@allow-error Could not parse .*common\.json5

@@ -30,6 +30,10 @@ public final class ConfigFiles {
 	private static final Logger LOG = LoggerFactory.getLogger(Enchanting2.MOD_ID);
 	private static final String SCHEMA_KEY = "schema_version";
 	private static final char BOM = '﻿';
+	// Spelled out rather than JsonGrammar.COMPACT, whose quoting and comma rules aren't documented.
+	private static final JsonGrammar WIRE = JsonGrammar.builder().withComments(false).printWhitespace(false)
+			.printCommas(true).printTrailingCommas(false).bareSpecialNumerics(false).bareRootObject(false)
+			.printUnquotedKeys(false).build();
 
 	private ConfigFiles() {
 	}
@@ -76,14 +80,14 @@ public final class ConfigFiles {
 		try {
 			text = Files.readString(file, StandardCharsets.UTF_8);
 		} catch (IOException e) {
-			LOG.error("Could not read {}; using defaults. The file was not changed.", file, e);
+			LOG.error("Could not read {}. The file was not changed.", file, e);
 			return new LoadResult<>(codec.defaults(), List.of(), Source.UNREADABLE, false);
 		}
 		Parsed<T> parsed;
 		try {
 			parsed = parse(text, codec);
 		} catch (SyntaxError e) {
-			LOG.error("Could not parse {}: {} Using defaults. The file was not changed.", file,
+			LOG.error("Could not parse {}: {} The file was not changed.", file,
 					e.getCompleteMessage());
 			return new LoadResult<>(codec.defaults(), List.of(), Source.UNREADABLE, false);
 		}
@@ -125,11 +129,32 @@ public final class ConfigFiles {
 
 	/** Renders a config as commented JSON5, {@code schema_version} first. */
 	public static <T> String render(T config, ConfigCodec<T> codec) {
+		return toTree(config, codec).toJson(JsonGrammar.JSON5) + "\n";
+	}
+
+	/** Renders a config as compact strict JSON with no comments: the network form (DESIGN §2 Config). */
+	public static <T> String renderStrict(T config, ConfigCodec<T> codec) {
+		return toTree(config, codec).toJson(WIRE);
+	}
+
+	/**
+	 * Reads config text that came from a server rather than from disk. Issues (a newer server's extra keys, say) are
+	 * logged as WARN; the caller decides what a {@link SyntaxError} means.
+	 */
+	public static <T> T parseSynced(String text, ConfigCodec<T> codec) throws SyntaxError {
+		Parsed<T> parsed = parse(text, codec);
+		for (ConfigIssue issue : parsed.issues()) {
+			LOG.warn("[server copy of {}] {}", codec.fileName(), issue.describe());
+		}
+		return parsed.config();
+	}
+
+	private static <T> JsonObject toTree(T config, ConfigCodec<T> codec) {
 		JsonObject root = new JsonObject();
 		root.put(SCHEMA_KEY, JsonPrimitive.of((long) codec.schemaVersion()),
 				"File format version. Leave it as it is: Enchanting 2 uses it to read older files correctly.");
 		codec.write(config, root);
-		return root.toJson(JsonGrammar.JSON5) + "\n";
+		return root;
 	}
 
 	/**
