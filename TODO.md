@@ -146,24 +146,19 @@ Repo-side: additive. The only edits to existing files are `build.gradle`, `gradl
 **Rollback:** `git revert <stage commit>` per stage. Runtime: the `.bak` restores the previous config
 (`mv run/client/config/enchanting2/common.json5.bak run/client/config/enchanting2/common.json5`).
 
-### Stage 2A — Core (pure Java, no MC classes) → commit
-- [ ] 2A.1 `build.gradle`: `include implementation "blue.endless:jankson:${jankson_version}"`
-      (jar-in-jar). First confirm the Maven coordinates with research-docs.
-- [ ] 2A.2 `config/ConfigIssue` (key, bad value, default, reason) and `config/ConfigReader`
-      (typed reads on a Jankson `JsonObject`: `int(key, def, min, max)`, `bool`, `enumValue`). Collects
-      issues and flags unknown keys (typo detection).
-- [ ] 2A.3 `config/ExperienceSection` record (the §3 keys, defaults and ranges) and `config/CommonConfig`
-      record (`schema_version`, `experience`). `CommonConfig.defaults()`.
-- [ ] 2A.4 `config/EnchantmentOverrides`: map keyed by enchantment ID from `enchantments.json5`. Rejects
-      malformed IDs. Unknown IDs are checked later through an injected `Predicate<String> isKnown`
-      (the registry exists only at runtime). Entries have no fields yet; Phase 4/5/9 add them.
-- [ ] 2A.5 `config/ConfigFiles`: `load(path)` → `LoadResult(config, issues, source = FILE|DEFAULTS_WRITTEN|
-      DEFAULTS_UNPARSEABLE, futureSchema)`, `writeDefaultsIfAbsent`, `saveWithBackup`. JSON5 with comments.
-- [ ] 2A.6 JUnit `ConfigFilesTest` (temp dir): missing → defaults written; malformed → defaults and the
-      file is **byte-identical** afterwards; one out-of-range key → only that key defaults; wrong type;
-      unknown key; future `schema_version` → best-effort load + save refused, file untouched; defaults
-      round-trip with zero issues; `saveWithBackup` → `.bak` equals the old bytes; malformed and
-      unknown enchantment IDs.
+### Stage 2A — Core (pure Java, no MC classes) → commit  ✅ 2026-10-06
+- [x] 2A.1 `build.gradle`: `implementation` + `include` `blue.endless:jankson:1.2.3` (Maven Central, checked
+      maven-metadata). The jar nests `META-INF/jars/jankson-1.2.3.jar`.
+- [x] 2A.2 `config/ConfigIssue`, `config/ConfigReader` (`readInt`/`readBool`/`section`/`reject`, recursive
+      unknown-key report). `enumValue` left out: no enum key exists yet (it arrives with `silk_fortune_mode`, Phase 8).
+- [x] 2A.3 `config/ExperienceSection` (4 keys; the two undefined ones were dropped by the owner), `config/CommonConfig`,
+      `config/ConfigCodec` (one interface per file, so `ConfigFiles` owns schema_version and disk access).
+- [x] 2A.4 `config/EnchantmentOverrides` (`overrides: { "ns:path": {} }`, namespace required, `unknownIds(Predicate)`).
+- [x] 2A.5 `config/ConfigFiles`: `load` → `LoadResult(config, issues, Source FILE|CREATED|CREATE_FAILED|UNREADABLE,
+      futureSchema)`, `writeDefaultsIfAbsent`, `saveWithBackup` → `SaveOutcome`. Save also refuses an unparseable
+      file (fail closed). Load/save refuse a path whose name isn't the codec's file.
+- [x] 2A.6 `ConfigParseTest` (20) + `ConfigFilesTest` (12): every case listed in the plan, plus BOM, null, wrong-type
+      section, create failure, and wrong-file-name refusal (no disk change).
 
 ### Stage 2B — Server wiring → commit
 - [ ] 2B.1 `mixin/MinecraftServerMixin` + `config/ServerConfigHolder` duck interface: config lives on the

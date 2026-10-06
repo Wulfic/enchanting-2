@@ -147,3 +147,16 @@ is built (dedicated: in `Main`; integrated: in `WorldOpenFlows`). They're probab
 **Fix:** Phase 4 code reads the config file directly in `MODIFY`. TODO 4.0 probes `/reload` on the dev server before
 DESIGN §2's "requires /reload or restart" is trusted.
 **Affects:** Phase 4, DESIGN §2
+
+## 2026-10-06 — Jankson 1.2.3 is more lenient than JSON5, and has quirks
+**Symptom:** Probing `Jankson.load` before writing the config core.
+- Duplicate keys: the last one wins silently. Nothing can detect it after parsing.
+- `{"a":1} trailing` parses, and the trailing text is ignored. `{a: 1 b: 2}` (no comma) parses.
+- `1e3` is a SyntaxError for the whole file. `1.5e3` is fine. Whole numbers come back as `Long`, decimals as `Double`.
+  `null` is a separate `JsonNull`, not a `JsonPrimitive`.
+- `JsonObject.keySet()` does **not** keep file order, even though `toJson` prints in insertion order.
+- After one SyntaxError (the `1e3` case), the same `Jankson` instance failed on valid text. Couldn't reproduce with
+  a plain unclosed brace, so the trigger is unclear.
+**Fix:** `ConfigFiles.parse` builds a fresh `Jankson` per call. `ConfigReader.keys()` sorts. Validation rejects
+non-`Long` numbers. Duplicate keys are a known blind spot, documented here rather than worked around.
+**Affects:** src/main/java/com/wulfnet/enchanting2/config/ConfigFiles.java, ConfigReader.java

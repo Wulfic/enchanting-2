@@ -8,13 +8,12 @@
 **Branch:** main (commit straight to main and push; no CI; see decisions.md)
 
 ## Where we are
-Phase 1 is done except 1.6 (`runClient` by the owner). `./gradlew build` is green: 3 JUnit + 4 GameTests.
-Phase 2 is planned in TODO.md as three stages (2A core, 2B server, 2C client), one commit each.
-**Waiting for the owner to review the plan before any code.**
-Owner answers: in-game edits are SP/LAN host only, `/reload` re-reads the config, the removal loss is accepted.
+Phase 1 is done except 1.6 (`runClient` by the owner). Phase 2 plan approved (owner said "continue", 2026-10-06).
+**Stage 2A is done** (pure-Java config core in `config/`, Jankson jar-in-jar). `./gradlew build`: 35 JUnit + 4 GameTests.
+The experience keys `post_threshold_mode` and `preserve_vanilla_curve_below_threshold` were dropped (owner, decisions.md).
 
 ## What's next
-1. After the plan review: Stage 2A (pure-Java config core + JUnit), then stop for review.
+1. Stage 2B (server wiring: holder mixin, `/reload`, sync payload, vanilla-client disconnect), then stop for review.
 2. Owner, for 1.6 + 2C.5: `runClient` → SP world → open to LAN → quit → reopen; player-inventory removal check.
 
 ## Open questions / blockers

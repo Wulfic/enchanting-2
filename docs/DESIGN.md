@@ -158,14 +158,15 @@ Total points at level L (L ≥ 30) = `1395 + 112 × (L − 30)`. 1395 is vanilla
 ### Config
 ```json5
 experience: {
-  enabled: true,
-  flatten_after_level: 30,
-  post_threshold_mode: "FIXED",
+  enabled: true,              // false = the full vanilla curve
+  flatten_after_level: 30,    // 0 = fixed cost at every level
   fixed_points_per_level: 112,
   maximum_level: -1,
-  preserve_vanilla_curve_below_threshold: true,
 }
 ```
+`post_threshold_mode` and `preserve_vanilla_curve_below_threshold` were dropped (owner, 2026-10-06).
+The first had one value and the second duplicated `flatten_after_level: 0`. A missing key reads as its
+default, so a later mode can add the key back without breaking existing files.
 
 ### Acceptance
 - Levels 30→31, 31→32, 49→50, 99→100 and 9999→10000 each cost exactly 112 points.

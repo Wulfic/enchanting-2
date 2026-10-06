@@ -304,3 +304,12 @@ typo would silently reset a live server. Keys with no behavior behind them would
 keep it in sync, which is a dupe risk). A static config holder (breaks integrated-server world switching, §2a).
 **Affects:** src/main/java/com/wulfnet/enchanting2/config/, mixin/MinecraftServerMixin, network/ConfigSyncPayload,
 src/client/.../client/, DESIGN §2 Config
+
+## 2026-10-06 — Experience config: drop the two undefined keys
+**Context:** Stage 2A was about to put DESIGN §3's `experience` block into the schema. `post_threshold_mode` had one
+value ("FIXED"), and `preserve_vanilla_curve_below_threshold: false` had no defined meaning.
+**Choice:** (owner) Drop both. The section is `enabled`, `flatten_after_level`, `fixed_points_per_level`, `maximum_level`.
+**Why:** A one-value enum is a dead GUI toggle. The only sensible reading of the second key is `flatten_after_level: 0`.
+A missing key reads as its default, so adding a mode key later doesn't break existing files.
+**Rejected:** Keeping `post_threshold_mode` with FIXED only. Inventing a second curve mode now.
+**Affects:** docs/DESIGN.md §3, src/main/java/com/wulfnet/enchanting2/config/ExperienceSection.java
