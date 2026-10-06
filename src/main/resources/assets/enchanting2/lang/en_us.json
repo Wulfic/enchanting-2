@@ -1,0 +1,23 @@
+{
+	"enchanting2.config.title": "Enchanting 2",
+	"enchanting2.config.category.experience": "Experience",
+	"enchanting2.config.mode.edit_file": "Editing config/enchanting2/common.json5, which the next singleplayer world you open uses. Saving keeps the previous file as common.json5.bak.",
+	"enchanting2.config.mode.edit_hosted": "You host this world. Saving writes config/enchanting2/common.json5 (the previous file is kept as common.json5.bak) and applies it now, for LAN players too.",
+	"enchanting2.config.mode.locked_unreadable": "config/enchanting2/common.json5 doesn't parse, so in-game editing is off. Fix the file (the log names the error), then reopen this screen. In a world, run /reload.",
+	"enchanting2.config.mode.locked_newer_schema": "config/enchanting2/common.json5 was written by a newer Enchanting 2. It's shown read-only so a save can't drop settings this version doesn't know.",
+	"enchanting2.config.mode.server_read_only": "This server controls these settings. They're read-only here; only the server's admin can change them.",
+	"enchanting2.config.mode.vanilla_server": "This server doesn't run Enchanting 2, so vanilla rules apply.",
+	"enchanting2.config.experience.enabled": "Flatten the XP curve",
+	"enchanting2.config.experience.enabled.desc": "Off: the full vanilla curve at every level.",
+	"enchanting2.config.experience.flatten_after_level": "Flatten from level",
+	"enchanting2.config.experience.flatten_after_level.desc": "From this level on, every level costs the same number of points. 0 = a fixed cost at every level.",
+	"enchanting2.config.experience.fixed_points_per_level": "Points per level",
+	"enchanting2.config.experience.fixed_points_per_level.desc": "XP points each level costs once the curve is flat. 112 is vanilla's cost from level 30 to 31.",
+	"enchanting2.config.experience.maximum_level": "Maximum level",
+	"enchanting2.config.experience.maximum_level.desc": "The highest level a player can reach. -1 = unlimited.",
+	"enchanting2.config.save_failed": "Enchanting 2 config not saved",
+	"enchanting2.config.save_failed.not_editable": "It can't be edited right now.",
+	"enchanting2.config.save_failed.refused_future_schema": "The file was written by a newer Enchanting 2.",
+	"enchanting2.config.save_failed.refused_unreadable": "The file on disk doesn't parse. Fix or remove it, then save again.",
+	"enchanting2.config.save_failed.failed": "The file couldn't be written. See the log."
+}

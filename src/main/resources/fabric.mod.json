@@ -19,6 +19,9 @@
 		],
 		"client": [
 			"com.wulfnet.enchanting2.Enchanting2Client"
+		],
+		"modmenu": [
+			"com.wulfnet.enchanting2.client.ModMenuIntegration"
 		]
 	},
 	"mixins": [
@@ -33,5 +36,9 @@
 		"minecraft": "~1.21.11",
 		"java": ">=21",
 		"fabric-api": "*"
+	},
+	"suggests": {
+		"modmenu": "*",
+		"yet_another_config_lib_v3": "*"
 	}
 }

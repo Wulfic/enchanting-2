@@ -83,6 +83,12 @@ of a rename across the whole codebase.
 - Only the singleplayer/LAN host edits config in-game. On a dedicated server the screen is
   read-only for everyone, ops included. Admins edit the file, and vanilla `/reload` re-reads it
   and re-syncs it (owner, 2026-10-06).
+- The title screen (no world open) edits the same file. All singleplayer worlds share one
+  `common.json5`; there is no per-world copy in v1 (owner, 2026-10-06). The host's in-game
+  save writes the whole file from the values in effect, so a hand edit that was never
+  `/reload`ed is replaced (it survives in the `.bak`). A file that doesn't parse or comes from
+  a newer schema makes the screen read-only. A server that sent no config shows a "vanilla
+  rules" note.
 - Our code never rewrites an existing config file on load. An invalid value only produces a WARN.
   The in-game save keeps a `.bak` of the previous file. An unparseable file on `/reload` keeps
   the previous config.

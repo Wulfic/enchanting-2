@@ -326,3 +326,23 @@ decode or generic network-error kick. Detection needs no extra handshake packet.
 **Rejected:** exact mod-version match (every patch forces everyone to update at once). No check (Phase 6b/7 C2S
 packets would fail to decode with a generic message). A separate hello packet (one more payload for the same information).
 **Affects:** src/main/java/com/wulfnet/enchanting2/network/
+
+## 2026-10-06 — Config screen (2C): what it shows, who saves, how YACL is wired
+**Context:** Stage 2C. Needed the screen's behavior for title screen / SP-LAN host / remote, and a dependency setup that
+doesn't drag YACL's Kotlin and nested libraries into the build.
+**Choice:** (owner) The title screen edits the local file. All SP worlds share one `common.json5`. (agent) A pure
+`config/ConfigView.resolve` decides the mode: NONE → file, editable. HOSTING → the live server values, editable, and a
+save writes the file and then runs `ServerConfigs.reload` on the server thread (the 2B path, so LAN guests re-sync).
+REMOTE → the server copy read-only, or a "vanilla rules" note, and the local file is never read. A file that doesn't
+parse or has a newer schema locks the screen. `ConfigEditing.save` re-resolves the view and refuses unless it is still
+editable. Mod Menu + YACL are `modCompileOnly` + `modLocalRuntime` with `transitive = false`.
+**Why:** The live values are what is in effect, so they are what the host should edit. Reusing `reload` means one apply
+path, already GameTested. YACL nests its libraries in `META-INF/jars`, and only its `dsl` and `config.v3` packages
+reference Kotlin (checked by grepping the class files), so the Java builder API needs nothing transitive.
+**Rejected:** Per-world config (owner: v1 keeps one file). Showing the file's values while hosting (it would show
+values that aren't in effect after a failed reload). Transitive YACL deps (they pull kotlin-stdlib and the quilt parsers
+from repos we don't otherwise need).
+**Trade-off accepted:** a host save replaces a hand edit that was never `/reload`ed. It survives in `.bak`, and DESIGN §2 says so.
+YACL is environment `*`, so `modLocalRuntime` also loads it on the dev server and GameTest server. Both still pass.
+**Affects:** src/main/java/com/wulfnet/enchanting2/config/ConfigView.java, src/client/.../client/{ConfigEditing,
+ConfigScreen,ModMenuIntegration}.java, build.gradle, fabric.mod.json, docs/DESIGN.md §2

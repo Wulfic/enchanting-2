@@ -194,27 +194,46 @@ client and they would all be disconnected. The resolver and the screen stay in 2
       Garbage + `reload` → an ERROR, and the previous config is kept. Then the file is restored. It touches only
       `run/server/config/enchanting2/common.json5` (generated, reproducible: delete it and boot).
       Also `@expect <regex>` and `@allow-error <regex>`. Passed 2026-10-06; the file was restored byte for byte.
-- [ ] 2B.9 Owner (with 1.6/2C.5, in `runClient`): join the dev server (`localhost:25566`) with a **vanilla** client →
+- [ ] 2B.9 Owner (with 1.6/2C.7, in `runClient`): join the dev server (`localhost:25566`) with a **vanilla** client →
       the disconnect screen names Enchanting 2. The join check is unit-tested (`NetworkProtocolTest`), but the live
       kick needs a real vanilla client, which the GameTest harness can't provide.
 **Blast radius:** additive code. Runtime writes go only to `config/enchanting2/common.json5`, and only if absent (2A guards).
 Test and dev-check overwrites stay inside throwaway run dirs.
 **Rollback:** `git revert <2B commit>`. Dev run dir: `rm run/server/config/enchanting2/common.json5`, then boot to regenerate.
 
-### Stage 2C — Client → commit
-- [ ] 2C.1 `build.gradle`: Mod Menu + YACL as `modCompileOnly` + `modLocalRuntime` (mcMMO-Singleplayer
-      pattern). `fabric.mod.json` `suggests`, `modmenu` entrypoint. Confirm the repo URLs with research-docs.
-- [ ] 2C.2 `client/ClientConfigState`: the server copy (cleared on disconnect), kept apart from the local
-      file. Pure resolver `effective(connection, local, serverCopy)`: remote → server copy (or vanilla if the
-      server never sent one), SP/LAN host → own file.
-- [ ] 2C.3 `client/ModMenuIntegration` → `client/ConfigScreen` (YACL). Only class-loaded when
-      `isModLoaded("yet_another_config_lib_v3")`. Without YACL: Mod Menu shows no screen, no crash.
-      Remote → every option read-only, with a "server-controlled" banner.
-      SP/LAN host → `saveWithBackup`, then apply on the server thread (`server.execute`), then re-sync.
-- [ ] 2C.4 JUnit: the resolver never returns the local file on a remote connection. Covers the old 2.6
-      ("a client-side edit cannot change server behavior") together with the absence of any C2S config path.
-- [ ] 2C.5 Owner check in `runClient` (folded into the 1.6 check): screen opens, SP edit persists and makes
-      a `.bak`, LAN guest sees read-only.
+### Stage 2C — Client → commit  ✅ 2026-10-06 (except 2C.7, owner)
+**Owner (2026-10-06):** the title screen (no world) edits the local file. All SP worlds share one
+`config/enchanting2/common.json5`, with no per-world override.
+**Researched (jars from the repos, javap):** Mod Menu 17.0.1 at `maven.terraformersmc.com/releases` (`ModMenuApi`,
+`ConfigScreenFactory`). YACL `3.8.1+1.21.11-fabric` at `maven.isxander.dev/releases`, mod id
+`yet_another_config_lib_v3`. It nests its libraries (`META-INF/jars`), and only its `dsl`/`config.v3` packages use
+Kotlin, so `transitive = false` is safe if we use the Java builder API only.
+**Not doing:** per-world config, a C2S write path, a fallback screen without YACL, client GameTests for the screen.
+**Blast radius:** additive code. The screen's save writes `config/enchanting2/common.json5` only through
+`ConfigFiles.saveWithBackup` (2A guards: `.bak` verified first, refuses unparseable/future files).
+`modLocalRuntime` also puts YACL on the dev-server and GameTest classpath (environment `*`). Mod Menu is client-only.
+**Rollback:** `git revert <2C commit>`. Runtime: `mv <config>/enchanting2/common.json5.bak <config>/enchanting2/common.json5`.
+- [x] 2C.1 `build.gradle`: the two repos, `modCompileOnly` + `modLocalRuntime` for both, `transitive = false`.
+      `fabric.mod.json`: `suggests` both, `modmenu` entrypoint.
+- [x] 2C.2 `config/ConfigView` (pure Java, main set so plain JUnit reaches it): `resolve(Connection NONE|HOSTING|REMOTE,
+      Supplier<LoadResult> localFile, Supplier<CommonConfig> hostedLive, Optional<CommonConfig> serverCopy)` →
+      `Mode` + values. NONE → the file (editable). HOSTING → the live server values (editable). A file that doesn't
+      parse or is from a newer schema locks NONE/HOSTING read-only with a reason. REMOTE → the server copy (read-only),
+      or VANILLA_SERVER if none. REMOTE never calls `localFile`.
+- [x] 2C.3 JUnit `ConfigViewTest`: every mode. The REMOTE suppliers throw, which proves a remote session never reads or
+      creates the local file. That covers the old 2.6 ("a client-side edit can't change server behavior") together
+      with there being no C2S config payload.
+- [x] 2C.4 `client/ConfigEditing` (MC side): detect the connection, `save(CommonConfig)` → `saveWithBackup`. When
+      hosting, `server.execute(() -> ServerConfigs.reload(server))` re-reads the file and re-syncs LAN guests (the
+      2B-tested path). A non-SAVED outcome → a `SystemToast` + the existing ConfigFiles log line.
+- [x] 2C.5 `client/ModMenuIntegration` (a factory only when `isModLoaded("yet_another_config_lib_v3")`, otherwise
+      Mod Menu's default no-screen) → `client/ConfigScreen` (YACL builder, `available(false)` when read-only, a label
+      with the mode's reason, ranges from `ExperienceSection` constants). `assets/enchanting2/lang/en_us.json`.
+- [x] 2C.6 `./gradlew build` green (56 JUnit incl. `ConfigViewTest` 6 + `ConfigLangKeysTest` 2, 8 GameTests).
+      `scripts/dev-server-smoke.sh scripts/checks/config-reload.txt` passes with YACL loaded on the server, and the file was
+      restored byte for byte. The REMOTE tests were mutation-checked: making REMOTE read the file fails 2 of 6.
+- [ ] 2C.7 Owner check in `runClient` (folded into the 1.6 check): the screen opens from the title screen and in a
+      world. An SP edit persists and makes a `.bak`. A LAN guest sees read-only. A vanilla server shows the vanilla note.
 
 ## Phase 3 — Experience curve
 **Goal:** DESIGN §3 acceptance list passes.

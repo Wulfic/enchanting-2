@@ -8,18 +8,18 @@
 **Branch:** main (commit straight to main and push; no CI; see decisions.md)
 
 ## Where we are
-Phase 1 is done except 1.6 (`runClient` by the owner). **Stages 2A and 2B are done.** 2B: config on `MinecraftServer` (mixin),
-`/reload` re-read, `enchanting2:v1/config_sync` S2C (config phase + play join + after reload), and a protocol/vanilla
-join check (owner chose the protocol check, decisions.md). `./gradlew build`: 51 JUnit + 8 GameTests.
-`scripts/dev-server-smoke.sh scripts/checks/config-reload.txt` passes.
+Phase 1 is done except 1.6 (`runClient` by the owner). **Phase 2 (2A, 2B, 2C) is done** except the owner's in-client checks.
+2C: `config/ConfigView` (pure mode resolver), `client/ConfigEditing` (save → `.bak` → `ServerConfigs.reload` when
+hosting), `client/ConfigScreen` (YACL), `client/ModMenuIntegration`, `lang/en_us.json`. Owner: the title screen edits
+the file, and all SP worlds share one file. `./gradlew build`: 56 JUnit + 8 GameTests. The config-reload dev check passes.
 
 ## What's next
-1. **Owner review of 2B** (stopped here at the owner's request: stop after each major section).
-2. Stage 2C (client: Mod Menu + YACL screen, resolver), then stop for review.
-3. Owner, for 1.6 + 2B.9 + 2C.5: `runClient` → SP world → open to LAN → quit → reopen; vanilla client vs dev server; player-inventory removal check.
+1. **Owner review of 2C** (stopped here at the owner's request: stop after each major section).
+2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 (TODO.md lists each check).
+3. Phase 3 (experience curve): expand 3.1–3.5 into file-level steps in TODO.md first.
 
 ## Open questions / blockers
-- None open. (Restore mirror: rejected, decisions.md 2026-10-06.)
+- None open.
 
 ## Do not forget
 - Plugin ID is `net.fabricmc.fabric-loom-remap` for 1.21.11. 1.21.11 Mojang names use `Identifier`, not `ResourceLocation`.

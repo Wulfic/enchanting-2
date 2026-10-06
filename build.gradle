@@ -12,6 +12,15 @@ base {
 
 repositories {
     mavenCentral()
+    // Optional client mods for the config screen (2C). Each repo serves only its own group.
+    exclusiveContent {
+        forRepository { maven { name = 'TerraformersMC'; url = 'https://maven.terraformersmc.com/releases/' } }
+        filter { includeGroup 'com.terraformersmc' }
+    }
+    exclusiveContent {
+        forRepository { maven { name = 'isXander'; url = 'https://maven.isxander.dev/releases/' } }
+        filter { includeGroup 'dev.isxander' }
+    }
 }
 
 loom {
@@ -74,6 +83,14 @@ dependencies {
     // JSON5 config reader/writer. Plain Java, bundled jar-in-jar so a dedicated server needs only Fabric API.
     implementation "blue.endless:jankson:${project.jankson_version}"
     include "blue.endless:jankson:${project.jankson_version}"
+
+    // Config screen: optional on the player's side ("suggests"), never shipped or bundled. Compiled against, and on
+    // the dev run classpath only. Not transitive: YACL nests its own libraries, and its Kotlin-only parts (dsl,
+    // config.v3) are never referenced. YACL is environment "*", so it also loads on the dev server and GameTests.
+    modCompileOnly("com.terraformersmc:modmenu:${project.modmenu_version}") { transitive = false }
+    modLocalRuntime("com.terraformersmc:modmenu:${project.modmenu_version}") { transitive = false }
+    modCompileOnly("dev.isxander:yet-another-config-lib:${project.yacl_version}") { transitive = false }
+    modLocalRuntime("dev.isxander:yet-another-config-lib:${project.yacl_version}") { transitive = false }
 
     testImplementation platform("org.junit:junit-bom:${project.junit_version}")
     testImplementation 'org.junit.jupiter:junit-jupiter'
