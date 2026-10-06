@@ -23,6 +23,33 @@ loom {
             sourceSet sourceSets.client
         }
     }
+
+    // Separate run dirs so the client's singleplayer saves and the dev server's world never mix.
+    // The dev server listens on 25566: the owner often has another mod's server on 25565.
+    runs {
+        client {
+            runDir 'run/client'
+        }
+        server {
+            runDir 'run/server'
+            programArgs '--port', '25566'
+        }
+    }
+}
+
+// The dev server refuses to start until eula.txt says true. Same acceptance as `eula = true` in
+// configureTests below. Writes only when the file is absent, so it never overwrites an existing eula.txt.
+def devServerEula = file('run/server/eula.txt')
+def acceptDevServerEula = tasks.register('acceptDevServerEula') {
+    onlyIf { !devServerEula.exists() }
+    doLast {
+        devServerEula.parentFile.mkdirs()
+        devServerEula.text = '# Accepted for the local dev server (see build.gradle).\neula=true\n'
+        logger.lifecycle("Wrote ${devServerEula}")
+    }
+}
+tasks.named('runServer') {
+    dependsOn acceptDevServerEula
 }
 
 // `gametest` source set (src/gametest/) is a separate mod, `enchanting2-gametest`, loaded only by

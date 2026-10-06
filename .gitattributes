@@ -1,5 +1,6 @@
 # Keep the Unix wrapper runnable on Linux/macOS regardless of core.autocrlf.
 gradlew text eol=lf
+*.sh text eol=lf
 *.bat text eol=crlf
 *.jar binary
 *.png binary

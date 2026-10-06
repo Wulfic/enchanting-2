@@ -250,3 +250,38 @@ so renaming after the first release breaks existing worlds. Today it costs nothi
 **Rejected:** Changing the display name only (permanent mismatch between ID and name). Keeping the
 old name (doesn't match the owner's branding).
 **Affects:** all of src/, build.gradle, settings.gradle, gradle.properties, DESIGN.md, TODO.md
+
+## 2026-10-06 — Phase 1.8: DESIGN §8 matches the 1.21.11 registry
+**Context:** §8 was written from memory of vanilla. Phase 4's `EnchantmentEvents.MODIFY` keys depend on it.
+**Choice:** Checked against `data/minecraft/enchantment/*.json` in the 1.21.11 jar. 43 enchantments. Every vanilla
+max level in the §8 table is correct. `minecraft:lunge` exists (max 3, effect `post_piercing_attack`:
+impulse 0.458/level, exhaustion 4/level). Exclusive sets are armor, boots, bow (Infinity+Mending), crossbow, damage
+(includes Density and Breach), mining (Fortune+Silk), riptide (Loyalty+Channeling). Fortune has **no effect
+components**: its bonus lives in loot tables (`apply_bonus`), which matters for Phase 8.
+Pinned by `VanillaEnchantmentIdsGameTest`. Phase 4 flips its expected levels to the v1 column.
+Fabric Data Attachment API v1.8.48 (in FAPI 0.141.6) persists chunk attachments (`SerializableChunkDataMixin`),
+so Phase 8.5 can use it. Proto-chunks that are still generating aren't saved, which doesn't matter for placed blocks.
+**Why:** a wrong key in MODIFY fails silently (the callback just never matches).
+**Rejected:** a manual one-off registry dump. Nothing would notice drift on the 26.x port.
+**Affects:** docs/DESIGN.md §8, src/gametest/.../VanillaEnchantmentIdsGameTest.java
+**Balance flag for Phase 4:** Lunge V = 20 exhaustion per lunge (5 hunger points). Consider capping Lunge at 3 or 4.
+
+## 2026-10-06 — Dev server on port 25566, separate run dirs
+**Context:** Owner asked for a dev server to test the mod properly. They often run another mod's server on 25565.
+**Choice:** `loom.runs.server` → `run/server` with `--port 25566`. Client → `run/client`. `acceptDevServerEula` writes
+eula.txt only if it's absent. `scripts/dev-server-smoke.sh [commands-file]` boots the server, types console commands
+through stdin, sends `stop`, and checks the log. It shuts down via `stop` on stdin and never kills a process.
+**Why:** sharing a port or run dir with another instance is the failure that memory already warns about.
+**Rejected:** RCON (more config for nothing, since stdin works). A shared `run/` (client saves and server world mix).
+**Affects:** build.gradle, scripts/dev-server-smoke.sh
+
+## 2026-10-06 — Add/remove mid-playthrough and SP/MP parity are requirements
+**Context:** Owner: "it's important that this mod can be safely added or removed mid playthrough, and that it works
+on multiplayer and singleplayer worlds."
+**Choice:** DESIGN §2a. Adding keeps XP levels as stored. Blocks placed before install count as natural for Fortune
+(owner chose "bonus, one-time exploit": each one can pay out once, then it's marked). No new blocks or items.
+Per-server state only (no statics). Modded client on a vanilla server = vanilla. Vanilla client → clean kick.
+**Why:** owner requirement.
+**Rejected (Fortune on old chunks):** "no bonus in pre-install chunks". It permanently kills Fortune around spawn
+and the base. A config toggle was more code for a case the owner doesn't care about.
+**Affects:** docs/DESIGN.md §2a, all phases

@@ -107,3 +107,35 @@ branch `1.21.11`. The 26.x port will have to switch the plugin ID back as well a
 **Dead ends:** Copying the plugin block from ../mcMMO-Singleplayer: it targets 26.3 and uses the
 non-remap ID.
 **Affects:** build.gradle
+
+## 2026-10-06 — Removing an enchantment's registry entry strips it from items; the item survives
+**Symptom:** Feared that uninstalling the mod would delete every item carrying an `enchanting2:` enchantment.
+**Cause:** Measured on 1.21.11 (dev-server probe, TODO 1.10). With a datapack enchantment removed, the block entity
+logs `WARN Serialization errors: Failed to get element probe:test_ench` and decodes **partially**. The item is kept,
+the unknown entry is dropped, and the other enchantments survive. A book holding only that enchantment becomes an empty
+enchanted book. Above-max vanilla levels (Protection 7) load fine. The drop is permanent on the next save.
+**Fix:** none needed for safety. Document it: removal loses the new enchantments but keeps the items.
+**Not yet verified:** player inventories (they need a real player, so use `runClient`). Same codec family, so expect
+the same result, but it hasn't been measured.
+**Affects:** DESIGN §2a, §9
+
+## 2026-10-06 — 1.21.11 Mojang names: `ResourceLocation` → `Identifier`
+**Symptom:** `ResourceKey#location()` → "cannot find symbol".
+**Cause:** 1.21.11's official mappings renamed `ResourceLocation` to `Identifier`. Accessor: `ResourceKey#identifier()`.
+**Fix:** check with `javap -cp .gradle/loom-cache/minecraftMaven/.../minecraft-common-*.jar <class>` instead of
+guessing names from older versions' docs.
+**Affects:** any code that handles IDs
+
+## 2026-10-06 — `GameTestHelper#assertValueEqual(expected, actual, name)`
+**Symptom:** A failing check read "Expected X to be 3: was 4" when the code expected 4.
+**Cause:** The message treats the **first** argument as the expected value, the opposite of how it reads.
+**Fix:** pass `(expected, actual, ...)`.
+**Affects:** src/gametest/**
+
+## 2026-10-06 — There is no `#minecraft:enchantable/sword` item tag
+**Symptom:** The dev server refused to load the world ("Missing tag ... Failed to load datapacks").
+**Cause:** The 1.21.11 tags are `enchantable/sharp_weapon`, `weapon`, `melee_weapon` and so on. A bad tag in
+`supported_items` is a hard load failure, not a warning.
+**Fix:** take tag names from the jar (`data/minecraft/tags/item/enchantable/`). Phase 10 enchantment JSON needs a
+GameTest/dev-server boot for exactly this reason.
+**Affects:** Phase 10 data enchantments

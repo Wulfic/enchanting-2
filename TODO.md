@@ -46,6 +46,10 @@ one or more reviewable commits, and the next phase doesn't start until the curre
 builds green with tests. Before a phase starts, expand its steps into concrete file-level
 steps here.
 
+**Cross-cutting (owner, 2026-10-06):** the mod must be safe to add to or remove from an existing
+world, and it must work in singleplayer (integrated server, LAN) and on dedicated servers. Every
+phase's GameTests and dev-server checks cover this. See DESIGN §2a.
+
 **Not doing (v1):** other loaders or MC versions, vanilla-client support, Mending repair
 changes, full per-enchantment GUI editing. See DESIGN §10.
 
@@ -87,14 +91,34 @@ from the example mod; the wrapper jar is checked against Gradle's published SHA-
 - [x] 1.5 JUnit: `src/test/java/.../ModIdentityTest.java` (fails if the mod ID constant and
       fabric.mod.json disagree). GameTest source set via `fabricApi.configureTests`
       (`src/gametest/`, mod `enchanting2-gametest`), one trivial server GameTest.
-- [~] 1.6 `build` green: 3 JUnit + 2 GameTests. The GameTest run boots a dedicated server (KnotServer)
+- [~] 1.6 `build` green: 3 JUnit + 4 GameTests. The GameTest run boots a dedicated server (KnotServer)
       with the mod loaded and logs "Enchanting 2 initialized", which covers the server side.
       **Open:** `runClient` to the title screen. The owner runs it (it opens a window on their desktop).
+      Also: create a singleplayer world, open to LAN, quit, reopen (integrated-server lifecycle).
 - [~] 1.7 DEFERRED (owner, 2026-10-06): no CI for now. Commits go straight to main and get pushed.
       Revisit `.github/workflows/build.yml` later.
-- [ ] 1.8 Dump the 1.21.11 enchantment registry (IDs, max levels, exclusive sets) → confirm
-      DESIGN §8 against reality (Lunge, effect components named in §9); confirm Fabric Data
-      Attachment API persists chunk attachments on 1.21.11 (needed by 8.5)
+- [x] 1.8 Vanilla registry checked against DESIGN §8, from `data/minecraft/enchantment/*.json`
+      in the 1.21.11 jar. All 43 IDs and vanilla maxes match §8, including `minecraft:lunge`
+      (effect `post_piercing_attack`). The Data Attachment API (v1.8.48 in FAPI 0.141.6) supports
+      persistent chunk attachments (`SerializableChunkDataMixin`). Findings → decisions.md.
+  - [x] 1.8a `src/gametest/.../VanillaEnchantmentIdsGameTest`: every ID in the §8 table resolves
+        in the live registry. This guards the `EnchantmentEvents.MODIFY` keys used in Phase 4.
+- [x] 1.9 Dev server (owner request: "use a dev server for testing the mod properly")
+  - [x] 1.9a `build.gradle` `loom.runs`: client → `run/client`, server → `run/server` with
+        `--nogui --port 25566`, so it never touches 25565 (the owner's other instance)
+  - [x] 1.9b `acceptDevServerEula` task: writes `run/server/eula.txt` **only if absent**. Same EULA
+        acceptance as `fabricApi.configureTests { eula = true }`.
+  - [x] 1.9c `scripts/dev-server-smoke.sh`: refuses if 25566 is in use. Boots `runServer`, waits for a
+        `latest.log` newer than its start marker that contains `Done (`. Asserts the
+        "Enchanting 2 initialized" line and no ERROR from enchanting2, pipes `stop`, and times out
+        with a non-zero exit. Never kills java by name.
+- [x] 1.10 Add/remove safety probe on the dev server (owner requirement, see the new DESIGN §2a).
+      Throwaway datapack `probe:test_ench` → chest with a sword carrying it → stop → move the
+      datapack out of `world/datapacks` → boot → `data get block` on the chest. Records whether
+      vanilla **deletes** items whose enchantment registry entry has vanished. The answer
+      decides how §9's new enchantments are stored. The probe world is throwaway (`run/server/world`).
+      **Result:** items survive. Only the unknown enchantment is dropped (WARN). See gotchas.md and DESIGN §2a.
+      Still to check: player inventory, at the 1.6 `runClient` check.
 
 ## Phase 2 — Config system
 **Goal:** validated JSON5 config, synced server→client, editable from Mod Menu.

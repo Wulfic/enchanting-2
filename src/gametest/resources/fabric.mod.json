@@ -6,7 +6,8 @@
 	"environment": "*",
 	"entrypoints": {
 		"fabric-gametest": [
-			"com.wulfnet.enchanting2.gametest.BootGameTest"
+			"com.wulfnet.enchanting2.gametest.BootGameTest",
+			"com.wulfnet.enchanting2.gametest.VanillaEnchantmentIdsGameTest"
 		]
 	},
 	"depends": {

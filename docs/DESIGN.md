@@ -83,6 +83,44 @@ of a rename across the whole codebase.
 - Packages: `config`, `experience`, `enchanting`, `anvil`, `enchantment`, `compat`,
   `registry`, `network`, `client`, `mixin`.
 
+## 2a. Lifecycle: adding, removing, singleplayer and multiplayer
+
+Owner requirement (2026-10-06): the mod can be added to or removed from an existing world
+without losing anything, and it works the same in singleplayer, LAN and on a dedicated server.
+
+**Adding the mod to an existing world**
+- XP: the stored level and progress are kept. Only the cost of later levels changes. No conversion.
+- Fortune tracker: blocks placed before install have no mark and count as **natural** (owner
+  choice). Each one can pay out a bonus once. Once it is mined and placed again it gets marked,
+  so it can't loop. A chunk without our attachment means "no marks", not a read error.
+- Existing enchanted items are unchanged. Levels above the new maximums can't occur because
+  every maximum only goes up.
+
+**Removing the mod**
+- Nothing new in the world: no new blocks, block entities or items. The table, anvil and
+  grindstone are vanilla blocks with new screens, so nothing turns into missing-block air.
+- Vanilla enchantments above vanilla's max level (Protection V and so on) stay on the item and
+  keep working at that level. Vanilla accepts levels up to 255.
+- Chunk and entity attachments (tracker marks, cooldowns) are orphaned data that vanilla ignores.
+- XP levels stay as they are. Only the curve reverts.
+- **New `enchanting2:` enchantments are lost, but their items are kept** (measured on 1.21.11,
+  Phase 1.10). Vanilla drops the unknown enchantment from the item and logs a WARN. The item and
+  its other enchantments stay. A book holding only new enchantments becomes an empty enchanted
+  book. This is permanent once the chunk saves, so reinstalling won't restore it. Player
+  inventories are expected to behave the same, but that's unmeasured until the `runClient` check.
+
+**Singleplayer, LAN and dedicated servers**
+- No static world state. Config, the tracker and caches belong to a `MinecraftServer`, so an
+  integrated server that closes and reopens another world starts clean.
+- The client keeps the server's synced config separate from its own file (§2 Config), so a
+  LAN host and a remote client agree.
+- A modded client on a **vanilla server** works as vanilla: no custom screens, and it never sends
+  our C2S payloads unless `ClientPlayNetworking.canSend` says the server accepts them.
+- A **vanilla client** joining a modded server is disconnected at join with a clear message
+  naming the mod (§10 says the mod is required on both sides), not a crash or a broken screen.
+- Every gameplay GameTest runs on the dedicated-server harness. The integrated-server path is
+  checked with a `runClient` smoke test plus the dev server (`run/server`, port 25566).
+
 ---
 
 ## 3. Experience curve
