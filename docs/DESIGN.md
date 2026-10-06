@@ -1,4 +1,4 @@
-# Enchantment 2 — Design Spec
+# Enchanting 2 — Design Spec
 
 Living spec. `TODO.md` holds the work list; this file holds the rules the work must satisfy.
 Anything marked **OPEN** is unresolved and blocks the phase named next to it. When an OPEN
@@ -13,7 +13,7 @@ how 1.21.x enchantments actually work.
 
 | | |
 |---|---|
-| Name | Enchantment 2 |
+| Name | Enchanting 2 |
 | Loader | Fabric (Loader + Fabric API) |
 | Minecraft | Java Edition 1.21.11 |
 | Goal | Overhaul XP progression and enchanting while keeping every vanilla enchantment |
@@ -62,7 +62,7 @@ of a rename across the whole codebase.
 - Many new enchantments need **no Java code** (see §9 "Route").
 
 ### Identity
-- Mod ID `enchantment2`, package `com.wulfnet.enchantment2`, display name "Enchantment 2".
+- Mod ID `enchanting2`, package `com.wulfnet.enchanting2`, display name "Enchanting 2".
 - Private repo. No license file and no public distribution in v1.
 - Target 1.21.11 only. Porting to 26.x comes after v1 is complete and tested.
 
@@ -73,8 +73,8 @@ of a rename across the whole codebase.
 - Screen: **Mod Menu + YACL, both optional client dependencies.** Mod Menu supplies the
   "Config" button and YACL builds the screen. Without them the mod still runs and is
   configured by file.
-- Files: `config/enchantment2/common.json5` (gameplay, server-authoritative),
-  `config/enchantment2/client.json5` (display only), and per-enchantment overrides keyed
+- Files: `config/enchanting2/common.json5` (gameplay, server-authoritative),
+  `config/enchanting2/client.json5` (display only), and per-enchantment overrides keyed
   by enchantment ID.
 - Every file has `schema_version`. Loading validates every value. An invalid value falls back
   to its default and logs a WARN naming the key, the bad value and the default.
@@ -301,7 +301,7 @@ them and repeat forever. See `gotchas.md`.
 placed-block tracker breaks the loop: a block a player placed (or manufactured) never gets
 the Fortune bonus. The design is ported from the mcMMO-Singleplayer
 `PlacedBlockTracker`/`BlockRules` pattern.
-- Blocks Fortune affects: data tags `enchantment2:fortune_multiplies/<tool>`. Multiplier is
+- Blocks Fortune affects: data tags `enchanting2:fortune_multiplies/<tool>`. Multiplier is
   vanilla's ore formula (`1 + max(0, rand(0, level+2) − 1)`), so Fortune V averages about 2.9×.
 - Draft defaults (adjust in Phase 8):
 

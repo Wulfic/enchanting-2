@@ -5,29 +5,26 @@
 > `gotchas.md`; this file only answers "where am I right now?".
 
 **Last updated:** 2026-10-06
-**Branch:** main
+**Branch:** main (commit straight to main and push; no CI; see decisions.md)
 
 ## Where we are
-Project is **Enchantment 2**, a Fabric 1.21.11 mod (XP curve flattening, unlimited applicable
-enchantments, additive cost model, readable enchanting table, new enchantments). No code yet.
-The repo is still the agent template plus the plan.
-
-Phase 0 (plan) is done: the spec is in `docs/DESIGN.md` with the owner's answers folded in,
-and the 12-phase roadmap is in `TODO.md`. Uncommitted.
+Phase 1 (scaffold) is mostly done. `./gradlew build` is green: it compiles, runs 3 JUnit tests,
+and runs 2 server GameTests (Loom wires `runGameTest` into `check`). Versions are pinned in
+`gradle.properties` and listed in TODO.md Phase 1.
 
 ## What's next
-1. Commit the plan (`docs:`), then start Phase 1: scaffold, verifying toolchain versions
-   first via `research-docs`.
+1. 1.6: owner runs `./gradlew runClient` once to confirm the client reaches the title screen.
+2. 1.8: dump the 1.21.11 enchantment registry and check it against DESIGN §8 (Lunge, effect
+   components), and confirm the chunk Data Attachment API persists on 1.21.11.
+3. Phase 2 (config). Add the Mod Menu, YACL and Jankson deps then, not before.
 
 ## Open questions / blockers
-- None. Q1–Q14 resolved 2026-10-06 (see decisions.md).
-- The placed-block tracker for Fortune is ported from `../mcMMO-Singleplayer` (`util/PlacedBlockTracker`,
-  `util/BlockRules`). That repo targets 26.3 with Mojang names, so expect small API drift
-  back to 1.21.11.
+- None.
 
 ## Do not forget
-- 1.21.x enchantments are data-driven. Modify vanilla ones through Fabric
-  `EnchantmentEvents.MODIFY`, never by overriding their JSON.
-- 1.21.11 is the last Yarn version, so use Mojang mappings.
+- Plugin ID is `net.fabricmc.fabric-loom-remap` for 1.21.11 (gotchas.md).
+- The owner often runs another mod's tests in a second VS Code instance. Never kill java
+  processes by name, and check that port 25565 is free before `runServer`.
+- 1.21.x enchantments are data-driven: use `EnchantmentEvents.MODIFY`, not override JSON.
 - `.env` and MCP configs are tracked with live credentials (owner's call). Rotate the `ghp_` PAT.
 - `.claude/skills/` and `.github/skills/` are hand-synced copies.

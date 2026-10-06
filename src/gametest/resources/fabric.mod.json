@@ -1,0 +1,15 @@
+{
+	"schemaVersion": 1,
+	"id": "enchanting2-gametest",
+	"name": "Enchanting 2 GameTests",
+	"version": "1.0.0",
+	"environment": "*",
+	"entrypoints": {
+		"fabric-gametest": [
+			"com.wulfnet.enchanting2.gametest.BootGameTest"
+		]
+	},
+	"depends": {
+		"enchanting2": "*"
+	}
+}

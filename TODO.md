@@ -39,9 +39,9 @@ answer, a blank field is not. Destructive steps are marked as such and gated thr
 
 ## Active
 
-# Enchantment 2 — v1 roadmap (Tier 2)
+# Enchanting 2 — v1 roadmap (Tier 2)
 
-Spec: [docs/DESIGN.md](docs/DESIGN.md). Open questions Q1–Q11 live there. Each phase is
+Spec: [docs/DESIGN.md](docs/DESIGN.md). Open questions Q1–Q14 are all resolved. Each phase is
 one or more reviewable commits, and the next phase doesn't start until the current one
 builds green with tests. Before a phase starts, expand its steps into concrete file-level
 steps here.
@@ -67,19 +67,31 @@ which is gated separately.
 ## Phase 1 — Project scaffold
 **Goal:** `./gradlew build` produces a jar that loads in a dev client and a dedicated server
 and logs one line.
-- [ ] 1.1 Verify the toolchain for 1.21.11 (Java, Loom, Loader, Fabric API, Mod Menu, YACL,
-      Jankson versions) with `research-docs` → write the pinned versions to `gradle.properties`.
-      Mod ID `enchantment2`, group `com.wulfnet.enchantment2`.
-- [ ] 1.2 `settings.gradle`, `build.gradle` (Loom, Mojang mappings, `splitEnvironmentSourceSets`),
-      Gradle wrapper
-- [ ] 1.3 `src/main/resources/fabric.mod.json`, `enchantment2.mixins.json`,
-      `enchantment2.client.mixins.json`, mod icon from `Logo/`
-- [ ] 1.4 Entrypoints: `Enchantment2` (main), `Enchantment2Client` (client); `.gitignore` adds
-      `.gradle/ build/ run/ out/ *.iml`
-- [ ] 1.5 Test harness: JUnit 5 (`./gradlew test`) and a Fabric GameTest source set
-      (`./gradlew runGametest`), with one trivial test each
-- [ ] 1.6 Verify: `runClient` and `runServer` both start with no client-class-on-server crash
-- [ ] 1.7 GitHub Actions: build + test on push (`.github/workflows/build.yml`)
+**Pinned 2026-10-06** (fabric meta, maven-metadata, Modrinth, FabricMC/fabric-example-mod@1.21.11):
+MC 1.21.11 · Java 21 · Gradle 9.7.1 · Loom 1.18.2 (**plugin id `net.fabricmc.fabric-loom-remap`**) ·
+Loader 0.19.5 · Fabric API 0.141.6+1.21.11 · Mod Menu 17.0.1 · YACL 3.8.1+1.21.11-fabric ·
+Jankson 1.2.3 · JUnit 5.11.4. Add `fabric-loader-junit` when a unit test first needs MC classes
+(plain JUnit hits an IllegalAccessError there; see ../mcMMO-Singleplayer build.gradle).
+**Blast radius:** additive. Only existing file edited is `.gitignore` (append). Wrapper files come
+from the example mod; the wrapper jar is checked against Gradle's published SHA-256.
+**Rollback:** `git revert <phase-1 commits>`; before commit, delete the new untracked files listed below.
+
+- [x] 1.1 Versions verified (above) → `gradle.properties`
+- [x] 1.2 `settings.gradle`, `build.gradle`, `gradle.properties`, `gradlew`, `gradlew.bat`,
+      `gradle/wrapper/*` (jar SHA-256 verified). Toolchain from `java_version=21`.
+- [x] 1.3 `src/main/resources/fabric.mod.json`, `enchanting2.mixins.json`,
+      `src/client/resources/enchanting2.client.mixins.json`,
+      `assets/enchanting2/icon.png` (128×128 from `Logo/`, via ffmpeg)
+- [x] 1.4 `src/main/java/com/wulfnet/enchanting2/Enchanting2.java` (logs one line),
+      `src/client/java/.../Enchanting2Client.java`; `.gitignore` adds `.gradle/ build/ run/ out/ *.iml`
+- [x] 1.5 JUnit: `src/test/java/.../ModIdentityTest.java` (fails if the mod ID constant and
+      fabric.mod.json disagree). GameTest source set via `fabricApi.configureTests`
+      (`src/gametest/`, mod `enchanting2-gametest`), one trivial server GameTest.
+- [~] 1.6 `build` green: 3 JUnit + 2 GameTests. The GameTest run boots a dedicated server (KnotServer)
+      with the mod loaded and logs "Enchanting 2 initialized", which covers the server side.
+      **Open:** `runClient` to the title screen. The owner runs it (it opens a window on their desktop).
+- [~] 1.7 DEFERRED (owner, 2026-10-06): no CI for now. Commits go straight to main and get pushed.
+      Revisit `.github/workflows/build.yml` later.
 - [ ] 1.8 Dump the 1.21.11 enchantment registry (IDs, max levels, exclusive sets) → confirm
       DESIGN §8 against reality (Lunge, effect components named in §9); confirm Fabric Data
       Attachment API persists chunk attachments on 1.21.11 (needed by 8.5)

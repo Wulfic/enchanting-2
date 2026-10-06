@@ -87,3 +87,23 @@ Q13), and keep any loop-creating mode behind an off-by-default toggle with a war
 **Dead ends:** A blocklist of storage blocks only. It misses plain self-dropping blocks
 (logs, sand), which loop just as well.
 **Affects:** DESIGN.md §4, §6; Phase 8
+
+## 2026-10-06 — Correction to the Fortune entry above: the "Fix" line is superseded
+**Symptom:** The entry above says "don't multiply self-drops, add byproduct drops instead".
+**Cause:** That was written before Q13. The owner picked option B: multiply the block's own drop.
+**Fix:** The loop is broken by the placed-block tracker (natural blocks only, fails closed), not
+by avoiding self-drops. See decisions.md "Fortune multiplies natural blocks" and DESIGN §6.
+The loop analysis above still holds and is the reason the tracker must cover pistons and
+falling blocks.
+**Dead ends:** n/a
+**Affects:** DESIGN.md §6; Phase 8
+
+## 2026-10-06 — Loom 1.18 for obfuscated MC (1.21.11) is the `fabric-loom-remap` plugin
+**Symptom:** Older docs and templates use `id 'fabric-loom'` / `net.fabricmc.fabric-loom`.
+**Cause:** Loom split the plugin once 26.x shipped unobfuscated. `net.fabricmc.fabric-loom` is the
+no-remap variant for 26.x. Obfuscated versions (≤1.21.11) need `net.fabricmc.fabric-loom-remap`.
+**Fix:** `id 'net.fabricmc.fabric-loom-remap' version '1.18.2'`, from FabricMC/fabric-example-mod
+branch `1.21.11`. The 26.x port will have to switch the plugin ID back as well as bump versions.
+**Dead ends:** Copying the plugin block from ../mcMMO-Singleplayer: it targets 26.3 and uses the
+non-remap ID.
+**Affects:** build.gradle

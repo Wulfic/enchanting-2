@@ -170,3 +170,10 @@ local.properties
 history/
 
 # End of universal .gitignore
+############################
+# Fabric / Loom (Enchanting 2)
+############################
+# *.jar above would drop the wrapper and break fresh clones.
+!gradle/wrapper/gradle-wrapper.jar
+run/
+*.iml

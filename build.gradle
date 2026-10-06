@@ -1,0 +1,86 @@
+plugins {
+    // 1.21.11 is obfuscated, so it needs the remapping variant. See gotchas.md 2026-10-06.
+    id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    mavenCentral()
+}
+
+loom {
+    splitEnvironmentSourceSets()
+
+    mods {
+        'enchanting2' {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+}
+
+// `gametest` source set (src/gametest/) is a separate mod, `enchanting2-gametest`, loaded only by
+// `./gradlew runGameTest`. It is never in the shipped jar.
+fabricApi {
+    configureTests {
+        createSourceSet = true
+        modId = 'enchanting2-gametest'
+        enableGameTests = true
+        enableClientGameTests = false
+        eula = true
+        clearRunDirectory = true
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+    testImplementation platform("org.junit:junit-bom:${project.junit_version}")
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+// Captured at configuration time: the configuration cache rejects reading `project` inside an
+// execution-time closure.
+def modVersion = project.version
+processResources {
+    inputs.property 'version', modVersion
+    filesMatching('fabric.mod.json') {
+        expand version: modVersion
+    }
+}
+
+// One declared Java level, read by every consumer. Refuses instead of defaulting: a jar compiled for
+// the wrong release builds and tests clean, then fails at the player's launcher.
+if (!project.hasProperty('java_version') || !(project.java_version.toString().trim() ==~ /\d+/)) {
+    throw new GradleException("gradle.properties must declare java_version=<major>, e.g. java_version=21")
+}
+def javaLevel = project.java_version.toString().trim() as Integer
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.toVersion(javaLevel)
+    targetCompatibility = JavaVersion.toVersion(javaLevel)
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(javaLevel)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = 'UTF-8'
+    it.options.release = javaLevel
+    it.options.compilerArgs << '-Xlint:deprecation'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}

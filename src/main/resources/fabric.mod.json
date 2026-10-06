@@ -1,0 +1,37 @@
+{
+	"schemaVersion": 1,
+	"id": "enchanting2",
+	"version": "${version}",
+	"name": "Enchanting 2",
+	"description": "Flat XP curve past level 30, unlimited applicable enchantments, transparent additive costs and a readable enchanting table.",
+	"authors": [
+		"Wulfic"
+	],
+	"contact": {
+		"sources": "https://github.com/Wulfic/enchanting-2"
+	},
+	"license": "All-Rights-Reserved",
+	"icon": "assets/enchanting2/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.wulfnet.enchanting2.Enchanting2"
+		],
+		"client": [
+			"com.wulfnet.enchanting2.Enchanting2Client"
+		]
+	},
+	"mixins": [
+		"enchanting2.mixins.json",
+		{
+			"config": "enchanting2.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}

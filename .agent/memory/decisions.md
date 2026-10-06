@@ -227,3 +227,26 @@ discount on expensive Mending builds.
 **Rejected:** A flat removal cost only (exploitable on large builds). Curses on loot in
 exchange for over-cap levels (max levels are the design's hard ceiling).
 **Affects:** `enchanting/CostModel`, grindstone mixin, table screen, DESIGN.md §5a, §6
+
+## 2026-10-06 — Enchantment 2: commit straight to main, push, no CI for now
+**Context:** Phase 1 setup. Needed a git flow and a call on GitHub Actions (TODO 1.7).
+**Choice:** Commits go directly on `main` and get pushed to `origin` (Wulfic/enchanting-2).
+No CI workflow yet. Author in `fabric.mod.json` is "Wulfic".
+**Why:** Owner's call. It's a solo private repo, so a branch/PR review point isn't worth the
+overhead yet.
+**Rejected:** Branch per phase, branch + PR per phase, CI now. All are revisitable. With no CI,
+"never commit red" rests entirely on running `./gradlew build test` locally before every commit.
+**Affects:** TODO.md Phase 1.7, `src/main/resources/fabric.mod.json`
+
+## 2026-10-06 — Renamed Enchantment 2 → Enchanting 2 (mod ID `enchanting2`)
+**Context:** The owner's logo (`Logo/enchanting2.png`) and the repo name say "Enchanting 2". The spec,
+mod ID and package said "Enchantment 2" / `enchantment2`.
+**Choice:** Full rename before any registry IDs or config files exist: display name "Enchanting 2",
+mod ID `enchanting2`, package `com.wulfnet.enchanting2`, config dir `config/enchanting2/`. The mod
+icon comes from `Logo/enchanting2.png`. Earlier entries in this file keep the old name. This entry
+supersedes them on naming only.
+**Why:** The mod ID ends up in registry IDs (`enchanting2:vampirism`), config paths and world saves,
+so renaming after the first release breaks existing worlds. Today it costs nothing.
+**Rejected:** Changing the display name only (permanent mismatch between ID and name). Keeping the
+old name (doesn't match the owner's branding).
+**Affects:** all of src/, build.gradle, settings.gradle, gradle.properties, DESIGN.md, TODO.md
