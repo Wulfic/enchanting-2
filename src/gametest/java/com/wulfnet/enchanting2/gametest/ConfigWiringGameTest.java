@@ -37,7 +37,7 @@ public class ConfigWiringGameTest {
 
 	@GameTest
 	public void payloadRoundTrips(GameTestHelper helper) {
-		ConfigSyncPayload sent = ConfigSyncPayload.of(new CommonConfig(new ExperienceSection(false, 7, 99, 500)));
+		ConfigSyncPayload sent = ConfigSyncPayload.of(new CommonConfig(new ExperienceSection(false, 7, 99)));
 		FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
 		ConfigSyncPayload.CODEC.encode(buf, sent);
 		ConfigSyncPayload received = ConfigSyncPayload.CODEC.decode(buf);

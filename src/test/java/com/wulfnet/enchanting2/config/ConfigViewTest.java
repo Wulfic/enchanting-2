@@ -19,7 +19,7 @@ class ConfigViewTest {
 	private static final CommonConfig SERVER = withFixedPoints(400);
 
 	private static CommonConfig withFixedPoints(int points) {
-		return new CommonConfig(new ExperienceSection(true, 30, points, ExperienceSection.UNLIMITED_LEVEL));
+		return new CommonConfig(new ExperienceSection(true, 30, points));
 	}
 
 	private static Supplier<LoadResult<CommonConfig>> file(Source source, boolean futureSchema) {

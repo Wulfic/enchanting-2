@@ -235,16 +235,61 @@ Kotlin, so `transitive = false` is safe if we use the Java builder API only.
 - [ ] 2C.7 Owner check in `runClient` (folded into the 1.6 check): the screen opens from the title screen and in a
       world. An SP edit persists and makes a `.bak`. A LAN guest sees read-only. A vanilla server shows the vanilla note.
 
-## Phase 3 — Experience curve
+## Phase 3 — Experience curve (two stages, one commit each)
 **Goal:** DESIGN §3 acceptance list passes.
-- [ ] 3.1 `experience/ExperienceCurve` (pure, `long` math) + exhaustive unit tests (boundaries
-      0/15/16/30/31, 10k, overflow clamp, round-trip lossless)
-- [ ] 3.2 Mixin `Player#getXpNeededForNextLevel` → service
-- [ ] 3.3 Audit every other level/points call site (commands, orbs, death, `totalExperience`)
-      and route through the service; list findings in this file
-- [ ] 3.4 `maximum_level` cap
-- [ ] 3.5 GameTests: `/xp` above 30, spend across the 30 boundary, death ± keepInventory,
-      save/reload at a high level
+**Owner (2026-10-06):** there is no admin level cap. The only limit is `Integer.MAX_VALUE`, and a level never wraps
+negative. The `maximum_level` key (added in 2A) is removed.
+**Audit (javap of the mapped 1.21.11 jar, 2026-10-06):** all curve math goes through `Player#getXpNeededForNextLevel`.
+Its callers: `Player#giveExperiencePoints` (orbs, bottles, grindstone, `/xp add points`), `ServerPlayer#setExperiencePoints`
+(`/xp set points`), `/xp query points` (`floor(progress × needed)`), and the client `ExperienceBarRenderer` (it draws the
+bar only if the result is `> 0`). Everything else uses levels only and needs no change: `giveExperienceLevels` (anvil,
+`/xp add levels`; already `IntMath.saturatedAdd`, so it never wraps), `setExperienceLevels`, `onEnchantmentPerformed`,
+`getBaseExperienceReward` (death drop `min(7L, 100)`, stays vanilla per DESIGN), `restoreFrom`/`PlayerList.respawn`
+(keepInventory copies the three fields), the XP packet, `Gui`, `EnchantmentMenu`, `AnvilMenu`, `PlayerPredicate`.
+`totalExperience` is the score, not curve state (vanilla clamps it at `Integer.MAX_VALUE`).
+**Vanilla bug fixed on the way:** `112 + 9(L − 30)` overflows `int` near L ≈ 238.6M. The needed points go negative, and
+the client hides the bar. The service clamps to `[1, Integer.MAX_VALUE]`.
+**Approach:** one `@Inject(HEAD, cancellable)` on `getXpNeededForNextLevel` (not an `@Overwrite`, so other mods' injects
+still apply). The config comes from the player's side: a `ServerLevel` reads `ServerConfigs.get(server)`; a client player
+reads the server's synced copy, or the vanilla curve when there is none (vanilla server).
+**Not doing:** rewriting `giveExperiencePoints`' float math, *unless* the lossless round-trip GameTest (3B.4) fails. In
+that case it becomes its own written sub-step. No death-drop change. No `totalExperience` change. No admin cap.
+**Blast radius:** additive code, plus removing one config key. A `common.json5` that still has `maximum_level` loads with an
+unknown-key WARN and is never rewritten (2A guard). Nothing was released, so only dev run dirs have such files.
+Player XP itself is never rewritten: the mixin changes only how many points the *next* level costs. Adding or removing the
+mod keeps every stored level (DESIGN §2a).
+**Rollback:** `git revert <3A commit> <3B commit>`.
+
+### Stage 3A — Drop `maximum_level`, pure curve → commit  ✅ 2026-10-06
+- [x] 3A.1 `config/ExperienceSection`: remove `maximumLevel` (3 components). `client/ConfigScreen`, `lang/en_us.json`.
+      Tests that used `maximum_level` as an arbitrary key (`ConfigParseTest`, `ConfigFilesTest`, `ConfigViewTest`,
+      `ConfigWiringGameTest`) switch to `flatten_after_level`/`fixed_points_per_level`, keeping each test's intent.
+      DESIGN §3 + decisions.md entry.
+- [x] 3A.2 `experience/ExperienceCurve` (pure, main set, no MC imports): `vanillaPointsToNext(level)` (long),
+      `pointsToNext(section, level)` → int clamped to `[1, MAX]`, `totalPoints(section, level, pointsIntoLevel)`
+      (saturating long), `fromTotal(section, total)` → `(level, pointsIntoLevel)` (binary search; total is monotonic).
+- [x] 3A.3 `ExperienceCurveTest`: vanilla boundaries 0/15/16/29/30/31 against the javap'd formula; 30→31, 31→32, 49→50,
+      99→100, 9999→10000 = 112; total at 30 = 1395, at L = `1395 + 112(L − 30)`; `flatten_after_level: 0` and
+      `enabled: false`; overflow (vanilla at `Integer.MAX_VALUE` stays positive, totals saturate, never negative);
+      round-trip `fromTotal(totalPoints(x)) == x` over a spread of levels including both sides of 30 and near MAX.
+      Done: 12 tests, sums brute-force checked past the clamp level. Mutation: dropping the clamp fails 4.
+
+### Stage 3B — Wiring → commit
+- [ ] 3B.1 `experience/PlayerExperience` (main, MC side): `section(Player)` (server holder or client source) and
+      `setClientSource(Supplier<ExperienceSection>)`. Default client source = the vanilla curve.
+- [ ] 3B.2 `mixin/PlayerMixin` (`getXpNeededForNextLevel` → `ExperienceCurve.pointsToNext`), registered in
+      `enchanting2.mixins.json`. `Enchanting2Client` sets the client source from `ClientConfigState.serverCopy()`.
+- [ ] 3B.3 GameTests `ExperienceGameTest` (mock `ServerPlayer`, default config): needed = 112 at 30/31/49/99/9999;
+      `/xp set points` path (`setExperiencePoints`) and query (`floor(progress × needed)`) above 30; points across the 30
+      boundary land on the right level + points; spending levels from 40 → 25; level near `Integer.MAX_VALUE` + points →
+      `MAX`, never negative, needed > 0.
+- [ ] 3B.4 Add-then-remove N points is lossless (level and floor points equal before and after), from mid-level above
+      and below 30. If it fails because of float progress, stop and plan the exact-math sub-step.
+- [ ] 3B.5 Death: `restoreFrom(old, false)` with keepInventory on (level/progress copied) and off (reset to 0). The
+      gamerule is restored in `finally`. Save/reload: `saveWithoutId` → `load` into a fresh player at level 2,000,000,000
+      with progress → identical.
+- [ ] 3B.6 `./gradlew build` green. state.md, gotchas if any. Owner check added to the 1.6 `runClient` list: HUD at level
+      ~1,000,000 shows the bar and the right number.
 
 ## Phase 4 — Enchantment rules engine
 **Goal:** applicability is mandatory, conflict families are configurable, max levels are

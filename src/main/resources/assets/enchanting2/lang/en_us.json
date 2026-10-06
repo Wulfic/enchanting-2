@@ -13,8 +13,6 @@
 	"enchanting2.config.experience.flatten_after_level.desc": "From this level on, every level costs the same number of points. 0 = a fixed cost at every level.",
 	"enchanting2.config.experience.fixed_points_per_level": "Points per level",
 	"enchanting2.config.experience.fixed_points_per_level.desc": "XP points each level costs once the curve is flat. 112 is vanilla's cost from level 30 to 31.",
-	"enchanting2.config.experience.maximum_level": "Maximum level",
-	"enchanting2.config.experience.maximum_level.desc": "The highest level a player can reach. -1 = unlimited.",
 	"enchanting2.config.save_failed": "Enchanting 2 config not saved",
 	"enchanting2.config.save_failed.not_editable": "It can't be edited right now.",
 	"enchanting2.config.save_failed.refused_future_schema": "The file was written by a newer Enchanting 2.",

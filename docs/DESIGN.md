@@ -158,7 +158,9 @@ Total points at level L (L ≥ 30) = `1395 + 112 × (L − 30)`. 1395 is vanilla
 - Mixin into `Player#getXpNeededForNextLevel` so that all vanilla callers route to the
   service, then audit every other caller that does its own math: `/xp` commands, death drop,
   XP orbs, bottles, enchanting, anvil, grindstone, and `totalExperience` bookkeeping.
-- `maximum_level = -1` means unlimited. `≥ 0` is an admin cap.
+- No admin level cap (owner, 2026-10-06). The only limit is `Integer.MAX_VALUE`, and a level never wraps negative.
+  The service clamps points-to-next to `[1, Integer.MAX_VALUE]`. That also fixes vanilla's own overflow: `112 + 9(L − 30)`
+  goes negative near L ≈ 238.6M, and the client then hides the XP bar.
 - Death drop stays vanilla (`min(7 × level, 100)` points) unless configured otherwise.
 
 ### Config
@@ -167,7 +169,6 @@ experience: {
   enabled: true,              // false = the full vanilla curve
   flatten_after_level: 30,    // 0 = fixed cost at every level
   fixed_points_per_level: 112,
-  maximum_level: -1,
 }
 ```
 `post_threshold_mode` and `preserve_vanilla_curve_below_threshold` were dropped (owner, 2026-10-06).

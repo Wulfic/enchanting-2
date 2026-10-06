@@ -51,10 +51,7 @@ final class ConfigScreen {
 					.option(intOption("experience.fixed_points_per_level", d.fixedPointsPerLevel(),
 							() -> draft.fixedPointsPerLevel, v -> draft.fixedPointsPerLevel = v,
 							ExperienceSection.MIN_FIXED_POINTS_PER_LEVEL, ExperienceSection.MAX_FIXED_POINTS_PER_LEVEL,
-							editable))
-					.option(intOption("experience.maximum_level", d.maximumLevel(),
-							() -> draft.maximumLevel, v -> draft.maximumLevel = v,
-							ExperienceSection.UNLIMITED_LEVEL, ExperienceSection.MAX_MAXIMUM_LEVEL, editable));
+							editable));
 		}
 
 		return YetAnotherConfigLib.createBuilder()
@@ -87,18 +84,15 @@ final class ConfigScreen {
 		boolean enabled;
 		int flattenAfterLevel;
 		int fixedPointsPerLevel;
-		int maximumLevel;
 
 		Draft(ExperienceSection from) {
 			enabled = from.enabled();
 			flattenAfterLevel = from.flattenAfterLevel();
 			fixedPointsPerLevel = from.fixedPointsPerLevel();
-			maximumLevel = from.maximumLevel();
 		}
 
 		CommonConfig toConfig() {
-			return new CommonConfig(
-					new ExperienceSection(enabled, flattenAfterLevel, fixedPointsPerLevel, maximumLevel));
+			return new CommonConfig(new ExperienceSection(enabled, flattenAfterLevel, fixedPointsPerLevel));
 		}
 	}
 }

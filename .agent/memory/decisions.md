@@ -346,3 +346,16 @@ from repos we don't otherwise need).
 YACL is environment `*`, so `modLocalRuntime` also loads it on the dev server and GameTest server. Both still pass.
 **Affects:** src/main/java/com/wulfnet/enchanting2/config/ConfigView.java, src/client/.../client/{ConfigEditing,
 ConfigScreen,ModMenuIntegration}.java, build.gradle, fabric.mod.json, docs/DESIGN.md §2
+
+## 2026-10-06 — No XP level cap; drop `maximum_level`
+**Context:** Phase 3 planning. 2A had shipped `maximum_level` (-1 = unlimited, ≥ 0 = admin cap). The cap raised two
+questions with no good answer: what happens to XP gained at the cap, and whether lowering it takes levels away.
+**Choice:** (owner) No admin cap. The only limit is `Integer.MAX_VALUE`. The key is removed from `ExperienceSection`, the
+screen and the lang file. `schema_version` stays 1: nothing was released, so no migration.
+**Why:** The owner doesn't want a cap. Vanilla `giveExperienceLevels` already uses `IntMath.saturatedAdd`, so levels stop at
+MAX without wrapping. Only points-to-next needs a clamp (vanilla's formula overflows near L ≈ 238.6M).
+**Rejected:** Keeping the key at -1 (dead config surface). Clamping players down when a cap is lowered (destroys levels).
+**Trade-off accepted:** a dev-dir `common.json5` that still has `maximum_level` logs an unknown-key WARN. It is never
+rewritten (2A guard); delete it and boot to regenerate.
+**Affects:** src/main/java/com/wulfnet/enchanting2/config/ExperienceSection.java, src/client/.../client/ConfigScreen.java,
+lang/en_us.json, docs/DESIGN.md §3

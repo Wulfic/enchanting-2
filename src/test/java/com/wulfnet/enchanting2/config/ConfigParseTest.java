@@ -30,7 +30,7 @@ class ConfigParseTest {
 
 	@Test
 	void nonDefaultValuesRoundTrip() throws SyntaxError {
-		var custom = new CommonConfig(new ExperienceSection(false, 0, 1, 500));
+		var custom = new CommonConfig(new ExperienceSection(false, 0, 1));
 		assertEquals(custom, common(ConfigFiles.render(custom, CommonConfig.CODEC)).config());
 	}
 
@@ -38,7 +38,7 @@ class ConfigParseTest {
 	void renderedFileExplainsEveryKey() {
 		String text = ConfigFiles.render(CommonConfig.defaults(), CommonConfig.CODEC);
 		assertTrue(text.contains("// "), text);
-		assertTrue(text.contains("-1 = unlimited"), text);
+		assertTrue(text.contains("0 = fixed cost at every level"), text);
 		assertTrue(text.indexOf("schema_version") < text.indexOf("experience"), "schema_version must come first");
 	}
 
@@ -46,12 +46,11 @@ class ConfigParseTest {
 	void outOfRangeKeyDefaultsAloneAndOthersAreKept() throws SyntaxError {
 		var parsed = common("""
 				{ schema_version: 1, experience: { enabled: false, flatten_after_level: -5,
-				  fixed_points_per_level: 200, maximum_level: 99 } }""");
+				  fixed_points_per_level: 200 } }""");
 		var xp = parsed.config().experience();
 		assertEquals(30, xp.flattenAfterLevel());
 		assertFalse(xp.enabled());
 		assertEquals(200, xp.fixedPointsPerLevel());
-		assertEquals(99, xp.maximumLevel());
 		assertEquals(List.of("experience.flatten_after_level"), keys(parsed.issues()));
 		ConfigIssue issue = parsed.issues().get(0);
 		assertEquals("-5", issue.badValue());
@@ -69,9 +68,9 @@ class ConfigParseTest {
 	void wrongTypesDefault() throws SyntaxError {
 		var parsed = common("""
 				{ schema_version: 1, experience: { enabled: "yes", flatten_after_level: 30.5,
-				  fixed_points_per_level: "112", maximum_level: 99999999999 } }""");
+				  fixed_points_per_level: 99999999999 } }""");
 		assertEquals(ExperienceSection.DEFAULTS, parsed.config().experience());
-		assertEquals(4, parsed.issues().size(), parsed.issues().toString());
+		assertEquals(3, parsed.issues().size(), parsed.issues().toString());
 	}
 
 	@Test
@@ -105,8 +104,8 @@ class ConfigParseTest {
 
 	@Test
 	void missingSchemaVersionIsReportedAndReadAsCurrent() throws SyntaxError {
-		var parsed = common("{ experience: { maximum_level: 7 } }");
-		assertEquals(7, parsed.config().experience().maximumLevel());
+		var parsed = common("{ experience: { flatten_after_level: 7 } }");
+		assertEquals(7, parsed.config().experience().flattenAfterLevel());
 		assertEquals(List.of("schema_version"), keys(parsed.issues()));
 		assertFalse(parsed.futureSchema());
 	}
@@ -120,9 +119,9 @@ class ConfigParseTest {
 
 	@Test
 	void futureSchemaIsReadBestEffort() throws SyntaxError {
-		var parsed = common("{ schema_version: 2, experience: { maximum_level: 50, new_key: 1 } }");
+		var parsed = common("{ schema_version: 2, experience: { flatten_after_level: 50, new_key: 1 } }");
 		assertTrue(parsed.futureSchema());
-		assertEquals(50, parsed.config().experience().maximumLevel());
+		assertEquals(50, parsed.config().experience().flattenAfterLevel());
 	}
 
 	@Test
@@ -140,9 +139,8 @@ class ConfigParseTest {
 
 	@Test
 	void recordRejectsOutOfRangeValues() {
-		assertThrows(IllegalArgumentException.class, () -> new ExperienceSection(true, 30, 0, -1));
-		assertThrows(IllegalArgumentException.class, () -> new ExperienceSection(true, -1, 112, -1));
-		assertThrows(IllegalArgumentException.class, () -> new ExperienceSection(true, 30, 112, -2));
+		assertThrows(IllegalArgumentException.class, () -> new ExperienceSection(true, 30, 0));
+		assertThrows(IllegalArgumentException.class, () -> new ExperienceSection(true, -1, 112));
 	}
 
 	@Test
@@ -178,7 +176,7 @@ class ConfigParseTest {
 
 	@Test
 	void strictRenderIsCommentFreeAndRoundTrips() throws SyntaxError {
-		var config = new CommonConfig(new ExperienceSection(false, 12, 345, 6789));
+		var config = new CommonConfig(new ExperienceSection(false, 12, 345));
 		String json = ConfigFiles.renderStrict(config, CommonConfig.CODEC);
 		assertFalse(json.contains("//") || json.contains("/*"), json);
 		assertFalse(json.contains("\n"), json);

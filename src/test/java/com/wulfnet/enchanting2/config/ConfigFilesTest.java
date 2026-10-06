@@ -39,7 +39,7 @@ class ConfigFilesTest {
 		return file.resolveSibling(file.getFileName() + ".tmp");
 	}
 
-	private static final CommonConfig CUSTOM = new CommonConfig(new ExperienceSection(true, 40, 200, 1000));
+	private static final CommonConfig CUSTOM = new CommonConfig(new ExperienceSection(true, 40, 200));
 
 	@Test
 	void missingFileGetsDefaultsWritten() throws IOException {
@@ -57,7 +57,7 @@ class ConfigFilesTest {
 
 	@Test
 	void malformedFileIsLeftByteIdentical() throws IOException {
-		Path file = write("{ schema_version: 1, experience: { maximum_level: 5 ");
+		Path file = write("{ schema_version: 1, experience: { flatten_after_level: 5 ");
 		byte[] before = Files.readAllBytes(file);
 		var result = ConfigFiles.load(file, CommonConfig.CODEC);
 		assertEquals(Source.UNREADABLE, result.source());
@@ -68,7 +68,7 @@ class ConfigFilesTest {
 
 	@Test
 	void fileWithBadValuesIsNeverRewrittenOnLoad() throws IOException {
-		Path file = write("// my notes\n{ schema_version: 1, experience: { maximum_level: -9, typo: 1 } }\n");
+		Path file = write("// my notes\n{ schema_version: 1, experience: { flatten_after_level: -9, typo: 1 } }\n");
 		byte[] before = Files.readAllBytes(file);
 		var result = ConfigFiles.load(file, CommonConfig.CODEC);
 		assertEquals(Source.FILE, result.source());
@@ -78,7 +78,7 @@ class ConfigFilesTest {
 
 	@Test
 	void saveBacksUpTheExactPreviousBytes() throws IOException {
-		Path file = write("// hand edit\n{ schema_version: 1, experience: { maximum_level: 5 } }\n");
+		Path file = write("// hand edit\n{ schema_version: 1, experience: { flatten_after_level: 5 } }\n");
 		byte[] before = Files.readAllBytes(file);
 
 		assertEquals(SaveOutcome.SAVED, ConfigFiles.saveWithBackup(file, CommonConfig.CODEC, CUSTOM));
@@ -98,12 +98,12 @@ class ConfigFilesTest {
 
 	@Test
 	void saveRefusesFutureSchemaAndTouchesNothing() throws IOException {
-		Path file = write("{ schema_version: 2, experience: { maximum_level: 5 }, future_section: {} }");
+		Path file = write("{ schema_version: 2, experience: { flatten_after_level: 5 }, future_section: {} }");
 		byte[] before = Files.readAllBytes(file);
 
 		var load = ConfigFiles.load(file, CommonConfig.CODEC);
 		assertTrue(load.futureSchema());
-		assertEquals(5, load.config().experience().maximumLevel());
+		assertEquals(5, load.config().experience().flattenAfterLevel());
 
 		assertEquals(SaveOutcome.REFUSED_FUTURE_SCHEMA, ConfigFiles.saveWithBackup(file, CommonConfig.CODEC, CUSTOM));
 		assertArrayEquals(before, Files.readAllBytes(file));
