@@ -8,15 +8,16 @@
 **Branch:** main (commit straight to main and push; no CI; see decisions.md)
 
 ## Where we are
-Phase 1 is done except 1.6 (`runClient` by the owner). **Phase 2 (2A, 2B, 2C) is done** except the owner's in-client checks.
-2C: `config/ConfigView` (pure mode resolver), `client/ConfigEditing` (save → `.bak` → `ServerConfigs.reload` when
-hosting), `client/ConfigScreen` (YACL), `client/ModMenuIntegration`, `lang/en_us.json`. Owner: the title screen edits
-the file, and all SP worlds share one file. `./gradlew build`: 56 JUnit + 8 GameTests. The config-reload dev check passes.
+Phase 1 done except 1.6 (owner `runClient`). Phase 2 done except owner in-client checks.
+**Phase 3 in progress.** 3A committed (`0bc80ba`): `experience/ExperienceCurve` (pure, exact long math, points-to-next
+clamped to [1, MAX]) + 12 JUnit; `maximum_level` removed (owner: no cap, only Integer.MAX_VALUE). Build: 68 JUnit + 8 GameTests.
+The XP call-site audit (javap) is written in TODO.md Phase 3: one mixin on `Player#getXpNeededForNextLevel` covers all curve math.
 
 ## What's next
-1. **Owner review of 2C** (stopped here at the owner's request: stop after each major section).
-2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 (TODO.md lists each check).
-3. Phase 3 (experience curve): expand 3.1–3.5 into file-level steps in TODO.md first.
+1. **Owner review of 3A** (stopped here: stop after each major section).
+2. Stage 3B (TODO.md): `experience/PlayerExperience`, `mixin/PlayerMixin`, client source from `ClientConfigState`,
+   `ExperienceGameTest` (incl. the float round-trip check, which may force an exact-math sub-step).
+3. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 (+ 3B.6 HUD check once 3B lands).
 
 ## Open questions / blockers
 - None open.

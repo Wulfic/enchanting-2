@@ -270,7 +270,7 @@ mod keeps every stored level (DESIGN §2a).
       (saturating long), `fromTotal(section, total)` → `(level, pointsIntoLevel)` (binary search; total is monotonic).
 - [x] 3A.3 `ExperienceCurveTest`: vanilla boundaries 0/15/16/29/30/31 against the javap'd formula; 30→31, 31→32, 49→50,
       99→100, 9999→10000 = 112; total at 30 = 1395, at L = `1395 + 112(L − 30)`; `flatten_after_level: 0` and
-      `enabled: false`; overflow (vanilla at `Integer.MAX_VALUE` stays positive, totals saturate, never negative);
+      `enabled: false`; overflow (vanilla at `Integer.MAX_VALUE` stays positive; totals use exact long math, never negative);
       round-trip `fromTotal(totalPoints(x)) == x` over a spread of levels including both sides of 30 and near MAX.
       Done: 12 tests, sums brute-force checked past the clamp level. Mutation: dropping the clamp fails 4.
 
