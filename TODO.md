@@ -541,20 +541,30 @@ entries gain optional cost keys. Existing files load with defaults and are never
       surcharge only on same-op levels (property + Eff-V-then-Mending), lapis at the anvil, curses counted in `O`,
       creative refused as too expensive, base cost re-charged on upgrade (also the property). 142 JUnit + 33 GameTests.
 
-### Stage 5C — Curses: discount, Cleanse, Extract → commit
-- [ ] 5C.1 `CostModel`: discount = Σ curse `discount_percent` on the **result**, capped at `max_discount_percent`;
+### Stage 5C — Curses: discount, Cleanse, Extract → commit  ✅ 2026-10-07
+- [x] 5C.1 `CostModel`: discount = Σ curse `discount_percent` on the **result**, capped at `max_discount_percent`;
       `enchantCost' = ceil(enchantCost × (100 − d) / 100)`; a `CURSE_DISCOUNT` line (negative). Never on rename/repair;
       lapis follows the discounted cost.
-- [ ] 5C.2 `CostModel.cleanseCost(current, curseId, …)` = `max(removal_min_cost, ceil(pct × undiscounted build cost of
+- [x] 5C.2 `CostModel.cleanseCost(current, curseId, …)` = `max(removal_min_cost, ceil(pct × undiscounted build cost of
       current non-curse enchantments))`; `extractCost(id, level, …)` = the price of adding it to a blank item (Mending 2).
       A curse ID passed to `extractCost` throws (§6: curses can't be extracted).
-- [ ] 5C.3 Tests: §5a example (Mending + Eff V + Weight-like 15% curse → 15; cleanse → 30); cap at 45 with four 15%
+- [x] 5C.3 Tests: §5a example (Mending + Eff V + Weight-like 15% curse → 15; cleanse → 30); cap at 45 with four 15%
       curses; rounding up; rename + repair untouched; TABLE lapis = discounted cost; extract Eff V = 5, Mending = 2.
-- [ ] 5C.4 Property (seeded, 1,000 cases): curse → enchant → cleanse every curse ≥ enchanting the same item uncursed.
-      Mutation: cleanse using the marginal drop instead of the curse's own percent must fail it.
+- [x] 5C.4 Property (seeded, 1,000 cases): curse → enchant → cleanse every curse ≥ enchanting the same item uncursed.
+      Mutation: a flat `removal_min_cost` cleanse (the 2026-10-06 rejected design) must fail it. (The marginal-drop rule
+      would *not*: its drops telescope to the capped discount, see decisions.md correction.) A unit test pins own-% vs
+      marginal instead: four 15% curses at the 45% cap, cleanse one → 15% of the build cost.
 - [x] 5C.5a (done with the plan) DESIGN §5/§5a: multipliers dropped, FIXED defined, repair defaults, Mending's data,
       curse line 0, unknown-curse 10%, cleanse own %. decisions.md 2026-10-07 "Cost model gaps".
-- [ ] 5C.5 state.md, build green, commit.
+- [x] 5C.5 state.md, build green, commit.
+      **Done:** `price` takes `CursesSection`; `CostBreakdown.Line.amount` is `long` (a 95% discount on a cost past int
+      range is itself past int range) and `CURSE_DISCOUNT` is the only negative kind. `CurseCostTest` (13, incl. a
+      1,000-case property with random prices, modes, caps and minimums, comparing against min(same steps clean, clean
+      at once), which bounds every upgrade mode). `CostModelPropertyTest` now runs with discount 0: §5a is per operation
+      and rounds up, so it is deliberately not order-independent. Mutations, each caught: flat-minimum cleanse
+      (property + 2), marginal cleanse (own-% unit test + 1; the property passes, as the correction predicts),
+      discount rounding down (8), no cap (3), cleanse ignoring prices/surcharge (3). 155 JUnit + 33 GameTests.
+      **For Phase 6b:** `cleanseCost`/`extractCost` don't know about creative; the grindstone applies `creative_free`.
 
 ## Phase 6 — Anvil
 - [ ] 6.1 Mixin `AnvilMenu#createResult` → `EnchantRules` + `CostModel`

@@ -501,3 +501,14 @@ Mending's per-level 0 is forced by "Mending alone = 2" and "Mending + Eff I = 5"
 **Rejected:** flat-1 or durability-scaled repair; multipliers at 1.0 (knobs that do nothing); a separate `upgrade_cost`
 field; marginal-drop Cleanse; 0% for unknown curses (a curse that buys nothing contradicts §5a).
 **Affects:** `cost/*`, `CostsSection`, `CursesSection`, `EnchantmentOverrides`, DESIGN §5/§5a, Phases 6/6b/7
+
+## 2026-10-07 — Correction: why Cleanse repays the curse's own percent
+**Context:** the "Cost model gaps" entry above says the marginal-drop rule lets stacked curses be cleansed cheaply
+enough to beat enchanting clean. That's wrong: summed over cleansing every curse, the marginal drops telescope to exactly
+the capped discount received, so neither rule makes "curse → enchant → cleanse all" cheaper than enchanting clean.
+**Choice:** unchanged (owner): the removed curse's own `discount_percent`, min `removal_min_cost`.
+**Why (corrected):** simpler to show (one number per curse, independent of removal order), and conservative. The only
+difference is that marginal lets a player strip curses that earned nothing past the cap for the minimum, while own-%
+charges each curse its full percent. The owner was shown that trade-off accurately; only the recorded reason was off.
+**Rejected:** marginal drop (order-dependent cost, cheap removal of curses past the cap).
+**Affects:** `CostModel.cleanseCost`, TODO 5C.4 (mutation is now the flat-minimum cleanse, the 2026-10-06 rejected design)

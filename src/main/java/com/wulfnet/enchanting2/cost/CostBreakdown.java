@@ -8,7 +8,7 @@ import java.util.Objects;
  * before the player commits). Amounts are XP levels. The totals are the sums of their lines, checked here, and
  * saturate at {@link Integer#MAX_VALUE} rather than wrap.
  *
- * @param enchantCost  the enchant and surcharge lines; what lapis is based on
+ * @param enchantCost  the enchant, surcharge and curse-discount lines; what lapis is based on
  * @param total        every line; what the player pays unless {@code free}
  * @param lapis        lapis due at the table, before {@code free}; always 0 at the anvil
  * @param free         creative with {@code creative_free}: the lines are kept for display, nothing is charged
@@ -21,18 +21,26 @@ public record CostBreakdown(List<Line> lines, int enchantCost, int total, int la
 		ENCHANT,
 		/** {@code other_levels_surcharge} on {@code id}; {@code from}/{@code to} are the other levels before/after. */
 		SURCHARGE,
+		/**
+		 * DESIGN §5a, the only negative line: {@code from} is the curses' summed percent, {@code to} the percent applied
+		 * after {@code max_discount_percent}. Never touches rename or repair.
+		 */
+		CURSE_DISCOUNT,
 		RENAME,
 		/** {@code to} is the material count, or 0 for combining two items. */
 		REPAIR
 	}
 
-	/** @param id the enchantment, or empty for rename and repair */
-	public record Line(Kind kind, String id, int from, int to, int amount) {
+	/**
+	 * @param id     the enchantment, or empty for rename, repair and the curse discount
+	 * @param amount {@code long} so a discount on a saturated cost still adds up exactly
+	 */
+	public record Line(Kind kind, String id, int from, int to, long amount) {
 		public Line {
 			Objects.requireNonNull(kind, "kind");
 			Objects.requireNonNull(id, "id");
-			if (amount < 0) {
-				throw new IllegalArgumentException("negative " + kind + " line: " + amount);
+			if (kind == Kind.CURSE_DISCOUNT ? amount > 0 : amount < 0) {
+				throw new IllegalArgumentException(kind + " line of " + amount);
 			}
 		}
 	}
@@ -43,7 +51,7 @@ public record CostBreakdown(List<Line> lines, int enchantCost, int total, int la
 		long sum = 0;
 		for (Line line : lines) {
 			sum += line.amount;
-			if (line.kind == Kind.ENCHANT || line.kind == Kind.SURCHARGE) {
+			if (line.kind == Kind.ENCHANT || line.kind == Kind.SURCHARGE || line.kind == Kind.CURSE_DISCOUNT) {
 				enchantSum += line.amount;
 			}
 		}

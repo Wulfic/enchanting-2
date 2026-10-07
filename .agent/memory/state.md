@@ -28,11 +28,14 @@ real trident). Owner: overrides past a break level are clamped (`MaxLevels.SAFE_
 at runtime yet.
 **Stage 5B done** (2026-10-07): `cost/CostRequest` (TABLE|ANVIL), `CostBreakdown` (lines + checked totals, saturating),
 `CostModel.price`. Every §5 table row is a test; a 1,000-case property test pins build-order independence.
-Build: 142 JUnit + 33 GameTests, all green.
+**Stage 5C done → Phase 5 done** (2026-10-07): curse discount (`CURSE_DISCOUNT` line, cap, ceil, lapis follows),
+`cleanseCost` (own %, min), `extractCost`. "Never cheaper" property test. decisions.md has a correction: the marginal
+cleanse rule is not an exploit; own-% stands on simplicity. Build: 155 JUnit + 33 GameTests, all green.
 
 ## What's next
-1. Stage 5C: curse discount in `CostModel.price` (needs `CursesSection`), `cleanseCost`, `extractCost`, the
-   "never cheaper" property test. Steps are in TODO.md.
+1. Phase 6 (anvil): expand 6.1–6.5 into file-level stages in TODO.md first. It is the first runtime caller, so it
+   also loads `enchantments.json5` onto the server (held like `CommonConfig`, re-read on /reload) and syncs what the
+   client preview needs. Callers pass `#minecraft:curse` membership as `isCurse`.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level ~1,000,000).
 
 ## Open questions / blockers

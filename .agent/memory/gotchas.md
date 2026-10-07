@@ -249,3 +249,11 @@ refreshed in `baseTick`.
 **Fix:** a GameTest-only mixin (`src/gametest/.../mixin/EntityInvoker`, config `enchanting2-gametest.mixins.json`
 registered in the GameTest mod's `fabric.mod.json`) invokes `updateInWaterStateAndDoFluidPushing()` once. A fishing hook,
 by contrast, *is* ticked by the level, so a real hook in a glass-walled pool with `@GameTest(skyAccess = true)` gets bites.
+
+## 2026-10-07 — A failed edit script doesn't stop a `git commit` on the next line
+**Symptom:** a Python heredoc that updates TODO.md/state.md hit an `assert`, but the commit ran anyway, so 5A's code
+landed without its TODO/state checkpoint (fixed in a follow-up commit, 4250d59).
+**Cause:** in one Bash call, commands on separate lines run regardless of the previous exit code; only `&&` chains.
+Separately, a heredoc containing Python `'''` strings made the Bash tool report "unexpected EOF".
+**Fix:** put edit scripts in the scratchpad and run `python script.py || exit 1` before `git add`/`git commit`.
+**Affects:** agent workflow only

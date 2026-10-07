@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.wulfnet.enchanting2.config.CostsSection;
+import com.wulfnet.enchanting2.config.CursesSection;
 import com.wulfnet.enchanting2.config.EnchantmentOverrides;
 import com.wulfnet.enchanting2.cost.CostBreakdown.Kind;
 import com.wulfnet.enchanting2.cost.CostBreakdown.Line;
@@ -27,7 +28,7 @@ class CostModelTest {
 	static final Predicate<String> IS_CURSE = Set.of(BINDING, "minecraft:vanishing_curse")::contains;
 
 	private static CostBreakdown anvil(Map<String, Integer> before, Map<String, Integer> after) {
-		return CostModel.price(CostRequest.anvil(before, after), PricingTable.builtIn(), IS_CURSE, CostsSection.DEFAULTS);
+		return CostModel.price(CostRequest.anvil(before, after), PricingTable.builtIn(), IS_CURSE, CostsSection.DEFAULTS, CursesSection.DEFAULTS);
 	}
 
 	private static int cost(Map<String, Integer> before, Map<String, Integer> after) {
@@ -128,14 +129,14 @@ class CostModelTest {
 		Map<UpgradeMode, Integer> expected = Map.of(UpgradeMode.LEVEL_DIFFERENCE, 6, UpgradeMode.RESULT_LEVEL, 15,
 				UpgradeMode.FIXED, 3, UpgradeMode.FREE, 0);
 		expected.forEach((mode, levels) -> assertEquals(levels, CostModel.price(CostRequest.anvil(before, after),
-				pricing(EFFICIENCY, 0, 3, mode), IS_CURSE, CostsSection.DEFAULTS).total(), mode.name()));
+				pricing(EFFICIENCY, 0, 3, mode), IS_CURSE, CostsSection.DEFAULTS, CursesSection.DEFAULTS).total(), mode.name()));
 	}
 
 	@Test
 	void newEnchantmentPaysBaseAndResultLevelWhateverTheUpgradeMode() {
 		for (UpgradeMode mode : UpgradeMode.values()) {
 			assertEquals(4 + 15, CostModel.price(CostRequest.anvil(Map.of(), Map.of(EFFICIENCY, 5)),
-					pricing(EFFICIENCY, 4, 3, mode), IS_CURSE, CostsSection.DEFAULTS).total(), mode.name());
+					pricing(EFFICIENCY, 4, 3, mode), IS_CURSE, CostsSection.DEFAULTS, CursesSection.DEFAULTS).total(), mode.name());
 		}
 	}
 
@@ -143,9 +144,9 @@ class CostModelTest {
 	void baseCostIsChargedOnlyWhenNewlyAdded() {
 		PricingTable p = pricing(EFFICIENCY, 4, 1, UpgradeMode.LEVEL_DIFFERENCE);
 		assertEquals(7, CostModel.price(CostRequest.anvil(Map.of(), Map.of(EFFICIENCY, 3)), p, IS_CURSE,
-				CostsSection.DEFAULTS).total());
+				CostsSection.DEFAULTS, CursesSection.DEFAULTS).total());
 		assertEquals(2, CostModel.price(CostRequest.anvil(Map.of(EFFICIENCY, 3), Map.of(EFFICIENCY, 5)), p, IS_CURSE,
-				CostsSection.DEFAULTS).total());
+				CostsSection.DEFAULTS, CursesSection.DEFAULTS).total());
 	}
 
 	// --- Rename, repair, creative, maximum ---
@@ -154,7 +155,7 @@ class CostModelTest {
 	void renameAloneCostsOne() {
 		var request = new CostRequest(CostRequest.Station.ANVIL, Map.of(EFFICIENCY, 5), Map.of(EFFICIENCY, 5), true, 0,
 				false, false);
-		CostBreakdown b = CostModel.price(request, PricingTable.builtIn(), IS_CURSE, CostsSection.DEFAULTS);
+		CostBreakdown b = CostModel.price(request, PricingTable.builtIn(), IS_CURSE, CostsSection.DEFAULTS, CursesSection.DEFAULTS);
 		assertEquals(1, b.total());
 		assertEquals(0, b.enchantCost());
 		assertEquals(List.of(new Line(Kind.RENAME, "", 0, 0, 1)), b.lines());
@@ -163,28 +164,28 @@ class CostModelTest {
 	@Test
 	void repairByMaterialsAndByCombining() {
 		var materials = new CostRequest(CostRequest.Station.ANVIL, Map.of(), Map.of(), false, 3, false, false);
-		assertEquals(3, CostModel.price(materials, PricingTable.builtIn(), IS_CURSE, CostsSection.DEFAULTS).total());
+		assertEquals(3, CostModel.price(materials, PricingTable.builtIn(), IS_CURSE, CostsSection.DEFAULTS, CursesSection.DEFAULTS).total());
 		var combine = new CostRequest(CostRequest.Station.ANVIL, Map.of(EFFICIENCY, 3), Map.of(EFFICIENCY, 4), false,
 				0, true, false);
-		CostBreakdown b = CostModel.price(combine, PricingTable.builtIn(), IS_CURSE, CostsSection.DEFAULTS);
+		CostBreakdown b = CostModel.price(combine, PricingTable.builtIn(), IS_CURSE, CostsSection.DEFAULTS, CursesSection.DEFAULTS);
 		assertEquals(1 + 2, b.total());
 		assertEquals(1, b.enchantCost(), "repair is not part of the enchant cost");
 		var custom = new CostsSection(5, 4, 9, CostsSection.NO_MAXIMUM, true);
-		assertEquals(12, CostModel.price(materials, PricingTable.builtIn(), IS_CURSE, custom).total());
-		assertEquals(1 + 9, CostModel.price(combine, PricingTable.builtIn(), IS_CURSE, custom).total());
+		assertEquals(12, CostModel.price(materials, PricingTable.builtIn(), IS_CURSE, custom, CursesSection.DEFAULTS).total());
+		assertEquals(1 + 9, CostModel.price(combine, PricingTable.builtIn(), IS_CURSE, custom, CursesSection.DEFAULTS).total());
 	}
 
 	@Test
 	void creativeIsFreeButKeepsItsLines() {
 		var request = CostRequest.table(Map.of(), Map.of(MENDING, 1, EFFICIENCY, 5), true);
-		CostBreakdown b = CostModel.price(request, PricingTable.builtIn(), IS_CURSE, CostsSection.DEFAULTS);
+		CostBreakdown b = CostModel.price(request, PricingTable.builtIn(), IS_CURSE, CostsSection.DEFAULTS, CursesSection.DEFAULTS);
 		assertTrue(b.free());
 		assertEquals(17, b.total());
 		assertEquals(0, b.levelsCharged());
 		assertEquals(0, b.lapisCharged());
 		assertEquals(3, b.lines().size());
 
-		CostBreakdown paid = CostModel.price(request, PricingTable.builtIn(), IS_CURSE, costs(-1, false));
+		CostBreakdown paid = CostModel.price(request, PricingTable.builtIn(), IS_CURSE, costs(-1, false), CursesSection.DEFAULTS);
 		assertFalse(paid.free());
 		assertEquals(17, paid.levelsCharged());
 		assertEquals(17, paid.lapisCharged());
@@ -193,11 +194,11 @@ class CostModelTest {
 	@Test
 	void maximumOperationCostRefusesOnlyTotalsAboveIt() {
 		var request = CostRequest.anvil(Map.of(), Map.of(MENDING, 1, EFFICIENCY, 5));
-		assertTrue(CostModel.price(request, PricingTable.builtIn(), IS_CURSE, costs(16, true)).tooExpensive());
-		assertFalse(CostModel.price(request, PricingTable.builtIn(), IS_CURSE, costs(17, true)).tooExpensive());
-		assertFalse(CostModel.price(request, PricingTable.builtIn(), IS_CURSE, costs(-1, true)).tooExpensive());
+		assertTrue(CostModel.price(request, PricingTable.builtIn(), IS_CURSE, costs(16, true), CursesSection.DEFAULTS).tooExpensive());
+		assertFalse(CostModel.price(request, PricingTable.builtIn(), IS_CURSE, costs(17, true), CursesSection.DEFAULTS).tooExpensive());
+		assertFalse(CostModel.price(request, PricingTable.builtIn(), IS_CURSE, costs(-1, true), CursesSection.DEFAULTS).tooExpensive());
 		var rename = new CostRequest(CostRequest.Station.ANVIL, Map.of(), Map.of(), true, 0, false, false);
-		assertTrue(CostModel.price(rename, PricingTable.builtIn(), IS_CURSE, costs(0, true)).tooExpensive(),
+		assertTrue(CostModel.price(rename, PricingTable.builtIn(), IS_CURSE, costs(0, true), CursesSection.DEFAULTS).tooExpensive(),
 				"0 is a real maximum: renaming for 1 is refused");
 	}
 
@@ -205,8 +206,8 @@ class CostModelTest {
 	void creativeIsNeverTooExpensiveEvenWhenPaying() {
 		var request = new CostRequest(CostRequest.Station.ANVIL, Map.of(), Map.of(MENDING, 1, EFFICIENCY, 5), false, 0,
 				false, true);
-		assertFalse(CostModel.price(request, PricingTable.builtIn(), IS_CURSE, costs(0, false)).tooExpensive());
-		assertFalse(CostModel.price(request, PricingTable.builtIn(), IS_CURSE, costs(0, true)).tooExpensive());
+		assertFalse(CostModel.price(request, PricingTable.builtIn(), IS_CURSE, costs(0, false), CursesSection.DEFAULTS).tooExpensive());
+		assertFalse(CostModel.price(request, PricingTable.builtIn(), IS_CURSE, costs(0, true), CursesSection.DEFAULTS).tooExpensive());
 	}
 
 	// --- Lapis ---
@@ -215,9 +216,9 @@ class CostModelTest {
 	void lapisIsTheEnchantCostAtTheTableAndNeverAtTheAnvil() {
 		var after = Map.of(MENDING, 1, EFFICIENCY, 5);
 		assertEquals(17, CostModel.price(CostRequest.table(Map.of(), after, false), PricingTable.builtIn(), IS_CURSE,
-				CostsSection.DEFAULTS).lapisCharged());
+				CostsSection.DEFAULTS, CursesSection.DEFAULTS).lapisCharged());
 		var anvil = new CostRequest(CostRequest.Station.ANVIL, Map.of(), after, true, 0, false, false);
-		CostBreakdown b = CostModel.price(anvil, PricingTable.builtIn(), IS_CURSE, CostsSection.DEFAULTS);
+		CostBreakdown b = CostModel.price(anvil, PricingTable.builtIn(), IS_CURSE, CostsSection.DEFAULTS, CursesSection.DEFAULTS);
 		assertEquals(18, b.levelsCharged());
 		assertEquals(0, b.lapisCharged());
 	}
@@ -225,7 +226,7 @@ class CostModelTest {
 	@Test
 	void lapisIsCappedAtSixtyFour() {
 		CostBreakdown b = CostModel.price(CostRequest.table(Map.of(), Map.of(EFFICIENCY, 5), false),
-				pricing(EFFICIENCY, 0, 100, UpgradeMode.LEVEL_DIFFERENCE), IS_CURSE, CostsSection.DEFAULTS);
+				pricing(EFFICIENCY, 0, 100, UpgradeMode.LEVEL_DIFFERENCE), IS_CURSE, CostsSection.DEFAULTS, CursesSection.DEFAULTS);
 		assertEquals(500, b.levelsCharged());
 		assertEquals(64, b.lapisCharged());
 	}
@@ -241,7 +242,7 @@ class CostModelTest {
 			after.put(id, 255);
 		}
 		CostBreakdown b = CostModel.price(CostRequest.table(Map.of(), after, false),
-				new PricingTable(new EnchantmentOverrides(entries)), IS_CURSE, CostsSection.DEFAULTS);
+				new PricingTable(new EnchantmentOverrides(entries)), IS_CURSE, CostsSection.DEFAULTS, CursesSection.DEFAULTS);
 		assertEquals(Integer.MAX_VALUE, b.total());
 		assertEquals(Integer.MAX_VALUE, b.enchantCost());
 		assertEquals(64, b.lapis());
