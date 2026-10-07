@@ -388,14 +388,20 @@ deprecated. Newer item-api versions (14.x) deprecate it for `MODIFY_WITH_LOOKUP`
       tab shows Fortune V. Then remove the client override. This proves the server's max level is the one synced
       (decisions.md 2026-10-07).
 
-### Stage 4B — Conflict families (config) → commit
-- [ ] 4B.1 `enchantment/ConflictFamily` (pure enum): `SILK_TOUCH_FORTUNE`, `MENDING_INFINITY`, `PROTECTION`, `DAMAGE`
+### Stage 4B — Conflict families (config) → commit  ✅ 2026-10-07
+- [x] 4B.1 `enchantment/ConflictFamily` (pure enum): `SILK_TOUCH_FORTUNE`, `MENDING_INFINITY`, `PROTECTION`, `DAMAGE`
       (all six), `RIPTIDE_LOYALTY_CHANNELING`, `MULTISHOT_PIERCING`, `DEPTH_STRIDER_FROST_WALKER`, each with its member
       IDs. `relaxes(a, b, enabled)` is true only when both IDs are in the same enabled family.
-- [ ] 4B.2 `config/ConflictSection` in `CommonConfig`: `conflicts.<family>: true` (allow together, default). Synced, and
-      `/reload` applies it. Lang keys plus screen toggles (`ConfigLangKeysTest` enforces them).
-- [ ] 4B.3 JUnit: defaults, parse/round-trip, missing section → defaults; `relaxes` symmetric, false across families,
-      false when the family is off, false for third-party IDs.
+      Families are disjoint (an ID is in at most one), checked by a test.
+- [x] 4B.2 `config/AllowTogetherSection` in `CommonConfig`: `allow_together.<family>: true` (default; false = vanilla
+      exclusive). **Owner (2026-10-07): `allow_together`, not `conflicts`, because `conflicts.x: true` reads as "they conflict".**
+      Synced (the payload renders the whole file), and `/reload` applies it. A "Conflicts" screen category with one tick box
+      per family. Lang keys `allow_together.<family>` + `.desc`, with `ConfigLangKeysTest` checking every family.
+- [x] 4B.3 JUnit: defaults, parse/round-trip, missing section → defaults, a non-bool value → issue + default, unknown key →
+      issue; `relaxes` symmetric, false across families, false when the family is off, false for third-party IDs.
+- [x] 4B.4 decisions.md (key name), DESIGN §2/§4 key spelling, build green, commit.
+      Mutation: `relaxes` ignoring `allowed` fails `ConflictFamilyTest`; a reader ignoring the file fails 4 parse tests.
+      Build: 97 JUnit (+14) + 20 GameTests. Nothing reads the toggles until 4C.
 
 ### Stage 4C — `EnchantRules` → commit
 - [ ] 4C.1 `enchantment/EnchantRules.check(target, holder, level, existing, conflicts) → Result(Verdict, detail)`.

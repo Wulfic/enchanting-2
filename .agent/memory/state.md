@@ -14,11 +14,13 @@ points-to-next through the curve. 3B.7 (owner chose a TAIL snap) makes XP points
 its vanilla body, then snaps to the exact total and stores the smallest float `f` with `f × n ≥ p`. `ServerPlayerMixin` does the same for
 `/xp set points`, and `ServerPlayerAccessor` forces a client resync. **3C** (owner: saturating add): `totalExperience` and `getScore()` no longer wrap.
 **Stage 4A done** (2026-10-07): `MaxLevels` (§8 table, Lure/Riptide stay 3 until 4D) + `MaxLevelHook` (`MODIFY`) +
-`max_level_override`. Needs a restart; `/reload` doesn't apply it (probed). Build: 83 JUnit + 20 GameTests, all green.
+`max_level_override`. Needs a restart; `/reload` doesn't apply it (probed).
+**Stage 4B done** (2026-10-07): pure `ConflictFamily` + `common.json5` `allow_together.<family>` (owner's key name) +
+a "Conflicts" screen category. Nothing reads it until 4C. Build: 97 JUnit + 20 GameTests, all green.
 
 ## What's next
-1. Phase 4 in TODO.md: 4A ✅ → 4B conflict families (config) → 4C `EnchantRules` → 4D Lure/Riptide 5, one commit
-   each. Owner: conflicts live only in `EnchantRules`, the damage family relaxes all six (decisions.md). Next: 4B.1.
+1. Phase 4 in TODO.md: 4A ✅ → 4B ✅ → 4C `EnchantRules` → 4D Lure/Riptide 5, one commit
+   each. Owner: conflicts live only in `EnchantRules`, the damage family relaxes all six (decisions.md). Next: 4C.1.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level ~1,000,000).
 
 ## Open questions / blockers

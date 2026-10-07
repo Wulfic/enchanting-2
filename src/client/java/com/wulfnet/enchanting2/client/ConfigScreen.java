@@ -1,8 +1,10 @@
 package com.wulfnet.enchanting2.client;
 
+import com.wulfnet.enchanting2.config.AllowTogetherSection;
 import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.config.ConfigView;
 import com.wulfnet.enchanting2.config.ExperienceSection;
+import com.wulfnet.enchanting2.enchantment.ConflictFamily;
 import dev.isxander.yacl3.api.ConfigCategory;
 import dev.isxander.yacl3.api.LabelOption;
 import dev.isxander.yacl3.api.Option;
@@ -10,6 +12,7 @@ import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.YetAnotherConfigLib;
 import dev.isxander.yacl3.api.controller.IntegerFieldControllerBuilder;
 import dev.isxander.yacl3.api.controller.TickBoxControllerBuilder;
+import java.util.EnumSet;
 import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -28,13 +31,16 @@ final class ConfigScreen {
 
 	static Screen create(Screen parent) {
 		ConfigView view = ConfigEditing.currentView();
-		Draft draft = new Draft(view.values().map(CommonConfig::experience).orElse(ExperienceSection.DEFAULTS));
+		Draft draft = new Draft(view.values().orElse(CommonConfig.defaults()));
 		boolean editable = view.editable();
 
+		Component modeLabel = Component.translatable(KEY + "mode." + view.mode().name().toLowerCase(Locale.ROOT));
 		ConfigCategory.Builder experience = ConfigCategory.createBuilder()
 				.name(Component.translatable(KEY + "category.experience"))
-				.option(LabelOption.create(
-						Component.translatable(KEY + "mode." + view.mode().name().toLowerCase(Locale.ROOT))));
+				.option(LabelOption.create(modeLabel));
+		ConfigCategory.Builder allowTogether = ConfigCategory.createBuilder()
+				.name(Component.translatable(KEY + "category.allow_together"))
+				.option(LabelOption.create(modeLabel));
 		if (view.values().isPresent()) {
 			ExperienceSection d = ExperienceSection.DEFAULTS;
 			experience
@@ -52,11 +58,22 @@ final class ConfigScreen {
 							() -> draft.fixedPointsPerLevel, v -> draft.fixedPointsPerLevel = v,
 							ExperienceSection.MIN_FIXED_POINTS_PER_LEVEL, ExperienceSection.MAX_FIXED_POINTS_PER_LEVEL,
 							editable));
+			for (ConflictFamily family : ConflictFamily.values()) {
+				allowTogether.option(Option.<Boolean>createBuilder()
+						.name(Component.translatable(KEY + "allow_together." + family.key()))
+						.description(description("allow_together." + family.key()))
+						.binding(AllowTogetherSection.DEFAULTS.allows(family), () -> draft.allowed.contains(family),
+								v -> draft.setAllowed(family, v))
+						.controller(TickBoxControllerBuilder::create)
+						.available(editable)
+						.build());
+			}
 		}
 
 		return YetAnotherConfigLib.createBuilder()
 				.title(Component.translatable(KEY + "title"))
 				.category(experience.build())
+				.category(allowTogether.build())
 				// Read-only views have no available options, so YACL has no pending changes to hand to save.
 				.save(editable ? () -> ConfigEditing.save(draft.toConfig()) : () -> {
 				})
@@ -84,15 +101,26 @@ final class ConfigScreen {
 		boolean enabled;
 		int flattenAfterLevel;
 		int fixedPointsPerLevel;
+		final EnumSet<ConflictFamily> allowed = EnumSet.noneOf(ConflictFamily.class);
 
-		Draft(ExperienceSection from) {
-			enabled = from.enabled();
-			flattenAfterLevel = from.flattenAfterLevel();
-			fixedPointsPerLevel = from.fixedPointsPerLevel();
+		Draft(CommonConfig from) {
+			enabled = from.experience().enabled();
+			flattenAfterLevel = from.experience().flattenAfterLevel();
+			fixedPointsPerLevel = from.experience().fixedPointsPerLevel();
+			allowed.addAll(from.allowTogether().allowed());
+		}
+
+		void setAllowed(ConflictFamily family, boolean value) {
+			if (value) {
+				allowed.add(family);
+			} else {
+				allowed.remove(family);
+			}
 		}
 
 		CommonConfig toConfig() {
-			return new CommonConfig(new ExperienceSection(enabled, flattenAfterLevel, fixedPointsPerLevel));
+			return new CommonConfig(new ExperienceSection(enabled, flattenAfterLevel, fixedPointsPerLevel),
+					new AllowTogetherSection(allowed));
 		}
 	}
 }

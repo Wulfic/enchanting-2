@@ -7,7 +7,7 @@ import java.util.Objects;
  * {@code config/enchanting2/common.json5}: gameplay settings, owned by the server and synced to clients.
  * Each phase adds its section here together with the code that reads it.
  */
-public record CommonConfig(ExperienceSection experience) {
+public record CommonConfig(ExperienceSection experience, AllowTogetherSection allowTogether) {
 	public static final String FILE_NAME = "common.json5";
 	public static final int SCHEMA_VERSION = 1;
 
@@ -29,20 +29,24 @@ public record CommonConfig(ExperienceSection experience) {
 
 		@Override
 		public CommonConfig read(ConfigReader root) {
-			return new CommonConfig(ExperienceSection.read(root.section("experience")));
+			return new CommonConfig(ExperienceSection.read(root.section("experience")),
+					AllowTogetherSection.read(root.section("allow_together")));
 		}
 
 		@Override
 		public void write(CommonConfig value, JsonObject root) {
 			root.put("experience", value.experience.write(), "Experience curve (levels past 30).");
+			root.put("allow_together", value.allowTogether.write(),
+					"Vanilla exclusive sets. true = these may share an item; false = vanilla (only one of them).");
 		}
 	};
 
 	public CommonConfig {
 		Objects.requireNonNull(experience, "experience");
+		Objects.requireNonNull(allowTogether, "allowTogether");
 	}
 
 	public static CommonConfig defaults() {
-		return new CommonConfig(ExperienceSection.DEFAULTS);
+		return new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS);
 	}
 }

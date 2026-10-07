@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import blue.endless.jankson.api.SyntaxError;
+import com.wulfnet.enchanting2.enchantment.ConflictFamily;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
@@ -31,8 +33,65 @@ class ConfigParseTest {
 
 	@Test
 	void nonDefaultValuesRoundTrip() throws SyntaxError {
-		var custom = new CommonConfig(new ExperienceSection(false, 0, 1));
+		var custom = new CommonConfig(new ExperienceSection(false, 0, 1), AllowTogetherSection.DEFAULTS);
 		assertEquals(custom, common(ConfigFiles.render(custom, CommonConfig.CODEC)).config());
+	}
+
+	@Test
+	void allowTogetherRoundTripsEveryCombination() throws SyntaxError {
+		for (ConflictFamily off : ConflictFamily.values()) {
+			EnumSet<ConflictFamily> allowed = EnumSet.allOf(ConflictFamily.class);
+			allowed.remove(off);
+			var custom = new CommonConfig(ExperienceSection.DEFAULTS, new AllowTogetherSection(allowed));
+			var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
+			assertEquals(custom, parsed.config(), off.key());
+			assertEquals(List.of(), parsed.issues());
+		}
+		var none = new CommonConfig(ExperienceSection.DEFAULTS, new AllowTogetherSection(Set.of()));
+		assertEquals(none, common(ConfigFiles.render(none, CommonConfig.CODEC)).config());
+	}
+
+	@Test
+	void allowTogetherDefaultsToEveryFamilyAllowed() {
+		assertEquals(EnumSet.allOf(ConflictFamily.class), CommonConfig.defaults().allowTogether().allowed());
+	}
+
+	@Test
+	void allowTogetherFalseKeepsTheOthers() throws SyntaxError {
+		var parsed = common("{ schema_version: 1, allow_together: { damage: false } }");
+		var section = parsed.config().allowTogether();
+		assertFalse(section.allows(ConflictFamily.DAMAGE));
+		assertTrue(section.allows(ConflictFamily.SILK_TOUCH_FORTUNE));
+		assertEquals(ConflictFamily.values().length - 1, section.allowed().size());
+		assertEquals(List.of(), parsed.issues());
+	}
+
+	@Test
+	void allowTogetherBadValuesDefaultAndUnknownKeysAreReported() throws SyntaxError {
+		var parsed = common("""
+				{ schema_version: 1, allow_together: { protection: "no", silk_fortune: false,
+				  mending_infinity: false } }""");
+		var section = parsed.config().allowTogether();
+		assertTrue(section.allows(ConflictFamily.PROTECTION));
+		assertTrue(section.allows(ConflictFamily.SILK_TOUCH_FORTUNE));
+		assertFalse(section.allows(ConflictFamily.MENDING_INFINITY));
+		assertEquals(Set.of("allow_together.protection", "allow_together.silk_fortune"), Set.copyOf(keys(parsed.issues())));
+	}
+
+	@Test
+	void allowTogetherOfTheWrongTypeDefaultsWholeSection() throws SyntaxError {
+		var parsed = common("{ schema_version: 1, allow_together: false }");
+		assertEquals(AllowTogetherSection.DEFAULTS, parsed.config().allowTogether());
+		assertEquals(List.of("allow_together"), keys(parsed.issues()));
+	}
+
+	@Test
+	void allowTogetherSectionCannotBeMutated() {
+		EnumSet<ConflictFamily> source = EnumSet.of(ConflictFamily.DAMAGE);
+		var section = new AllowTogetherSection(source);
+		source.add(ConflictFamily.PROTECTION);
+		assertEquals(Set.of(ConflictFamily.DAMAGE), section.allowed());
+		assertThrows(UnsupportedOperationException.class, () -> section.allowed().add(ConflictFamily.PROTECTION));
 	}
 
 	@Test
@@ -224,7 +283,7 @@ class ConfigParseTest {
 
 	@Test
 	void strictRenderIsCommentFreeAndRoundTrips() throws SyntaxError {
-		var config = new CommonConfig(new ExperienceSection(false, 12, 345));
+		var config = new CommonConfig(new ExperienceSection(false, 12, 345), AllowTogetherSection.DEFAULTS);
 		String json = ConfigFiles.renderStrict(config, CommonConfig.CODEC);
 		assertFalse(json.contains("//") || json.contains("/*"), json);
 		assertFalse(json.contains("\n"), json);

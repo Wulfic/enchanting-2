@@ -440,3 +440,21 @@ server leaves the entry alone, and a modded client applies its table and shows 5
 **Rejected:** marking only changed entries (the mismatch above); a custom sync packet (the registry already syncs).
 **Unverified:** that a client re-runs `MODIFY` on known-pack entries at all. The fix holds either way; owner check 4A.7.
 **Affects:** `MaxLevelHook`
+
+## 2026-10-07 — Conflict toggles are `allow_together.<family>`, not `conflicts.<family>`
+**Context:** 4B planned `conflicts.silk_touch_fortune: true` meaning "allow together". In a hand-edited file that reads
+as "they conflict", the opposite.
+**Choice (owner):** section `allow_together`, one bool per `ConflictFamily` (`key()` = lowercased enum name), true = may
+share an item (default), false = vanilla exclusive.
+**Why:** the key says what `true` does. A bool is a plain tick box on the screen.
+**Rejected:** `conflicts` bools (inverted reading); `conflicts: "allow" | "exclusive"` strings (more typing, a cycling
+button, and a typo'd string is just another issue to report).
+**Affects:** `AllowTogetherSection`, `CommonConfig`, `ConfigScreen`, en_us.json, DESIGN §2/§4
+
+## 2026-10-07 — Conflict families are fixed vanilla ID lists, not the live exclusive-set tags
+**Context:** `relaxes` could read members from the vanilla `exclusive_set/*` tags at runtime instead.
+**Choice:** `ConflictFamily` hardcodes the vanilla IDs (pure enum, unit-testable, families checked disjoint).
+**Why:** a datapack or mod that adds its enchantment to `exclusive_set/damage` declared a conflict on purpose; our toggle
+was written for the vanilla members and shouldn't silently lift theirs.
+**Rejected:** tag-driven membership (needs a live registry, and changes meaning with every datapack).
+**Affects:** `ConflictFamily`, Stage 4C `EnchantRules`

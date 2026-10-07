@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import blue.endless.jankson.Jankson;
 import blue.endless.jankson.JsonObject;
+import com.wulfnet.enchanting2.enchantment.ConflictFamily;
 import java.io.InputStream;
 import java.util.Locale;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,17 @@ class ConfigLangKeysTest {
 		for (ConfigView.Mode mode : ConfigView.Mode.values()) {
 			String key = "enchanting2.config.mode." + mode.name().toLowerCase(Locale.ROOT);
 			assertTrue(lang.containsKey(key), key);
+		}
+	}
+
+	@Test
+	void everyConflictFamilyHasNameAndDescription() throws Exception {
+		JsonObject lang = lang();
+		assertTrue(lang.containsKey("enchanting2.config.category.allow_together"));
+		for (ConflictFamily family : ConflictFamily.values()) {
+			String key = "enchanting2.config.allow_together." + family.key();
+			assertTrue(lang.containsKey(key), key);
+			assertTrue(lang.containsKey(key + ".desc"), key + ".desc");
 		}
 	}
 

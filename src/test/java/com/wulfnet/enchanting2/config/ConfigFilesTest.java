@@ -39,7 +39,7 @@ class ConfigFilesTest {
 		return file.resolveSibling(file.getFileName() + ".tmp");
 	}
 
-	private static final CommonConfig CUSTOM = new CommonConfig(new ExperienceSection(true, 40, 200));
+	private static final CommonConfig CUSTOM = new CommonConfig(new ExperienceSection(true, 40, 200), AllowTogetherSection.DEFAULTS);
 
 	@Test
 	void missingFileGetsDefaultsWritten() throws IOException {

@@ -57,11 +57,12 @@ of a rename across the whole codebase.
   override JSONs for vanilla enchantments.
 - Conflicts are **not** a registry edit. Registry `exclusive_set`s stay vanilla, and `EnchantRules`
   relaxes configured families pair by pair (§4; decisions.md 2026-10-06).
-- The enchantment registry syncs to clients, so modified max levels and conflicts display
-  correctly client-side without our own packet.
+- The enchantment registry syncs to clients, so modified max levels display correctly
+  client-side without our own packet. Conflict toggles aren't in the registry. They reach
+  clients in the `common.json5` config sync.
 - Registry changes apply at registry load (world open / server start). A max-level change
   needs a server restart or reopening the world. `/reload` does not re-run `MODIFY` (dev-server
-  probe, TODO 4A.6). Conflict toggles are plain config and apply on `/reload`.
+  probe, TODO 4A.6). Conflict toggles (`common.json5` → `allow_together`) are plain config and apply on `/reload`.
 - Many new enchantments need **no Java code** (see §9 "Route").
 
 ### Identity
@@ -205,6 +206,11 @@ Four **independent** settings. Never conflate them:
 4. **Max level:** per enchantment, see §8.
 
 ### Conflict families (each a config toggle; default = allow together)
+`common.json5` → `allow_together.<family>`: `true` (default) lets the family share an item, `false`
+is vanilla's exclusive set. Keys: `silk_touch_fortune`, `mending_infinity`, `protection`, `damage`,
+`riptide_loyalty_channeling`, `multishot_piercing`, `depth_strider_frost_walker`. Membership is the
+vanilla IDs below; an enchantment a datapack adds to a vanilla exclusive-set tag is not relaxed.
+
 | Family | Vanilla rule | When combined |
 |---|---|---|
 | Silk Touch / Fortune | exclusive | `silk_fortune_mode`: `SILK_WINS` (default; Fortune ignored on silk-touched drops) or `FORTUNE_MULTIPLIES_SILK` (Mod Menu toggle; the tooltip warns it enables an ore-duplication loop) |
