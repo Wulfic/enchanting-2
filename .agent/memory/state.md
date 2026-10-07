@@ -19,11 +19,14 @@ its vanilla body, then snaps to the exact total and stores the smallest float `f
 a "Conflicts" screen category.
 **Stage 4C done** (2026-10-07): `EnchantRules.check` (INVALID_LEVEL → ABOVE_MAX → NOT_APPLICABLE (books skip) →
 ALREADY_AT_LEVEL → CONFLICT, new IDs only) + `withEnchantment` (higher level wins). Owner: books obey conflicts, existing
-pairs are grandfathered, no +1 merge. Nothing calls it until Phase 6. Build: 97 JUnit + 28 GameTests, all green.
+pairs are grandfathered, no +1 merge. Nothing calls it until Phase 6.
+**Stage 4D done → Phase 4 done** (2026-10-07): Lure and Riptide are 5 (`MechanicLimitsGameTest` drives a real hook and a
+real trident). Owner: overrides past a break level are clamped (`MaxLevels.SAFE_MAX`: Lure 5, Quick Charge 4, Riptide 7).
+Build: 101 JUnit + 33 GameTests, all green.
 
 ## What's next
-1. Phase 4 in TODO.md: 4A ✅ → 4B ✅ → 4C ✅ → 4D Lure/Riptide 5 (read `FishingHook` + the moved-too-quickly
-   threshold, write the arithmetic into TODO, then GameTest). Next: 4D.1.
+1. Phase 5 (cost model, pure): expand 5.1–5.5 into file-level steps in TODO.md first. DESIGN §5/§5a; it must price
+   `EnchantRules` verdicts (ALREADY_AT_LEVEL is free, decisions.md 2026-10-07).
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level ~1,000,000).
 
 ## Open questions / blockers

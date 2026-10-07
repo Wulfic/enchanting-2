@@ -85,7 +85,8 @@ public record EnchantmentOverrides(Map<String, Entry> entries) {
 					"Per-enchantment settings keyed by ID, e.g. \"minecraft:fortune\": { max_level_override: 3 }. "
 							+ "max_level_override (1-255) replaces the max level from DESIGN §8. It applies when the server "
 							+ "starts or the world is opened (/reload does not apply it), and it never changes items that "
-							+ "already carry a higher level.");
+							+ "already carry a higher level. Lure above 5, Quick Charge above 4 and Riptide above 7 stop "
+							+ "working, so they are lowered to those levels (logged as a warning).");
 		}
 	};
 

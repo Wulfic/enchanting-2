@@ -10,9 +10,13 @@
 			"com.wulfnet.enchanting2.gametest.VanillaEnchantmentIdsGameTest",
 			"com.wulfnet.enchanting2.gametest.ConfigWiringGameTest",
 			"com.wulfnet.enchanting2.gametest.ExperienceGameTest",
-			"com.wulfnet.enchanting2.gametest.EnchantRulesGameTest"
+			"com.wulfnet.enchanting2.gametest.EnchantRulesGameTest",
+			"com.wulfnet.enchanting2.gametest.MechanicLimitsGameTest"
 		]
 	},
+	"mixins": [
+		"enchanting2-gametest.mixins.json"
+	],
 	"depends": {
 		"enchanting2": "*"
 	}

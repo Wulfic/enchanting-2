@@ -240,3 +240,12 @@ method returns the builder. Accessor methods added by our mixin don't trip it, a
 which has only `MODIFY`, and it isn't deprecated there.
 **Fix:** `./gradlew dependencies --configuration compileClasspath | grep <module>` first, then read that version's source.
 **Affects:** any research against Fabric API sources
+
+## 2026-10-07 — A GameTest mock player is never ticked
+**Symptom:** a mock `ServerPlayer` standing in water reports `isInWaterOrRain() == false`, so `TridentItem#releaseUsing`
+won't Riptide.
+**Cause:** `makeMockServerPlayerInLevel()` players aren't ticked (their connection isn't), and `wasTouchingWater` is only
+refreshed in `baseTick`.
+**Fix:** a GameTest-only mixin (`src/gametest/.../mixin/EntityInvoker`, config `enchanting2-gametest.mixins.json`
+registered in the GameTest mod's `fabric.mod.json`) invokes `updateInWaterStateAndDoFluidPushing()` once. A fishing hook,
+by contrast, *is* ticked by the level, so a real hook in a glass-walled pool with `@GameTest(skyAccess = true)` gets bites.

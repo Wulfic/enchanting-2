@@ -437,11 +437,45 @@ exists on the GameTest server). Nothing on disk or in a world is rewritten.
       The grandfather mutation showed the gate also stops an enchantment conflicting with itself (`areCompatible(a, a)`
       is false). Build: 97 JUnit + 28 GameTests.
 
-### Stage 4D — Lure 5 / Riptide 5 → commit
-- [ ] 4D.1 Read `FishingHook` (lure time reduction vs the 100–600 tick wait) and the Riptide impulse vs
-      `ServerGamePacketListenerImpl`'s moved-too-quickly threshold. Write the arithmetic into this TODO.
-- [ ] 4D.2 GameTest each where the harness can drive it (a fishing hook in water ticks until a bite; a riptide impulse
-      under the threshold). If one can't be driven, record why and keep the code-level proof. Drop it to 4 if it fails.
+### Stage 4D — Lure 5 / Riptide 5, safe caps on overrides → commit  ✅ 2026-10-07
+**Owner (2026-10-07):** a `max_level_override` past a known break level is **clamped** to the last safe level (WARN),
+not loaded as written. See decisions.md.
+- [x] 4D.1 Arithmetic (javap 1.21.11, vanilla enchantment JSON):
+      **Lure:** `lure.json` `fishing_time_reduction` = 5 s × level. `FishingRodItem` → `lureSpeed = (int)(s × 20)` = 100 ×
+      level ticks. `FishingHook.catchingFish`: when `timeUntilLured ≤ 0` it re-rolls `Mth.nextInt(100, 600)` (inclusive)
+      `− lureSpeed`; ≤ 0 means re-roll again next tick, > 0 counts down to the fish. Lure V (500): 100/501 ≈ 20% of rolls
+      land in 1..100, so fish bite (faster than III). **Lure VI (600): every roll is ≤ 0 → never bites. Cap 5.**
+      **Riptide:** `riptide.json` strength = 1.5 + 0.75(L − 1) → L3 3.0, L5 4.5, L7 6.0, L8 6.75. `TridentItem.releaseUsing`
+      pushes the look vector (unit) × strength. `handleMovePlayer` rejects when `dist² − serverVelocity² > 100 × packets`
+      (300 fall-flying; skipped for the SP owner, or when gamerule `playerMovementCheck` is off). Worst single launch,
+      assuming no velocity credit: launched along a terminal fall (3.92 b/t): L5 (4.5 + 3.92)² = 70.9 ✓; L7 9.92² = 98.4
+      ✓; L8 10.67² = 113.8 ✗. **Riptide V passes. Cap 7.** (Chained launches in rain exceed this even at vanilla III, so
+      the velocity credit is what keeps vanilla working; the cap uses the stricter no-credit bound.)
+      `trident_sound` has 3 entries; `pickHighestLevel` uses `list.get(min(level, size) − 1)`, so IV/V reuse riptide_3.
+      **Quick Charge** (cap only, v1 is already 4): charge = 1.25 s − 0.25 s × level → IV = 5 ticks, **V = 0. Cap 4.**
+- [x] 4D.2 `MaxLevels`: `SAFE_MAX` = lure 5, riptide 7, quick_charge 4. `resolve` clamps an override above it →
+      `Why.OVERRIDE_CLAMPED` (the table and datapack-changed values are never clamped: the table is ≤ the cap, and a
+      datapack that changes the max may also have changed the effect). JUnit: clamp, at-cap, below-cap, datapack value
+      above the cap untouched.
+- [x] 4D.3 `MaxLevelHook`: WARN for `OVERRIDE_CLAMPED` naming the file, requested and applied level, and the reason.
+      Logged before the unchanged-max early return. Dev server (`scripts/checks/max-level-clamp.txt`): Lure 9 → 5 and
+      Riptide 255 → 7 WARN, Quick Charge 4 loads as written; the overrides file was restored byte for byte.
+- [x] 4D.4 `MechanicLimitsGameTest` (+ a GameTest-only mixin config with a `FishingHook` accessor):
+      Lure: registry reduction ticks at V = 500 and VI = 600. A real hook in a water pool (`skyAccess`) with Lure V's speed
+      gets a fish (`nibble > 0`) within the time limit; a hook with Lure VI's speed never does (`timeUntilLured ≤ 0`,
+      `timeUntilHooked == 0`, `nibble == 0` after 200 ticks).
+      Quick Charge: `CrossbowItem.getChargeDuration` IV > 0, V == 0.
+      Riptide: mock player in water, trident with Riptide V, `releaseUsing` (no exception, sound path included) → velocity
+      gain ≈ registry strength 4.5, and the no-credit bound holds at 5 and 7 and fails at 8.
+- [x] 4D.5 Only after 4D.4 is green: add `lure` and `riptide` rows (3 → 5) to `MaxLevels.TABLE`,
+      `VanillaEnchantmentIdsGameTest` expects 5, `MaxLevelsTest` row list, DESIGN §8 (asterisks resolved + caps).
+- [x] 4D.6 Mutations, each failing its test: no clamp (JUnit); Lure cap 6 (no fish in 1200 ticks at Lure VI); Lure
+      cap 4 (a Lure V hook bites at tick 8); Riptide cap 8 ((6.75 + 3.92)² = 113.8); Quick Charge cap 5 (0 charge ticks).
+      The GameTests read `SAFE_MAX`, so they pin the caps themselves. Build: 101 JUnit + 33 GameTests.
+**Not doing:** clamping datapack-set maxes, caps derived from live effect data, a chained-Riptide test, Depth Strider
+(useless above 3, not broken).
+**Blast radius:** additive code + a GameTest-only mixin. An existing `enchantments.json5` override above a cap now loads
+clamped (WARN), never rewritten. **Rollback:** `git revert <4D commit>`.
 
 ## Phase 5 — Cost model
 **Goal:** pure cost calculator that reproduces the DESIGN §5 examples exactly.

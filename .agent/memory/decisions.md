@@ -471,3 +471,15 @@ Plus (agent): an `ALREADY_AT_LEVEL` verdict when the item already has the ID at 
 existing items". (3) levels are bought directly (§5), so +1 merging would be a cheaper route around the cost model.
 **Rejected:** books as pure carriers; refusing any change to a grandfathered pair; vanilla +1 merging.
 **Affects:** `EnchantRules`, Phase 5 cost model, Phase 6 anvil, Phase 7 table
+
+## 2026-10-07 — Overrides past a known break level are clamped (Lure 5, Riptide 7, Quick Charge 4)
+**Context:** `max_level_override` accepts 1..255, but Lure VI never bites, Quick Charge V has zero charge time, and a
+fast enough Riptide launch trips the server's moved-too-quickly check. Arithmetic in TODO 4D.1.
+**Choice (owner):** clamp the override to the last safe level and WARN, rather than load it as written. Riptide's cap is 7:
+the highest level whose single launch passes `dist² ≤ 100` even if the server credits none of its own velocity and the
+player is already at terminal fall speed (L7 98.4, L8 113.8).
+**Scope (agent):** only `max_level_override` is clamped. The §8 table is already under every cap, and a datapack that
+changes a max may also have changed the effect, so its value is respected (same rule as the 2026-10-07 datapack entry).
+**Rejected:** WARN only; no check at all; caps derived from the live effect data (needs effect evaluation at `MODIFY`
+time for three fixed vanilla IDs). Riptide 11/12 (the "push alone ≤ 10" estimate) ignores existing velocity.
+**Affects:** `MaxLevels`, `MaxLevelHook`, DESIGN §8

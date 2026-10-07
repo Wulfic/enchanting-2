@@ -1,0 +1,9 @@
+# Stage 4D: an override past a break level is clamped to MaxLevels.SAFE_MAX with a WARN; one at the cap is not.
+# MODIFY runs at boot, before any @sh step here, so the override has to be in place first:
+#   cp run/server/config/enchanting2/enchantments.json5 build/dev-check-enchantments.json5.orig
+#   printf '{ schema_version: 1, overrides: { "minecraft:lure": { max_level_override: 9 }, "minecraft:riptide": { max_level_override: 255 }, "minecraft:quick_charge": { max_level_override: 4 } } }' > run/server/config/enchanting2/enchantments.json5
+#   scripts/dev-server-smoke.sh scripts/checks/max-level-clamp.txt
+#   cp build/dev-check-enchantments.json5.orig run/server/config/enchanting2/enchantments.json5
+@expect WARN.*minecraft:lure max_level_override 9 .* max level 5 is used instead
+@expect WARN.*minecraft:riptide max_level_override 255 .* max level 7 is used instead
+@expect minecraft:quick_charge max level 3 -> 4 \(max_level_override\)

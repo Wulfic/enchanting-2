@@ -10,7 +10,7 @@ import java.util.OptionalInt;
 import org.junit.jupiter.api.Test;
 
 class MaxLevelsTest {
-	/** DESIGN §8, typed out again by hand: {vanilla, v1}. Lure and Riptide stay at 3 until Stage 4D proves 5. */
+	/** DESIGN §8, typed out again by hand: {vanilla, v1}. */
 	private static final Map<String, int[]> DESIGN_8 = Map.ofEntries(
 			Map.entry("minecraft:protection", new int[] {4, 5}),
 			Map.entry("minecraft:fire_protection", new int[] {4, 5}),
@@ -36,10 +36,10 @@ class MaxLevelsTest {
 			Map.entry("minecraft:breach", new int[] {4, 5}),
 			Map.entry("minecraft:lunge", new int[] {3, 5}),
 			Map.entry("minecraft:quick_charge", new int[] {3, 4}),
+			Map.entry("minecraft:lure", new int[] {3, 5}),
+			Map.entry("minecraft:riptide", new int[] {3, 5}),
 			// Unchanged rows: resolved through the "not in the table" path, never touched.
 			Map.entry("minecraft:depth_strider", new int[] {3, 3}),
-			Map.entry("minecraft:lure", new int[] {3, 3}),
-			Map.entry("minecraft:riptide", new int[] {3, 3}),
 			Map.entry("minecraft:sharpness", new int[] {5, 5}),
 			Map.entry("minecraft:efficiency", new int[] {5, 5}),
 			Map.entry("minecraft:silk_touch", new int[] {1, 1}),
@@ -83,6 +83,39 @@ class MaxLevelsTest {
 		assertEquals(new Resolution(4, Why.DATAPACK_CHANGED), MaxLevels.resolve("minecraft:fortune", 4, OptionalInt.empty()));
 		assertEquals(new Resolution(1, Why.DATAPACK_CHANGED),
 				MaxLevels.resolve("minecraft:protection", 1, OptionalInt.empty()));
+	}
+
+	@Test
+	void anOverridePastABreakLevelIsClampedToTheSafeMax() {
+		// Break points (arithmetic in plan step 4D.1): Lure VI never bites, Riptide VIII can trip moved-too-quickly,
+		// Quick Charge V has zero charge time.
+		assertEquals(new Resolution(5, Why.OVERRIDE_CLAMPED), MaxLevels.resolve("minecraft:lure", 3, OptionalInt.of(6)));
+		assertEquals(new Resolution(7, Why.OVERRIDE_CLAMPED),
+				MaxLevels.resolve("minecraft:riptide", 3, OptionalInt.of(255)));
+		assertEquals(new Resolution(4, Why.OVERRIDE_CLAMPED),
+				MaxLevels.resolve("minecraft:quick_charge", 3, OptionalInt.of(5)));
+	}
+
+	@Test
+	void anOverrideAtOrBelowTheSafeMaxIsKept() {
+		assertEquals(new Resolution(5, Why.OVERRIDE), MaxLevels.resolve("minecraft:lure", 3, OptionalInt.of(5)));
+		assertEquals(new Resolution(7, Why.OVERRIDE), MaxLevels.resolve("minecraft:riptide", 3, OptionalInt.of(7)));
+		assertEquals(new Resolution(1, Why.OVERRIDE), MaxLevels.resolve("minecraft:quick_charge", 3, OptionalInt.of(1)));
+	}
+
+	@Test
+	void aDatapackMaxPastTheSafeMaxIsNotClamped() {
+		// The datapack may have changed the effect too, so its number is respected (decisions.md 2026-10-07).
+		assertEquals(new Resolution(9, Why.DATAPACK_CHANGED), MaxLevels.resolve("minecraft:quick_charge", 9,
+				OptionalInt.empty()));
+	}
+
+	@Test
+	void everyV1MaxIsWithinItsSafeMax() {
+		MaxLevels.SAFE_MAX.forEach((id, cap) -> {
+			Resolution r = MaxLevels.resolve(id, DESIGN_8.get(id)[0], OptionalInt.empty());
+			assertTrue(r.max() <= cap, id + " v1 max " + r.max() + " is above its safe max " + cap);
+		});
 	}
 
 	@Test

@@ -54,6 +54,9 @@ public final class MaxLevelHook {
 		if (r.why() == MaxLevels.Why.DATAPACK_CHANGED) {
 			Enchanting2.LOGGER.info("{} loaded with max level {}, not vanilla's; something else changed it, so DESIGN §8 "
 					+ "is not applied. Set max_level_override in {} to choose a level.", id, d.maxLevel(), file());
+		} else if (r.why() == MaxLevels.Why.OVERRIDE_CLAMPED) {
+			Enchanting2.LOGGER.warn("{} max_level_override {} in {} is past the level where the enchantment stops "
+					+ "working, so max level {} is used instead (DESIGN §8).", id, override.getAsInt(), file(), r.max());
 		}
 		// Fabric keeps a builder only if a builder method that returns the builder ran; a mixin accessor doesn't count.
 		// Re-setting the same exclusive set changes nothing and marks it modified. It runs for every entry, changed or

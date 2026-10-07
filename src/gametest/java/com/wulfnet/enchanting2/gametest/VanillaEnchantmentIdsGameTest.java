@@ -16,7 +16,7 @@ import net.minecraft.world.item.enchantment.Enchantments;
 /**
  * DESIGN §8 against the live registry: every vanilla enchantment exists with its v1 max level (the default config,
  * no overrides), and no vanilla enchantment exists that §8 doesn't classify. Depth Strider stays 3, Quick Charge goes
- * to 4, and Lure and Riptide stay 3 until Stage 4D.
+ * to 4, and Lure and Riptide go to 5 (proved by MechanicLimitsGameTest).
  */
 public class VanillaEnchantmentIdsGameTest {
 	private static final Map<ResourceKey<Enchantment>, Integer> V1_MAX = Map.ofEntries(
@@ -49,10 +49,10 @@ public class VanillaEnchantmentIdsGameTest {
 			Map.entry(Enchantments.FLAME, 1),
 			Map.entry(Enchantments.INFINITY, 1),
 			Map.entry(Enchantments.LUCK_OF_THE_SEA, 5),
-			Map.entry(Enchantments.LURE, 3),
+			Map.entry(Enchantments.LURE, 5),
 			Map.entry(Enchantments.LOYALTY, 5),
 			Map.entry(Enchantments.IMPALING, 5),
-			Map.entry(Enchantments.RIPTIDE, 3),
+			Map.entry(Enchantments.RIPTIDE, 5),
 			Map.entry(Enchantments.CHANNELING, 1),
 			Map.entry(Enchantments.MULTISHOT, 1),
 			Map.entry(Enchantments.QUICK_CHARGE, 4),

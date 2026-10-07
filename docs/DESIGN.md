@@ -425,8 +425,9 @@ efficiency stays vanilla in v1.
 ## 8. Max levels ("5 where applicable")
 
 Single-level enchantments stay at 1: Aqua Affinity, Silk Touch, Flame, Infinity, Channeling,
-Multishot, Mending, both curses. Everything else goes to 5 with two exceptions, plus two that
-are conditional on a GameTest. Every row can be overridden with `max_level_override`.
+Multishot, Mending, both curses. Everything else goes to 5 with two exceptions. Lure and Riptide
+reach 5 only because a GameTest proved it (Stage 4D). Every row can be overridden with
+`max_level_override`, within the safe caps below.
 
 | Enchantment | Vanilla | v1 | Note |
 |---|---|---|---|
@@ -442,8 +443,12 @@ are conditional on a GameTest. Every row can be overridden with `max_level_overr
 | Lunge (1.21.11 spear) | 3 | 5 | confirm ID and effects in Phase 1.8 |
 | **Depth Strider** | 3 | **3** | Already at full effect at level 3, so levels 4–5 would do nothing |
 | **Quick Charge** | 3 | **4** | Level 5 = zero charge time, which has historically broken crossbows |
-| Lure | 3 | 5\* | \*If a GameTest shows fish stop biting, drop to 4 |
-| Riptide | 3 | 5\* | \*If a GameTest shows the server rejects the launch ("moved too quickly"), drop to 4 |
+| Lure | 3 | 5 | GameTest: a Lure V hook still gets bites; Lure VI never does (the 100–600 tick roll minus 600 is always ≤ 0) |
+| Riptide | 3 | 5 | GameTest: a Riptide V launch (4.5 b/t) stays under the moved-too-quickly check even along a terminal fall |
+
+**Safe caps on `max_level_override`** (owner, 2026-10-07): an override past a level that breaks the mechanic is
+clamped to the last working level, with a WARN: Lure 5, Quick Charge 4, Riptide 7 (VIII can trip moved-too-quickly
+when launched along a fall). A datapack-set max is not clamped. Arithmetic in TODO.md 4D.1.
 
 ---
 
