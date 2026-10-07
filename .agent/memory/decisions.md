@@ -414,3 +414,29 @@ only three. Phase 1.8 flagged Lunge V's 20 exhaustion per lunge.
 **Why:** one family per vanilla tag is simplest to explain. The hunger cost is the player's trade-off.
 **Rejected:** relaxing only Sharpness/Smite/Bane; a separate mace toggle; capping Lunge at 3 or 4.
 **Affects:** `ConflictFamily.DAMAGE`, `MaxLevels`, DESIGN §4 and §8
+
+## 2026-10-07 — Lure and Riptide stay at vanilla 3 until Stage 4D
+**Context:** §8 gives both "5*, drop to 4 if a GameTest fails", but that GameTest is in 4D, after the 4A table ships.
+**Choice (owner):** `MaxLevels.TABLE` leaves them out (vanilla 3). 4D adds their rows only after the test passes.
+**Why:** nothing unproven lands on main in between.
+**Rejected:** setting 5 in 4A and letting 4D lower it.
+**Affects:** `MaxLevels`, `VanillaEnchantmentIdsGameTest`, Stage 4D
+
+## 2026-10-07 — Max-level table applies only over vanilla's loaded max
+**Context:** `MODIFY` sees whatever a datapack or another mod already set.
+**Choice:** a §8 row applies only when the loaded max equals vanilla's. Otherwise the loaded value is kept, with an INFO
+pointing to `max_level_override`, which always wins.
+**Why:** silently undoing a datapack author's deliberate change is worse than not raising it.
+**Rejected:** always forcing the v1 value; skipping non-`VANILLA` `EnchantmentSource`s (a datapack can replace the
+file with identical values, and we'd lose the table for no reason).
+**Affects:** `MaxLevels.resolve`, `MaxLevelHook`
+
+## 2026-10-07 — `MaxLevelHook` marks every enchantment modified, changed or not
+**Context:** an entry Fabric sees as unmodified keeps its known-pack info, so a client may load it from its own resources
+(and its own `MODIFY` + config) instead of receiving the server's. Example: the server overrides Fortune back to 3, the
+server leaves the entry alone, and a modded client applies its table and shows 5.
+**Choice:** call `exclusiveWith(sameSet)` for every entry the hook sees, so the server's registry is always the one synced.
+**Why:** max level must be server-authoritative. The cost is a few KB of extra registry sync on join.
+**Rejected:** marking only changed entries (the mismatch above); a custom sync packet (the registry already syncs).
+**Unverified:** that a client re-runs `MODIFY` on known-pack entries at all. The fix holds either way; owner check 4A.7.
+**Affects:** `MaxLevelHook`

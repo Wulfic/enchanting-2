@@ -60,8 +60,8 @@ of a rename across the whole codebase.
 - The enchantment registry syncs to clients, so modified max levels and conflicts display
   correctly client-side without our own packet.
 - Registry changes apply at registry load (world open / server start). A max-level change
-  probably requires a restart, not `/reload` (TODO 4A.6 confirms). Conflict toggles are plain
-  config and apply on `/reload`.
+  needs a server restart or reopening the world. `/reload` does not re-run `MODIFY` (dev-server
+  probe, TODO 4A.6). Conflict toggles are plain config and apply on `/reload`.
 - Many new enchantments need **no Java code** (see §9 "Route").
 
 ### Identity

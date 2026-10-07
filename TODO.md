@@ -357,25 +357,36 @@ schema bump is needed. `VanillaEnchantmentIdsGameTest` changes its *expected* le
 it is not deleted). Adding or removing the mod: max levels revert to vanilla on removal, and items keep their levels (§2a).
 **Rollback:** `git revert` the stage's commit. Nothing outside the repo and dev run dirs is touched.
 
-### Stage 4A — Max levels via `MODIFY` → commit
-- [ ] 4A.1 `config/EnchantmentOverrides.Entry(OptionalInt maxLevelOverride)`: reads/writes `max_level_override`, int
+### Stage 4A — Max levels via `MODIFY` → commit  ✅ 2026-10-07
+**Owner (2026-10-07):** Lure and Riptide stay at vanilla 3 in 4A. 4D raises them only after its GameTest passes.
+**Checked (fabric-item-api-v1 11.6.0, the version on our classpath):** `MODIFY` is the only modify event and it isn't
+deprecated. Newer item-api versions (14.x) deprecate it for `MODIFY_WITH_LOOKUP`; see gotchas.md before upgrading FAPI.
+- [x] 4A.1 `config/EnchantmentOverrides.Entry(OptionalInt maxLevelOverride)`: reads/writes `max_level_override`, int
       `1..255` (vanilla's codec range). Bad values → issue + absent. Tests in `ConfigParseTest` (valid, 0, 256, string,
       round-trip).
-- [ ] 4A.2 `enchantment/MaxLevels` (pure): the §8 table as `id → (vanillaMax, v1Max)`. `resolve(id, loadedMax,
+- [x] 4A.2 `enchantment/MaxLevels` (pure): the §8 table as `id → (vanillaMax, v1Max)`. `resolve(id, loadedMax,
       override)` → `(max, Why)`: an override always wins. A table entry applies only when `loadedMax == vanillaMax`;
       a datapack that already changed it is respected (logged). Any other ID keeps its value. JUnit: every §8 row, override
       above/below, datapack-changed, unknown ID.
-- [ ] 4A.3 `mixin/EnchantmentBuilderAccessor`: `@Mutable @Accessor("definition")` setter and an `exclusiveSet` getter, with
+- [x] 4A.3 `mixin/EnchantmentBuilderAccessor`: `@Mutable @Accessor("definition")` setter and an `exclusiveSet` getter, with
       `enchanting2$` names so they can't clash with Fabric's accessor on the same class.
-- [ ] 4A.4 `enchantment/MaxLevelHook`: registers `MODIFY` in `onInitialize`. It reads `enchantments.json5` via
+- [x] 4A.4 `enchantment/MaxLevelHook`: registers `MODIFY` in `onInitialize`. It reads `enchantments.json5` via
       `ConfigFiles.load`, cached on (mtime, size) so 43 calls parse once and each change logs once. It replaces the
       definition with the new `maxLevel`, then re-calls `exclusiveWith(sameSet)` so Fabric keeps the edit (comment says
       why). An unreadable file means the v1 table only, with a WARN naming the file and the consequence.
-- [ ] 4A.5 GameTest: `VanillaEnchantmentIdsGameTest` expects the v1 column from the live registry (Fortune 5, Depth
+- [x] 4A.5 GameTest: `VanillaEnchantmentIdsGameTest` expects the v1 column from the live registry (Fortune 5, Depth
       Strider 3, Quick Charge 4, Lunge 5, Silk 1). Reverting 4A.4 must fail it.
-- [ ] 4A.6 (was 4.0) Dev-server probe on 25566: set `minecraft:fortune` override 2, `/reload`, then `/enchant` Fortune 3
+- [x] 4A.6 (was 4.0) Dev-server probe on 25566: set `minecraft:fortune` override 2, `/reload`, then `/enchant` Fortune 3
       (vanilla rejects above max). Restart and repeat. Record the outcome in gotchas.md. Fix DESIGN §2 and the
       `enchantments.json5` comment ("restart" vs "/reload").
+      **Result:** `/reload` does not re-run `MODIFY`; a restart does (`scripts/checks/max-level-reload.txt`, gotchas.md).
+      The file was restored byte for byte. The /enchant step was replaced by the hook's INFO line (no player on the dev
+      server). Mutation: dropping `register()` or the `exclusiveWith` re-call each fails the v1 GameTest.
+      Build: 83 JUnit (+10: ConfigParseTest 4, MaxLevelsTest 6) + 20 GameTests.
+- [ ] 4A.7 Owner (with the 1.6 `runClient` check): put `minecraft:fortune: { max_level_override: 1 }` in the **client's**
+      `run/client/config/enchanting2/enchantments.json5`, join the dev server (no override) → the creative Enchanted Books
+      tab shows Fortune V. Then remove the client override. This proves the server's max level is the one synced
+      (decisions.md 2026-10-07).
 
 ### Stage 4B — Conflict families (config) → commit
 - [ ] 4B.1 `enchantment/ConflictFamily` (pure enum): `SILK_TOUCH_FORTUNE`, `MENDING_INFINITY`, `PROTECTION`, `DAMAGE`

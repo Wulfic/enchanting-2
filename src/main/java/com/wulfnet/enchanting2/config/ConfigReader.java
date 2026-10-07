@@ -7,6 +7,7 @@ import blue.endless.jankson.JsonPrimitive;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.OptionalInt;
 import java.util.Set;
 
 /**
@@ -55,6 +56,23 @@ public final class ConfigReader {
 		}
 		issue(key, e, String.valueOf(def), "expected a whole number");
 		return def;
+	}
+
+	/** A key with no default: missing → empty. A bad value is reported as ignored and also reads as empty. */
+	public OptionalInt readOptionalInt(String key, int min, int max) {
+		JsonElement e = take(key);
+		if (e == null) {
+			return OptionalInt.empty();
+		}
+		if (e instanceof JsonPrimitive p && p.getValue() instanceof Long l) {
+			if (l >= min && l <= max) {
+				return OptionalInt.of((int) (long) l);
+			}
+			issue(key, e, null, "must be between " + min + " and " + max);
+			return OptionalInt.empty();
+		}
+		issue(key, e, null, "expected a whole number");
+		return OptionalInt.empty();
 	}
 
 	public boolean readBool(String key, boolean def) {

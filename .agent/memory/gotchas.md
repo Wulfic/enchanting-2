@@ -140,7 +140,7 @@ guessing names from older versions' docs.
 GameTest/dev-server boot for exactly this reason.
 **Affects:** Phase 10 data enchantments
 
-## 2026-10-06 — `EnchantmentEvents.MODIFY` runs before any `MinecraftServer` exists (unverified: `/reload`)
+## 2026-10-06 — `EnchantmentEvents.MODIFY` runs before any `MinecraftServer` exists (`/reload`: confirmed not re-run, 2026-10-07)
 **Symptom:** (anticipated while planning Phase 2) a per-server config holder can't feed `MODIFY`.
 **Cause:** in 1.21.x enchantments are a dynamic registry, loaded with the world's datapacks before the server object
 is built (dedicated: in `Main`; integrated: in `WorldOpenFlows`). They're probably not reloaded by `/reload` either.
@@ -217,3 +217,26 @@ was about 2.6 GB, even with 10 GB of physical RAM free.
 **Fix:** don't kill java (the other instance's tests). Run `./gradlew test`, then `./gradlew runGameTest`, then
 `build`. Always read the test counts from a run whose task actually executed.
 **Affects:** build environment only
+
+## 2026-10-07 — `max_level_override` needs a restart; `/reload` doesn't re-run `MODIFY`
+**Symptom:** 4A.6 probe (`scripts/checks/max-level-reload.txt`): Fortune override 2 + `reload`. The reload ran
+(common.json5 re-read), but no `minecraft:fortune max level 3 -> 2` line. A plain restart printed it.
+**Cause:** enchantments are a dynamic registry, loaded once with the world's datapacks. `/reload` only reloads
+reloadable resources (tags, loot, recipes, functions).
+**Fix:** documented in DESIGN §2, the `enchantments.json5` header comment, and `MaxLevelHook`'s Javadoc.
+**Affects:** `MaxLevelHook`, any future registry-load edit (Phase 9/10)
+
+## 2026-10-07 — Fabric drops a `MODIFY` edit made only through a mixin accessor
+**Symptom:** none yet; checked by mutation. With only `@Mutable @Accessor` setting `definition`, the v1 GameTest fails
+(the registry keeps vanilla's max).
+**Cause:** `EnchantmentBuilderMixin.didModify` is set by an `@Inject(method = "*", RETURN)` that fires only when a builder
+method returns the builder. Accessor methods added by our mixin don't trip it, and an unmodified builder is discarded.
+**Fix:** after the setter, `builder.exclusiveWith(sameSet)`. It's a no-op that marks the builder as modified.
+**Affects:** `MaxLevelHook`
+
+## 2026-10-07 — The gradle cache holds several fabric-item-api versions; read the one on the classpath
+**Symptom:** planned `MODIFY_WITH_LOOKUP` from the newest `-sources.jar` in `~/.gradle/caches` (14.5.0); compile failed.
+**Cause:** the owner's other mods put newer FAPI modules in the shared cache. FAPI 0.141.6 uses item-api **11.6.0**,
+which has only `MODIFY`, and it isn't deprecated there.
+**Fix:** `./gradlew dependencies --configuration compileClasspath | grep <module>` first, then read that version's source.
+**Affects:** any research against Fabric API sources

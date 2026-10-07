@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import blue.endless.jankson.api.SyntaxError;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -172,6 +173,53 @@ class ConfigParseTest {
 				EnchantmentOverrides.CODEC);
 		assertEquals(overrides, parsed.config());
 		assertEquals(List.of(), parsed.issues());
+	}
+
+	@Test
+	void maxLevelOverrideIsReadWithinTheCodecRange() throws SyntaxError {
+		var parsed = ConfigFiles.parse("""
+				{ schema_version: 1, overrides: {
+				  "minecraft:fortune": { max_level_override: 2 }, "minecraft:looting": { max_level_override: 1 },
+				  "minecraft:power": { max_level_override: 255 }, "minecraft:mending": {} } }""",
+				EnchantmentOverrides.CODEC);
+		var entries = parsed.config().entries();
+		assertEquals(OptionalInt.of(2), entries.get("minecraft:fortune").maxLevelOverride());
+		assertEquals(OptionalInt.of(1), entries.get("minecraft:looting").maxLevelOverride());
+		assertEquals(OptionalInt.of(255), entries.get("minecraft:power").maxLevelOverride());
+		assertEquals(OptionalInt.empty(), entries.get("minecraft:mending").maxLevelOverride());
+		assertEquals(List.of(), parsed.issues());
+	}
+
+	@Test
+	void badMaxLevelOverrideIsReportedAndLeftAbsent() throws SyntaxError {
+		var parsed = ConfigFiles.parse("""
+				{ schema_version: 1, overrides: {
+				  "minecraft:fortune": { max_level_override: 0 }, "minecraft:looting": { max_level_override: 256 },
+				  "minecraft:power": { max_level_override: "3" }, "minecraft:lure": { max_level_override: 2.5 } } }""",
+				EnchantmentOverrides.CODEC);
+		var entries = parsed.config().entries();
+		assertEquals(4, entries.size(), "a bad value drops the override, never the entry");
+		entries.values().forEach(e -> assertEquals(OptionalInt.empty(), e.maxLevelOverride()));
+		assertEquals(Set.of("overrides.minecraft:fortune.max_level_override",
+				"overrides.minecraft:looting.max_level_override", "overrides.minecraft:power.max_level_override",
+				"overrides.minecraft:lure.max_level_override"), Set.copyOf(keys(parsed.issues())));
+	}
+
+	@Test
+	void maxLevelOverrideRoundTrips() throws SyntaxError {
+		var overrides = new EnchantmentOverrides(Map.of(
+				"minecraft:fortune", new EnchantmentOverrides.Entry(OptionalInt.of(7)),
+				"othermod:zap", new EnchantmentOverrides.Entry()));
+		var parsed = ConfigFiles.parse(ConfigFiles.render(overrides, EnchantmentOverrides.CODEC),
+				EnchantmentOverrides.CODEC);
+		assertEquals(overrides, parsed.config());
+		assertEquals(List.of(), parsed.issues());
+	}
+
+	@Test
+	void entryRecordRejectsOutOfRangeOverride() {
+		assertThrows(IllegalArgumentException.class, () -> new EnchantmentOverrides.Entry(OptionalInt.of(0)));
+		assertThrows(IllegalArgumentException.class, () -> new EnchantmentOverrides.Entry(OptionalInt.of(256)));
 	}
 
 	@Test

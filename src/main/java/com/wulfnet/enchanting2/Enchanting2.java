@@ -1,6 +1,7 @@
 package com.wulfnet.enchanting2;
 
 import com.wulfnet.enchanting2.config.ServerConfigs;
+import com.wulfnet.enchanting2.enchantment.MaxLevelHook;
 import com.wulfnet.enchanting2.network.ServerNetworking;
 import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
@@ -15,6 +16,7 @@ public final class Enchanting2 implements ModInitializer {
 		ServerNetworking.registerPayloads();
 		ServerNetworking.registerServer();
 		ServerConfigs.register();
+		MaxLevelHook.register();
 		LOGGER.info("Enchanting 2 initialized");
 	}
 }

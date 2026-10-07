@@ -1,0 +1,13 @@
+# Stage 4A.6: does /reload re-run EnchantmentEvents.MODIFY (and so pick up max_level_override)?
+#   scripts/dev-server-smoke.sh scripts/checks/max-level-reload.txt
+# Boot creates run/server/config/enchanting2/enchantments.json5 (generated). It is backed up to build/, given a
+# Fortune override of 2, and reloaded. The override is LEFT IN PLACE so a plain second boot shows the restart path:
+#   scripts/dev-server-smoke.sh
+# Then restore with
+#   cp build/dev-check-enchantments.json5.orig run/server/config/enchanting2/enchantments.json5
+# Result (2026-10-07): see gotchas.md "max_level_override needs a world restart".
+@sh cp run/server/config/enchanting2/enchantments.json5 build/dev-check-enchantments.json5.orig
+@sh printf '{ schema_version: 1, overrides: { "minecraft:fortune": { max_level_override: 2 } } }' > run/server/config/enchanting2/enchantments.json5
+reload
+@sh sleep 5
+@expect Reloaded .*common\.json5
