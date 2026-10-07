@@ -40,7 +40,7 @@ class ConfigFilesTest {
 	}
 
 	private static final CommonConfig CUSTOM = new CommonConfig(new ExperienceSection(true, 40, 200),
-			AllowTogetherSection.DEFAULTS, CostsSection.DEFAULTS, CursesSection.DEFAULTS);
+			AllowTogetherSection.DEFAULTS, CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS);
 
 	@Test
 	void missingFileGetsDefaultsWritten() throws IOException {

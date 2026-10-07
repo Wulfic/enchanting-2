@@ -597,18 +597,24 @@ components; `repair_cost` untouched. `common.json5` gains an optional `anvil` se
 client is disconnected with the existing mismatch message.
 **Rollback:** `git revert` the stage's commit. Nothing outside the repo is touched.
 
-### Stage 6A — Config and pure transfer rules → commit
-- [ ] 6A.1 `config/AnvilSection` in `CommonConfig.anvil`: `invalid_book_mode` (`reject_all|apply_valid|strip_invalid`,
+### Stage 6A — Config and pure transfer rules → commit  ✅ 2026-10-07
+- [x] 6A.1 `config/AnvilSection` in `CommonConfig.anvil`: `invalid_book_mode` (`reject_all|apply_valid|strip_invalid`,
       default `apply_valid`) via `readOptionalEnum`. Screen category "Anvil" + lang keys + `.desc`.
-- [ ] 6A.2 `anvil/TransferRules` (pure): `decide(Source BOOK|ITEM, InvalidBookMode, EnchantRules.Verdict)` →
+- [x] 6A.2 `anvil/TransferRules` (pure): `decide(Source BOOK|ITEM, InvalidBookMode, EnchantRules.Verdict)` →
       `APPLY | KEEP_ON_BOOK | CONSUME_DOMINATED | LOSE | REFUSE`. `TransferRulesTest`: the whole 2 × 3 × 6 table,
       one assertion per cell, plus "no `LOSE` outside `strip_invalid`".
-- [ ] 6A.3 `enchantments.json5` on the running server: `ServerConfigHolder` also holds a `PricingTable`. `ServerConfigs`
+- [x] 6A.3 `enchantments.json5` on the running server: `ServerConfigHolder` also holds the `EnchantmentOverrides`
+      (not a `PricingTable`: `config` must not import `cost`, which already imports `config`). `ServerConfigs`
       loads it at `SERVER_STARTING` and re-reads it on `/reload` (unparseable → keep previous, same policy as
       `common.json5`). `MaxLevelHook` keeps its own read (it runs before the server exists).
-- [ ] 6A.4 Tests: `ConfigParseTest` (+anvil defaults, bad enum → issue + default), `ConfigLangKeysTest` (+Anvil),
+- [x] 6A.4 Tests: `ConfigParseTest` (+anvil defaults, bad enum → issue + default), `ConfigLangKeysTest` (+Anvil),
       `ConfigWiringGameTest` (pricing reloads on `/reload`). Mutation: `decide` returns `APPLY` for CONFLICT. Build green,
       commit.
+      **Done:** `ConfigParseTest` +4, `ConfigLangKeysTest` +1 (and the section-keys test now walks `anvil`),
+      `TransferRulesTest` 6 (every cell + invariants: `LOSE` only under strip, `KEEP_ON_BOOK` only from books, `APPLY` iff
+      OK). The existing reload GameTest now also edits `enchantments.json5` (marker, garbage keeps previous, restore) in the
+      same sequence, since two tests editing config files would race. `MaxLevelHook.file()` now delegates to
+      `ServerConfigs.enchantmentsFile()`. Mutation: CONFLICT → APPLY fails 3 of 6. 166 JUnit + 33 GameTests.
 
 ### Stage 6B — Server anvil → commit
 - [ ] 6B.1 `anvil/AnvilOutcome` (MC): result stack, right-slot-after-take stack (leftover book / shrunk materials /

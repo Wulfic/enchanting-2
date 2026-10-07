@@ -257,3 +257,11 @@ landed without its TODO/state checkpoint (fixed in a follow-up commit, 4250d59).
 Separately, a heredoc containing Python `'''` strings made the Bash tool report "unexpected EOF".
 **Fix:** put edit scripts in the scratchpad and run `python script.py || exit 1` before `git add`/`git commit`.
 **Affects:** agent workflow only
+
+## 2026-10-07 — `git checkout -- <file>` doesn't undo a mutation on a new, untracked file
+**Symptom:** mutation-testing `anvil/TransferRules.java` (new in 6A, not yet committed), `git checkout --` printed nothing
+and left the mutated code in place. Only the follow-up `git status` showed `??`.
+**Cause:** checkout restores from the index; an untracked file has no index entry, so there is nothing to restore.
+**Fix:** before mutating, copy the file to the scratchpad. Restore from that copy, then diff/grep to prove it's restored.
+Also: `$TMP` in Git Bash is the Windows temp dir, not the session scratchpad.
+**Affects:** agent workflow only (mutation checks)

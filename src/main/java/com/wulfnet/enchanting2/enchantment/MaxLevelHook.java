@@ -3,6 +3,7 @@ package com.wulfnet.enchanting2.enchantment;
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.config.ConfigFiles;
 import com.wulfnet.enchanting2.config.EnchantmentOverrides;
+import com.wulfnet.enchanting2.config.ServerConfigs;
 import com.wulfnet.enchanting2.mixin.EnchantmentBuilderAccessor;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -11,7 +12,6 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Objects;
 import java.util.OptionalInt;
 import net.fabricmc.fabric.api.item.v1.EnchantmentEvents;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.enchantment.Enchantment;
 
@@ -39,8 +39,7 @@ public final class MaxLevelHook {
 	}
 
 	static Path file() {
-		return FabricLoader.getInstance().getConfigDir().resolve(Enchanting2.MOD_ID)
-				.resolve(EnchantmentOverrides.FILE_NAME);
+		return ServerConfigs.enchantmentsFile();
 	}
 
 	private static void apply(ResourceKey<Enchantment> key, Enchantment.Builder builder) {

@@ -20,7 +20,7 @@ class ConfigViewTest {
 
 	private static CommonConfig withFixedPoints(int points) {
 		return new CommonConfig(new ExperienceSection(true, 30, points), AllowTogetherSection.DEFAULTS,
-				CostsSection.DEFAULTS, CursesSection.DEFAULTS);
+				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS);
 	}
 
 	private static Supplier<LoadResult<CommonConfig>> file(Source source, boolean futureSchema) {

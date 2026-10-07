@@ -10,4 +10,9 @@ public interface ServerConfigHolder {
 	CommonConfig enchanting2$config();
 
 	void enchanting2$setConfig(CommonConfig config);
+
+	/** @return the current {@code enchantments.json5}, or null before {@code SERVER_STARTING} */
+	EnchantmentOverrides enchanting2$enchantments();
+
+	void enchanting2$setEnchantments(EnchantmentOverrides enchantments);
 }

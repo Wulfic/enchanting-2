@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import blue.endless.jankson.api.SyntaxError;
+import com.wulfnet.enchanting2.anvil.InvalidBookMode;
 import com.wulfnet.enchanting2.cost.UpgradeMode;
 import com.wulfnet.enchanting2.enchantment.ConflictFamily;
 import java.util.EnumSet;
@@ -36,7 +37,7 @@ class ConfigParseTest {
 	@Test
 	void nonDefaultValuesRoundTrip() throws SyntaxError {
 		var custom = new CommonConfig(new ExperienceSection(false, 0, 1), AllowTogetherSection.DEFAULTS,
-				CostsSection.DEFAULTS, CursesSection.DEFAULTS);
+				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS);
 		assertEquals(custom, common(ConfigFiles.render(custom, CommonConfig.CODEC)).config());
 	}
 
@@ -46,13 +47,13 @@ class ConfigParseTest {
 			EnumSet<ConflictFamily> allowed = EnumSet.allOf(ConflictFamily.class);
 			allowed.remove(off);
 			var custom = new CommonConfig(ExperienceSection.DEFAULTS, new AllowTogetherSection(allowed),
-					CostsSection.DEFAULTS, CursesSection.DEFAULTS);
+					CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS);
 			var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 			assertEquals(custom, parsed.config(), off.key());
 			assertEquals(List.of(), parsed.issues());
 		}
 		var none = new CommonConfig(ExperienceSection.DEFAULTS, new AllowTogetherSection(Set.of()),
-				CostsSection.DEFAULTS, CursesSection.DEFAULTS);
+				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS);
 		assertEquals(none, common(ConfigFiles.render(none, CommonConfig.CODEC)).config());
 	}
 
@@ -289,7 +290,7 @@ class ConfigParseTest {
 	@Test
 	void strictRenderIsCommentFreeAndRoundTrips() throws SyntaxError {
 		var config = new CommonConfig(new ExperienceSection(false, 12, 345), AllowTogetherSection.DEFAULTS,
-				CostsSection.DEFAULTS, CursesSection.DEFAULTS);
+				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS);
 		String json = ConfigFiles.renderStrict(config, CommonConfig.CODEC);
 		assertFalse(json.contains("//") || json.contains("/*"), json);
 		assertFalse(json.contains("\n"), json);
@@ -333,7 +334,8 @@ class ConfigParseTest {
 	@Test
 	void costsAndCursesRoundTrip() throws SyntaxError {
 		var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
-				new CostsSection(0, 3, 5, 0, false), new CursesSection(95, 0));
+				new CostsSection(0, 3, 5, 0, false), new CursesSection(95, 0),
+				new AnvilSection(InvalidBookMode.STRIP_INVALID));
 		var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 		assertEquals(custom, parsed.config());
 		assertEquals(List.of(), parsed.issues());
@@ -375,6 +377,38 @@ class ConfigParseTest {
 		assertThrows(IllegalArgumentException.class, () -> new CostsSection(1, 1, 2, -2, true));
 		assertThrows(IllegalArgumentException.class, () -> new CursesSection(96, 30));
 		assertThrows(IllegalArgumentException.class, () -> new CursesSection(45, -1));
+	}
+
+	@Test
+	void anvilDefaultsToApplyValid() {
+		assertEquals(InvalidBookMode.APPLY_VALID, CommonConfig.defaults().anvil().invalidBookMode());
+	}
+
+	@Test
+	void anvilModeIsReadForEveryValue() throws SyntaxError {
+		for (InvalidBookMode mode : InvalidBookMode.values()) {
+			var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
+					CostsSection.DEFAULTS, CursesSection.DEFAULTS, new AnvilSection(mode));
+			var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
+			assertEquals(custom, parsed.config(), mode.name());
+			assertEquals(List.of(), parsed.issues(), mode.name());
+		}
+	}
+
+	@Test
+	void anvilUnknownModeIsAnIssueAndDefaults() throws SyntaxError {
+		for (String bad : List.of("\"apply_all\"", "\"APPLY_VALID\"", "1", "true")) {
+			var parsed = common("{ schema_version: 1, anvil: { invalid_book_mode: " + bad + " } }");
+			assertEquals(AnvilSection.DEFAULTS, parsed.config().anvil(), bad);
+			assertEquals(List.of("anvil.invalid_book_mode"), keys(parsed.issues()), bad);
+		}
+	}
+
+	@Test
+	void missingAnvilSectionDefaultsSilently() throws SyntaxError {
+		var parsed = common("{ schema_version: 1, experience: { enabled: true } }");
+		assertEquals(AnvilSection.DEFAULTS, parsed.config().anvil());
+		assertEquals(List.of(), parsed.issues());
 	}
 
 	@Test

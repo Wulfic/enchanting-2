@@ -8,7 +8,7 @@ import java.util.Objects;
  * Each phase adds its section here together with the code that reads it.
  */
 public record CommonConfig(ExperienceSection experience, AllowTogetherSection allowTogether, CostsSection costs,
-		CursesSection curses) {
+		CursesSection curses, AnvilSection anvil) {
 	public static final String FILE_NAME = "common.json5";
 	public static final int SCHEMA_VERSION = 1;
 
@@ -32,7 +32,7 @@ public record CommonConfig(ExperienceSection experience, AllowTogetherSection al
 		public CommonConfig read(ConfigReader root) {
 			return new CommonConfig(ExperienceSection.read(root.section("experience")),
 					AllowTogetherSection.read(root.section("allow_together")), CostsSection.read(root.section("costs")),
-					CursesSection.read(root.section("curses")));
+					CursesSection.read(root.section("curses")), AnvilSection.read(root.section("anvil")));
 		}
 
 		@Override
@@ -42,6 +42,7 @@ public record CommonConfig(ExperienceSection experience, AllowTogetherSection al
 					"Vanilla exclusive sets. true = these may share an item; false = vanilla (only one of them).");
 			root.put("costs", value.costs.write(), "XP level costs that aren't per enchantment (see enchantments.json5).");
 			root.put("curses", value.curses.write(), "Each curse on the result makes enchanting cheaper.");
+			root.put("anvil", value.anvil.write(), "Anvil behavior.");
 		}
 	};
 
@@ -50,10 +51,11 @@ public record CommonConfig(ExperienceSection experience, AllowTogetherSection al
 		Objects.requireNonNull(allowTogether, "allowTogether");
 		Objects.requireNonNull(costs, "costs");
 		Objects.requireNonNull(curses, "curses");
+		Objects.requireNonNull(anvil, "anvil");
 	}
 
 	public static CommonConfig defaults() {
 		return new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS, CostsSection.DEFAULTS,
-				CursesSection.DEFAULTS);
+				CursesSection.DEFAULTS, AnvilSection.DEFAULTS);
 	}
 }

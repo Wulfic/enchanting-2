@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import blue.endless.jankson.Jankson;
 import blue.endless.jankson.JsonObject;
+import com.wulfnet.enchanting2.anvil.InvalidBookMode;
 import com.wulfnet.enchanting2.enchantment.ConflictFamily;
 import java.io.InputStream;
 import java.util.Locale;
@@ -43,10 +44,10 @@ class ConfigLangKeysTest {
 
 	/** The screen names its options after the file keys, so every key the section writes needs a name and a tooltip. */
 	@Test
-	void everyCostsAndCursesKeyHasNameAndDescription() throws Exception {
+	void everySectionKeyHasNameAndDescription() throws Exception {
 		JsonObject lang = lang();
 		Map<String, JsonObject> sections = Map.of("costs", CostsSection.DEFAULTS.write(),
-				"curses", CursesSection.DEFAULTS.write());
+				"curses", CursesSection.DEFAULTS.write(), "anvil", AnvilSection.DEFAULTS.write());
 		sections.forEach((section, written) -> {
 			assertTrue(lang.containsKey("enchanting2.config.category." + section), section);
 			assertFalse(written.keySet().isEmpty(), section);
@@ -56,6 +57,15 @@ class ConfigLangKeysTest {
 				assertTrue(lang.containsKey(langKey + ".desc"), langKey + ".desc");
 			}
 		});
+	}
+
+	@Test
+	void everyInvalidBookModeHasText() throws Exception {
+		JsonObject lang = lang();
+		for (InvalidBookMode mode : InvalidBookMode.values()) {
+			String key = "enchanting2.config.anvil.invalid_book_mode." + mode.name().toLowerCase(Locale.ROOT);
+			assertTrue(lang.containsKey(key), key);
+		}
 	}
 
 	@Test

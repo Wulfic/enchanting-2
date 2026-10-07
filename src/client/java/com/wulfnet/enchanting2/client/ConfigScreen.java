@@ -1,6 +1,8 @@
 package com.wulfnet.enchanting2.client;
 
+import com.wulfnet.enchanting2.anvil.InvalidBookMode;
 import com.wulfnet.enchanting2.config.AllowTogetherSection;
+import com.wulfnet.enchanting2.config.AnvilSection;
 import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.config.ConfigView;
 import com.wulfnet.enchanting2.config.CostsSection;
@@ -12,6 +14,7 @@ import dev.isxander.yacl3.api.LabelOption;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.YetAnotherConfigLib;
+import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import dev.isxander.yacl3.api.controller.IntegerFieldControllerBuilder;
 import dev.isxander.yacl3.api.controller.TickBoxControllerBuilder;
 import java.util.EnumSet;
@@ -48,6 +51,9 @@ final class ConfigScreen {
 				.option(LabelOption.create(modeLabel));
 		ConfigCategory.Builder curses = ConfigCategory.createBuilder()
 				.name(Component.translatable(KEY + "category.curses"))
+				.option(LabelOption.create(modeLabel));
+		ConfigCategory.Builder anvil = ConfigCategory.createBuilder()
+				.name(Component.translatable(KEY + "category.anvil"))
 				.option(LabelOption.create(modeLabel));
 		if (view.values().isPresent()) {
 			ExperienceSection d = ExperienceSection.DEFAULTS;
@@ -104,6 +110,16 @@ final class ConfigScreen {
 					.option(intOption("curses.removal_min_cost", k.removalMinCost(), () -> draft.removalMinCost,
 							v -> draft.removalMinCost = v, CursesSection.MIN_REMOVAL_COST,
 							CursesSection.MAX_REMOVAL_COST, editable));
+			anvil.option(Option.<InvalidBookMode>createBuilder()
+					.name(Component.translatable(KEY + "anvil.invalid_book_mode"))
+					.description(description("anvil.invalid_book_mode"))
+					.binding(AnvilSection.DEFAULTS.invalidBookMode(), () -> draft.invalidBookMode,
+							v -> draft.invalidBookMode = v)
+					.controller(option -> EnumControllerBuilder.create(option).enumClass(InvalidBookMode.class)
+							.formatValue(mode -> Component.translatable(
+									KEY + "anvil.invalid_book_mode." + mode.name().toLowerCase(Locale.ROOT))))
+					.available(editable)
+					.build());
 		}
 
 		return YetAnotherConfigLib.createBuilder()
@@ -112,6 +128,7 @@ final class ConfigScreen {
 				.category(allowTogether.build())
 				.category(costs.build())
 				.category(curses.build())
+				.category(anvil.build())
 				// Read-only views have no available options, so YACL has no pending changes to hand to save.
 				.save(editable ? () -> ConfigEditing.save(draft.toConfig()) : () -> {
 				})
@@ -147,6 +164,7 @@ final class ConfigScreen {
 		boolean creativeFree;
 		int maxDiscountPercent;
 		int removalMinCost;
+		InvalidBookMode invalidBookMode;
 
 		Draft(CommonConfig from) {
 			enabled = from.experience().enabled();
@@ -160,6 +178,7 @@ final class ConfigScreen {
 			creativeFree = from.costs().creativeFree();
 			maxDiscountPercent = from.curses().maxDiscountPercent();
 			removalMinCost = from.curses().removalMinCost();
+			invalidBookMode = from.anvil().invalidBookMode();
 		}
 
 		void setAllowed(ConflictFamily family, boolean value) {
@@ -175,7 +194,7 @@ final class ConfigScreen {
 					new AllowTogetherSection(allowed),
 					new CostsSection(renameCost, repairCostPerMaterial, repairCombineCost, maximumOperationCost,
 							creativeFree),
-					new CursesSection(maxDiscountPercent, removalMinCost));
+					new CursesSection(maxDiscountPercent, removalMinCost), new AnvilSection(invalidBookMode));
 		}
 	}
 }
