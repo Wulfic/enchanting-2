@@ -22,11 +22,14 @@ ALREADY_AT_LEVEL → CONFLICT, new IDs only) + `withEnchantment` (higher level w
 pairs are grandfathered, no +1 merge. Nothing calls it until Phase 6.
 **Stage 4D done → Phase 4 done** (2026-10-07): Lure and Riptide are 5 (`MechanicLimitsGameTest` drives a real hook and a
 real trident). Owner: overrides past a break level are clamped (`MaxLevels.SAFE_MAX`: Lure 5, Quick Charge 4, Riptide 7).
-Build: 101 JUnit + 33 GameTests, all green.
+**Phase 5 planned** (TODO.md, 3 stages; owner answered repair/multipliers/FIXED/cleanse, decisions.md "Cost model gaps").
+**Stage 5A done** (2026-10-07): `common.json5` `costs` + `curses` sections (+ screen categories), cost keys on
+`enchantments.json5` entries, `cost/Pricing` + `PricingTable` (Mending = 2/0/surcharge 2 as data). Nothing reads them
+at runtime yet. Build: 118 JUnit + 33 GameTests, all green.
 
 ## What's next
-1. Phase 5 (cost model, pure): expand 5.1–5.5 into file-level steps in TODO.md first. DESIGN §5/§5a; it must price
-   `EnchantRules` verdicts (ALREADY_AT_LEVEL is free, decisions.md 2026-10-07).
+1. Stage 5B: `cost/CostRequest`, `CostBreakdown`, `CostModel.price` + §5 table tests + build-order property test.
+   Then 5C (curse discount, cleanse, extract). Steps are in TODO.md.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level ~1,000,000).
 
 ## Open questions / blockers

@@ -498,21 +498,25 @@ GUI editing of per-enchantment cost fields (file-only, §10); new curses (Phase 
 entries gain optional cost keys. Existing files load with defaults and are never rewritten (2A guard), so no schema bump.
 **Rollback:** `git revert` the stage's commit. Nothing outside the repo is touched.
 
-### Stage 5A — Config keys → commit
-- [ ] 5A.1 `ConfigReader.readOptionalEnum(key, Class<E>)` (lower-case names; bad value → issue + empty). JUnit.
-- [ ] 5A.2 `config/CostsSection` in `CommonConfig.costs`: `rename_cost` 1, `repair_cost_per_material` 1,
+### Stage 5A — Config keys → commit  ✅ 2026-10-07
+- [x] 5A.1 `ConfigReader.readOptionalEnum(key, Class<E>)` (lower-case names; bad value → issue + empty). JUnit.
+- [x] 5A.2 `config/CostsSection` in `CommonConfig.costs`: `rename_cost` 1, `repair_cost_per_material` 1,
       `repair_combine_cost` 2, `maximum_operation_cost` −1 (−1..1,000,000), `creative_free` true. Ranges public.
-- [ ] 5A.3 `config/CursesSection` in `CommonConfig.curses`: `max_discount_percent` 45 (0..95), `removal_min_cost` 30.
-- [ ] 5A.4 `EnchantmentOverrides.Entry` gains optional `base_cost`, `cost_per_level` (0..10,000),
+- [x] 5A.3 `config/CursesSection` in `CommonConfig.curses`: `max_discount_percent` 45 (0..95), `removal_min_cost` 30.
+- [x] 5A.4 `EnchantmentOverrides.Entry` gains optional `base_cost`, `cost_per_level` (0..10,000; keeps sums inside `long`),
       `upgrade_cost_mode` (`result_level|level_difference|fixed|free`), `other_levels_surcharge` (0..100),
       `discount_percent` (0..100, curses only). Comment text in `write`.
-- [ ] 5A.5 `cost/Pricing` record + `cost/PricingTable` (pure): built-in defaults (`minecraft:mending` 2/0/surcharge 2;
-      Binding and Vanishing 10%; anything else 0/1/LEVEL_DIFFERENCE/0; a curse without an entry 10%), per-field
-      override from an `Entry`. JUnit: defaults, each field overridden alone, Mending partly overridden.
-- [ ] 5A.6 Config screen: "Costs" and "Curses" categories with lang keys + `.desc`; `ConfigLangKeysTest` covers them;
+- [x] 5A.5 `cost/Pricing` record + `cost/PricingTable` (pure): `DEFAULT` 0/1/LEVEL_DIFFERENCE/0/10% (the 10% is
+      Binding's, Vanishing's and any entry-less curse's, so no curse rows), one `BUILT_IN` row: `minecraft:mending`
+      2/0/surcharge 2. Per-field override from an `Entry`. `PricingTableTest` (7): defaults, each field alone, Mending
+      partly overridden, a max-level-only entry changes no price, record bounds.
+- [x] 5A.6 Config screen: "Costs" and "Curses" categories with lang keys + `.desc`; `ConfigLangKeysTest` covers them;
       `ConfigScreen` rebuilds `CommonConfig` with the new sections.
-- [ ] 5A.7 `ConfigParseTest`: defaults, round-trip, missing sections → defaults, each out-of-range/wrong-type → issue +
+- [x] 5A.7 `ConfigParseTest`: defaults, round-trip, missing sections → defaults, each out-of-range/wrong-type → issue +
       default, unknown enum → issue. Mutation: a reader that ignores the file fails them. Build green, commit.
+      **Done:** `ConfigParseTest` +9, `ConfigLangKeysTest` +1 (keys taken from what each section writes). Mutations,
+      each caught: costs/curses reader returns defaults (5 tests), `upgrade_cost_mode` never read (3), `PricingTable`
+      ignores overrides (2), a missing `.desc` (1). Build: 118 JUnit + 33 GameTests.
 
 ### Stage 5B — `CostModel` → commit
 - [ ] 5B.1 `cost/CostRequest(station TABLE|ANVIL|GRINDSTONE, before, after, renamed, repairMaterials, combineRepair,
