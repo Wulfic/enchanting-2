@@ -392,3 +392,25 @@ the same weakness the 3B.7 snap has. `@ModifyArg` needs no state.
 **Why:** nothing on an item is ever silently changed, and raising the max back needs no recovery.
 **Rejected:** clamping the effect at use time (a mixin on every effect lookup); rewriting the stored level (destructive, irreversible).
 **Affects:** Phase 4 `EnchantRules`, Phase 6 anvil, Phase 7 table
+
+## 2026-10-06 — Conflict families live in `EnchantRules`, not the registry (Phase 4)
+**Context:** DESIGN §2 said to relax `exclusive_set` through `EnchantmentEvents.MODIFY`. But `MODIFY` runs before tags are
+bound, so it can only swap a whole tag-backed set (e.g. empty `#exclusive_set/mining`), never filter pairs. It would
+need a restart, and it would also drop conflicts that other mods add to the same vanilla tags.
+**Choice (owner):** registry exclusive sets stay vanilla. `EnchantRules` treats two enchantments as compatible when vanilla
+says so **or** both are in the same enabled `ConflictFamily`. The toggles go in `common.json5` (`conflicts`), synced and
+`/reload`-able.
+**Why:** our anvil, table and books (Phases 6–7) all go through `EnchantRules`, so the registry edit buys nothing there.
+It works per pair, other mods' conflicts survive, and removing the mod leaves nothing behind.
+**Rejected:** registry `MODIFY` (tag-only granularity, needs a restart, collateral loss of other mods' conflicts); a mixin
+on static `Enchantment.areCompatible` (global state with no server context).
+**Cost:** vanilla `/enchant` and loot generation still apply vanilla conflicts. Accepted.
+**Affects:** Phase 4 `ConflictFamily`/`EnchantRules`/`ConflictSection`, DESIGN §2 and §4
+
+## 2026-10-06 — The damage family relaxes all six enchantments; Lunge max 5 (Phase 4)
+**Context:** vanilla `#exclusive_set/damage` is Sharpness, Smite, Bane, Impaling, Density and Breach, but DESIGN §4 named
+only three. Phase 1.8 flagged Lunge V's 20 exhaustion per lunge.
+**Choice (owner):** one `damage` toggle relaxes all six (a mace can hold Smite + Bane + Density + Breach). Lunge stays at 5.
+**Why:** one family per vanilla tag is simplest to explain. The hunger cost is the player's trade-off.
+**Rejected:** relaxing only Sharpness/Smite/Bane; a separate mace toggle; capping Lunge at 3 or 4.
+**Affects:** `ConflictFamily.DAMAGE`, `MaxLevels`, DESIGN §4 and §8

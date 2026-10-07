@@ -334,24 +334,74 @@ mod keeps every stored level (DESIGN §2a).
 **Blast radius:** two injects that only change a result that would otherwise wrap. No stored data is rewritten.
 **Rollback:** `git revert <3C commit>`.
 
-## Phase 4 — Enchantment rules engine
+## Phase 4 — Enchantment rules engine (four stages, one commit each)
 **Goal:** applicability is mandatory, conflict families are configurable, max levels are
 overridden, and duplicate IDs can't occur.
 **Owner (2026-10-06):** lowering a max level never touches existing items. An item already above the new max keeps
 its level and its effect, which is vanilla behavior. The max only limits new enchanting and combining (`EnchantRules`).
-- [ ] 4.0 Probe (dev server): does `/reload` re-run `EnchantmentEvents.MODIFY`? Enchantments are
-      likely a world-load registry, so probably not, and max-level/conflict keys then need a restart.
-      `MODIFY` runs before the `MinecraftServer` exists, so it reads the config file through
-      `ConfigFiles.load`, not the server holder. Fix DESIGN §2 ("/reload or restart") and the screen hint to match.
-- [ ] 4.1 `enchantment/ConflictFamilies` + `EnchantmentEvents.MODIFY` hook: relax
-      `exclusive_set` per config, apply `max_level_override`
-- [ ] 4.2 `enchantment/EnchantRules`: `canApply(item, ench, level) → Result(reason)`, the one
-      place applicability/conflict/max checks live (used by anvil, table, books)
-- [ ] 4.3 Unit/GameTests: Efficiency on helmet rejected; helmet enchant on pickaxe rejected;
-      Silk+Fortune allowed only when the family is relaxed; unknown modded enchant preserved;
-      duplicate entry normalized
-- [ ] 4.4 Apply the §8 max-level table; GameTests for Lure 5 (fish still bite) and Riptide 5
-      (server accepts the launch). Drop either to 4 if its test fails.
+**Owner (2026-10-06, Phase 4 start):** (1) conflict relaxation lives **only in `EnchantRules`**. Registry `exclusive_set`s
+stay vanilla. (2) The damage family relaxes **all six** members of vanilla's `exclusive_set/damage` tag. (3) Lunge goes
+to **5**, as in §8. See decisions.md.
+**Facts (FAPI 0.141.6 source, 1.21.11 jar):** `MODIFY` runs inside `ResourceManagerRegistryLoadTask` before tags are
+bound, once per enchantment loaded from resources. Fabric keeps our edit only if a builder method *returning the builder*
+ran (`EnchantmentBuilderMixin.didModify`). A modified entry has its known-pack info cleared, so the server sends its
+version to clients and a client's own config never touches the server's max levels. `Enchantment.Builder.definition` is
+`final` and there's no setter, so we need an `@Mutable @Accessor`. Vanilla exclusive-set tags: armor, boots, bow, crossbow,
+damage (sharpness, smite, bane, impaling, density, breach), mining, and riptide (loyalty, channeling; on Riptide only).
+**Not doing:** effect resolution for combined families (Phase 8), `silk_fortune_mode` (Phase 8), per-enchantment
+disable/weights (Phase 9), anvil/table wiring (Phases 6–7), reason text on screens (6.4), any registry `exclusive_set`
+edit, touching items above a lowered max, or GUI editing of `enchantments.json5` (§10).
+**Blast radius:** additive code. Two config files gain optional keys: `enchantments.json5` gets `max_level_override`, and
+`common.json5` gets `conflicts`. Existing files without them load with defaults and are never rewritten (2A guard), and no
+schema bump is needed. `VanillaEnchantmentIdsGameTest` changes its *expected* levels to the v1 column (the test stays;
+it is not deleted). Adding or removing the mod: max levels revert to vanilla on removal, and items keep their levels (§2a).
+**Rollback:** `git revert` the stage's commit. Nothing outside the repo and dev run dirs is touched.
+
+### Stage 4A — Max levels via `MODIFY` → commit
+- [ ] 4A.1 `config/EnchantmentOverrides.Entry(OptionalInt maxLevelOverride)`: reads/writes `max_level_override`, int
+      `1..255` (vanilla's codec range). Bad values → issue + absent. Tests in `ConfigParseTest` (valid, 0, 256, string,
+      round-trip).
+- [ ] 4A.2 `enchantment/MaxLevels` (pure): the §8 table as `id → (vanillaMax, v1Max)`. `resolve(id, loadedMax,
+      override)` → `(max, Why)`: an override always wins. A table entry applies only when `loadedMax == vanillaMax`;
+      a datapack that already changed it is respected (logged). Any other ID keeps its value. JUnit: every §8 row, override
+      above/below, datapack-changed, unknown ID.
+- [ ] 4A.3 `mixin/EnchantmentBuilderAccessor`: `@Mutable @Accessor("definition")` setter and an `exclusiveSet` getter, with
+      `enchanting2$` names so they can't clash with Fabric's accessor on the same class.
+- [ ] 4A.4 `enchantment/MaxLevelHook`: registers `MODIFY` in `onInitialize`. It reads `enchantments.json5` via
+      `ConfigFiles.load`, cached on (mtime, size) so 43 calls parse once and each change logs once. It replaces the
+      definition with the new `maxLevel`, then re-calls `exclusiveWith(sameSet)` so Fabric keeps the edit (comment says
+      why). An unreadable file means the v1 table only, with a WARN naming the file and the consequence.
+- [ ] 4A.5 GameTest: `VanillaEnchantmentIdsGameTest` expects the v1 column from the live registry (Fortune 5, Depth
+      Strider 3, Quick Charge 4, Lunge 5, Silk 1). Reverting 4A.4 must fail it.
+- [ ] 4A.6 (was 4.0) Dev-server probe on 25566: set `minecraft:fortune` override 2, `/reload`, then `/enchant` Fortune 3
+      (vanilla rejects above max). Restart and repeat. Record the outcome in gotchas.md. Fix DESIGN §2 and the
+      `enchantments.json5` comment ("restart" vs "/reload").
+
+### Stage 4B — Conflict families (config) → commit
+- [ ] 4B.1 `enchantment/ConflictFamily` (pure enum): `SILK_TOUCH_FORTUNE`, `MENDING_INFINITY`, `PROTECTION`, `DAMAGE`
+      (all six), `RIPTIDE_LOYALTY_CHANNELING`, `MULTISHOT_PIERCING`, `DEPTH_STRIDER_FROST_WALKER`, each with its member
+      IDs. `relaxes(a, b, enabled)` is true only when both IDs are in the same enabled family.
+- [ ] 4B.2 `config/ConflictSection` in `CommonConfig`: `conflicts.<family>: true` (allow together, default). Synced, and
+      `/reload` applies it. Lang keys plus screen toggles (`ConfigLangKeysTest` enforces them).
+- [ ] 4B.3 JUnit: defaults, parse/round-trip, missing section → defaults; `relaxes` symmetric, false across families,
+      false when the family is off, false for third-party IDs.
+
+### Stage 4C — `EnchantRules` → commit
+- [ ] 4C.1 `enchantment/EnchantRules.check(target, holder, level, existing, conflicts) → Result(Verdict, detail)`.
+      Order: `INVALID_LEVEL` (<1), `ABOVE_MAX` (> registry max), `NOT_APPLICABLE` (`canBeEnchantedWith(ACCEPTABLE)`,
+      which keeps other mods' `ALLOW_ENCHANTING`; skipped for books), `CONFLICT(other)`, where compatible =
+      `Enchantment.areCompatible || ConflictFamily.relaxes`. A same-ID entry is never a conflict.
+- [ ] 4C.2 `EnchantRules.withEnchantment(existing, holder, level)`: one entry per ID at the max level, every other entry
+      (unknown/third-party included) kept as-is. Upgrade modes come in Phase 5.
+- [ ] 4C.3 GameTests: Efficiency on a helmet → NOT_APPLICABLE; Protection on a pickaxe → NOT_APPLICABLE; Silk+Fortune OK
+      when relaxed, CONFLICT when off; Fortune 6 → ABOVE_MAX; book accepts anything; existing Fortune V with max lowered
+      → adding III is OK; a duplicate merges to one entry at the max level; an unlisted enchantment survives a merge.
+
+### Stage 4D — Lure 5 / Riptide 5 → commit
+- [ ] 4D.1 Read `FishingHook` (lure time reduction vs the 100–600 tick wait) and the Riptide impulse vs
+      `ServerGamePacketListenerImpl`'s moved-too-quickly threshold. Write the arithmetic into this TODO.
+- [ ] 4D.2 GameTest each where the harness can drive it (a fishing hook in water ticks until a bite; a riptide impulse
+      under the threshold). If one can't be driven, record why and keep the code-level proof. Drop it to 4 if it fails.
 
 ## Phase 5 — Cost model
 **Goal:** pure cost calculator that reproduces the DESIGN §5 examples exactly.

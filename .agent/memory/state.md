@@ -15,7 +15,9 @@ its vanilla body, then snaps to the exact total and stores the smallest float `f
 `/xp set points`, and `ServerPlayerAccessor` forces a client resync. **3C** (owner: saturating add): `totalExperience` and `getScore()` no longer wrap. Build: 73 JUnit + 20 GameTests, all green.
 
 ## What's next
-1. Phase 4 (enchantment rules engine): starts with the 4.0 `/reload` probe for `EnchantmentEvents.MODIFY`.
+1. Phase 4 is planned in TODO.md as stages 4A max levels (`MODIFY`) → 4B conflict families (config) → 4C `EnchantRules`
+   → 4D Lure/Riptide 5, one commit each. Owner: conflicts live only in `EnchantRules`, the damage family relaxes all six,
+   Lunge max 5 (decisions.md). Next: 4A.1.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check (bar at level ~1,000,000).
 
 ## Open questions / blockers

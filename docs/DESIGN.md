@@ -52,13 +52,16 @@ of a rename across the whole codebase.
 **Enchantments in 1.21.x are data-driven.** Each one is a registry entry with
 `supported_items`, `primary_items`, `exclusive_set`, `max_level`, `weight`, `min_cost`,
 `max_cost`, `anvil_cost`, `slots` and `effects` (effect components). Consequences:
-- Changing vanilla max level and conflicts goes through Fabric API `EnchantmentEvents.MODIFY`.
-  It edits the builder at registry load, so other mods' and datapacks' changes stay intact.
-  We do **not** ship override JSONs for vanilla enchantments.
+- Changing vanilla max levels goes through Fabric API `EnchantmentEvents.MODIFY`. It edits the
+  builder at registry load, so other mods' and datapacks' changes stay intact. We do **not** ship
+  override JSONs for vanilla enchantments.
+- Conflicts are **not** a registry edit. Registry `exclusive_set`s stay vanilla, and `EnchantRules`
+  relaxes configured families pair by pair (§4; decisions.md 2026-10-06).
 - The enchantment registry syncs to clients, so modified max levels and conflicts display
   correctly client-side without our own packet.
-- Registry changes apply at datapack load. A config change to max level or conflicts
-  requires `/reload` or a server restart, and the config screen must say so.
+- Registry changes apply at registry load (world open / server start). A max-level change
+  probably requires a restart, not `/reload` (TODO 4A.6 confirms). Conflict toggles are plain
+  config and apply on `/reload`.
 - Many new enchantments need **no Java code** (see §9 "Route").
 
 ### Identity
@@ -207,7 +210,7 @@ Four **independent** settings. Never conflate them:
 | Silk Touch / Fortune | exclusive | `silk_fortune_mode`: `SILK_WINS` (default; Fortune ignored on silk-touched drops) or `FORTUNE_MULTIPLIES_SILK` (Mod Menu toggle; the tooltip warns it enables an ore-duplication loop) |
 | Mending / Infinity | exclusive | both work normally |
 | Protection family | exclusive | all apply; vanilla 20-EPF cap still limits the total |
-| Sharpness / Smite / Bane | exclusive | all applicable bonuses add |
+| Damage: Sharpness / Smite / Bane / Impaling / Density / Breach (vanilla `exclusive_set/damage`) | exclusive | all applicable bonuses add (owner: all six, 2026-10-06) |
 | Riptide / Loyalty / Channeling | exclusive | in water or rain → Riptide launch; otherwise → normal throw with Loyalty/Channeling |
 | Multishot / Piercing | exclusive | both apply |
 | Depth Strider / Frost Walker | exclusive | both apply |
