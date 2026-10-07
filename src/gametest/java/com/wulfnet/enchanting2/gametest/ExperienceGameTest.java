@@ -185,6 +185,40 @@ public class ExperienceGameTest {
 		helper.succeed();
 	}
 
+	/** 3C. Vanilla's int add wraps MAX + n to negative, and its clamp then resets the total to 0. */
+	@GameTest
+	public void totalExperienceSaturatesAtMax(GameTestHelper helper) {
+		ServerPlayer player = player(helper);
+		player.totalExperience = Integer.MAX_VALUE - 2;
+		player.giveExperiencePoints(5);
+		helper.assertValueEqual(Integer.MAX_VALUE, player.totalExperience, Component.literal("MAX - 2 + 5"));
+		player.giveExperiencePoints(5);
+		helper.assertValueEqual(Integer.MAX_VALUE, player.totalExperience, Component.literal("MAX + 5"));
+		player.totalExperience = 3;
+		player.giveExperiencePoints(-10);
+		helper.assertValueEqual(0, player.totalExperience, Component.literal("3 - 10 clamps at 0"));
+		helper.succeed();
+	}
+
+	/** 3C. The death-screen score: vanilla {@code increaseScore} is a plain int add with no clamp. */
+	@GameTest
+	public void scoreSaturatesInsteadOfWrapping(GameTestHelper helper) {
+		ServerPlayer player = player(helper);
+		player.setScore(Integer.MAX_VALUE - 2);
+		player.increaseScore(5);
+		helper.assertValueEqual(Integer.MAX_VALUE, player.getScore(), Component.literal("MAX - 2 + 5"));
+		player.setScore(Integer.MIN_VALUE + 2);
+		player.increaseScore(-5);
+		helper.assertValueEqual(Integer.MIN_VALUE, player.getScore(), Component.literal("MIN + 2 - 5"));
+		player.setScore(10);
+		player.increaseScore(5);
+		helper.assertValueEqual(15, player.getScore(), Component.literal("10 + 5 stays vanilla"));
+		player.setScore(3);
+		player.increaseScore(-10);
+		helper.assertValueEqual(-7, player.getScore(), Component.literal("3 - 10 stays vanilla (negative)"));
+		helper.succeed();
+	}
+
 	@GameTest
 	public void respawnCopiesExperienceOnlyWithKeepInventory(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();

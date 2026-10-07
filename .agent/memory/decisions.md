@@ -375,3 +375,20 @@ Storing `(p + 0.5)/n`: also exact, but the bar draws half a point ahead, about 1
 `giveExperienceLevels(Δ)` call. No snap when n > 2^21 (vanilla curve past ~233k only).
 **Affects:** src/main/java/com/wulfnet/enchanting2/experience/ExperienceCurve.java, mixin/PlayerMixin.java,
 mixin/ServerPlayerMixin.java
+
+## 2026-10-06 — Score counters saturate instead of wrapping (Phase 3C)
+**Context:** vanilla `totalExperience` resets to 0 at MAX + n (an `int` add before the clamp). The death-screen score
+(`increaseScore`) is a separate plain `int` add, and it wraps negative.
+**Choice:** owner chose a saturating add for both. `@ModifyArg` on the `Mth.clamp` input in `giveExperiencePoints`
+(MixinExtras `@Local(argsOnly)` for `amount`), plus a cancellable HEAD on `increaseScore` that only acts when the sum leaves the `int` range.
+**Why:** a counter that resets after billions of points is a bug, not vanilla flavor. Both are score-only; the curve is untouched.
+**Rejected:** leaving vanilla (owner declined). A HEAD/TAIL record pair for the total, which a nested call would clear,
+the same weakness the 3B.7 snap has. `@ModifyArg` needs no state.
+**Affects:** src/main/java/com/wulfnet/enchanting2/mixin/PlayerMixin.java
+
+## 2026-10-06 — A lowered max level never touches existing items (Phase 4)
+**Context:** `max_level_override` can lower a max below levels already on items (e.g. Fortune V → max 3).
+**Choice:** keep the item and its effect as-is (vanilla behavior). The max only limits new enchanting and combining in `EnchantRules`.
+**Why:** nothing on an item is ever silently changed, and raising the max back needs no recovery.
+**Rejected:** clamping the effect at use time (a mixin on every effect lookup); rewriting the stored level (destructive, irreversible).
+**Affects:** Phase 4 `EnchantRules`, Phase 6 anvil, Phase 7 table

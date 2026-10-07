@@ -165,6 +165,8 @@ Total points at level L (L ≥ 30) = `1395 + 112 × (L − 30)`. 1395 is vanilla
   back one short, so 29 + 157 points lands on 30 + 49. `giveExperiencePoints` keeps its vanilla body, then snaps to
   the exact total and stores the smallest float `f` with `f × n ≥ p`, which every vanilla reader floors to `p`. `/xp set points` stores the same
   form. Old `p/n` saves read correctly.
+- Score counters never wrap (owner, 2026-10-06). `totalExperience` and the death-screen score (`getScore()`) saturate
+  at the `int` limits. Vanilla's `int` adds reset the total to 0 and turn the score negative.
 - Death drop stays vanilla (`min(7 × level, 100)` points) unless configured otherwise.
 
 ### Config

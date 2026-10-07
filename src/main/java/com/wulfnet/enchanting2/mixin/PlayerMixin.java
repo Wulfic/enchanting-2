@@ -1,5 +1,6 @@
 package com.wulfnet.enchanting2.mixin;
 
+import com.llamalad7.mixinextras.sugar.Local;
 import com.wulfnet.enchanting2.config.ExperienceSection;
 import com.wulfnet.enchanting2.experience.ExperienceCurve;
 import com.wulfnet.enchanting2.experience.ExperienceCurve.Position;
@@ -10,6 +11,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -21,6 +23,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * drifts by a point, so the TAIL snaps level and progress to the exact total recorded at HEAD (decisions.md,
  * 2026-10-06). A nested call (another mod giving points from inside it) clears the record, and the outer call then
  * keeps vanilla's result.
+ * <p>
+ * Neither score counter wraps (owner, 2026-10-06). {@code totalExperience} and {@code getScore()} saturate where
+ * vanilla's {@code int} add would overflow. Everything else stays vanilla.
  */
 @Mixin(Player.class)
 abstract class PlayerMixin {
@@ -33,6 +38,9 @@ abstract class PlayerMixin {
 	/** Exact total points at HEAD of {@code giveExperiencePoints}; -1 when there is nothing to snap to. */
 	@Unique
 	private long enchanting2$totalBefore = -1;
+
+	@Shadow
+	public int totalExperience;
 
 	@Shadow
 	public abstract void giveExperienceLevels(int levels);
@@ -79,5 +87,29 @@ abstract class PlayerMixin {
 				server.enchanting2$setLastSentExp(-1);
 			}
 		}
+	}
+
+	/** Vanilla clamps {@code totalExperience + amount} after an int add, so MAX + n has already wrapped to 0. */
+	@ModifyArg(method = "giveExperiencePoints",
+			at = @At(value = "INVOKE", target = "Lnet/minecraft/util/Mth;clamp(III)I"), index = 0)
+	private int enchanting2$saturateTotal(int wrapped, @Local(argsOnly = true) int amount) {
+		return saturatedAdd(totalExperience, amount);
+	}
+
+	/** Vanilla {@code increaseScore} is a plain int add. Only a sum outside the int range changes. */
+	@Inject(method = "increaseScore", at = @At("HEAD"), cancellable = true)
+	private void enchanting2$saturateScore(int amount, CallbackInfo ci) {
+		Player self = (Player) (Object) this;
+		int score = self.getScore();
+		long sum = (long) score + amount;
+		if (sum != (int) sum) {
+			self.setScore(saturatedAdd(score, amount));
+			ci.cancel();
+		}
+	}
+
+	@Unique
+	private static int saturatedAdd(int a, int b) {
+		return (int) Math.clamp((long) a + b, Integer.MIN_VALUE, Integer.MAX_VALUE);
 	}
 }

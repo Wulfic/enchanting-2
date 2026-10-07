@@ -204,8 +204,9 @@ still works. Expect javac removal warnings.
 negative first, so the clamp gives 0. The Phase 3 audit said "vanilla clamps it at MAX", and that was wrong.
 Separately, the server sends the XP packet only when `totalExperience != lastSentExp`. A change that leaves the total
 alone (removing points while it's 0, which `/xp set levels` leaves it at) never reaches the client.
-**Fix:** the snap sets `lastSentExp = -1` whenever it changes progress. The wrap itself is vanilla score
-behavior and is left alone (owner to decide).
+**Fix:** the snap sets `lastSentExp = -1` whenever it changes progress. The wrap is fixed in 3C (owner chose saturating
+add). **Naming trap:** `totalExperience` is *not* the death-screen score. That's `getScore()`/`increaseScore`, a
+separate plain `int` add with no clamp, so it wraps negative. 3C saturates both.
 **Affects:** src/main/java/com/wulfnet/enchanting2/mixin/PlayerMixin.java, ServerPlayerAccessor.java
 
 ## 2026-10-06 — `runGameTest` JVM dies with "paging file is too small" (DOS error 1455)

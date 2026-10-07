@@ -320,9 +320,25 @@ mod keeps every stored level (DESIGN §2a).
 - [x] 3B.6 `./gradlew build` green (73 JUnit + 18 GameTests). state.md, gotchas if any. Owner check added to the 1.6 `runClient` list: HUD at level
       ~1,000,000 shows the bar and the right number.
 
+### Stage 3C — Score counters never wrap → commit  ✅ 2026-10-06
+**Owner (2026-10-06):** saturating add. **javap:** there are two counters. `totalExperience` is
+`clamp(total + amount, 0, MAX)` with an `int` add, so MAX + n resets to 0. The death-screen number is `getScore()`, and
+`increaseScore` is a plain `int` add with no clamp at all, so it wraps negative. Neither feeds the curve.
+- [x] 3C.1 `PlayerMixin`: `@ModifyArg` on the `Mth.clamp` call in `giveExperiencePoints` (index 0), with MixinExtras
+      `@Local(argsOnly = true) int amount`. It returns `clamp((long) totalExperience + amount, 0, MAX)`, so the vanilla clamp
+      still runs. `increaseScore` HEAD inject: if `(long) score + amount` is outside the `int` range, `setScore` the saturated
+      value and cancel. Otherwise vanilla runs. A negative score stays vanilla (`/xp add -n` can make it negative).
+- [x] 3C.2 GameTests: total MAX − 2 + 5 → MAX. Total MAX + 5 → MAX. Total 3 − 10 → 0. Score MAX − 2 + 5 → MAX.
+      Score `MIN_VALUE + 2` − 5 → `MIN_VALUE`. Score 10 + 5 → 15 (vanilla path untouched). Both tests failed before the fix (total 0; score −2147483646). Build: 73 JUnit + 20 GameTests.
+- [x] 3C.3 gotchas.md (correct the "score" naming in the 3B.7 entry), DESIGN §3 bullet, build green, commit.
+**Blast radius:** two injects that only change a result that would otherwise wrap. No stored data is rewritten.
+**Rollback:** `git revert <3C commit>`.
+
 ## Phase 4 — Enchantment rules engine
 **Goal:** applicability is mandatory, conflict families are configurable, max levels are
 overridden, and duplicate IDs can't occur.
+**Owner (2026-10-06):** lowering a max level never touches existing items. An item already above the new max keeps
+its level and its effect, which is vanilla behavior. The max only limits new enchanting and combining (`EnchantRules`).
 - [ ] 4.0 Probe (dev server): does `/reload` re-run `EnchantmentEvents.MODIFY`? Enchantments are
       likely a world-load registry, so probably not, and max-level/conflict keys then need a restart.
       `MODIFY` runs before the `MinecraftServer` exists, so it reads the config file through
