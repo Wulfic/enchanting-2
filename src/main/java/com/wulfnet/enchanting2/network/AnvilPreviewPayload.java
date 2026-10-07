@@ -8,7 +8,6 @@ import com.wulfnet.enchanting2.anvil.TransferRules.Fate;
 import com.wulfnet.enchanting2.cost.CostBreakdown;
 import com.wulfnet.enchanting2.enchantment.EnchantRules.Verdict;
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.DecoderException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -33,15 +32,15 @@ public record AnvilPreviewPayload(int containerId, Status status, Optional<CostB
 	public static final int MAX_ENTRIES = 1024;
 	public static final int MAX_LINES = 1024;
 	/** Characters in an enchantment ID. */
-	public static final int MAX_ID_CHARS = 1024;
+	public static final int MAX_ID_CHARS = PayloadCodecs.MAX_ID_CHARS;
 
 	public static final Type<AnvilPreviewPayload> TYPE = new Type<>(
 			Identifier.fromNamespaceAndPath(Enchanting2.MOD_ID, NetworkProtocol.path("anvil_preview")));
 
-	private static final StreamCodec<ByteBuf, String> ID = ByteBufCodecs.stringUtf8(MAX_ID_CHARS);
+	private static final StreamCodec<ByteBuf, String> ID = PayloadCodecs.ID;
 
 	private static final StreamCodec<ByteBuf, CostBreakdown.Line> LINE = StreamCodec.composite(
-			ordinal(CostBreakdown.Kind.class), CostBreakdown.Line::kind,
+			PayloadCodecs.ordinal(CostBreakdown.Kind.class), CostBreakdown.Line::kind,
 			ID, CostBreakdown.Line::id,
 			ByteBufCodecs.VAR_INT, CostBreakdown.Line::from,
 			ByteBufCodecs.VAR_INT, CostBreakdown.Line::to,
@@ -61,14 +60,14 @@ public record AnvilPreviewPayload(int containerId, Status status, Optional<CostB
 	private static final StreamCodec<ByteBuf, Entry> ENTRY = StreamCodec.composite(
 			ID, Entry::id,
 			ByteBufCodecs.VAR_INT, Entry::level,
-			ordinal(Verdict.class), Entry::verdict,
+			PayloadCodecs.ordinal(Verdict.class), Entry::verdict,
 			ByteBufCodecs.optional(ID), Entry::conflictsWith,
-			ordinal(Fate.class), Entry::fate,
+			PayloadCodecs.ordinal(Fate.class), Entry::fate,
 			Entry::new);
 
 	public static final StreamCodec<ByteBuf, AnvilPreviewPayload> CODEC = StreamCodec.composite(
 			ByteBufCodecs.VAR_INT, AnvilPreviewPayload::containerId,
-			ordinal(Status.class), AnvilPreviewPayload::status,
+			PayloadCodecs.ordinal(Status.class), AnvilPreviewPayload::status,
 			ByteBufCodecs.optional(BREAKDOWN), AnvilPreviewPayload::breakdown,
 			ENTRY.apply(ByteBufCodecs.list(MAX_ENTRIES)), AnvilPreviewPayload::entries,
 			AnvilPreviewPayload::new);
@@ -89,33 +88,16 @@ public record AnvilPreviewPayload(int containerId, Status status, Optional<CostB
 			if (lines.size() > MAX_LINES) {
 				throw new IllegalArgumentException(lines.size() + " cost lines, max " + MAX_LINES);
 			}
-			lines.forEach(line -> checkId(line.id()));
+			lines.forEach(line -> PayloadCodecs.checkId(line.id()));
 		}
 		for (Entry entry : entries) {
-			checkId(entry.id());
-			entry.conflictsWith().ifPresent(AnvilPreviewPayload::checkId);
+			PayloadCodecs.checkId(entry.id());
+			entry.conflictsWith().ifPresent(PayloadCodecs::checkId);
 		}
 	}
 
 	public static AnvilPreviewPayload of(int containerId, AnvilOutcome outcome) {
 		return new AnvilPreviewPayload(containerId, outcome.status(), outcome.breakdown(), outcome.entries());
-	}
-
-	private static void checkId(String id) {
-		if (id.length() > MAX_ID_CHARS) {
-			throw new IllegalArgumentException("ID of " + id.length() + " characters, max " + MAX_ID_CHARS);
-		}
-	}
-
-	private static <E extends Enum<E>> StreamCodec<ByteBuf, E> ordinal(Class<E> type) {
-		E[] values = type.getEnumConstants();
-		return ByteBufCodecs.idMapper(i -> {
-			if (i < 0 || i >= values.length) {
-				throw new DecoderException(
-						type.getSimpleName() + " ordinal " + i + " out of range 0.." + (values.length - 1));
-			}
-			return values[i];
-		}, Enum::ordinal);
 	}
 
 	@Override

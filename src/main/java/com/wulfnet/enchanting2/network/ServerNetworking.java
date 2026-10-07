@@ -2,6 +2,7 @@ package com.wulfnet.enchanting2.network;
 
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.config.ServerConfigs;
+import com.wulfnet.enchanting2.grindstone.GrindstoneMenuAccess;
 import java.util.List;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerConfigurationConnectionEvents;
@@ -13,6 +14,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +30,26 @@ public final class ServerNetworking {
 		PayloadTypeRegistry.configurationS2C().register(ConfigSyncPayload.TYPE, ConfigSyncPayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(ConfigSyncPayload.TYPE, ConfigSyncPayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(AnvilPreviewPayload.TYPE, AnvilPreviewPayload.CODEC);
+		PayloadTypeRegistry.playS2C().register(GrindstoneOptionsPayload.TYPE, GrindstoneOptionsPayload.CODEC);
+		PayloadTypeRegistry.playC2S().register(GrindstoneChoicePayload.TYPE, GrindstoneChoicePayload.CODEC);
+	}
+
+	/**
+	 * Applies a grindstone pick to the player's open grindstone, if its container ID matches; anything else (closed,
+	 * another menu, a stale ID, a forged packet) is ignored. Server thread.
+	 *
+	 * @return whether it was applied
+	 */
+	public static boolean handleGrindstoneChoice(ServerPlayer player, GrindstoneChoicePayload payload) {
+		AbstractContainerMenu menu = player.containerMenu;
+		if (!(menu instanceof GrindstoneMenuAccess grindstone) || menu.containerId != payload.containerId()) {
+			LOG.debug("Ignoring a grindstone pick from {} for container {}: their open menu is {} ({})",
+					player.getName().getString(), payload.containerId(), menu.getClass().getSimpleName(),
+					menu.containerId);
+			return false;
+		}
+		grindstone.enchanting2$choose(payload.choice());
+		return true;
 	}
 
 	public static void registerServer() {
@@ -45,6 +67,9 @@ public final class ServerNetworking {
 					verdict.clientVersions(), message);
 			handler.disconnect(Component.literal(message));
 		});
+		// Fabric runs play receivers on the server thread.
+		ServerPlayNetworking.registerGlobalReceiver(GrindstoneChoicePayload.TYPE,
+				(payload, context) -> handleGrindstoneChoice(context.player(), payload));
 		// Again at play join: a /reload while this player was still configuring missed them in syncToAll.
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			if (ServerPlayNetworking.canSend(handler.player, ConfigSyncPayload.TYPE)) {

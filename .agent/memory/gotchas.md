@@ -288,3 +288,14 @@ Maven behind `exclusiveContent`. Dev runtime only; players get them inside YACL'
 `META-INF/jars` and match `quilt_parsers_version`.
 **Lesson:** a client-only dependency is only verified by launching a client; the client GameTest now does that every run.
 **Affects:** build.gradle, gradle.properties
+
+## 2026-10-07 — Grindstone slots are `GrindstoneMenu$2`/`$3`/`$4`, not `$1`/`$2`/`$3`
+**Symptom (caught before it shipped):** the 6b plan targeted `GrindstoneMenu$1`/`$2` for the input slots and `$3` for
+the result, reading the decompiled source top to bottom.
+**Cause:** the field initializer `repairSlots = new SimpleContainer(2) { ... }` is also an anonymous class, and it's
+numbered first. `javap` on the jar showed `$1 extends SimpleContainer`, `$2`/`$3` the input slots, `$4` the result.
+A mixin on the wrong class would apply cleanly, since every one of them is a valid target, and do nothing useful.
+**Fix:** check anonymous targets with `javap -p 'GrindstoneMenu$N.class'` before writing `@Mixin(targets = ...)`. The
+menu also hands itself to its slots through a duck interface, and its constructor casts every slot to it, so a
+mistargeted slot mixin fails loudly (`ClassCastException`) in any test that builds the menu.
+**Affects:** `mixin/GrindstoneInputSlotMixin`, `mixin/GrindstoneResultSlotMixin`

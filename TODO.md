@@ -779,33 +779,44 @@ when the mod is removed is returned by vanilla's `removed()` like any other item
       Disenchant. Rows: Cleanse before Disenchant (action order), Extract rows by ID, curses listed as refused.
       `GrindstoneCalculatorGameTest` 20. Mutation (Extract copies) fails 4. 195 JUnit + 80 GameTests.
 
-### Stage 6bB — Server menu + payloads → commit
-- [ ] 6bB.1 `network/GrindstoneChoicePayload` (C2S: container ID, choice or none) and
+### Stage 6bB — Server menu + payloads → commit  ✅ 2026-10-07
+- [x] 6bB.1 `network/GrindstoneChoicePayload` (C2S: container ID, choice or none) and
       `network/GrindstoneOptionsPayload` (S2C: container ID, options, selected choice, outcome status, levels
       charged). Sizes checked in the constructor, enums as bounds-checked ordinals. `VERSION` → 3. Registered in
       `registerPayloads`.
-- [ ] 6bB.2 Server receiver: ignore and log (debug) unless `player.containerMenu` is a grindstone with that container
+- [x] 6bB.2 Server receiver: ignore and log (debug) unless `player.containerMenu` is a grindstone with that container
       ID. Store the choice in the menu, recompute.
-- [ ] 6bB.3 `mixin/GrindstoneMenuMixin`: `createResult` HEAD. On the server: options + outcome for the stored choice,
+- [x] 6bB.3 `mixin/GrindstoneMenuMixin`: `createResult` HEAD. On the server: options + outcome for the stored choice,
       set result, broadcast, send the options payload when changed (dedup like the anvil). On a client of our server:
       cancel. Clear the choice when the source stack changes. Duck `GrindstoneMenuAccess` for tests.
-- [ ] 6bB.4 `mixin/GrindstoneInputSlotMixin` (`GrindstoneMenu$2`, `$3`): `mayPlace` also accepts `Items.BOOK` on the
+- [x] 6bB.4 `mixin/GrindstoneInputSlotMixin` (`GrindstoneMenu$2`, `$3`): `mayPlace` also accepts `Items.BOOK` on the
       server, and on a client of our server (`GrindstoneBridge`, like `AnvilBridge`).
       `mixin/GrindstoneResultSlotMixin` (`$4`): `mayPickup` = OK and (free or levels ≥ charge); client prediction from
       the latest options payload. `onTake` HEAD: Extract/Cleanse charge, write both input slots from the outcome, play
       level event 1042, cancel. DISENCHANT/REPAIR fall through to vanilla.
-- [ ] 6bB.5 `GrindstoneGameTest` (real `GrindstoneMenu` + mock player, click the result slot): nothing before a pick;
+- [x] 6bB.5 `GrindstoneGameTest` (real `GrindstoneMenu` + mock player, click the result slot): nothing before a pick;
       Extract moves the entry exactly once (result has it, source doesn't, every other entry unchanged, one book
       consumed, levels − cost, no XP orbs); either orientation; Cleanse charges the repay cost, removes only that curse,
       no orbs; Disenchant after a pick = vanilla (orbs spawned); insufficient levels → take refused, nothing changed;
       shift-click with a full inventory → nothing changed; forged choices (wrong container ID, enchantment not on the
       item, a curse as Extract, Cleanse of a non-curse) → no result; source swapped after a pick → choice cleared;
       book count changed → choice kept; payload codec round trip incl. every enum value and an oversize list refused.
-- [ ] 6bB.6 **Conservation property** (seeded, 300 cases): random enchanted item or book, random plain-book count,
+- [x] 6bB.6 **Conservation property** (seeded, 300 cases): random enchanted item or book, random plain-book count,
       random orientation, random choice → after a take, the (ID, level) multiset over both inputs + result equals the
       one before, minus exactly the cleansed curse (Cleanse) and never anything for Extract. Asserts ≥ 60 cases reach a
       take. Mutations: don't remove the entry from the source (copy) → fails; don't write the book slot → fails.
       `NetworkProtocolTest` pins v3. Build green, commit.
+      **Done:** the slots get their menu through a duck (`GrindstoneSlotOwner`, set in the menu's constructor), not the
+      compiler's synthetic outer field, whose name differs by mapping. `$4` doesn't declare `mayPickup`, so the mixin
+      adds the override. Every vanilla take path (pickup, shift-click, hotbar swap, throw, collect) calls `mayPickup`
+      first (decompiled `doClick`), so the level check covers them all. The C2S handler is
+      `ServerNetworking.handleGrindstoneChoice`, tested directly with forged IDs and picks. A malformed choice is a
+      decode error. `ordinal()`/ID codecs moved to `network/PayloadCodecs`, shared with the anvil payload. On a client of
+      our server `onTake` is cancelled (the server writes the inputs and syncs them). `GrindstoneGameTest` 16 (incl.
+      orbs counted at a real `ContainerLevelAccess`, a full inventory shift-click, codecs, the property: 300 cases, ≥ 60
+      Extract/Cleanse takes). Mutations: book slot not written → 3 fail; Extract copies → 7 fail; both include the
+      property. Nothing on the client receives the panel or sends picks yet (6bC), so on a real server the grindstone
+      shows nothing to pick until then. 195 JUnit + 96 GameTests.
 
 ### Stage 6bC — Grindstone screen → commit
 - [ ] 6bC.1 Generalize the layout: `anvil/AnvilPanelLayout` → `screen/SidePanelLayout` with a tab width parameter

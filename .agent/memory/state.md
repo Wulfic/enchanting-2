@@ -48,11 +48,15 @@ pre-existing dev-client crash (YACL nested jars, gotchas.md). 195 JUnit + 60 Gam
 **Phase 6b planned** (TODO.md, 6bA–6bC; owner: side panel, empty until picked, cap applies; decisions.md "Grindstone").
 **Stage 6bA done** (2026-10-07): `grindstone/` (`GrindstoneAction`, `GrindstoneChoice`, `GrindstoneOption`,
 `GrindstoneOutcome`, `GrindstoneCalculator`): rows + the pick's result in one call. Disenchant/Repair are vanilla's own
-`computeResult` via `GrindstoneMenuInvoker`. Nothing calls it from a menu yet. 195 JUnit + 80 GameTests.
+`computeResult` via `GrindstoneMenuInvoker`. 195 JUnit + 80 GameTests.
+**Stage 6bB done** (2026-10-07): `GrindstoneMenuMixin` (server-held pick, cleared on a new source; panel payload
+deduped), slot mixins on `GrindstoneMenu$2`/`$3` (plain books) and `$4` (`mayPickup` level check, our take for
+Extract/Cleanse), C2S `GrindstoneChoicePayload` + S2C `GrindstoneOptionsPayload`, `NetworkProtocol.VERSION` 3.
+**Until 6bC lands, a real client can't pick, so the grindstone gives no results on our server.** 195 JUnit + 96 GameTests.
 
 ## What's next
-1. Stage 6bB (server menu + payloads). The input slots are `GrindstoneMenu$2`/`$3` and the result is `$4` (`$1` is
-   the container).
+1. Stage 6bC (grindstone screen): receiver + `GrindstoneBridge` preview source, side panel with clickable rows,
+   `SidePanelLayout` rename, client GameTest.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
    ~1,000,000) + 6D: panel look, config screen "Display" toggle, and a vanilla server keeping the vanilla anvil screen.
 
