@@ -549,3 +549,28 @@ status-only preview, instead of inside Netty where it would kick the player.
 strings (bigger, and the version bump covers renames anyway); a `long` total (`CostBreakdown.total` is already an
 `int` saturated at `Integer.MAX_VALUE`; the bug was the short `DataSlot`, not the width).
 **Affects:** `network/AnvilPreviewPayload`, `network/AnvilPreviewHolder`, `AnvilMenuMixin`, Stage 6D screen
+
+## 2026-10-07 — Anvil screen: client.json5, tab, window shift, client GameTest (Stage 6D)
+**Context:** 6D's toggle had to be "remembered in client config", but `client.json5` was deferred until a phase needed
+a client key, and until now only the config screen's save wrote files. `AnvilScreen.subInit` places the rename box from
+`(width - imageWidth) / 2`, not `leftPos`. Nothing automated proved a client mixin applies.
+**Choice (owner):** (1) `client.json5` is created now; clicking the toggle saves it at once through the GUI save's
+writer (`.bak` first), and the config screen gets a client category with the same key. (2) The toggle is a **tab off
+the window's left edge**, near the top. (3) When neither side has room, **shift the anvil window** to make room (like
+the recipe book). (4) Turn on Fabric **client GameTests**; one test drives the real screen.
+**Choice (agent):** key `anvil.show_preview_panel` (default true) in `config/ClientConfig`, pure like `CommonConfig`.
+A failed toggle save keeps the new state for the session, logs (ConfigFiles already does) and shows a toast. The panel
+has a **fixed width** with wrapped text, so the layout depends on the screen size only and the window never moves as
+items change. The shift moves `leftPos` and the rename box together. A click on the panel or tab is not "outside"
+(vanilla would throw the carried item). The cost label shows the full message when it fits and a short one otherwise;
+the panel always has the full one. The text decisions live in a pure `anvil/AnvilPreviewView` (lang keys + typed
+args), JUnit-tested; the client only turns them into `Component`s. The client's `mayPickup` prediction uses the
+preview's exact total. No panel and no tab on a vanilla server.
+**Why:** a toggle that forgets is not "remembered"; the GUI writer already backs up and refuses unreadable or newer
+files. A content-sized panel would make a shifted window jump on every item change. Without the outside-click guard,
+clicking the panel while holding an item drops it in the world.
+**Rejected:** per-session toggle and write-on-exit (owner); hide-with-tooltip and overlap when there's no room (owner);
+JUnit-only for the screen (owner: a broken injection would only show in-game); a content-sized panel (jumps);
+`rebuildWidgets()` to apply a toggle (re-runs `subInit`, which clears the name and sends two rename packets).
+**Affects:** `config/ClientConfig`, `client/ClientSettings`, `client/AnvilPreviewState`, `mixin/client/AnvilScreenMixin`,
+`anvil/AnvilPreviewView`, `anvil/AnvilPanelLayout`, `AnvilBridge`, `ConfigScreen`, build.gradle, DESIGN §2/§6

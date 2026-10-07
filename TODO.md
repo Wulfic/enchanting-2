@@ -670,16 +670,50 @@ kept even when the client can't receive it, so the GameTest can see it (the mock
       +1. Mutation (dedup check removed) fails the rename test. Nothing on the client receives it yet (6D.1), so
       `canSend` is false and nothing is actually sent until then. 167 JUnit + 60 GameTests.
 
-### Stage 6D — Anvil screen → commit
-- [ ] 6D.1 `client/AnvilPreviewState`: latest payload for the open container, cleared on close and disconnect.
-- [ ] 6D.2 `mixin/client/AnvilScreenMixin`: vanilla label suppressed (`getCost()` → 0 in `renderLabels`) when the server
-      is ours; our label = total, or "Too Expensive!", "Insufficient levels: requires X (you have Y)", or the blocking
-      reason. Side panel **left** of the window (right if it doesn't fit), with a **toggle button** on the anvil window
-      whose state is remembered in client config (owner 2026-10-07: recipe viewers take the right side): applied lines
-      with amounts, skipped entries with reason + fate ("stays on book" / "will be lost" / "already higher"), total.
-- [ ] 6D.3 Lang keys for every status, verdict and fate (DESIGN §5 Messages); `AnvilLangKeysTest` walks the enums.
-- [ ] 6D.4 DESIGN §6 Anvil updated (modes, item + item, prior work untouched, panel). state.md. Owner `runClient` check
-      added to the owner list: panel, >32,767 total, vanilla-server fallback. Build green, commit.
+### Stage 6D — Anvil screen → commit  ✅ 2026-10-07
+**Owner (2026-10-07, 6D start; decisions.md "Anvil screen"):** `client.json5` now, the toggle click saves it (GUI
+writer, `.bak`); tab off the window's left edge; no room on either side → shift the window; client GameTests on.
+**Facts (decompiled 1.21.11):** `AnvilScreen.subInit` places the rename box from `(width - imageWidth) / 2`, not
+`leftPos`; `renderLabels` runs translated to `leftPos/topPos`; `AnvilScreen` declares `renderBg` and `subInit` but not
+`render`; `hasClickedOutside` makes a click outside the window throw the carried item. Client GameTest API on the
+classpath: 4.3.5.
+**Not doing:** vanilla-server screen changes (none: no panel, no tab); grouping digits; hover tooltips on panel rows;
+syncing anything new to the client.
+**Blast radius:** client only, plus one new file `config/enchanting2/client.json5` (created on first launch, written
+only on a toggle click or a config-screen save, `.bak` first). Vanilla servers: unchanged screen. **Rollback:** `git
+revert`; a leftover `client.json5` is harmless (nothing else reads it) and can be deleted by hand.
+- [x] 6D.1 `config/ClientConfig` (pure codec, `client.json5`, `anvil.show_preview_panel` default true) +
+      `client/ClientSettings` (load at client init, `setShowPanel` saves through `saveWithBackup`; a refused or failed
+      save keeps the session value, toast). `ConfigScreen` "Display" category, always editable, saved with the screen.
+      Tests: `ConfigParseTest`/`ConfigFilesTest` (defaults, bad value → issue, round trip), `ConfigLangKeysTest`.
+- [x] 6D.2 `anvil/AnvilPreviewView` (pure): label (total / free / too expensive with the max / insufficient levels /
+      refused reason / stacked / nothing to do / none) + short form, and panel rows (lines with amounts, skipped
+      entries with reason + fate, total) as lang keys with typed args. `anvil/AnvilPanelLayout` (pure): fixed panel
+      width; left, else right, else shifted window; hidden → centered. JUnit: every status, verdict, fate and line kind;
+      layout at a range of screen widths (panel and window on screen, never overlapping, shift only when needed).
+- [x] 6D.3 `client/AnvilPreviewState`: receiver (makes `canSend` true), latest payload per container ID, cleared on
+      screen close, config INIT and disconnect. `AnvilBridge` client preview source → `mayPickup` prediction uses the
+      exact total.
+- [x] 6D.4 `mixin/client/AnvilScreenMixin`: `getCost()` → 0 in `renderLabels` when the server is ours, our label at
+      TAIL; `subInit` TAIL applies the layout (`leftPos` + rename box) and adds the tab; panel drawn in `renderBg` TAIL;
+      `hasClickedOutside` false over panel and tab. Duck interface for the client GameTest.
+- [x] 6D.5 Lang keys for every status, verdict, fate, line kind, label and the tab; `AnvilLangKeysTest` walks every key
+      `AnvilPreviewView` can produce.
+- [x] 6D.6 Client GameTest (`enableClientGameTests`): singleplayer world, real anvil, sword + book → panel rows and
+      label; `rename_cost` 40,000 + `/reload` → label shows 40000 (short slot wraps); too few levels → insufficient
+      label; tab click → panel hidden, window centered, `client.json5` says false; tiny window → window shifted, panel
+      on screen. Screenshots kept for the owner.
+- [x] 6D.7 DESIGN §2 (client.json5) and §6 Anvil (modes, item + item, prior work untouched, panel). state.md. Owner
+      `runClient` list: panel look, vanilla-server fallback. Mutations: label ignores the preview; outside-click guard
+      removed. Build green, commit.
+      **Done:** the first client launch crashed in YACL's own entrypoint (its nested quilt parsers aren't loaded in the
+      dev runtime; pre-existing since 2C, gotchas.md); fixed with dev-only `localRuntime` deps. The screenshots showed
+      the compact label running over "Inventory" at 40,000, so a label is now a longest-first list of forms ending in
+      "Cost: N", and the client test asserts the label clears "Inventory". Mutations: preview ignored → "a priced
+      preview arrived" fails; outside-click guard removed → "the carried diamonds were thrown". 195 JUnit + 60
+      GameTests + 1 client GameTest (`./gradlew runClientGameTest`; `build` does not run it). Screenshots:
+      `build/run/clientGameTest/screenshots/`. **Not automated (owner):** the config screen's Display toggle, and a
+      modded client on a vanilla server keeping the vanilla anvil screen.
 
 ## Phase 6b — Grindstone extraction (DESIGN §6)
 - [ ] 6b.1 Grindstone mixin with three modes (Extract / Cleanse / Disenchant), priced by

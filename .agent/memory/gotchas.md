@@ -274,3 +274,17 @@ change it (the override ignores it).
 **Fix:** `player.getAbilities().instabuild = false`. `hasInfiniteMaterials()` reads only `instabuild` (javap, 1.21.11).
 `isCreative()` still says true, so code that checks `isCreative()` can't be tested this way.
 **Affects:** src/gametest/java/com/wulfnet/enchanting2/gametest/AnvilGameTest.java, any GameTest that charges a player
+
+## 2026-10-07 — The dev client crashed at startup: YACL's nested jars aren't loaded in the dev runtime
+**Symptom:** the first client launch ever (Stage 6D's client GameTest) died in YACL's `client` entrypoint:
+`NoClassDefFoundError: org/quiltmc/parsers/json/gson/GsonWriter`. `runClient` had the same crash since 2C; nobody had
+launched the client yet (1.6 and 2C.7 are owner checks still open).
+**Cause:** YACL ships the quilt parsers in `META-INF/jars`, and 2C wired it `modLocalRuntime { transitive = false }`
+because the Java builder API needs nothing transitive. True at compile time, but YACL's own client init serializes its
+config through them, and the dev runtime doesn't load a remapped mod's nested jars. 2C's "dev server and GameTests still
+pass" never ran YACL's client entrypoint.
+**Fix:** `localRuntime` `org.quiltmc.parsers:json` + `gson` 0.2.1 (the version YACL nests), not transitive, from Quilt's
+Maven behind `exclusiveContent`. Dev runtime only; players get them inside YACL's jar. If YACL is bumped, read its
+`META-INF/jars` and match `quilt_parsers_version`.
+**Lesson:** a client-only dependency is only verified by launching a client; the client GameTest now does that every run.
+**Affects:** build.gradle, gradle.properties

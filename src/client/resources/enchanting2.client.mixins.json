@@ -2,7 +2,9 @@
 	"required": true,
 	"package": "com.wulfnet.enchanting2.mixin.client",
 	"compatibilityLevel": "JAVA_21",
-	"client": [],
+	"client": [
+		"AnvilScreenMixin"
+	],
 	"injectors": {
 		"defaultRequire": 1
 	}

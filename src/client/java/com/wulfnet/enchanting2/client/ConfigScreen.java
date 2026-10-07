@@ -3,6 +3,7 @@ package com.wulfnet.enchanting2.client;
 import com.wulfnet.enchanting2.anvil.InvalidBookMode;
 import com.wulfnet.enchanting2.config.AllowTogetherSection;
 import com.wulfnet.enchanting2.config.AnvilSection;
+import com.wulfnet.enchanting2.config.ClientConfig;
 import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.config.ConfigView;
 import com.wulfnet.enchanting2.config.CostsSection;
@@ -36,8 +37,21 @@ final class ConfigScreen {
 
 	static Screen create(Screen parent) {
 		ConfigView view = ConfigEditing.currentView();
-		Draft draft = new Draft(view.values().orElse(CommonConfig.defaults()));
+		CommonConfig original = view.values().orElse(CommonConfig.defaults());
+		Draft draft = new Draft(original);
 		boolean editable = view.editable();
+		// This player's own file: editable whatever the gameplay config's mode.
+		boolean[] showPanel = {ClientSettings.get().showAnvilPreviewPanel()};
+		ConfigCategory display = ConfigCategory.createBuilder()
+				.name(Component.translatable(KEY + "category.display"))
+				.option(Option.<Boolean>createBuilder()
+						.name(Component.translatable(KEY + "display.show_preview_panel"))
+						.description(description("display.show_preview_panel"))
+						.binding(ClientConfig.DEFAULTS.showAnvilPreviewPanel(), () -> showPanel[0],
+								v -> showPanel[0] = v)
+						.controller(TickBoxControllerBuilder::create)
+						.build())
+				.build();
 
 		Component modeLabel = Component.translatable(KEY + "mode." + view.mode().name().toLowerCase(Locale.ROOT));
 		ConfigCategory.Builder experience = ConfigCategory.createBuilder()
@@ -129,8 +143,13 @@ final class ConfigScreen {
 				.category(costs.build())
 				.category(curses.build())
 				.category(anvil.build())
-				// Read-only views have no available options, so YACL has no pending changes to hand to save.
-				.save(editable ? () -> ConfigEditing.save(draft.toConfig()) : () -> {
+				.category(display)
+				// YACL saves when any option changed, the display one included, so write only the files that did.
+				.save(() -> {
+					if (editable && !draft.toConfig().equals(original)) {
+						ConfigEditing.save(draft.toConfig());
+					}
+					ClientSettings.save(ClientSettings.get().withShowAnvilPreviewPanel(showPanel[0]));
 				})
 				.build()
 				.generateScreen(parent);

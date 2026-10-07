@@ -14,6 +14,9 @@
 			"com.wulfnet.enchanting2.gametest.MechanicLimitsGameTest",
 			"com.wulfnet.enchanting2.gametest.AnvilGameTest",
 			"com.wulfnet.enchanting2.gametest.AnvilPreviewGameTest"
+		],
+		"fabric-client-gametest": [
+			"com.wulfnet.enchanting2.gametest.AnvilScreenClientGameTest"
 		]
 	},
 	"mixins": [

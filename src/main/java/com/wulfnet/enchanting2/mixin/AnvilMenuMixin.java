@@ -137,9 +137,10 @@ abstract class AnvilMenuMixin extends ItemCombinerMenu implements AnvilOutcomeHo
 			cir.setReturnValue(hasItem && enchanting2$outcome.ok()
 					&& player.experienceLevel >= enchanting2$outcome.levelsCharged());
 		} else if (player.level().isClientSide() && AnvilBridge.clientServerIsOurs()) {
-			// Client prediction only; the server decides. The synced cost is a short, so past 32,767 this can be wrong
-			// until Stage 6D reads the preview's exact total.
-			cir.setReturnValue(hasItem && player.experienceLevel >= cost.get());
+			// Client prediction only; the server decides. The preview's total is exact; the synced cost is a short, which
+			// wraps past 32,767, so it is only the fallback before the first preview arrives.
+			int needed = AnvilBridge.clientLevelsCharged(containerId).orElse(cost.get());
+			cir.setReturnValue(hasItem && player.experienceLevel >= needed);
 		}
 	}
 

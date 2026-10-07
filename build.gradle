@@ -21,6 +21,11 @@ repositories {
         forRepository { maven { name = 'isXander'; url = 'https://maven.isxander.dev/releases/' } }
         filter { includeGroup 'dev.isxander' }
     }
+    // YACL's JSON parsers, for the dev runtime only (see dependencies).
+    exclusiveContent {
+        forRepository { maven { name = 'Quilt'; url = 'https://maven.quiltmc.org/repository/release/' } }
+        filter { includeGroup 'org.quiltmc.parsers' }
+    }
 }
 
 loom {
@@ -68,7 +73,7 @@ fabricApi {
         createSourceSet = true
         modId = 'enchanting2-gametest'
         enableGameTests = true
-        enableClientGameTests = false
+        enableClientGameTests = true
         eula = true
         clearRunDirectory = true
     }
@@ -91,6 +96,11 @@ dependencies {
     modLocalRuntime("com.terraformersmc:modmenu:${project.modmenu_version}") { transitive = false }
     modCompileOnly("dev.isxander:yet-another-config-lib:${project.yacl_version}") { transitive = false }
     modLocalRuntime("dev.isxander:yet-another-config-lib:${project.yacl_version}") { transitive = false }
+    // YACL nests these in META-INF/jars, but the dev runtime doesn't load a remapped mod's nested jars, and YACL's client
+    // entrypoint needs them at startup (gotchas.md 2026-10-07). Dev runtime only; players get them inside YACL's jar.
+    // Not transitive: their only dependency is gson, which Minecraft ships.
+    localRuntime("org.quiltmc.parsers:json:${project.quilt_parsers_version}") { transitive = false }
+    localRuntime("org.quiltmc.parsers:gson:${project.quilt_parsers_version}") { transitive = false }
 
     testImplementation platform("org.junit:junit-bom:${project.junit_version}")
     testImplementation 'org.junit.jupiter:junit-jupiter'

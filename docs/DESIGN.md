@@ -80,6 +80,10 @@ of a rename across the whole codebase.
 - Files: `config/enchanting2/common.json5` (gameplay, server-authoritative),
   `config/enchanting2/client.json5` (display only), and per-enchantment overrides keyed
   by enchantment ID.
+- `client.json5` (Stage 6D) is this player's own: never synced, never read by a server, always
+  editable (config screen "Display" category). Today it holds `anvil.show_preview_panel`
+  (default `true`). The anvil's panel tab saves it on click through the same backed-up writer
+  as the screen; a refused or failed save keeps the new value for the session and shows a toast.
 - Every file has `schema_version`. Loading validates every value. An invalid value falls back
   to its default and logs a WARN naming the key, the bad value and the default.
 - Gameplay config syncs to clients on join (S2C packet). On a remote server, the client
@@ -325,12 +329,33 @@ later costs `max(30, ceil(0.15 × 17))` = 30.
 ## 6. Workflows
 
 ### Anvil
-- Uses the §5 cost model. No 40-level cap by default. No exponential prior-work penalty:
-  the `repair_cost` component is ignored, or flat if configured.
+- Uses the §5 cost model, computed on the server only. No 40-level cap by default
+  (`maximum_operation_cost` sets one). No prior-work penalty: the `repair_cost` component is
+  **never read and never written**, so removing the mod hands items back their pre-mod penalty.
 - Repair (material and two-item) and rename keep working. Each has its own configurable cost.
-- Books apply every applicable enchantment they hold. Invalid-book mode: `REJECT_ALL |
-  APPLY_VALID (default) | STRIP_INVALID`. The preview lists what will and won't apply.
-- Never silently deletes an enchantment. A test asserts this.
+  Free results (creative with `creative_free`, curse-only books) can be taken.
+- Books apply every applicable enchantment they hold, checked in ID order. Invalid-book mode
+  (`common.json5` `anvil.invalid_book_mode`):
+  - `reject_all`: no result unless every entry applies.
+  - `apply_valid` (default): valid entries apply; the book goes back to the right slot holding
+    only what was skipped.
+  - `strip_invalid`: the book is consumed; skipped entries are destroyed, and the preview says
+    "Will be lost" first.
+- Item + item: under `reject_all` and `apply_valid` the anvil refuses when a sacrifice
+  enchantment would be lost (there is no leftover to return); `strip_invalid` allows it,
+  previewed. A lower level of an ID the target already has higher is never a loss.
+- Enchanting needs a single item in the left slot; renaming a stack still works.
+- Never silently deletes an enchantment. A seeded conservation property test asserts this.
+- **Screen** (only when the server runs Enchanting 2; on a vanilla server the screen is vanilla):
+  the server sends a preview (the whole cost breakdown and every right-slot entry's verdict and
+  fate). The cost label shows the exact total (vanilla syncs it as a short), "Too Expensive!",
+  "Insufficient levels", or the blocking reason, shortened to fit beside "Inventory". A cost
+  panel shows each price line, the total, and every entry that won't apply with its reason
+  (§5 Messages) and fate: stays on the book, already higher on the item, will be lost, or
+  blocks the result. The panel opens **left** of the window from a tab on the window's left
+  edge (recipe viewers use the right side); right if only that side has room; otherwise the
+  window shifts right to make room. Its width is fixed, so the window never moves as items
+  change. A click on the panel or tab never throws the carried item.
 
 ### Enchanting table
 Readable and not random. The vanilla three-random-offers screen is replaced by our own screen.

@@ -49,9 +49,7 @@ public final class ConfigEditing {
 		ConfigFiles.SaveOutcome outcome = ConfigFiles.saveWithBackup(ServerConfigs.commonFile(), CommonConfig.CODEC,
 				config);
 		if (outcome != ConfigFiles.SaveOutcome.SAVED) {
-			// ConfigFiles has already logged the cause and the recovery path.
-			failed(minecraft, Component.translatable(
-					"enchanting2.config.save_failed." + outcome.name().toLowerCase(Locale.ROOT)));
+			toastSaveFailed(outcome);
 			return;
 		}
 		IntegratedServer server = minecraft.getSingleplayerServer();
@@ -65,6 +63,12 @@ public final class ConfigEditing {
 			return Connection.HOSTING;
 		}
 		return minecraft.getConnection() != null ? Connection.REMOTE : Connection.NONE;
+	}
+
+	/** For a save that didn't happen; {@link ConfigFiles} has already logged the cause and the recovery path. */
+	static void toastSaveFailed(ConfigFiles.SaveOutcome outcome) {
+		failed(Minecraft.getInstance(), Component.translatable(
+				"enchanting2.config.save_failed." + outcome.name().toLowerCase(Locale.ROOT)));
 	}
 
 	private static void failed(Minecraft minecraft, Component reason) {
