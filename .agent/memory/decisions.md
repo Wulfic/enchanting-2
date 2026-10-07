@@ -586,7 +586,7 @@ Extract and Cleanse too.
 **Choice (agent):** the choice lives on the server menu, set only by a validated C2S payload, and is cleared when the
 source stack changes (not when only the book count changes). Either slot orientation works; a plain-book stack gives
 one book per take. Extract/Cleanse replace vanilla's `onTake` (no orbs, `REPAIR_COST` untouched); Disenchant/Repair keep
-vanilla's. A book whose only non-curse entry is the one picked is refused (`NOTHING_TO_SPLIT`). An entry above the
+vanilla's. A book holding nothing but the picked entry is refused (`NOTHING_TO_SPLIT`). An entry above the
 current max level moves at its level (lowered maxima never touch existing items). Creative: cap bypass +
 `creative_free`, as at the anvil. `NetworkProtocol.VERSION` 2 → 3. The anvil layout becomes a shared `SidePanelLayout`.
 **Why:** empty-until-picked means a shift-click can't strip an item the player meant to extract from. A server-held
@@ -598,3 +598,13 @@ carried in the take click (vanilla's click packet has no room; a separate choice
 plain slot click); keeping the choice across a source swap (a picked "Disenchant" would apply to the new item unseen).
 **Affects:** `grindstone/*`, `GrindstoneMenuMixin`, grindstone slot mixins, `GrindstoneScreenMixin`, `network/Grindstone*`,
 `NetworkProtocol`, `SidePanelLayout`, DESIGN §6
+
+## 2026-10-07 — Grindstone: Disenchant and Repair call vanilla's `computeResult` (Stage 6bA)
+**Context:** the 6bA plan copied vanilla's private `removeNonCursesFrom`/`mergeItems` into `GrindstoneCalculator`.
+**Choice:** the calculator takes a `BinaryOperator<ItemStack> vanillaResult`; the server passes vanilla's
+`computeResult` via `mixin/GrindstoneMenuInvoker`. Our mixins never touch `computeResult` (only `createResult` and the
+slots), so it stays vanilla plus whatever other mods do to it.
+**Why:** exact vanilla by construction, including `REPAIR_COST` and the book → plain book transmute; no copy to drift on
+a port; another mod's grindstone tweaks keep working. `computeResult` reads only its arguments (decompiled 1.21.11).
+**Rejected:** a copy (drifts silently on the 26.x port, and drops other mods' changes).
+**Affects:** `grindstone/GrindstoneCalculator`, `mixin/GrindstoneMenuInvoker`

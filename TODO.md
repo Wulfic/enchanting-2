@@ -736,8 +736,8 @@ input is present and the result is empty.
   changes (item or components). It survives a change in the book count only.
 - Extract and Cleanse replace vanilla's `onTake` (no XP orbs, so Cleanse can't be an XP faucet; `REPAIR_COST`
   untouched, like the anvil). Disenchant and Repair keep vanilla's body.
-- A book whose only non-curse entry is the one being extracted is refused (`NOTHING_TO_SPLIT`): that would just move
-  it onto another book for XP.
+- A book holding nothing but the picked entry is refused (`NOTHING_TO_SPLIT`): that would just move it onto another
+  book for XP. A book with that entry plus a curse can be split (it separates the curse).
 - Creative follows the anvil: it bypasses the cap, and `creative_free` makes it free.
 - The error sprite shows only for a refusal, not while waiting for a pick.
 - `NetworkProtocol.VERSION` → 3: a v2 client would compute vanilla grindstone results locally on a v3 server.
@@ -752,24 +752,32 @@ the server is ours.
 **Rollback:** `git revert` the stage's commit. Nothing outside the repo is touched. A book left in a grindstone slot
 when the mod is removed is returned by vanilla's `removed()` like any other item.
 
-### Stage 6bA — Calculator (server logic, no menu wiring) → commit
-- [ ] 6bA.1 `grindstone/GrindstoneAction` (`EXTRACT | CLEANSE | DISENCHANT | REPAIR`), `grindstone/GrindstoneChoice`
+### Stage 6bA — Calculator (server logic, no menu wiring) → commit  ✅ 2026-10-07
+- [x] 6bA.1 `grindstone/GrindstoneAction` (`EXTRACT | CLEANSE | DISENCHANT | REPAIR`), `grindstone/GrindstoneChoice`
       (action + enchantment ID, empty for DISENCHANT/REPAIR), `grindstone/GrindstoneOption` (choice, level, levels
       charged, status), `grindstone/GrindstoneOutcome` (status, result, slot 0 and 1 after the take, levels charged,
       `vanillaTake` for DISENCHANT/REPAIR). Status: `OK | NO_CHOICE | CURSE_NOT_EXTRACTABLE | NOTHING_TO_SPLIT |
       STACKED_ITEM | TOO_EXPENSIVE | NOT_AVAILABLE | FAILED`.
-- [ ] 6bA.2 `grindstone/GrindstoneCalculator.options(a, b, creative, config, pricing)`: the list the panel shows, in a
+- [x] 6bA.2 `grindstone/GrindstoneCalculator.options(a, b, creative, config, pricing)`: the list the panel shows, in a
       stable order (action, then enchantment ID). `compute(a, b, choice, creative, config, pricing)`: the outcome for a
       choice; a choice not among the OK options gives `NOT_AVAILABLE` and no result. Extract uses
       `CostModel.extractCost` and Cleanse `CostModel.cleanseCost`; DISENCHANT/REPAIR results are vanilla's (copied
       logic: `removeNonCursesFrom`, `mergeItems`, `REPAIR_COST` included). Never mutates its inputs. Failures are logged
       and fail closed.
-- [ ] 6bA.3 `GrindstoneCalculatorGameTest` (needs MC item stacks, like `AnvilGameTest`): every action in both
+- [x] 6bA.3 `GrindstoneCalculatorGameTest` (needs MC item stacks, like `AnvilGameTest`): every action in both
       orientations; Extract result = one entry, source keeps the rest, book count − 1; multi-enchantment book split;
       single-entry book → `NOTHING_TO_SPLIT`; curse-only rows refused; Cleanse = max(30, own % × undiscounted); cap →
       `TOO_EXPENSIVE`, creative bypasses; `creative_free` → 0; stacked source → `STACKED_ITEM`; Disenchant/Repair
       results equal vanilla's for the same inputs. Mutation: Extract leaves the entry on the source → fails. Build
       green, commit.
+      **Done:** one `GrindstoneCalculator.compute(slot0, slot1, choice, creative, config, pricing, vanillaResult)` returns
+      the rows *and* the pick's result (`GrindstoneOutcome.options`), so the panel and the result never come from two
+      calls. **Changed from the plan:** Disenchant/Repair call vanilla's own `computeResult` through
+      `mixin/GrindstoneMenuInvoker` instead of a copy: exact vanilla, other mods' changes kept, nothing to drift.
+      `FAILED` became `NONE` (as the anvil), and `NONE` covers inputs the grindstone does nothing with. A curse-only
+      item gets no Disenchant row (vanilla's "result" there only resets prior work). Plain books never Repair or
+      Disenchant. Rows: Cleanse before Disenchant (action order), Extract rows by ID, curses listed as refused.
+      `GrindstoneCalculatorGameTest` 20. Mutation (Extract copies) fails 4. 195 JUnit + 80 GameTests.
 
 ### Stage 6bB — Server menu + payloads → commit
 - [ ] 6bB.1 `network/GrindstoneChoicePayload` (C2S: container ID, choice or none) and

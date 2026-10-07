@@ -5,6 +5,7 @@
 	"mixins": [
 		"AnvilMenuMixin",
 		"EnchantmentBuilderAccessor",
+		"GrindstoneMenuInvoker",
 		"MinecraftServerMixin",
 		"PlayerMixin",
 		"ServerPlayerAccessor",
