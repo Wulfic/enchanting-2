@@ -647,20 +647,36 @@ client is disconnected with the existing mismatch message.
       **Not tested here (client side):** `AnvilBridge` deferral and the client `mayPickup` prediction; owner `runClient`
       check in 6D.4. 166 JUnit + 54 GameTests.
 
-### Stage 6C — Preview payload → commit
-- [ ] 6C.1 `network/AnvilPreviewPayload` (S2C play): container ID, status, exact `long` total, breakdown lines,
-      skipped entries with fate and conflicts-with. `VERSION` → 2. Registered in `registerPayloads`.
-- [ ] 6C.2 `AnvilMenuMixin` sends it after each server `createResult` when it differs from the last one sent to that
-      menu, only if `canSend`.
-- [ ] 6C.3 JUnit: codec round-trip incl. a total of 40,000 and `Long.MAX_VALUE`-saturated; `NetworkProtocolTest` for v2.
-      GameTest: a rename keystroke that doesn't change the outcome sends nothing. Build green, commit.
+### Stage 6C — Preview payload → commit  ✅ 2026-10-07
+**Refined at 6C start (2026-10-07):** `CostBreakdown.total` is an `int` saturated at `Integer.MAX_VALUE`, so "exact
+`long` total" is an exact `int` (VarInt): the short wrap is the problem, not the width. Line amounts stay `long`. The
+codec round-trip is a GameTest, not JUnit: `ByteBufCodecs` is a Minecraft class and JUnit here has no MC bootstrap
+(same as `ConfigSyncPayload`). Enums travel as ordinals (bounds-checked on decode); reordering one is a wire change and
+needs a `VERSION` bump. List and string sizes are checked in the record's constructor, so an oversize preview fails on
+the server thread (logged, not sent) instead of inside Netty. Dedup is by value (`equals`) per menu; the last preview is
+kept even when the client can't receive it, so the GameTest can see it (the mock player has no channels).
+- [x] 6C.1 `network/AnvilPreviewPayload` (S2C play): container ID, status, optional price (lines, total, free), entries
+      (ID, level, verdict, conflicts-with, fate). `of(containerId, AnvilOutcome)`. `VERSION` → 2. Registered in
+      `registerPayloads`.
+- [x] 6C.2 `AnvilMenuMixin` builds it after each server `createResult`; when it differs from the last one for that menu,
+      keeps it and sends it if `canSend`. Failure to build or send is logged; the anvil still works.
+- [x] 6C.3 `NetworkProtocolTest` pins v2 (a v1 client is a `MISMATCH` naming 1). GameTests: codec round-trip incl. a
+      total of 40,000, `Integer.MAX_VALUE` and a `Long.MAX_VALUE` line, every enum value; oversize list refused; a
+      rename keystroke that doesn't change the outcome keeps the same preview; adding a book changes it. Build green,
+      commit.
+      **Done:** the payload carries the whole `CostBreakdown`, so decoding re-runs its totals check (a forged total fails
+      to decode, tested). `AnvilPreviewHolder` lives in `network` (it already imports `anvil`). An oversize preview falls
+      back to status-only, logged, so the panel never shows a stale price. `AnvilPreviewGameTest` 6, `NetworkProtocolTest`
+      +1. Mutation (dedup check removed) fails the rename test. Nothing on the client receives it yet (6D.1), so
+      `canSend` is false and nothing is actually sent until then. 167 JUnit + 60 GameTests.
 
 ### Stage 6D — Anvil screen → commit
 - [ ] 6D.1 `client/AnvilPreviewState`: latest payload for the open container, cleared on close and disconnect.
 - [ ] 6D.2 `mixin/client/AnvilScreenMixin`: vanilla label suppressed (`getCost()` → 0 in `renderLabels`) when the server
       is ours; our label = total, or "Too Expensive!", "Insufficient levels: requires X (you have Y)", or the blocking
-      reason. Side panel right of the window (left if it doesn't fit): applied lines with amounts, skipped entries
-      with reason + fate ("stays on book" / "will be lost" / "already higher"), total.
+      reason. Side panel **left** of the window (right if it doesn't fit), with a **toggle button** on the anvil window
+      whose state is remembered in client config (owner 2026-10-07: recipe viewers take the right side): applied lines
+      with amounts, skipped entries with reason + fate ("stays on book" / "will be lost" / "already higher"), total.
 - [ ] 6D.3 Lang keys for every status, verdict and fate (DESIGN §5 Messages); `AnvilLangKeysTest` walks the enums.
 - [ ] 6D.4 DESIGN §6 Anvil updated (modes, item + item, prior work untouched, panel). state.md. Owner `runClient` check
       added to the owner list: panel, >32,767 total, vanilla-server fallback. Build green, commit.

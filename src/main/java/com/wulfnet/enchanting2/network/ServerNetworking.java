@@ -27,6 +27,7 @@ public final class ServerNetworking {
 	public static void registerPayloads() {
 		PayloadTypeRegistry.configurationS2C().register(ConfigSyncPayload.TYPE, ConfigSyncPayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(ConfigSyncPayload.TYPE, ConfigSyncPayload.CODEC);
+		PayloadTypeRegistry.playS2C().register(AnvilPreviewPayload.TYPE, AnvilPreviewPayload.CODEC);
 	}
 
 	public static void registerServer() {

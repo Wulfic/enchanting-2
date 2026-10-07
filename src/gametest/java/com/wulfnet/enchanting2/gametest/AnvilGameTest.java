@@ -65,7 +65,7 @@ public class AnvilGameTest {
 		return stack;
 	}
 
-	private static ItemStack book(GameTestHelper helper, Map<ResourceKey<Enchantment>, Integer> levels) {
+	static ItemStack book(GameTestHelper helper, Map<ResourceKey<Enchantment>, Integer> levels) {
 		return with(helper, Items.ENCHANTED_BOOK, levels);
 	}
 
@@ -77,7 +77,7 @@ public class AnvilGameTest {
 	 * A survival-like player. The mock's {@code gameMode()} is hard-wired to CREATIVE, which sets {@code instabuild}, and
 	 * the anvil's creative test ({@code hasInfiniteMaterials}) reads only {@code instabuild}, so clearing it is enough.
 	 */
-	private static ServerPlayer player(GameTestHelper helper, int levels) {
+	static ServerPlayer player(GameTestHelper helper, int levels) {
 		ServerPlayer player = helper.makeMockServerPlayerInLevel();
 		player.getAbilities().instabuild = false;
 		player.experienceLevel = levels;
@@ -85,14 +85,14 @@ public class AnvilGameTest {
 	}
 
 	/** {@code ContainerLevelAccess.NULL}: no anvil block, so taking never damages or breaks one. */
-	private static AnvilMenu anvil(ServerPlayer player, ItemStack left, ItemStack right) {
+	static AnvilMenu anvil(ServerPlayer player, ItemStack left, ItemStack right) {
 		AnvilMenu menu = new AnvilMenu(1, player.getInventory(), ContainerLevelAccess.NULL);
 		menu.getSlot(AnvilMenu.INPUT_SLOT).set(left);
 		menu.getSlot(AnvilMenu.ADDITIONAL_SLOT).set(right);
 		return menu;
 	}
 
-	private static AnvilOutcome outcome(AnvilMenu menu) {
+	static AnvilOutcome outcome(AnvilMenu menu) {
 		AnvilOutcome outcome = ((AnvilOutcomeHolder) menu).enchanting2$outcome();
 		if (outcome == null) {
 			throw new IllegalStateException("the server-side menu has no outcome after its slots were set");

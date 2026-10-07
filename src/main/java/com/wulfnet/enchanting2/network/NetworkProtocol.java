@@ -14,14 +14,14 @@ import java.util.stream.Collectors;
  * check is unit-tested without Minecraft.
  */
 public final class NetworkProtocol {
-	public static final int VERSION = 1;
+	public static final int VERSION = 2;
 
 	private static final Pattern OUR_CHANNEL = Pattern.compile(Pattern.quote(Enchanting2.MOD_ID) + ":v(\\d{1,9})/.+");
 
 	private NetworkProtocol() {
 	}
 
-	/** The ID path for a payload, e.g. {@code v1/config_sync}. */
+	/** The ID path for a payload, e.g. {@code v2/config_sync}. */
 	public static String path(String name) {
 		return "v" + VERSION + "/" + name;
 	}
@@ -41,7 +41,7 @@ public final class NetworkProtocol {
 
 	/**
 	 * @param clientChannels  every channel the client said it can receive, as {@code namespace:path}
-	 * @param requiredChannel the channel the server must be able to send, e.g. {@code enchanting2:v1/config_sync}
+	 * @param requiredChannel the channel the server must be able to send, e.g. {@code enchanting2:v2/config_sync}
 	 */
 	public static Verdict classify(Collection<String> clientChannels, String requiredChannel) {
 		if (clientChannels.contains(requiredChannel)) {

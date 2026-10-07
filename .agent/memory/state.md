@@ -37,10 +37,13 @@ cleanse rule is not an exploit; own-% stands on simplicity. Build: 155 JUnit + 3
 **Stage 6B done** (2026-10-07): the server anvil runs on `AnvilCalculator` via `AnvilMenuMixin` (createResult HEAD,
 mayPickup, targeted onTake injections). Leftover books, item + item refusal, no 40 cap, `repair_cost` untouched, free
 results takeable. Client defers via `AnvilBridge` when the server synced its config. 166 JUnit + 54 GameTests.
+**Stage 6C done** (2026-10-07): `AnvilPreviewPayload` (S2C, whole `CostBreakdown`, ordinals, size checks in the ctor),
+`NetworkProtocol.VERSION` = 2, sent from `AnvilMenuMixin` when it changed per menu. 167 JUnit + 60 GameTests.
 
 ## What's next
-1. Phase 6 (anvil) is planned in TODO.md as 6A–6D (owner answered book modes, item + item, prior work, panel;
-   decisions.md 2026-10-07 "Anvil"). Next: Stage 6C (`AnvilPreviewPayload`, protocol v2, server sends on change).
+1. Stage 6D (anvil screen): client `AnvilPreviewState` + receiver (until it exists `canSend` is false and nothing is
+   sent), `AnvilScreenMixin` label, side panel **left with a toggle button** saved in client config (owner, decisions.md
+   "Anvil preview"), lang keys, DESIGN §6.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level ~1,000,000).
 
 ## Open questions / blockers

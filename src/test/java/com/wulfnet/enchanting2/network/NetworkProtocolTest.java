@@ -18,6 +18,15 @@ class NetworkProtocolTest {
 		assertEquals("v" + NetworkProtocol.VERSION + "/config_sync", NetworkProtocol.path("config_sync"));
 	}
 
+	/** v2 (Stage 6C): the anvil preview. A v1 client computes vanilla anvil results locally, so it must not join. */
+	@Test
+	void protocolIsV2AndAV1ClientIsAMismatch() {
+		assertEquals(2, NetworkProtocol.VERSION);
+		Verdict v = NetworkProtocol.classify(Set.of("minecraft:brand", "enchanting2:v1/config_sync"), REQUIRED);
+		assertEquals(new Verdict(Kind.MISMATCH, List.of(1)), v);
+		assertTrue(NetworkProtocol.disconnectMessage(v, "0.1.0").contains("uses protocol 1"));
+	}
+
 	@Test
 	void clientWithTheRequiredChannelMatches() {
 		Verdict v = NetworkProtocol.classify(Set.of("minecraft:brand", REQUIRED), REQUIRED);

@@ -532,3 +532,20 @@ keep raising the component, so vanilla would charge more after removal); syncing
 prices locally (two sources of truth); keeping vanilla's creative bypass (lets creative players build items that
 survival rules call invalid).
 **Affects:** `anvil/*`, `AnvilMenuMixin`, `AnvilScreenMixin`, `AnvilPreviewPayload`, `NetworkProtocol`, DESIGN §6
+
+## 2026-10-07 — Anvil preview: wire format and panel placement (Stage 6C, 6D)
+**Context:** 6C needed a wire shape for the preview; 6D's planned right-side panel would sit under recipe viewers
+(EMI/REI/JEI use the space right of container screens).
+**Choice (owner):** the panel goes **left** of the anvil window (right only if left doesn't fit), with a **toggle
+button** on the window; its state is remembered in client config.
+**Choice (agent):** the payload carries the domain records as they are (`AnvilOutcome.Status`, the whole
+`CostBreakdown`, `AnvilOutcome.Entry`), not a parallel wire DTO. Enums travel as bounds-checked ordinals. Sizes are
+checked in the record constructor. Dedup by `equals` per menu.
+**Why:** one type, no mapping to drift; decoding the whole `CostBreakdown` re-runs its totals check, so a corrupt or
+forged total fails to decode instead of being shown. Ordinals are compact, and the protocol version already guards
+reordering. Constructor checks make an oversize preview fail on the server thread, where it's logged and replaced by a
+status-only preview, instead of inside Netty where it would kick the player.
+**Rejected:** right-side panel (recipe-viewer overlap); tooltip-only breakdown (owner: less discoverable); enum names as
+strings (bigger, and the version bump covers renames anyway); a `long` total (`CostBreakdown.total` is already an
+`int` saturated at `Integer.MAX_VALUE`; the bug was the short `DataSlot`, not the width).
+**Affects:** `network/AnvilPreviewPayload`, `network/AnvilPreviewHolder`, `AnvilMenuMixin`, Stage 6D screen
