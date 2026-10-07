@@ -512,3 +512,23 @@ difference is that marginal lets a player strip curses that earned nothing past 
 charges each curse its full percent. The owner was shown that trade-off accurately; only the recorded reason was off.
 **Rejected:** marginal drop (order-dependent cost, cheap removal of curses past the cap).
 **Affects:** `CostModel.cleanseCost`, TODO 5C.4 (mutation is now the flat-minimum cleanse, the 2026-10-06 rejected design)
+
+## 2026-10-07 — Anvil: book modes, item + item, prior work, server-computed preview (Phase 6)
+**Context:** DESIGN §6 named three invalid-book modes without defining them, said prior work is "ignored, or flat if
+configured", and "never silently deletes" had no rule for item + item. Decompiling 1.21.11 showed the cost `DataSlot`
+syncs as a short and `createResult` runs on both sides.
+**Choice (owner):** `apply_valid` (default) leaves the skipped entries on the book in the right slot; `reject_all`
+refuses unless every entry applies; `strip_invalid` consumes the book and destroys skipped entries after the preview
+says so. Item + item refuses a loss except under `strip_invalid`; a dominated lower level is not a loss. Prior-work
+`repair_cost` is never read or written, with no flat key. The preview is a side panel.
+**Choice (agent):** the server computes the outcome and sends a preview payload. The client holds no pricing table and
+defers `createResult` when the server is ours. `NetworkProtocol.VERSION` 1 → 2. Creative obeys `EnchantRules`.
+Enchanting needs a single left item. Book entries are checked in ID order.
+**Why:** a leftover book makes the default lossless without a confirmation step. Leaving `repair_cost` alone keeps
+add/remove safe (§2a). A server-built preview can't disagree with what the server charges, and it carries totals past
+32,767. A v1 client would compute vanilla results locally on a v2 server, so it must not join.
+**Rejected:** consuming the book under `apply_valid` (loses entries by default); a flat prior-work key (it would have to
+keep raising the component, so vanilla would charge more after removal); syncing `enchantments.json5` so the client
+prices locally (two sources of truth); keeping vanilla's creative bypass (lets creative players build items that
+survival rules call invalid).
+**Affects:** `anvil/*`, `AnvilMenuMixin`, `AnvilScreenMixin`, `AnvilPreviewPayload`, `NetworkProtocol`, DESIGN §6

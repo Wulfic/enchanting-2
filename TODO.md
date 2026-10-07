@@ -566,13 +566,90 @@ entries gain optional cost keys. Existing files load with defaults and are never
       discount rounding down (8), no cap (3), cleanse ignoring prices/surcharge (3). 155 JUnit + 33 GameTests.
       **For Phase 6b:** `cleanseCost`/`extractCost` don't know about creative; the grindstone applies `creative_free`.
 
-## Phase 6 — Anvil
-- [ ] 6.1 Mixin `AnvilMenu#createResult` → `EnchantRules` + `CostModel`
-- [ ] 6.2 Remove the 40-level cap and prior-work penalty (configurable)
-- [ ] 6.3 Invalid-book modes + preview of applied and skipped enchantments
-- [ ] 6.4 Reason messages (DESIGN §5) on the anvil screen
-- [ ] 6.5 GameTests: multi-enchant book on a tool, repair, rename, **no enchantment ever
-      silently lost**, insufficient levels blocks the take
+## Phase 6 — Anvil (four stages, one commit each)
+**Goal:** the server's anvil runs on `EnchantRules` + `CostModel` (DESIGN §6). No 40 cap, no prior-work penalty, and
+book modes that never lose an enchantment unless the admin picks `strip_invalid` and the preview says so first. The
+screen shows the breakdown and the reasons.
+**Owner (2026-10-07, Phase 6 start):** (1) Invalid-book modes: `reject_all` = no result unless every entry applies;
+`apply_valid` (default) = valid entries apply and **the book stays in the right slot holding only what was skipped**;
+`strip_invalid` = the book is consumed and skipped entries are destroyed, marked "will be lost" in the preview. (2)
+Item + item: `reject_all`/`apply_valid` **refuse** when a sacrifice enchantment would be lost (there's no leftover to
+return); `strip_invalid` allows it, previewed. A lower level of an ID the target already has higher ("dominated") is
+never counted as lost. (3) Prior work: the `repair_cost` component is **never read and never written**, so removing
+the mod hands items back their pre-mod penalty. No config key. (4) Preview is a **side panel** next to the anvil window.
+The cost label shows the total or the blocking reason.
+**Facts (decompiled 1.21.11 `AnvilMenu`/`AnvilScreen`):** `createResult` runs on both sides, so a client on our server
+must not compute its own result, or it desyncs from the server's slot tracking. The cost `DataSlot` is synced as a
+**short** (`ClientboundContainerSetDataPacket`), so a cost above 32,767 wraps on the client and the real total has to
+travel in our payload. `mayPickup` needs `cost > 0`, which would block free results (creative, curse-only books, `FREE`).
+`AnvilScreen.renderLabels` hard-codes "Too Expensive!" at 40. Vanilla lets creative players skip applicability.
+**Agent calls (decisions.md 2026-10-07 "Anvil"):** the server computes the preview and sends it (S2C). The client gets
+no pricing table, so there's one source of truth and a forged client can't misprice. `NetworkProtocol.VERSION` → 2: a
+v1 client would run vanilla's client-side result on a v2 server. Creative players obey `EnchantRules` (vanilla's bypass
+is dropped; `/enchant` exists). Enchanting needs a single item in the left slot (vanilla blocks stacks via its 40 cap);
+renaming a stack still works. Book entries are checked in ID order against the result so far, so the outcome is
+deterministic. `reject_all` consumes dominated entries like item + item does.
+**Not doing:** grindstone (6b); table (7); a plain `minecraft:book` in the left slot (the table makes books, 7.4); the
+`enabled` flag (9); vanilla +1 merging (decisions.md 2026-10-07); syncing `enchantments.json5` to clients.
+**Blast radius:** with the mod on the server, every anvil operation goes through our code (server side). A modded
+client on a vanilla server keeps vanilla (the client defers only when the server sent our config). Items: no new
+components; `repair_cost` untouched. `common.json5` gains an optional `anvil` section (defaults, no schema bump). A v1
+client is disconnected with the existing mismatch message.
+**Rollback:** `git revert` the stage's commit. Nothing outside the repo is touched.
+
+### Stage 6A — Config and pure transfer rules → commit
+- [ ] 6A.1 `config/AnvilSection` in `CommonConfig.anvil`: `invalid_book_mode` (`reject_all|apply_valid|strip_invalid`,
+      default `apply_valid`) via `readOptionalEnum`. Screen category "Anvil" + lang keys + `.desc`.
+- [ ] 6A.2 `anvil/TransferRules` (pure): `decide(Source BOOK|ITEM, InvalidBookMode, EnchantRules.Verdict)` →
+      `APPLY | KEEP_ON_BOOK | CONSUME_DOMINATED | LOSE | REFUSE`. `TransferRulesTest`: the whole 2 × 3 × 6 table,
+      one assertion per cell, plus "no `LOSE` outside `strip_invalid`".
+- [ ] 6A.3 `enchantments.json5` on the running server: `ServerConfigHolder` also holds a `PricingTable`. `ServerConfigs`
+      loads it at `SERVER_STARTING` and re-reads it on `/reload` (unparseable → keep previous, same policy as
+      `common.json5`). `MaxLevelHook` keeps its own read (it runs before the server exists).
+- [ ] 6A.4 Tests: `ConfigParseTest` (+anvil defaults, bad enum → issue + default), `ConfigLangKeysTest` (+Anvil),
+      `ConfigWiringGameTest` (pricing reloads on `/reload`). Mutation: `decide` returns `APPLY` for CONFLICT. Build green,
+      commit.
+
+### Stage 6B — Server anvil → commit
+- [ ] 6B.1 `anvil/AnvilOutcome` (MC): result stack, right-slot-after-take stack (leftover book / shrunk materials /
+      empty), materials used, `CostBreakdown`, applied entries, skipped entries (ID, level, verdict, conflictsWith,
+      fate), status (`OK | NOTHING_TO_DO | REFUSED_WOULD_LOSE | REFUSED_INVALID | TOO_EXPENSIVE | STACKED_ITEM`).
+- [ ] 6B.2 `anvil/AnvilCalculator.compute(left, right, name, creative, CommonConfig, PricingTable)`: rename only;
+      material repair (vanilla 25% steps, `repair_cost_per_material` each); book (entries via `EnchantRules.check` in ID
+      order + `TransferRules`); item + item (vanilla durability sum + 12%, `repair_combine_cost`, then entries as
+      ITEM). Curses via `#minecraft:curse`. `REPAIR_COST` is copied as is, never changed.
+- [ ] 6B.3 `mixin/AnvilMenuMixin`: `createResult` HEAD, cancellable. Server: compute, set result, `cost` (int, exact
+      server-side), `repairItemCountCost`, keep the outcome in an `@Unique` field. Client: cancel without touching the
+      result slot when `AnvilBridge.serverHandlesAnvil()` (set by client init from `ClientConfigState.serverCopy()`),
+      else vanilla. `mayPickup`: result present and (total is 0 or level ≥ total). `onTake`: charge `total` (0 when free,
+      so creative with `creative_free false` pays), then put the outcome's right-slot stack back.
+- [ ] 6B.4 GameTests (real `AnvilMenu` + mock `ServerPlayer`, click the result slot): 3-entry book on a pickaxe under
+      each mode; item + item under each mode (Silk + Fortune exclusive); material repair ×3 consumes 3 and costs 3;
+      combine repair = 2 + enchant; rename only = 1, renaming a stack of 16; insufficient levels → take refused,
+      nothing consumed; curse-only book costs 0 and can be taken; creative free / not free; `maximum_operation_cost`;
+      cost 45 (past the old 40 cap) taken; `repair_cost` unchanged; a stack of 2 swords + book → `STACKED_ITEM`.
+- [ ] 6B.5 **Conservation property** (GameTest, seeded, 300 cases): random item, random book or sacrifice, random mode
+      → every input (ID, level) is on the result or the right-slot stack at ≥ that level, unless it's dominated or the
+      outcome lists it as `LOSE`; nothing appears on both. Mutation: drop the leftover write in `onTake` must fail it.
+      Build green, commit.
+
+### Stage 6C — Preview payload → commit
+- [ ] 6C.1 `network/AnvilPreviewPayload` (S2C play): container ID, status, exact `long` total, breakdown lines,
+      skipped entries with fate and conflicts-with. `VERSION` → 2. Registered in `registerPayloads`.
+- [ ] 6C.2 `AnvilMenuMixin` sends it after each server `createResult` when it differs from the last one sent to that
+      menu, only if `canSend`.
+- [ ] 6C.3 JUnit: codec round-trip incl. a total of 40,000 and `Long.MAX_VALUE`-saturated; `NetworkProtocolTest` for v2.
+      GameTest: a rename keystroke that doesn't change the outcome sends nothing. Build green, commit.
+
+### Stage 6D — Anvil screen → commit
+- [ ] 6D.1 `client/AnvilPreviewState`: latest payload for the open container, cleared on close and disconnect.
+- [ ] 6D.2 `mixin/client/AnvilScreenMixin`: vanilla label suppressed (`getCost()` → 0 in `renderLabels`) when the server
+      is ours; our label = total, or "Too Expensive!", "Insufficient levels: requires X (you have Y)", or the blocking
+      reason. Side panel right of the window (left if it doesn't fit): applied lines with amounts, skipped entries
+      with reason + fate ("stays on book" / "will be lost" / "already higher"), total.
+- [ ] 6D.3 Lang keys for every status, verdict and fate (DESIGN §5 Messages); `AnvilLangKeysTest` walks the enums.
+- [ ] 6D.4 DESIGN §6 Anvil updated (modes, item + item, prior work untouched, panel). state.md. Owner `runClient` check
+      added to the owner list: panel, >32,767 total, vanilla-server fallback. Build green, commit.
 
 ## Phase 6b — Grindstone extraction (DESIGN §6)
 - [ ] 6b.1 Grindstone mixin with three modes (Extract / Cleanse / Disenchant), priced by

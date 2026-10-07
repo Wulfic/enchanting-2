@@ -33,9 +33,8 @@ at runtime yet.
 cleanse rule is not an exploit; own-% stands on simplicity. Build: 155 JUnit + 33 GameTests, all green.
 
 ## What's next
-1. Phase 6 (anvil): expand 6.1–6.5 into file-level stages in TODO.md first. It is the first runtime caller, so it
-   also loads `enchantments.json5` onto the server (held like `CommonConfig`, re-read on /reload) and syncs what the
-   client preview needs. Callers pass `#minecraft:curse` membership as `isCurse`.
+1. Phase 6 (anvil) is planned in TODO.md as 6A–6D (owner answered book modes, item + item, prior work, panel;
+   decisions.md 2026-10-07 "Anvil"). Next: Stage 6A (`AnvilSection`, pure `TransferRules`, pricing on the server).
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level ~1,000,000).
 
 ## Open questions / blockers
