@@ -9,7 +9,8 @@
 			"com.wulfnet.enchanting2.gametest.BootGameTest",
 			"com.wulfnet.enchanting2.gametest.VanillaEnchantmentIdsGameTest",
 			"com.wulfnet.enchanting2.gametest.ConfigWiringGameTest",
-			"com.wulfnet.enchanting2.gametest.ExperienceGameTest"
+			"com.wulfnet.enchanting2.gametest.ExperienceGameTest",
+			"com.wulfnet.enchanting2.gametest.EnchantRulesGameTest"
 		]
 	},
 	"depends": {

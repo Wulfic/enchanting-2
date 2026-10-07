@@ -458,3 +458,16 @@ button, and a typo'd string is just another issue to report).
 was written for the vanilla members and shouldn't silently lift theirs.
 **Rejected:** tag-driven membership (needs a live registry, and changes meaning with every datapack).
 **Affects:** `ConflictFamily`, Stage 4C `EnchantRules`
+
+## 2026-10-07 — `EnchantRules`: books obey conflicts, existing entries are grandfathered, merge keeps the higher level
+**Context:** Stage 4C had three behaviors DESIGN §4 didn't pin down.
+**Choice (owner):** (1) a book is conflict-checked like an item; only applicability waits until the book is applied.
+(2) Only a *newly added* enchantment is conflict-checked. Upgrading one already on the item passes even if the admin has
+since made its family exclusive. (3) Merging two copies of an ID keeps the higher level; no vanilla "IV + IV = V".
+Plus (agent): an `ALREADY_AT_LEVEL` verdict when the item already has the ID at ≥ the requested level, so callers can show
+§5's "Already at maximum level" instead of charging for a no-op.
+**Why:** (1) vanilla's anvil already refuses conflicting book merges, and a book no item can fully take is a trap.
+(2) refusing the upgrade doesn't remove the pair, it only strands the item; same spirit as "a lowered max never touches
+existing items". (3) levels are bought directly (§5), so +1 merging would be a cheaper route around the cost model.
+**Rejected:** books as pure carriers; refusing any change to a grandfathered pair; vanilla +1 merging.
+**Affects:** `EnchantRules`, Phase 5 cost model, Phase 6 anvil, Phase 7 table

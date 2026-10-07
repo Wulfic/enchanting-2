@@ -16,11 +16,14 @@ its vanilla body, then snaps to the exact total and stores the smallest float `f
 **Stage 4A done** (2026-10-07): `MaxLevels` (§8 table, Lure/Riptide stay 3 until 4D) + `MaxLevelHook` (`MODIFY`) +
 `max_level_override`. Needs a restart; `/reload` doesn't apply it (probed).
 **Stage 4B done** (2026-10-07): pure `ConflictFamily` + `common.json5` `allow_together.<family>` (owner's key name) +
-a "Conflicts" screen category. Nothing reads it until 4C. Build: 97 JUnit + 20 GameTests, all green.
+a "Conflicts" screen category.
+**Stage 4C done** (2026-10-07): `EnchantRules.check` (INVALID_LEVEL → ABOVE_MAX → NOT_APPLICABLE (books skip) →
+ALREADY_AT_LEVEL → CONFLICT, new IDs only) + `withEnchantment` (higher level wins). Owner: books obey conflicts, existing
+pairs are grandfathered, no +1 merge. Nothing calls it until Phase 6. Build: 97 JUnit + 28 GameTests, all green.
 
 ## What's next
-1. Phase 4 in TODO.md: 4A ✅ → 4B ✅ → 4C `EnchantRules` → 4D Lure/Riptide 5, one commit
-   each. Owner: conflicts live only in `EnchantRules`, the damage family relaxes all six (decisions.md). Next: 4C.1.
+1. Phase 4 in TODO.md: 4A ✅ → 4B ✅ → 4C ✅ → 4D Lure/Riptide 5 (read `FishingHook` + the moved-too-quickly
+   threshold, write the arithmetic into TODO, then GameTest). Next: 4D.1.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level ~1,000,000).
 
 ## Open questions / blockers

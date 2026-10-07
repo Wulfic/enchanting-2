@@ -403,16 +403,39 @@ deprecated. Newer item-api versions (14.x) deprecate it for `MODIFY_WITH_LOOKUP`
       Mutation: `relaxes` ignoring `allowed` fails `ConflictFamilyTest`; a reader ignoring the file fails 4 parse tests.
       Build: 97 JUnit (+14) + 20 GameTests. Nothing reads the toggles until 4C.
 
-### Stage 4C — `EnchantRules` → commit
-- [ ] 4C.1 `enchantment/EnchantRules.check(target, holder, level, existing, conflicts) → Result(Verdict, detail)`.
-      Order: `INVALID_LEVEL` (<1), `ABOVE_MAX` (> registry max), `NOT_APPLICABLE` (`canBeEnchantedWith(ACCEPTABLE)`,
-      which keeps other mods' `ALLOW_ENCHANTING`; skipped for books), `CONFLICT(other)`, where compatible =
-      `Enchantment.areCompatible || ConflictFamily.relaxes`. A same-ID entry is never a conflict.
-- [ ] 4C.2 `EnchantRules.withEnchantment(existing, holder, level)`: one entry per ID at the max level, every other entry
-      (unknown/third-party included) kept as-is. Upgrade modes come in Phase 5.
-- [ ] 4C.3 GameTests: Efficiency on a helmet → NOT_APPLICABLE; Protection on a pickaxe → NOT_APPLICABLE; Silk+Fortune OK
-      when relaxed, CONFLICT when off; Fortune 6 → ABOVE_MAX; book accepts anything; existing Fortune V with max lowered
-      → adding III is OK; a duplicate merges to one entry at the max level; an unlisted enchantment survives a merge.
+### Stage 4C — `EnchantRules` → commit  ✅ 2026-10-07
+**Owner (2026-10-07):** (1) books obey conflicts; only applicability waits until the book is applied. (2) An enchantment
+already on the item can be upgraded even if it conflicts with something else there (grandfathered); only a *newly added*
+enchantment is conflict-checked. (3) Merging keeps the higher level; no vanilla equal-levels +1. See decisions.md.
+**Checked (javap 1.21.11, FAPI item-api 11.6.0 source):** `ItemStack#canBeEnchantedWith(holder, ACCEPTABLE)` fires
+`ALLOW_ENCHANTING`, then `FabricItem` → `Enchantment#canEnchant` (supported_items). `Enchantment.areCompatible(a, b)` is
+false for `a == b` and checks both exclusive sets. `ItemEnchantments.Mutable#upgrade` merges with `Integer::max` (capped 255).
+**Approach:** one MC-side class (it needs `Holder`/`ItemStack`), stateless static methods, the config passed in as an
+`AllowTogetherSection` so it's testable without a server holder. Tested by GameTests (no `fabric-loader-junit` yet).
+**Not doing:** costs (Phase 5), anvil/table/grindstone wiring (6–7), reason text (6.4), disabled enchantments (9), reading
+the stored/applied component off a stack (callers pass `existing`).
+**Blast radius:** additive code, plus test-only data in the GameTest mod (`e2test:` enchantment, one tag append that only
+exists on the GameTest server). Nothing on disk or in a world is rewritten.
+**Rollback:** `git revert <4C commit>`.
+- [x] 4C.1 `enchantment/EnchantRules.check(target, holder, level, existing, allowTogether) → Result(verdict,
+      Optional conflictsWith, currentLevel)`. Order: `INVALID_LEVEL` (<1), `ABOVE_MAX` (> registry max),
+      `NOT_APPLICABLE` (`canBeEnchantedWith(ACCEPTABLE)`; skipped for `BOOK`/`ENCHANTED_BOOK`), `ALREADY_AT_LEVEL`
+      (current level ≥ requested; feeds DESIGN §5's "Already at maximum level"), then `CONFLICT(other)` **only when the
+      ID is not on the item yet**. Compatible = `areCompatible || ConflictFamily.relaxes`. Several conflicts → the
+      lowest ID, so the message is deterministic. (A by-key match was dropped: the item and network codecs always
+      resolve to the registry's own `Holder.Reference`, so it was a branch no test could reach.)
+- [x] 4C.2 `EnchantRules.withEnchantment(existing, holder, level)` → `ItemEnchantments`: vanilla `Mutable#upgrade`
+      (one entry per holder, higher level). Every other entry is kept. `level < 1` throws.
+- [x] 4C.3 GameTest data: `data/e2test/enchantment/third_party.json` (mining tools) + append it to
+      `minecraft:tags/enchantment/exclusive_set/mining` (`replace: false`).
+- [x] 4C.4 `EnchantRulesGameTest` (8 tests): Efficiency on a helmet / Protection on a pickaxe → NOT_APPLICABLE; Silk+Fortune OK
+      relaxed, CONFLICT(silk) off; Fortune 6 → ABOVE_MAX; 0 → INVALID_LEVEL; a book takes Protection + Efficiency but
+      refuses Silk+Fortune when off; Fortune V on the item with the request III → ALREADY_AT_LEVEL; Silk+Fortune III item,
+      family off, Fortune V → OK (grandfathered), Unbreaking → OK; `third_party` vs Fortune → CONFLICT even relaxed
+      (not a family member); merge keeps the higher level, keeps unrelated + third-party entries, rejects level 0.
+- [x] 4C.5 Mutation checks: dropping the relax OR, the book skip, or the grandfather gate each fails exactly its test.
+      The grandfather mutation showed the gate also stops an enchantment conflicting with itself (`areCompatible(a, a)`
+      is false). Build: 97 JUnit + 28 GameTests.
 
 ### Stage 4D — Lure 5 / Riptide 5 → commit
 - [ ] 4D.1 Read `FishingHook` (lure time reduction vs the 100–600 tick wait) and the Riptide impulse vs
