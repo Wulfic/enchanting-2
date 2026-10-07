@@ -477,16 +477,75 @@ not loaded as written. See decisions.md.
 **Blast radius:** additive code + a GameTest-only mixin. An existing `enchantments.json5` override above a cap now loads
 clamped (WARN), never rewritten. **Rollback:** `git revert <4D commit>`.
 
-## Phase 5 — Cost model
-**Goal:** pure cost calculator that reproduces the DESIGN §5 examples exactly.
-- [ ] 5.1 `enchanting/CostModel` + `CostBreakdown` (per-line explanation for the UI)
-- [ ] 5.2 Upgrade modes, Mending surcharge, rename, creative-free, `maximum_operation_cost`
-- [ ] 5.3 Lapis calculation (table only, cap 64); the anvil path returns 0 lapis, with a test
-- [ ] 5.4 Table-driven tests from every row of the DESIGN §5 examples table, plus a
-      property test: any build order of the same final item → same total cost
-- [ ] 5.5 Curse discount (§5a): per-curse percent, 45% cap, rounds up, never discounts
-      rename/repair; Cleanse cost = max(min, repaid discount). Tests include "curse →
-      enchant → cleanse is never cheaper than enchanting uncursed".
+## Phase 5 — Cost model (three stages, one commit each)
+**Goal:** a pure cost calculator (no MC classes) that reproduces every DESIGN §5 / §5a example exactly, with its
+config keys parsed and validated. Nothing calls it until Phase 6 (same as `EnchantRules`).
+**Owner (2026-10-07, Phase 5 start):** (1) repair defaults to vanilla minus the prior-work penalty: 1 level per material
+item, 2 levels to combine two items, both configurable. (2) `treasure_multiplier` and `curse_multiplier` are **dropped**.
+(3) `FIXED` upgrade = `cost_per_level` once, however many levels are added. (4) Cleanse repays **that curse's own**
+`discount_percent` (min 30), not the marginal drop under the cap. See decisions.md.
+**Facts (from the §5 table):** "Mending alone = 2" and "Mending + Eff I = 5" only hold if Mending is `base_cost 2`,
+`cost_per_level 0`, surcharge 2. The surcharge is data (`other_levels_surcharge`, per enchantment, default 0), not a
+Mending branch. Lifetime surcharge of X = `s_X × O_final` when levels only rise, which is why build order can't matter.
+**Agent calls (recorded in decisions.md):** a curse's own line costs 0 (its value is the discount); curses don't count
+in `O`. A curse with no entry discounts 10% (Binding/Vanishing's value). `maximum_operation_cost N` refuses totals
+**above** N (−1 = off, default), and creative bypasses it as vanilla does. Arithmetic is `long` and saturates at
+`Integer.MAX_VALUE` (3C precedent). Package `cost/` (not `enchanting/`, which would sit next to `enchantment/`).
+**Not doing:** loading `enchantments.json5` onto the running server or syncing it (Phase 6, with its first caller);
+reading stacks or tags (callers pass ID→level maps and an `isCurse` predicate); table tiers/shelves (7); reason text (6.4);
+GUI editing of per-enchantment cost fields (file-only, §10); new curses (Phase 10).
+**Blast radius:** additive code. `common.json5` gains optional `costs` and `curses` sections; `enchantments.json5`
+entries gain optional cost keys. Existing files load with defaults and are never rewritten (2A guard), so no schema bump.
+**Rollback:** `git revert` the stage's commit. Nothing outside the repo is touched.
+
+### Stage 5A — Config keys → commit
+- [ ] 5A.1 `ConfigReader.readOptionalEnum(key, Class<E>)` (lower-case names; bad value → issue + empty). JUnit.
+- [ ] 5A.2 `config/CostsSection` in `CommonConfig.costs`: `rename_cost` 1, `repair_cost_per_material` 1,
+      `repair_combine_cost` 2, `maximum_operation_cost` −1 (−1..1,000,000), `creative_free` true. Ranges public.
+- [ ] 5A.3 `config/CursesSection` in `CommonConfig.curses`: `max_discount_percent` 45 (0..95), `removal_min_cost` 30.
+- [ ] 5A.4 `EnchantmentOverrides.Entry` gains optional `base_cost`, `cost_per_level` (0..10,000),
+      `upgrade_cost_mode` (`result_level|level_difference|fixed|free`), `other_levels_surcharge` (0..100),
+      `discount_percent` (0..100, curses only). Comment text in `write`.
+- [ ] 5A.5 `cost/Pricing` record + `cost/PricingTable` (pure): built-in defaults (`minecraft:mending` 2/0/surcharge 2;
+      Binding and Vanishing 10%; anything else 0/1/LEVEL_DIFFERENCE/0; a curse without an entry 10%), per-field
+      override from an `Entry`. JUnit: defaults, each field overridden alone, Mending partly overridden.
+- [ ] 5A.6 Config screen: "Costs" and "Curses" categories with lang keys + `.desc`; `ConfigLangKeysTest` covers them;
+      `ConfigScreen` rebuilds `CommonConfig` with the new sections.
+- [ ] 5A.7 `ConfigParseTest`: defaults, round-trip, missing sections → defaults, each out-of-range/wrong-type → issue +
+      default, unknown enum → issue. Mutation: a reader that ignores the file fails them. Build green, commit.
+
+### Stage 5B — `CostModel` → commit
+- [ ] 5B.1 `cost/CostRequest(station TABLE|ANVIL|GRINDSTONE, before, after, renamed, repairMaterials, combineRepair,
+      creative)`; `before`/`after` are ID→level maps. Validation: a level drops or an ID disappears → throw (removal is
+      the grindstone's job, priced separately); rename/repair off the anvil → throw.
+- [ ] 5B.2 `cost/CostBreakdown`: ordered lines (`ENCHANT id from→to amount`, `SURCHARGE id O_in→O_out amount`,
+      `RENAME`, `REPAIR`), `enchantCost`, `total`, `lapis`, `tooExpensive`, `free` (creative). Totals equal the sum of
+      lines (asserted in the constructor).
+- [ ] 5B.3 `cost/CostModel.price(request, pricing, isCurse, costs)`: base only when newly added; levels by mode
+      (new = result level always; upgrade by mode); surcharge `s × (O_out − O_in)` or `s × O_out` when newly added;
+      an unchanged ID contributes nothing (ALREADY_AT_LEVEL is free). Lapis = `min(enchantCost, 64)` at TABLE, else 0.
+- [ ] 5B.4 `CostModelTest`, one test per §5 table row (Mending 2; Mending + Eff I..V 5/8/11/14/17; Eff V then Mending
+      5 + 12; Mending then Eff V 2 + 15; Mending + Eff V + Unb III + Fort III 35; Eff III→V with Mending 6), plus rename
+      only = 1, material repair ×3 = 3, combine = 2, creative → total 0 with lines kept, `maximum_operation_cost`
+      0/at/above, creative ignores it, ANVIL lapis 0, TABLE lapis capped at 64, each upgrade mode, saturation at extremes.
+- [ ] 5B.5 Property test (seeded `Random`, 1,000 cases): random final item, random split into ops with random
+      intermediate levels → summed cost equals one-shot cost under default pricing. Mutation: surcharge on added levels
+      only (the rejected design) must fail it. Build green, commit.
+
+### Stage 5C — Curses: discount, Cleanse, Extract → commit
+- [ ] 5C.1 `CostModel`: discount = Σ curse `discount_percent` on the **result**, capped at `max_discount_percent`;
+      `enchantCost' = ceil(enchantCost × (100 − d) / 100)`; a `CURSE_DISCOUNT` line (negative). Never on rename/repair;
+      lapis follows the discounted cost.
+- [ ] 5C.2 `CostModel.cleanseCost(current, curseId, …)` = `max(removal_min_cost, ceil(pct × undiscounted build cost of
+      current non-curse enchantments))`; `extractCost(id, level, …)` = the price of adding it to a blank item (Mending 2).
+      A curse ID passed to `extractCost` throws (§6: curses can't be extracted).
+- [ ] 5C.3 Tests: §5a example (Mending + Eff V + Weight-like 15% curse → 15; cleanse → 30); cap at 45 with four 15%
+      curses; rounding up; rename + repair untouched; TABLE lapis = discounted cost; extract Eff V = 5, Mending = 2.
+- [ ] 5C.4 Property (seeded, 1,000 cases): curse → enchant → cleanse every curse ≥ enchanting the same item uncursed.
+      Mutation: cleanse using the marginal drop instead of the curse's own percent must fail it.
+- [x] 5C.5a (done with the plan) DESIGN §5/§5a: multipliers dropped, FIXED defined, repair defaults, Mending's data,
+      curse line 0, unknown-curse 10%, cleanse own %. decisions.md 2026-10-07 "Cost model gaps".
+- [ ] 5C.5 state.md, build green, commit.
 
 ## Phase 6 — Anvil
 - [ ] 6.1 Mixin `AnvilMenu#createResult` → `EnchantRules` + `CostModel`

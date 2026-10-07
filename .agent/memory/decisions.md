@@ -483,3 +483,21 @@ changes a max may also have changed the effect, so its value is respected (same 
 **Rejected:** WARN only; no check at all; caps derived from the live effect data (needs effect evaluation at `MODIFY`
 time for three fixed vanilla IDs). Riptide 11/12 (the "push alone ≤ 10" estimate) ignores existing velocity.
 **Affects:** `MaxLevels`, `MaxLevelHook`, DESIGN §8
+
+## 2026-10-07 — Cost model gaps filled before Phase 5
+**Context:** DESIGN §5/§5a left repair cost, `FIXED`, two multiplier fields and multi-curse Cleanse undefined, and the
+§5 table only works if Mending's per-level cost is 0.
+**Choice (owner):** (1) repair = 1 level per material item, 2 to combine two items (vanilla minus prior work), both in
+`common.json5` `costs`. (2) drop `treasure_multiplier` and `curse_multiplier`. (3) `FIXED` upgrade = `cost_per_level`
+once, however many levels. (4) Cleanse repays the removed curse's own `discount_percent`, min `removal_min_cost`.
+**Choice (agent):** Mending is data — `base_cost 2`, `cost_per_level 0`, `other_levels_surcharge 2` — and the surcharge
+is a generic per-enchantment field (default 0), so no Mending branch in code (§5 "never code branches"). A curse's own
+line costs 0 and curses don't count in `O`. A curse with no entry discounts 10% (vanilla curses' value).
+`maximum_operation_cost N` refuses totals above N; −1 = off; creative bypasses it (vanilla does). New package `cost/`.
+**Why:** (1) familiar, no runaway penalty. (2) both duplicate what `base_cost`/`cost_per_level`/`discount_percent` already
+express. (4) own-percent makes "curse → enchant → cleanse" never cheaper than enchanting clean: Σ own % ≥ the capped
+discount. The marginal rule lets 4 curses at the cap be cleansed for the minimum twice, cheaper once cost > ~400.
+Mending's per-level 0 is forced by "Mending alone = 2" and "Mending + Eff I = 5".
+**Rejected:** flat-1 or durability-scaled repair; multipliers at 1.0 (knobs that do nothing); a separate `upgrade_cost`
+field; marginal-drop Cleanse; 0% for unknown curses (a curse that buys nothing contradicts §5a).
+**Affects:** `cost/*`, `CostsSection`, `CursesSection`, `EnchantmentOverrides`, DESIGN §5/§5a, Phases 6/6b/7

@@ -237,16 +237,21 @@ The same model prices the enchanting table and the anvil.
 enchant_cost = Σ over each enchantment changed:
                  base_cost                        (only if newly added)
                + cost_per_level × levels_charged
-             + mending_surcharge
+               + other_levels_surcharge × other levels added   (Mending's surcharge)
 total_cost   = enchant_cost + rename_cost (if renamed) + repair_cost (if repairing)
 lapis_cost   = min(enchant_cost, 64)   (enchanting table only)
 ```
 - **Default enchantment:** `base_cost 0`, `cost_per_level 1`, so 1 XP level per enchantment
   level (Efficiency V = 5). Special cases are per-enchantment overrides in data, never code
   branches. Mending is the first. The owner will add others later.
-- `levels_charged`: the result level for a new enchantment (`RESULT_LEVEL`); only the added
-  levels for an upgrade (`LEVEL_DIFFERENCE`). Efficiency III → V = 2.
-- **Mending:** `base_cost 2` plus a surcharge of `2 × levels` of every other non-curse
+- `levels_charged`: a newly added enchantment always pays for its result level. An upgrade
+  pays by `upgrade_cost_mode`: `LEVEL_DIFFERENCE` (default; only the added levels, so
+  Efficiency III → V = 2), `RESULT_LEVEL` (the whole result level again), `FIXED`
+  (`cost_per_level` once, however many levels are added) or `FREE` (0).
+- A curse's own line costs 0. Its value is the §5a discount, and curses never count as
+  "other levels".
+- **Mending:** data, not a code branch: `base_cost 2`, `cost_per_level 0` (so Mending alone =
+  2), and `other_levels_surcharge 2`, i.e. `2 × levels` of every other non-curse
   enchantment. Let `O_in` / `O_out` be the total other levels before and after:
   - Mending newly added → surcharge = `2 × O_out`
   - Mending already on the item → surcharge = `2 × (O_out − O_in)`
@@ -267,29 +272,33 @@ lapis_cost   = min(enchant_cost, 64)   (enchanting table only)
 - **Lapis:** only where vanilla uses it, which means the **enchanting table only**. There it
   costs 1 lapis per XP level of `enchant_cost`, capped at 64. The anvil (enchanting, repair
   and rename alike) never costs lapis.
-- `rename_cost` defaults to 1 level. Repair cost is configurable.
-- No maximum operation cost by default. "Too Expensive!" appears only if the admin sets
-  `maximum_operation_cost ≥ 0`.
-- Creative mode: free by default.
+- `common.json5` `costs`: `rename_cost` 1 level. Repair is vanilla without the prior-work
+  penalty: `repair_cost_per_material` 1 level per material item used, `repair_combine_cost` 2
+  levels to combine two damaged items.
+- No maximum operation cost by default (`maximum_operation_cost −1`). If the admin sets
+  `N ≥ 0`, a total above N shows "Too Expensive!". Creative players bypass it, as in vanilla.
+- Creative mode: free by default (`creative_free`).
 
-Per-enchantment data (config, keyed by ID):
-`enabled, base_cost, cost_per_level, upgrade_cost_mode, treasure_multiplier, curse_multiplier,
-max_level_override, table/loot/trade flags + weights`.
-
-Upgrade modes: `RESULT_LEVEL`, `LEVEL_DIFFERENCE`, `FIXED`, `FREE`.
+Per-enchantment data (`enchantments.json5`, keyed by ID):
+`enabled, base_cost, cost_per_level, upgrade_cost_mode, other_levels_surcharge,
+discount_percent (curses), max_level_override, table/loot/trade flags + weights`.
+(`treasure_multiplier` and `curse_multiplier` were dropped, owner 2026-10-07: they duplicate
+these fields.)
 
 ### 5a. Curses as a discount
 In a system where players choose every enchantment, nobody would pick a curse. So a curse
 buys a cheaper enchant.
 - Each curse on the **result** item cuts `enchant_cost` by its `discount_percent`. Discounts
   add up to a cap of `curses.max_discount_percent` (default 45%), and the result rounds up.
+  A curse with no `discount_percent` entry (e.g. a third-party curse) discounts 10%.
   Rename and repair are never discounted. At the table, lapis follows the discounted cost.
 - Curses are offered at the table as optional picks with a negative cost line, and they
   also come from books, loot and trades.
 - **Removal (Cleanse at the grindstone):** cost =
   `max(curses.removal_min_cost (30), ceil(discount_percent × undiscounted cost of the item's
-  current non-curse enchantments))`. In other words, you repay the discount the curse earned.
-  Otherwise "take a curse, enchant cheaply, cleanse" would be a free discount.
+  current non-curse enchantments))`, where `discount_percent` is **the removed curse's own**
+  (even if the cap meant it earned less). In other words, you repay the discount the curse
+  earned. Otherwise "take a curse, enchant cheaply, cleanse" would be a free discount.
 
 | Curse | Discount | Items | Effect | Route |
 |---|---|---|---|---|
