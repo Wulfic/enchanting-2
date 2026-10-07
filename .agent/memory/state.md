@@ -25,11 +25,14 @@ real trident). Owner: overrides past a break level are clamped (`MaxLevels.SAFE_
 **Phase 5 planned** (TODO.md, 3 stages; owner answered repair/multipliers/FIXED/cleanse, decisions.md "Cost model gaps").
 **Stage 5A done** (2026-10-07): `common.json5` `costs` + `curses` sections (+ screen categories), cost keys on
 `enchantments.json5` entries, `cost/Pricing` + `PricingTable` (Mending = 2/0/surcharge 2 as data). Nothing reads them
-at runtime yet. Build: 118 JUnit + 33 GameTests, all green.
+at runtime yet.
+**Stage 5B done** (2026-10-07): `cost/CostRequest` (TABLE|ANVIL), `CostBreakdown` (lines + checked totals, saturating),
+`CostModel.price`. Every §5 table row is a test; a 1,000-case property test pins build-order independence.
+Build: 142 JUnit + 33 GameTests, all green.
 
 ## What's next
-1. Stage 5B: `cost/CostRequest`, `CostBreakdown`, `CostModel.price` + §5 table tests + build-order property test.
-   Then 5C (curse discount, cleanse, extract). Steps are in TODO.md.
+1. Stage 5C: curse discount in `CostModel.price` (needs `CursesSection`), `cleanseCost`, `extractCost`, the
+   "never cheaper" property test. Steps are in TODO.md.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level ~1,000,000).
 
 ## Open questions / blockers

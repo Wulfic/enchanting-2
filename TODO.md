@@ -518,23 +518,28 @@ entries gain optional cost keys. Existing files load with defaults and are never
       each caught: costs/curses reader returns defaults (5 tests), `upgrade_cost_mode` never read (3), `PricingTable`
       ignores overrides (2), a missing `.desc` (1). Build: 118 JUnit + 33 GameTests.
 
-### Stage 5B — `CostModel` → commit
-- [ ] 5B.1 `cost/CostRequest(station TABLE|ANVIL|GRINDSTONE, before, after, renamed, repairMaterials, combineRepair,
+### Stage 5B — `CostModel` → commit  ✅ 2026-10-07
+- [x] 5B.1 `cost/CostRequest(station TABLE|ANVIL, before, after, renamed, repairMaterials, combineRepair,
       creative)`; `before`/`after` are ID→level maps. Validation: a level drops or an ID disappears → throw (removal is
-      the grindstone's job, priced separately); rename/repair off the anvil → throw.
-- [ ] 5B.2 `cost/CostBreakdown`: ordered lines (`ENCHANT id from→to amount`, `SURCHARGE id O_in→O_out amount`,
+      the grindstone's job, priced separately); rename/repair off the anvil → throw. (No GRINDSTONE station: Extract
+      and Cleanse are their own methods in 5C, so it would be dead.) Maps are copied sorted, so lines are ordered.
+- [x] 5B.2 `cost/CostBreakdown`: ordered lines (`ENCHANT id from→to amount`, `SURCHARGE id O_in→O_out amount`,
       `RENAME`, `REPAIR`), `enchantCost`, `total`, `lapis`, `tooExpensive`, `free` (creative). Totals equal the sum of
       lines (asserted in the constructor).
-- [ ] 5B.3 `cost/CostModel.price(request, pricing, isCurse, costs)`: base only when newly added; levels by mode
+- [x] 5B.3 `cost/CostModel.price(request, pricing, isCurse, costs)`: base only when newly added; levels by mode
       (new = result level always; upgrade by mode); surcharge `s × (O_out − O_in)` or `s × O_out` when newly added;
       an unchanged ID contributes nothing (ALREADY_AT_LEVEL is free). Lapis = `min(enchantCost, 64)` at TABLE, else 0.
-- [ ] 5B.4 `CostModelTest`, one test per §5 table row (Mending 2; Mending + Eff I..V 5/8/11/14/17; Eff V then Mending
+- [x] 5B.4 `CostModelTest`, one test per §5 table row (Mending 2; Mending + Eff I..V 5/8/11/14/17; Eff V then Mending
       5 + 12; Mending then Eff V 2 + 15; Mending + Eff V + Unb III + Fort III 35; Eff III→V with Mending 6), plus rename
       only = 1, material repair ×3 = 3, combine = 2, creative → total 0 with lines kept, `maximum_operation_cost`
       0/at/above, creative ignores it, ANVIL lapis 0, TABLE lapis capped at 64, each upgrade mode, saturation at extremes.
-- [ ] 5B.5 Property test (seeded `Random`, 1,000 cases): random final item, random split into ops with random
+- [x] 5B.5 Property test (seeded `Random`, 1,000 cases): random final item, random split into ops with random
       intermediate levels → summed cost equals one-shot cost under default pricing. Mutation: surcharge on added levels
       only (the rejected design) must fail it. Build green, commit.
+      **Done:** `CostModelTest` (23) + `CostModelPropertyTest` (1,000 seeded cases; half built-in pricing, half random
+      base/per-level/surcharge with LEVEL_DIFFERENCE, the only order-independent upgrade mode). Mutations, each caught:
+      surcharge only on same-op levels (property + Eff-V-then-Mending), lapis at the anvil, curses counted in `O`,
+      creative refused as too expensive, base cost re-charged on upgrade (also the property). 142 JUnit + 33 GameTests.
 
 ### Stage 5C — Curses: discount, Cleanse, Extract → commit
 - [ ] 5C.1 `CostModel`: discount = Σ curse `discount_percent` on the **result**, capped at `max_discount_percent`;
