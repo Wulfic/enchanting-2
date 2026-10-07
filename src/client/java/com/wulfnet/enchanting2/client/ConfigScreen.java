@@ -3,6 +3,8 @@ package com.wulfnet.enchanting2.client;
 import com.wulfnet.enchanting2.config.AllowTogetherSection;
 import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.config.ConfigView;
+import com.wulfnet.enchanting2.config.CostsSection;
+import com.wulfnet.enchanting2.config.CursesSection;
 import com.wulfnet.enchanting2.config.ExperienceSection;
 import com.wulfnet.enchanting2.enchantment.ConflictFamily;
 import dev.isxander.yacl3.api.ConfigCategory;
@@ -21,7 +23,7 @@ import net.minecraft.network.chat.Component;
 
 /**
  * The YACL screen. Only {@link ModMenuIntegration} references this class, and only after checking YACL is loaded.
- * Ranges come from {@link ExperienceSection} so the screen and the file loader agree.
+ * Ranges come from the section records so the screen and the file loader agree.
  */
 final class ConfigScreen {
 	private static final String KEY = "enchanting2.config.";
@@ -40,6 +42,12 @@ final class ConfigScreen {
 				.option(LabelOption.create(modeLabel));
 		ConfigCategory.Builder allowTogether = ConfigCategory.createBuilder()
 				.name(Component.translatable(KEY + "category.allow_together"))
+				.option(LabelOption.create(modeLabel));
+		ConfigCategory.Builder costs = ConfigCategory.createBuilder()
+				.name(Component.translatable(KEY + "category.costs"))
+				.option(LabelOption.create(modeLabel));
+		ConfigCategory.Builder curses = ConfigCategory.createBuilder()
+				.name(Component.translatable(KEY + "category.curses"))
 				.option(LabelOption.create(modeLabel));
 		if (view.values().isPresent()) {
 			ExperienceSection d = ExperienceSection.DEFAULTS;
@@ -68,12 +76,42 @@ final class ConfigScreen {
 						.available(editable)
 						.build());
 			}
+			CostsSection c = CostsSection.DEFAULTS;
+			costs
+					.option(intOption("costs.rename_cost", c.renameCost(), () -> draft.renameCost,
+							v -> draft.renameCost = v, CostsSection.MIN_COST, CostsSection.MAX_COST, editable))
+					.option(intOption("costs.repair_cost_per_material", c.repairCostPerMaterial(),
+							() -> draft.repairCostPerMaterial, v -> draft.repairCostPerMaterial = v,
+							CostsSection.MIN_COST, CostsSection.MAX_COST, editable))
+					.option(intOption("costs.repair_combine_cost", c.repairCombineCost(),
+							() -> draft.repairCombineCost, v -> draft.repairCombineCost = v,
+							CostsSection.MIN_COST, CostsSection.MAX_COST, editable))
+					.option(intOption("costs.maximum_operation_cost", c.maximumOperationCost(),
+							() -> draft.maximumOperationCost, v -> draft.maximumOperationCost = v,
+							CostsSection.NO_MAXIMUM, CostsSection.MAX_COST, editable))
+					.option(Option.<Boolean>createBuilder()
+							.name(Component.translatable(KEY + "costs.creative_free"))
+							.description(description("costs.creative_free"))
+							.binding(c.creativeFree(), () -> draft.creativeFree, v -> draft.creativeFree = v)
+							.controller(TickBoxControllerBuilder::create)
+							.available(editable)
+							.build());
+			CursesSection k = CursesSection.DEFAULTS;
+			curses
+					.option(intOption("curses.max_discount_percent", k.maxDiscountPercent(),
+							() -> draft.maxDiscountPercent, v -> draft.maxDiscountPercent = v,
+							CursesSection.MIN_DISCOUNT_PERCENT, CursesSection.MAX_DISCOUNT_PERCENT, editable))
+					.option(intOption("curses.removal_min_cost", k.removalMinCost(), () -> draft.removalMinCost,
+							v -> draft.removalMinCost = v, CursesSection.MIN_REMOVAL_COST,
+							CursesSection.MAX_REMOVAL_COST, editable));
 		}
 
 		return YetAnotherConfigLib.createBuilder()
 				.title(Component.translatable(KEY + "title"))
 				.category(experience.build())
 				.category(allowTogether.build())
+				.category(costs.build())
+				.category(curses.build())
 				// Read-only views have no available options, so YACL has no pending changes to hand to save.
 				.save(editable ? () -> ConfigEditing.save(draft.toConfig()) : () -> {
 				})
@@ -102,12 +140,26 @@ final class ConfigScreen {
 		int flattenAfterLevel;
 		int fixedPointsPerLevel;
 		final EnumSet<ConflictFamily> allowed = EnumSet.noneOf(ConflictFamily.class);
+		int renameCost;
+		int repairCostPerMaterial;
+		int repairCombineCost;
+		int maximumOperationCost;
+		boolean creativeFree;
+		int maxDiscountPercent;
+		int removalMinCost;
 
 		Draft(CommonConfig from) {
 			enabled = from.experience().enabled();
 			flattenAfterLevel = from.experience().flattenAfterLevel();
 			fixedPointsPerLevel = from.experience().fixedPointsPerLevel();
 			allowed.addAll(from.allowTogether().allowed());
+			renameCost = from.costs().renameCost();
+			repairCostPerMaterial = from.costs().repairCostPerMaterial();
+			repairCombineCost = from.costs().repairCombineCost();
+			maximumOperationCost = from.costs().maximumOperationCost();
+			creativeFree = from.costs().creativeFree();
+			maxDiscountPercent = from.curses().maxDiscountPercent();
+			removalMinCost = from.curses().removalMinCost();
 		}
 
 		void setAllowed(ConflictFamily family, boolean value) {
@@ -120,7 +172,10 @@ final class ConfigScreen {
 
 		CommonConfig toConfig() {
 			return new CommonConfig(new ExperienceSection(enabled, flattenAfterLevel, fixedPointsPerLevel),
-					new AllowTogetherSection(allowed));
+					new AllowTogetherSection(allowed),
+					new CostsSection(renameCost, repairCostPerMaterial, repairCombineCost, maximumOperationCost,
+							creativeFree),
+					new CursesSection(maxDiscountPercent, removalMinCost));
 		}
 	}
 }

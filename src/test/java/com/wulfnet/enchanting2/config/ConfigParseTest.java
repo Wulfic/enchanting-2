@@ -6,10 +6,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import blue.endless.jankson.api.SyntaxError;
+import com.wulfnet.enchanting2.cost.UpgradeMode;
 import com.wulfnet.enchanting2.enchantment.ConflictFamily;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -33,7 +35,8 @@ class ConfigParseTest {
 
 	@Test
 	void nonDefaultValuesRoundTrip() throws SyntaxError {
-		var custom = new CommonConfig(new ExperienceSection(false, 0, 1), AllowTogetherSection.DEFAULTS);
+		var custom = new CommonConfig(new ExperienceSection(false, 0, 1), AllowTogetherSection.DEFAULTS,
+				CostsSection.DEFAULTS, CursesSection.DEFAULTS);
 		assertEquals(custom, common(ConfigFiles.render(custom, CommonConfig.CODEC)).config());
 	}
 
@@ -42,12 +45,14 @@ class ConfigParseTest {
 		for (ConflictFamily off : ConflictFamily.values()) {
 			EnumSet<ConflictFamily> allowed = EnumSet.allOf(ConflictFamily.class);
 			allowed.remove(off);
-			var custom = new CommonConfig(ExperienceSection.DEFAULTS, new AllowTogetherSection(allowed));
+			var custom = new CommonConfig(ExperienceSection.DEFAULTS, new AllowTogetherSection(allowed),
+					CostsSection.DEFAULTS, CursesSection.DEFAULTS);
 			var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 			assertEquals(custom, parsed.config(), off.key());
 			assertEquals(List.of(), parsed.issues());
 		}
-		var none = new CommonConfig(ExperienceSection.DEFAULTS, new AllowTogetherSection(Set.of()));
+		var none = new CommonConfig(ExperienceSection.DEFAULTS, new AllowTogetherSection(Set.of()),
+				CostsSection.DEFAULTS, CursesSection.DEFAULTS);
 		assertEquals(none, common(ConfigFiles.render(none, CommonConfig.CODEC)).config());
 	}
 
@@ -283,7 +288,8 @@ class ConfigParseTest {
 
 	@Test
 	void strictRenderIsCommentFreeAndRoundTrips() throws SyntaxError {
-		var config = new CommonConfig(new ExperienceSection(false, 12, 345), AllowTogetherSection.DEFAULTS);
+		var config = new CommonConfig(new ExperienceSection(false, 12, 345), AllowTogetherSection.DEFAULTS,
+				CostsSection.DEFAULTS, CursesSection.DEFAULTS);
 		String json = ConfigFiles.renderStrict(config, CommonConfig.CODEC);
 		assertFalse(json.contains("//") || json.contains("/*"), json);
 		assertFalse(json.contains("\n"), json);
@@ -308,5 +314,139 @@ class ConfigParseTest {
 	void overridesRecordRejectsMalformedIds() {
 		assertThrows(IllegalArgumentException.class,
 				() -> new EnchantmentOverrides(Map.of("sharpness", new EnchantmentOverrides.Entry())));
+	}
+
+	@Test
+	void costsAndCursesDefaultToDesignValues() {
+		var costs = CommonConfig.defaults().costs();
+		assertEquals(1, costs.renameCost());
+		assertEquals(1, costs.repairCostPerMaterial());
+		assertEquals(2, costs.repairCombineCost());
+		assertEquals(CostsSection.NO_MAXIMUM, costs.maximumOperationCost());
+		assertFalse(costs.hasMaximum());
+		assertTrue(costs.creativeFree());
+		var curses = CommonConfig.defaults().curses();
+		assertEquals(45, curses.maxDiscountPercent());
+		assertEquals(30, curses.removalMinCost());
+	}
+
+	@Test
+	void costsAndCursesRoundTrip() throws SyntaxError {
+		var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
+				new CostsSection(0, 3, 5, 0, false), new CursesSection(95, 0));
+		var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
+		assertEquals(custom, parsed.config());
+		assertEquals(List.of(), parsed.issues());
+		assertTrue(custom.costs().hasMaximum(), "0 is a real maximum, not 'off'");
+	}
+
+	@Test
+	void costsAndCursesBadValuesDefaultOneKeyAtATime() throws SyntaxError {
+		var parsed = common("""
+				{ schema_version: 1,
+				  costs: { rename_cost: -1, repair_cost_per_material: 4, repair_combine_cost: "2",
+				           maximum_operation_cost: -2, creative_free: 1, rename: 3 },
+				  curses: { max_discount_percent: 96, removal_min_cost: 12 } }""");
+		var costs = parsed.config().costs();
+		assertEquals(CostsSection.DEFAULTS.renameCost(), costs.renameCost());
+		assertEquals(4, costs.repairCostPerMaterial());
+		assertEquals(CostsSection.DEFAULTS.repairCombineCost(), costs.repairCombineCost());
+		assertEquals(CostsSection.NO_MAXIMUM, costs.maximumOperationCost());
+		assertTrue(costs.creativeFree());
+		var curses = parsed.config().curses();
+		assertEquals(CursesSection.DEFAULTS.maxDiscountPercent(), curses.maxDiscountPercent());
+		assertEquals(12, curses.removalMinCost());
+		assertEquals(Set.of("costs.rename_cost", "costs.repair_combine_cost", "costs.maximum_operation_cost",
+				"costs.creative_free", "costs.rename", "curses.max_discount_percent"),
+				Set.copyOf(keys(parsed.issues())));
+	}
+
+	@Test
+	void missingCostsAndCursesSectionsDefaultSilently() throws SyntaxError {
+		var parsed = common("{ schema_version: 1, experience: { enabled: true } }");
+		assertEquals(CostsSection.DEFAULTS, parsed.config().costs());
+		assertEquals(CursesSection.DEFAULTS, parsed.config().curses());
+		assertEquals(List.of(), parsed.issues());
+	}
+
+	@Test
+	void costsAndCursesRecordsRejectOutOfRangeValues() {
+		assertThrows(IllegalArgumentException.class, () -> new CostsSection(-1, 1, 2, -1, true));
+		assertThrows(IllegalArgumentException.class, () -> new CostsSection(1, 1, 2, -2, true));
+		assertThrows(IllegalArgumentException.class, () -> new CursesSection(96, 30));
+		assertThrows(IllegalArgumentException.class, () -> new CursesSection(45, -1));
+	}
+
+	@Test
+	void enchantmentCostFieldsAreRead() throws SyntaxError {
+		var parsed = ConfigFiles.parse("""
+				{ schema_version: 1, overrides: {
+				  "minecraft:efficiency": { base_cost: 3, cost_per_level: 2, upgrade_cost_mode: "result_level" },
+				  "minecraft:mending": { other_levels_surcharge: 0 },
+				  "minecraft:binding_curse": { discount_percent: 100 },
+				  "minecraft:unbreaking": { upgrade_cost_mode: "fixed" },
+				  "minecraft:fortune": { upgrade_cost_mode: "free" },
+				  "minecraft:looting": { upgrade_cost_mode: "level_difference" } } }""",
+				EnchantmentOverrides.CODEC);
+		var entries = parsed.config().entries();
+		var efficiency = entries.get("minecraft:efficiency");
+		assertEquals(OptionalInt.of(3), efficiency.baseCost());
+		assertEquals(OptionalInt.of(2), efficiency.costPerLevel());
+		assertEquals(Optional.of(UpgradeMode.RESULT_LEVEL), efficiency.upgradeMode());
+		assertEquals(OptionalInt.empty(), efficiency.otherLevelsSurcharge());
+		assertEquals(OptionalInt.of(0), entries.get("minecraft:mending").otherLevelsSurcharge());
+		assertEquals(OptionalInt.of(100), entries.get("minecraft:binding_curse").discountPercent());
+		assertEquals(Optional.of(UpgradeMode.FIXED), entries.get("minecraft:unbreaking").upgradeMode());
+		assertEquals(Optional.of(UpgradeMode.FREE), entries.get("minecraft:fortune").upgradeMode());
+		assertEquals(Optional.of(UpgradeMode.LEVEL_DIFFERENCE), entries.get("minecraft:looting").upgradeMode());
+		assertEquals(List.of(), parsed.issues());
+	}
+
+	@Test
+	void badEnchantmentCostFieldsAreReportedAndLeftAbsent() throws SyntaxError {
+		var parsed = ConfigFiles.parse("""
+				{ schema_version: 1, overrides: {
+				  "minecraft:efficiency": { base_cost: -1, cost_per_level: 10001, upgrade_cost_mode: "RESULT_LEVEL",
+				                            other_levels_surcharge: 101, discount_percent: 101 },
+				  "minecraft:unbreaking": { upgrade_cost_mode: 2, cost_per_level: 4 } } }""",
+				EnchantmentOverrides.CODEC);
+		var efficiency = parsed.config().entries().get("minecraft:efficiency");
+		assertEquals(new EnchantmentOverrides.Entry(), efficiency);
+		var unbreaking = parsed.config().entries().get("minecraft:unbreaking");
+		assertEquals(Optional.empty(), unbreaking.upgradeMode());
+		assertEquals(OptionalInt.of(4), unbreaking.costPerLevel(), "a bad key never drops its neighbours");
+		assertEquals(Set.of("overrides.minecraft:efficiency.base_cost", "overrides.minecraft:efficiency.cost_per_level",
+				"overrides.minecraft:efficiency.upgrade_cost_mode",
+				"overrides.minecraft:efficiency.other_levels_surcharge",
+				"overrides.minecraft:efficiency.discount_percent", "overrides.minecraft:unbreaking.upgrade_cost_mode"),
+				Set.copyOf(keys(parsed.issues())));
+		assertTrue(parsed.issues().stream().filter(i -> i.key().endsWith("upgrade_cost_mode"))
+				.allMatch(i -> i.reason().contains("level_difference")), "the issue lists the accepted spellings");
+	}
+
+	@Test
+	void enchantmentCostFieldsRoundTrip() throws SyntaxError {
+		var overrides = new EnchantmentOverrides(Map.of(
+				"minecraft:efficiency", new EnchantmentOverrides.Entry(OptionalInt.of(4), OptionalInt.of(0),
+						OptionalInt.of(10_000), Optional.of(UpgradeMode.FIXED), OptionalInt.of(100), OptionalInt.of(0)),
+				"minecraft:vanishing_curse", new EnchantmentOverrides.Entry(OptionalInt.empty(), OptionalInt.empty(),
+						OptionalInt.empty(), Optional.empty(), OptionalInt.empty(), OptionalInt.of(25))));
+		var parsed = ConfigFiles.parse(ConfigFiles.render(overrides, EnchantmentOverrides.CODEC),
+				EnchantmentOverrides.CODEC);
+		assertEquals(overrides, parsed.config());
+		assertEquals(List.of(), parsed.issues());
+	}
+
+	@Test
+	void entryRecordRejectsOutOfRangeCostFields() {
+		OptionalInt none = OptionalInt.empty();
+		assertThrows(IllegalArgumentException.class, () -> new EnchantmentOverrides.Entry(none, OptionalInt.of(-1),
+				none, Optional.empty(), none, none));
+		assertThrows(IllegalArgumentException.class, () -> new EnchantmentOverrides.Entry(none, none,
+				OptionalInt.of(10_001), Optional.empty(), none, none));
+		assertThrows(IllegalArgumentException.class, () -> new EnchantmentOverrides.Entry(none, none, none,
+				Optional.empty(), OptionalInt.of(101), none));
+		assertThrows(IllegalArgumentException.class, () -> new EnchantmentOverrides.Entry(none, none, none,
+				Optional.empty(), none, OptionalInt.of(101)));
 	}
 }

@@ -5,8 +5,11 @@ import blue.endless.jankson.JsonGrammar;
 import blue.endless.jankson.JsonObject;
 import blue.endless.jankson.JsonPrimitive;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 
@@ -73,6 +76,27 @@ public final class ConfigReader {
 		}
 		issue(key, e, null, "expected a whole number");
 		return OptionalInt.empty();
+	}
+
+	/**
+	 * An enum spelled as its lower-case constant name, with no default: missing → empty. A bad value is reported as
+	 * ignored, listing the accepted spellings, and also reads as empty.
+	 */
+	public <E extends Enum<E>> Optional<E> readOptionalEnum(String key, Class<E> type) {
+		JsonElement e = take(key);
+		if (e == null) {
+			return Optional.empty();
+		}
+		if (e instanceof JsonPrimitive p && p.getValue() instanceof String s) {
+			for (E constant : type.getEnumConstants()) {
+				if (constant.name().toLowerCase(Locale.ROOT).equals(s)) {
+					return Optional.of(constant);
+				}
+			}
+		}
+		issue(key, e, null, "expected one of " + String.join(", ", Arrays.stream(type.getEnumConstants())
+				.map(c -> c.name().toLowerCase(Locale.ROOT)).toList()));
+		return Optional.empty();
 	}
 
 	public boolean readBool(String key, boolean def) {
