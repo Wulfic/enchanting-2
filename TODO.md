@@ -715,14 +715,108 @@ revert`; a leftover `client.json5` is harmless (nothing else reads it) and can b
       `build/run/clientGameTest/screenshots/`. **Not automated (owner):** the config screen's Display toggle, and a
       modded client on a vanilla server keeping the vanilla anvil screen.
 
-## Phase 6b — Grindstone extraction (DESIGN §6)
-- [ ] 6b.1 Grindstone mixin with three modes (Extract / Cleanse / Disenchant), priced by
-      `CostModel`; vanilla Disenchant unchanged
-- [ ] 6b.2 Action and enchantment picker on the grindstone screen + C2S choice payload
-      (server re-validates)
-- [ ] 6b.3 GameTests: enchantment moved, never copied or lost (including mid-operation
-      desync); curse extraction refused; Cleanse charges the repay-the-discount cost;
-      multi-enchantment book split
+## Phase 6b — Grindstone (three stages, one commit each)
+**Goal:** the grindstone offers Extract (one non-curse enchantment onto a plain book, moved, never copied or lost),
+Cleanse (one curse, §5a repay cost) and vanilla Disenchant / two-item Repair, each as an explicit pick from a side
+panel. The server decides and charges everything (DESIGN §6).
+**Owner (2026-10-07, 6b start):** (1) The picker is a **side panel** beside the window, placed like the anvil's
+(left, else right, else shift the window). It's a control, so it has no hide tab. (2) **The result slot is empty
+until the player picks** an action, vanilla Disenchant included. (3) `maximum_operation_cost` caps Extract and
+Cleanse too (Cleanse's minimum of 30 means N < 30 blocks Cleanse; the panel says why).
+**Facts (decompiled 1.21.11 `GrindstoneMenu`/`GrindstoneScreen`):** both input slots are anonymous `Slot`s
+(`GrindstoneMenu$2`, `$3`) whose `mayPlace` takes only damageable or enchanted items, **so a plain book can't be placed
+today** (`$1` is the `SimpleContainer`, verified with `javap`). The result slot (`$4`) `onTake` awards XP orbs from
+the inputs' non-curse `getMinCost` and **empties both inputs**. `computeResult` refuses when either input has a count > 1. Disenchant writes `REPAIR_COST` (vanilla's own
+reset). There is no cost `DataSlot` and no level check. `createResult` runs on both sides via `slotsChanged`.
+`GrindstoneScreen.renderBg` blits at `(width - imageWidth) / 2`, not `leftPos`, and draws the error sprite whenever an
+input is present and the result is empty.
+**Agent calls (decisions.md "Grindstone"):**
+- Either orientation works: the source item in one slot, a plain book (any count, one consumed) in the other.
+- The selection is server state per menu, set only by a validated C2S choice. It's cleared when the source stack
+  changes (item or components). It survives a change in the book count only.
+- Extract and Cleanse replace vanilla's `onTake` (no XP orbs, so Cleanse can't be an XP faucet; `REPAIR_COST`
+  untouched, like the anvil). Disenchant and Repair keep vanilla's body.
+- A book whose only non-curse entry is the one being extracted is refused (`NOTHING_TO_SPLIT`): that would just move
+  it onto another book for XP.
+- Creative follows the anvil: it bypasses the cap, and `creative_free` makes it free.
+- The error sprite shows only for a refusal, not while waiting for a pick.
+- `NetworkProtocol.VERSION` → 3: a v2 client would compute vanilla grindstone results locally on a v3 server.
+- No new config keys.
+**Not doing:** extracting onto an already enchanted book (merge); extracting curses; cleansing several curses in one
+take; changing vanilla Disenchant XP or Repair math; a grindstone for vanilla servers (a modded client there keeps
+vanilla: no book placement, no panel); `enabled` flags (Phase 9).
+**Blast radius:** with the mod on the server, every grindstone take goes through our menu code. Items gain no new
+components. Extract and Cleanse never touch `REPAIR_COST`. Disenchant and Repair behave exactly as vanilla, just behind a
+pick. A v2 client is disconnected with the existing mismatch message. Client: the grindstone screen only, and only when
+the server is ours.
+**Rollback:** `git revert` the stage's commit. Nothing outside the repo is touched. A book left in a grindstone slot
+when the mod is removed is returned by vanilla's `removed()` like any other item.
+
+### Stage 6bA — Calculator (server logic, no menu wiring) → commit
+- [ ] 6bA.1 `grindstone/GrindstoneAction` (`EXTRACT | CLEANSE | DISENCHANT | REPAIR`), `grindstone/GrindstoneChoice`
+      (action + enchantment ID, empty for DISENCHANT/REPAIR), `grindstone/GrindstoneOption` (choice, level, levels
+      charged, status), `grindstone/GrindstoneOutcome` (status, result, slot 0 and 1 after the take, levels charged,
+      `vanillaTake` for DISENCHANT/REPAIR). Status: `OK | NO_CHOICE | CURSE_NOT_EXTRACTABLE | NOTHING_TO_SPLIT |
+      STACKED_ITEM | TOO_EXPENSIVE | NOT_AVAILABLE | FAILED`.
+- [ ] 6bA.2 `grindstone/GrindstoneCalculator.options(a, b, creative, config, pricing)`: the list the panel shows, in a
+      stable order (action, then enchantment ID). `compute(a, b, choice, creative, config, pricing)`: the outcome for a
+      choice; a choice not among the OK options gives `NOT_AVAILABLE` and no result. Extract uses
+      `CostModel.extractCost` and Cleanse `CostModel.cleanseCost`; DISENCHANT/REPAIR results are vanilla's (copied
+      logic: `removeNonCursesFrom`, `mergeItems`, `REPAIR_COST` included). Never mutates its inputs. Failures are logged
+      and fail closed.
+- [ ] 6bA.3 `GrindstoneCalculatorGameTest` (needs MC item stacks, like `AnvilGameTest`): every action in both
+      orientations; Extract result = one entry, source keeps the rest, book count − 1; multi-enchantment book split;
+      single-entry book → `NOTHING_TO_SPLIT`; curse-only rows refused; Cleanse = max(30, own % × undiscounted); cap →
+      `TOO_EXPENSIVE`, creative bypasses; `creative_free` → 0; stacked source → `STACKED_ITEM`; Disenchant/Repair
+      results equal vanilla's for the same inputs. Mutation: Extract leaves the entry on the source → fails. Build
+      green, commit.
+
+### Stage 6bB — Server menu + payloads → commit
+- [ ] 6bB.1 `network/GrindstoneChoicePayload` (C2S: container ID, choice or none) and
+      `network/GrindstoneOptionsPayload` (S2C: container ID, options, selected choice, outcome status, levels
+      charged). Sizes checked in the constructor, enums as bounds-checked ordinals. `VERSION` → 3. Registered in
+      `registerPayloads`.
+- [ ] 6bB.2 Server receiver: ignore and log (debug) unless `player.containerMenu` is a grindstone with that container
+      ID. Store the choice in the menu, recompute.
+- [ ] 6bB.3 `mixin/GrindstoneMenuMixin`: `createResult` HEAD. On the server: options + outcome for the stored choice,
+      set result, broadcast, send the options payload when changed (dedup like the anvil). On a client of our server:
+      cancel. Clear the choice when the source stack changes. Duck `GrindstoneMenuAccess` for tests.
+- [ ] 6bB.4 `mixin/GrindstoneInputSlotMixin` (`GrindstoneMenu$2`, `$3`): `mayPlace` also accepts `Items.BOOK` on the
+      server, and on a client of our server (`GrindstoneBridge`, like `AnvilBridge`).
+      `mixin/GrindstoneResultSlotMixin` (`$4`): `mayPickup` = OK and (free or levels ≥ charge); client prediction from
+      the latest options payload. `onTake` HEAD: Extract/Cleanse charge, write both input slots from the outcome, play
+      level event 1042, cancel. DISENCHANT/REPAIR fall through to vanilla.
+- [ ] 6bB.5 `GrindstoneGameTest` (real `GrindstoneMenu` + mock player, click the result slot): nothing before a pick;
+      Extract moves the entry exactly once (result has it, source doesn't, every other entry unchanged, one book
+      consumed, levels − cost, no XP orbs); either orientation; Cleanse charges the repay cost, removes only that curse,
+      no orbs; Disenchant after a pick = vanilla (orbs spawned); insufficient levels → take refused, nothing changed;
+      shift-click with a full inventory → nothing changed; forged choices (wrong container ID, enchantment not on the
+      item, a curse as Extract, Cleanse of a non-curse) → no result; source swapped after a pick → choice cleared;
+      book count changed → choice kept; payload codec round trip incl. every enum value and an oversize list refused.
+- [ ] 6bB.6 **Conservation property** (seeded, 300 cases): random enchanted item or book, random plain-book count,
+      random orientation, random choice → after a take, the (ID, level) multiset over both inputs + result equals the
+      one before, minus exactly the cleansed curse (Cleanse) and never anything for Extract. Asserts ≥ 60 cases reach a
+      take. Mutations: don't remove the entry from the source (copy) → fails; don't write the book slot → fails.
+      `NetworkProtocolTest` pins v3. Build green, commit.
+
+### Stage 6bC — Grindstone screen → commit
+- [ ] 6bC.1 Generalize the layout: `anvil/AnvilPanelLayout` → `screen/SidePanelLayout` with a tab width parameter
+      (anvil 14, grindstone 0); update `AnvilScreenMixin` and the test (pure rename + parameter; existing cases unchanged).
+- [ ] 6bC.2 `grindstone/GrindstonePanelView` (pure): rows (action header, enchantment + level + cost, refused reason),
+      the selected row, and a footer (cost / free / too expensive with the max / insufficient levels / pick an action).
+      JUnit for every status and action. `GrindstoneLangKeysTest` walks every key it can produce.
+- [ ] 6bC.3 `client/GrindstoneOptionsState` (receiver; cleared on close, config INIT, disconnect) + `GrindstoneBridge`
+      client sources (server is ours, levels charged).
+- [ ] 6bC.4 `mixin/client/GrindstoneScreenMixin`: `init` TAIL applies the layout to `leftPos`; `renderBg` blits at
+      `leftPos` (vanilla uses the centered value) and shows the error sprite only on a refusal; panel drawn at TAIL; a
+      click on a row sends the choice (clicking the selected row clears it); `hasClickedOutside` false over the panel.
+- [ ] 6bC.5 Lang keys (en_us) for actions, statuses and footer forms.
+- [ ] 6bC.6 Client GameTest: singleplayer, real grindstone, sword (Sharpness + Unbreaking) + 3 books → panel rows;
+      click Sharpness → result is a Sharpness book; take → sword keeps Unbreaking, 2 books left; cursed item → Cleanse
+      row with its cost; tiny window → panel on screen. Screenshots.
+- [ ] 6bC.7 DESIGN §6 (grindstone modes as built), state.md, decisions.md. Owner `runClient` list: panel look, a
+      modded client on a vanilla server keeping the vanilla grindstone. Mutation: row click sends nothing → client test
+      fails. Build + `runClientGameTest` green, commit.
 
 ## Phase 7 — Enchanting table (new screen)
 - [ ] 7.1 Server menu: list of applicable enchantments (Mending included, curses off),

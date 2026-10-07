@@ -574,3 +574,27 @@ JUnit-only for the screen (owner: a broken injection would only show in-game); a
 `rebuildWidgets()` to apply a toggle (re-runs `subInit`, which clears the name and sends two rename packets).
 **Affects:** `config/ClientConfig`, `client/ClientSettings`, `client/AnvilPreviewState`, `mixin/client/AnvilScreenMixin`,
 `anvil/AnvilPreviewView`, `anvil/AnvilPanelLayout`, `AnvilBridge`, `ConfigScreen`, build.gradle, DESIGN §2/§6
+
+## 2026-10-07 — Grindstone: picker, explicit actions, server-held choice (Phase 6b)
+**Context:** DESIGN §6 lists Extract / Cleanse / Disenchant but not how a player picks, what shows before a pick, or
+whether the cost cap applies. Decompiling 1.21.11: the input slots (`GrindstoneMenu$2`/`$3`; `$1` is the
+`SimpleContainer`) refuse plain books, the result slot (`$4`) awards XP orbs and empties both inputs on take, and
+nothing at the grindstone costs levels.
+**Choice (owner):** (1) the picker is a side panel placed like the anvil's, always shown (it's a control, no tab).
+(2) The result slot stays empty until the player picks, vanilla Disenchant included. (3) `maximum_operation_cost` caps
+Extract and Cleanse too.
+**Choice (agent):** the choice lives on the server menu, set only by a validated C2S payload, and is cleared when the
+source stack changes (not when only the book count changes). Either slot orientation works; a plain-book stack gives
+one book per take. Extract/Cleanse replace vanilla's `onTake` (no orbs, `REPAIR_COST` untouched); Disenchant/Repair keep
+vanilla's. A book whose only non-curse entry is the one picked is refused (`NOTHING_TO_SPLIT`). An entry above the
+current max level moves at its level (lowered maxima never touch existing items). Creative: cap bypass +
+`creative_free`, as at the anvil. `NetworkProtocol.VERSION` 2 → 3. The anvil layout becomes a shared `SidePanelLayout`.
+**Why:** empty-until-picked means a shift-click can't strip an item the player meant to extract from. A server-held
+choice means a stale or forged click can only select something the current inputs allow. No orbs on Cleanse, or
+cleansing a cursed item would refund XP for enchantments it keeps. A v2 client would run vanilla's result locally.
+**Rejected:** in-window cycle buttons (owner: one choice visible at a time); auto-Disenchant when it's the only action,
+and preselecting the first row (owner: accidental strips); an uncapped grindstone (owner: one rule everywhere); a choice
+carried in the take click (vanilla's click packet has no room; a separate choice is validated once, then the take is a
+plain slot click); keeping the choice across a source swap (a picked "Disenchant" would apply to the new item unseen).
+**Affects:** `grindstone/*`, `GrindstoneMenuMixin`, grindstone slot mixins, `GrindstoneScreenMixin`, `network/Grindstone*`,
+`NetworkProtocol`, `SidePanelLayout`, DESIGN §6
