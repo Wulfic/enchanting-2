@@ -1,5 +1,6 @@
 package com.wulfnet.enchanting2;
 
+import com.wulfnet.enchanting2.anvil.AnvilBridge;
 import com.wulfnet.enchanting2.client.ClientConfigState;
 import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.experience.ExperienceCurve;
@@ -14,6 +15,8 @@ public final class Enchanting2Client implements ClientModInitializer {
 		PlayerExperience.setClientSource(() -> ClientConfigState.serverCopy()
 				.map(CommonConfig::experience)
 				.orElse(ExperienceCurve.VANILLA));
+		// Same signal: a synced config means the server runs our anvil, so the client mustn't compute its own result.
+		AnvilBridge.setClientSource(() -> ClientConfigState.serverCopy().isPresent());
 		Enchanting2.LOGGER.info("Enchanting 2 client initialized");
 	}
 }

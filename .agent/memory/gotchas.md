@@ -265,3 +265,12 @@ and left the mutated code in place. Only the follow-up `git status` showed `??`.
 **Fix:** before mutating, copy the file to the scratchpad. Restore from that copy, then diff/grep to prove it's restored.
 Also: `$TMP` in Git Bash is the Windows temp dir, not the session scratchpad.
 **Affects:** agent workflow only (mutation checks)
+
+## 2026-10-07 — The GameTest mock player is always creative
+**Symptom:** every anvil GameTest that clicked the result saw cost 0; tests calling `AnvilCalculator` directly passed.
+**Cause:** `GameTestHelper.makeMockServerPlayerInLevel()` returns an anonymous `ServerPlayer` whose `gameMode()` is
+hard-wired to CREATIVE, so `abilities.instabuild` is true and `creative_free` made everything free. `setGameMode` can't
+change it (the override ignores it).
+**Fix:** `player.getAbilities().instabuild = false`. `hasInfiniteMaterials()` reads only `instabuild` (javap, 1.21.11).
+`isCreative()` still says true, so code that checks `isCreative()` can't be tested this way.
+**Affects:** src/gametest/java/com/wulfnet/enchanting2/gametest/AnvilGameTest.java, any GameTest that charges a player

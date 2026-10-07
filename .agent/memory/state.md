@@ -33,11 +33,14 @@ at runtime yet.
 cleanse rule is not an exploit; own-% stands on simplicity. Build: 155 JUnit + 33 GameTests, all green.
 **Stage 6A done** (2026-10-07): `common.json5` `anvil.invalid_book_mode` (+ "Anvil" screen category), pure
 `anvil/TransferRules` (verdict × source × mode → fate), `enchantments.json5` held on the server (`ServerConfigs
-.enchantments`, re-read on /reload). Nothing reads them at runtime yet. 166 JUnit + 33 GameTests.
+.enchantments`, re-read on /reload). 166 JUnit + 33 GameTests.
+**Stage 6B done** (2026-10-07): the server anvil runs on `AnvilCalculator` via `AnvilMenuMixin` (createResult HEAD,
+mayPickup, targeted onTake injections). Leftover books, item + item refusal, no 40 cap, `repair_cost` untouched, free
+results takeable. Client defers via `AnvilBridge` when the server synced its config. 166 JUnit + 54 GameTests.
 
 ## What's next
 1. Phase 6 (anvil) is planned in TODO.md as 6A–6D (owner answered book modes, item + item, prior work, panel;
-   decisions.md 2026-10-07 "Anvil"). Next: Stage 6B (`AnvilCalculator`, `AnvilMenuMixin`, GameTests).
+   decisions.md 2026-10-07 "Anvil"). Next: Stage 6C (`AnvilPreviewPayload`, protocol v2, server sends on change).
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level ~1,000,000).
 
 ## Open questions / blockers

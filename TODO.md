@@ -616,28 +616,36 @@ client is disconnected with the existing mismatch message.
       same sequence, since two tests editing config files would race. `MaxLevelHook.file()` now delegates to
       `ServerConfigs.enchantmentsFile()`. Mutation: CONFLICT → APPLY fails 3 of 6. 166 JUnit + 33 GameTests.
 
-### Stage 6B — Server anvil → commit
-- [ ] 6B.1 `anvil/AnvilOutcome` (MC): result stack, right-slot-after-take stack (leftover book / shrunk materials /
+### Stage 6B — Server anvil → commit  ✅ 2026-10-07
+- [x] 6B.1 `anvil/AnvilOutcome` (MC): result stack, right-slot-after-take stack (leftover book / shrunk materials /
       empty), materials used, `CostBreakdown`, applied entries, skipped entries (ID, level, verdict, conflictsWith,
       fate), status (`OK | NOTHING_TO_DO | REFUSED_WOULD_LOSE | REFUSED_INVALID | TOO_EXPENSIVE | STACKED_ITEM`).
-- [ ] 6B.2 `anvil/AnvilCalculator.compute(left, right, name, creative, CommonConfig, PricingTable)`: rename only;
+- [x] 6B.2 `anvil/AnvilCalculator.compute(left, right, name, creative, CommonConfig, PricingTable)`: rename only;
       material repair (vanilla 25% steps, `repair_cost_per_material` each); book (entries via `EnchantRules.check` in ID
       order + `TransferRules`); item + item (vanilla durability sum + 12%, `repair_combine_cost`, then entries as
       ITEM). Curses via `#minecraft:curse`. `REPAIR_COST` is copied as is, never changed.
-- [ ] 6B.3 `mixin/AnvilMenuMixin`: `createResult` HEAD, cancellable. Server: compute, set result, `cost` (int, exact
+- [x] 6B.3 `mixin/AnvilMenuMixin`: `createResult` HEAD, cancellable. Server: compute, set result, `cost` (int, exact
       server-side), `repairItemCountCost`, keep the outcome in an `@Unique` field. Client: cancel without touching the
       result slot when `AnvilBridge.serverHandlesAnvil()` (set by client init from `ClientConfigState.serverCopy()`),
       else vanilla. `mayPickup`: result present and (total is 0 or level ≥ total). `onTake`: charge `total` (0 when free,
       so creative with `creative_free false` pays), then put the outcome's right-slot stack back.
-- [ ] 6B.4 GameTests (real `AnvilMenu` + mock `ServerPlayer`, click the result slot): 3-entry book on a pickaxe under
+- [x] 6B.4 GameTests (real `AnvilMenu` + mock `ServerPlayer`, click the result slot): 3-entry book on a pickaxe under
       each mode; item + item under each mode (Silk + Fortune exclusive); material repair ×3 consumes 3 and costs 3;
       combine repair = 2 + enchant; rename only = 1, renaming a stack of 16; insufficient levels → take refused,
       nothing consumed; curse-only book costs 0 and can be taken; creative free / not free; `maximum_operation_cost`;
       cost 45 (past the old 40 cap) taken; `repair_cost` unchanged; a stack of 2 swords + book → `STACKED_ITEM`.
-- [ ] 6B.5 **Conservation property** (GameTest, seeded, 300 cases): random item, random book or sacrifice, random mode
+- [x] 6B.5 **Conservation property** (GameTest, seeded, 300 cases): random item, random book or sacrifice, random mode
       → every input (ID, level) is on the result or the right-slot stack at ≥ that level, unless it's dominated or the
       outcome lists it as `LOSE`; nothing appears on both. Mutation: drop the leftover write in `onTake` must fail it.
       Build green, commit.
+      **Done:** `AnvilGameTest` (21, real `AnvilMenu` + mock player + result-slot click). Beyond the plan: a book that
+      gives nothing (e.g. renaming with it in the slot) goes back untouched in every mode; a stack in the *right* slot
+      is also `STACKED_ITEM` (taking would otherwise empty the whole slot); `rightAfterTake` covers material leftovers
+      too, so the mixin has one right-slot path; `AnvilCalculator` failures are logged and fail closed (no result).
+      The mock player is hard-wired creative (gotchas.md), so tests clear `instabuild`. Property: 300 seeded cases, and
+      it asserts at least 60 reach a take. Mutation (leftover write dropped) fails 4, the property among them.
+      **Not tested here (client side):** `AnvilBridge` deferral and the client `mayPickup` prediction; owner `runClient`
+      check in 6D.4. 166 JUnit + 54 GameTests.
 
 ### Stage 6C — Preview payload → commit
 - [ ] 6C.1 `network/AnvilPreviewPayload` (S2C play): container ID, status, exact `long` total, breakdown lines,
