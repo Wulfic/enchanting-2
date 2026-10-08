@@ -851,13 +851,145 @@ when the mod is removed is returned by vanilla's `removed()` like any other item
       **Not automated (owner):** the panel's look in a normal session, and a modded client on a vanilla server keeping
       the vanilla grindstone (no book placement, no panel).
 
-## Phase 7 — Enchanting table (new screen)
-- [ ] 7.1 Server menu: list of applicable enchantments (Mending included, curses off),
-      selection, validation, bookshelf tier gating per DESIGN §6 (vanilla shelf rules, 15 = full)
-- [ ] 7.2 C2S selection payload, server re-validates everything (never trust the client cost)
-- [ ] 7.3 Client screen: readable list, level pickers, live cost and lapis totals, reasons
-- [ ] 7.4 Books: multi-enchant via the table
-- [ ] 7.5 GameTests: forged C2S payloads (inapplicable enchant, over max, unaffordable) are rejected
+## Phase 7 — Enchanting table (four stages, one commit each)
+**Goal:** the table lists every offered enchantment applicable to the item in slot 0, the player picks any number of
+them, each at a chosen level, and sees the per-line XP cost, the lapis and the totals before committing. The server
+validates, prices and charges everything (DESIGN §5, §6). No randomness.
+**Owner (2026-10-07, Phase 7 start):** (1) **Layout:** keep the vanilla window (item and lapis slots, book animation).
+The three-offer area becomes the totals and an Enchant button. The list is a scrollable side panel placed like the
+anvil's and grindstone's. (2) **Enchanted items and enchanted books are accepted.** The player can add enchantments and
+raise levels. Upgrades are priced by `upgrade_cost_mode`. (3) **Treasure at the table: Mending and Frost Walker
+only**, at full power. Soul Speed, Swift Sneak and Wind Burst stay loot-only. (4) **Curses now:** Binding and Vanishing
+are opt-in picks with the §5a negative line.
+**Facts (decompiled 1.21.11 `EnchantmentMenu`/`EnchantmentScreen`/`EnchantingTableBlock`):** `javap`: `$1` is the
+`SimpleContainer`, `$2` slot 0 (max stack 1, accepts anything), `$3` slot 1 (lapis only). No slot mixin is planned.
+A menu built with `ContainerLevelAccess.NULL` (another mod's portable table) never runs `access.execute`, so it shows
+nothing and can't enchant (fail closed). `slotsChanged` counts shelves with the public statics `EnchantingTableBlock.BOOKSHELF_OFFSETS` +
+`isValidBookShelf(level, pos, offset)` and rolls the three offers. It only runs for `isEnchantable()` items, which
+excludes anything already enchanted. `clickMenuButton(player, 0..2)` is vanilla's C2S. It charges only 1–3 levels (the
+cost is a requirement, not a charge), consumes 1–3 lapis, transmutes a plain book into `ENCHANTED_BOOK`, awards
+`Stats.ENCHANT_ITEM`, triggers `ENCHANTED_ITEM`, rerolls the seed and plays `ENCHANTMENT_TABLE_USE`. `costs[]`,
+`enchantClue[]`, `levelClue[]` and the seed are `DataSlot`s. The screen draws the three 108×19 rows at
+`(width − imageWidth)/2 + 60, … + 14 + 19n` (centred X again, not `leftPos`). Its `mouseClicked` hit-tests the same
+rectangles. Vanilla offers come from `#minecraft:in_enchanting_table` (= `#non_treasure`). `#treasure` = Binding,
+Vanishing, Swift Sneak, Soul Speed, Frost Walker, Mending, Wind Burst.
+**Agent calls (decisions.md "Enchanting table"):**
+- **Pool:** the enchantment tag `enchanting2:offered_at_table` = `#minecraft:in_enchanting_table` + Mending + Frost
+  Walker + Binding + Vanishing. Mods already put their table enchantments in the vanilla tag, so they're included.
+  Datapacks can extend the tag. Phase 9's per-enchantment flags will override it per ID.
+- **Full power:** `table.treasure_requires_full_power` (new `table` section, default true) gates `#minecraft:treasure`
+  minus `#minecraft:curse`. A curse is a discount, not power, so it's never gated.
+- **Applicability = `supported_items`** (`EnchantRules`, as at the anvil), not vanilla's narrower `primary_items`.
+  DESIGN §4 says applicability comes from `supported_items`. A narrower table would just send players to the anvil.
+- **Power:** `tier = 1 + floor(shelves × 4 / 15)`, `maxSelectable = ceil(maxLevel × tier / 5)` (DESIGN §6). Shelves
+  are recounted on every compute and again at commit, so breaking a shelf mid-menu can't sell a level it no longer
+  allows.
+- **Selection** = an ID → level map held by the server per menu, set only by a C2S payload. It's cleared when slot 0
+  changes (item or components) and kept when only the lapis changes. **All or nothing:** a selection with any invalid
+  entry produces no enchant. The panel names the entry and why. The server never applies a subset the player didn't
+  pick. Entries are checked in ID order against the result so far, so the later one of a conflicting pair gets
+  `CONFLICT`.
+- **Commit** is our own C2S `TableEnchantPayload(containerId, selection, levels, lapis)`. The server recomputes, and
+  refuses (logged, panel resent) when the selection or either number differs from what it would charge now. The
+  player is never charged a price they weren't shown, even after a `/reload` or a broken shelf. It also avoids any
+  ordering dependency between a selection packet and vanilla's button packet. Vanilla `clickMenuButton` and
+  `slotsChanged` are cancelled for menus we handle.
+- **Charge:** `giveExperienceLevels(−levels)` (as at the anvil and grindstone), lapis consumed from slot 1. Stat,
+  advancement trigger, seed reroll and sound kept as vanilla. Creative follows the anvil (`creative_free`, no cap).
+- `NetworkProtocol.VERSION` → 4: a v3 client on a v4 server would wait for vanilla offers that never come.
+**Not doing:** per-enchantment table flags or weights (Phase 9); new curses (10e); lowering or removing enchantments at
+the table; random or "surprise" offers; a vanilla-server table for a modded client (it keeps vanilla's screen);
+changing shelf placement rules or the 15-shelf maximum.
+**Blast radius:** with the mod on the server, every table menu runs our code, and vanilla's random offers never appear.
+Items get ordinary `ENCHANTMENTS` / `STORED_ENCHANTMENTS`, so removing the mod leaves them working (levels above
+vanilla max keep their stored level, as decided in Phase 4). A v3 client is disconnected with the existing message.
+Client: the table screen only, and only when the server is ours. Nothing is deleted or overwritten. Items in the slots
+go back through vanilla's `removed()` → `clearContainer`.
+**Rollback:** `git revert` the stage's commit. Nothing outside the repo is touched.
+
+### Stage 7A — Rules, pool, calculator (server logic, no menu wiring) → commit
+- [ ] 7A.1 `config/TableSection` (`treasure_requires_full_power`, default true) in `CommonConfig` (+ write/read, synced
+      like the others). `ConfigParseTest`/`ConfigViewTest` cases; config screen toggle + lang key
+      (`ConfigLangKeysTest`).
+- [ ] 7A.2 `table/TablePower` (pure): `tier(shelves)`, `maxSelectable(maxLevel, tier)`, shelves clamped to 0..15.
+      JUnit: every shelf count 0–15 → DESIGN's tier table; max 1/3/4/5 × tier 1–5; 15 shelves unlocks every max,
+      including a 255 override.
+- [ ] 7A.3 `data/enchanting2/tags/enchantment/offered_at_table.json` + `table/TablePool` (the tag key, `isGated(holder,
+      config)`). GameTest: Mending, Frost Walker, Binding, Vanishing and every `#in_enchanting_table` member are in;
+      Soul Speed, Swift Sneak and Wind Burst aren't.
+- [ ] 7A.4 `table/TableSelection` (sorted ID → level map, size ≤ the pool, levels 1..255), `table/TableRow` (ID, current
+      level, max selectable, max level, selected level or 0, status), `table/TableOutcome` (status, rows,
+      `CostBreakdown`, result stack, levels, lapis). Status: `OK | NONE | NOTHING_TO_ENCHANT | NO_SELECTION | INVALID_PICK
+      | TOO_EXPENSIVE | INSUFFICIENT_LEVELS | INSUFFICIENT_LAPIS`. Row status: `OK | NEEDS_POWER | NEEDS_FULL_POWER |
+      ALREADY_AT_LEVEL | CONFLICT (+ with) | ABOVE_MAX`.
+- [ ] 7A.5 `table/TableCalculator.compute(target, lapisCount, shelves, selection, playerLevels, creative, config,
+      pricing, pool)`: rows = pool members `EnchantRules` doesn't call `NOT_APPLICABLE` (every member for a book), in ID
+      order. Unselected rows are checked against the item plus the current selection, so they show a conflict before
+      they're picked. The result is a copy with `EnchantRules.withEnchantment` per pick. A plain book is transmuted to
+      `ENCHANTED_BOOK`, and an enchanted book gains stored entries. Priced with `CostRequest.table`. Never mutates its
+      inputs. Failures are logged and fail closed (`NONE`).
+- [ ] 7A.6 `TableCalculatorGameTest`: sword rows match `supported_items`; book lists the whole pool; tier gating at 0/4/
+      8/12/15 shelves; Mending/Frost Walker need 15 (and don't with the toggle off); curses ungated; curse pick → negative
+      line, lapis follows the discounted cost; Mending + Eff V = 17 and lapis 17; enchanted pickaxe Eff III → V = 2;
+      Mending in two visits = one visit (DESIGN table); upgrade on an item past the tier's max → `NEEDS_POWER`, existing
+      level untouched; forged picks (not in pool, not applicable, above max, above tier, already at level, conflict
+      with the family exclusive) → `INVALID_PICK`, no result; cap → `TOO_EXPENSIVE`, creative bypasses; `creative_free`
+      → 0 levels and 0 lapis; never removes or lowers an existing entry (third-party entry kept). Mutation: skip the
+      tier check → fails. Build green, commit.
+
+### Stage 7B — Server menu + payloads → commit
+- [ ] 7B.1 `network/TableSelectPayload` (C2S: container ID, selection), `network/TableEnchantPayload` (C2S: container
+      ID, selection, levels, lapis), `network/TablePreviewPayload` (S2C: container ID, status, rows, breakdown lines,
+      totals, shelves, tier). Sizes checked in the constructor, shared codecs in `PayloadCodecs`. `VERSION` → 4.
+      Registered in `registerPayloads`.
+- [ ] 7B.2 `mixin/EnchantmentMenuMixin`: player captured at `<init>`; `slotsChanged` HEAD → on the server, count shelves
+      through `access`, compute, send the preview when changed (dedup as the grindstone), cancel; on a client of our
+      server, cancel. `clickMenuButton` HEAD → return false for menus we handle (logged at debug). Duck
+      `table/TableMenuAccess` (`select`, `enchant`, outcome, last preview) for the handlers and tests.
+      `table/TableBridge` (client sources: server is ours, latest preview).
+- [ ] 7B.3 `ServerNetworking.handleTableSelect` / `handleTableEnchant`: ignore unless `player.containerMenu` is a table
+      with that ID. Enchant recomputes. It refuses unless status `OK` and the payload's selection, levels and lapis equal
+      the recomputed ones. It then writes slot 0, consumes lapis, charges levels, awards the stat and trigger, plays the
+      sound, clears the selection and recomputes.
+- [ ] 7B.4 `TableGameTest` (real table + shelves placed in the structure, real `EnchantmentMenu`, mock player with
+      `instabuild` off): no vanilla offers (`costs[]` stay 0); select → preview; enchant → exact levels and lapis
+      charged, item has exactly the picks; plain book → enchanted book with several entries; enchanted book gains
+      entries; upgrade; forged payloads (wrong container ID, inapplicable, above max, above tier, not in pool, Soul
+      Speed, conflict, stale levels, stale lapis, a selection different from the stored one) → nothing charged or
+      changed; insufficient levels or lapis → refused; shelf broken after select → the enchant is refused and the
+      preview resent; slot 0 swapped → selection cleared; lapis count changed → kept; vanilla `clickMenuButton(0)` →
+      false, nothing changed; codec round trips including every enum and an oversize selection refused. **Property**
+      (seeded, 300): random item/book, existing enchantments, shelves, selection → after an OK enchant, every prior
+      (ID, level) is still present at ≥ its level and the charge equals the preview. Mutations: skip the stale-cost check
+      → fails; charge before validating → fails. `NetworkProtocolTest` pins v4. Build green, commit.
+
+### Stage 7C — Panel model and scrolling → commit
+- [ ] 7C.1 `table/TablePanelView` (pure): a row per offered enchantment (name, current → selected level, its line cost
+      or the reason it can't be picked), surcharge / discount / total lines, footer (cost and lapis, too expensive with
+      the max, insufficient levels or lapis, invalid pick named, pick something). JUnit for every status.
+      `TableLangKeysTest` walks every key it can produce. Lang keys (en_us).
+- [ ] 7C.2 `client/SidePanel`: vertical scrolling (wheel, clamped, kept across rebuilds while the item is unchanged)
+      and per-row hit zones (`<` / `>` level arrows, the row body). Anvil and grindstone panels unchanged (a list that
+      fits never scrolls). `screen/SidePanelLayout` takes the panel width (the table panel is wider for names + level
+      + cost); JUnit for the new width.
+- [ ] 7C.3 `client/TablePreviewState` (receiver; cleared on close, config INIT, disconnect), `client/TableScreenAccess`.
+      Build green, commit.
+
+### Stage 7D — Enchanting table screen → commit
+- [ ] 7D.1 `mixin/client/EnchantmentScreenMixin`: `init` TAIL applies the layout to `leftPos`; `renderBg` shifted to
+      `leftPos` (pose translation, as the grindstone); vanilla's three offer rows suppressed. In their 108×57 area: XP
+      and lapis totals, the status line, and an Enchant button drawn with vanilla's own `enchantment_slot` sprites
+      (normal / highlighted / disabled). Panel at TAIL. Row body click toggles a pick (default level = the highest
+      selectable), arrows step the level, and each change sends `TableSelectPayload`. Enchant sends
+      `TableEnchantPayload` with the shown numbers. Vanilla `mouseClicked` offer hit-test is skipped.
+      `hasClickedOutside` is false over the panel.
+- [ ] 7D.2 Client GameTest: singleplayer, real table with 15 shelves, diamond sword + lapis → rows; pick Sharpness V
+      and Mending → totals shown; Enchant → sword has both, levels and lapis charged; plain book with two picks →
+      enchanted book; scrolling on a book reaches the last row; tiny window → panel on screen; a panel click keeps a
+      carried item. Screenshots.
+- [ ] 7D.3 DESIGN §6 (table as built), state.md, decisions.md. Owner `runClient` list: panel look, a modded client on a
+      vanilla server keeping the vanilla table. Mutation: the Enchant button sends nothing → client test fails. Build +
+      `runClientGameTest` green, commit.
 
 ## Phase 8 — Conflict effect resolution + Fortune on all tools
 - [ ] 8.1 Silk/Fortune behavior per Q5 (loot-table modification, not item hacks). Adds the

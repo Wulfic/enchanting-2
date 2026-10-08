@@ -621,3 +621,33 @@ anvil's client GameTest passing unchanged is the check that the move didn't alte
 **Rejected:** grindstone importing `anvil.*` types (wrong dependency direction, names that lie); a parallel copy for the
 grindstone (two panels that drift apart).
 **Affects:** `screen/*`, `client/SidePanel`, `client/PanelTextResolver`, `AnvilScreenMixin`, `GrindstoneScreenMixin`
+
+## 2026-10-07 — Enchanting table: panel layout, enchanted items, offered pool, priced commit (Phase 7)
+**Context:** DESIGN §6 said "our own screen" and "every enabled enchantment applicable, Mending included". It didn't say
+how the list fits, whether enchanted items are accepted (vanilla's `slotsChanged` skips them), which treasure counts, or
+when curses arrive (TODO 7.1 said "curses off", 10e "curses at the table"). Decompiled 1.21.11: vanilla charges only 1–3
+levels (the shown cost is a requirement), and commits through `clickMenuButton(0..2)`.
+**Choice (owner):** (1) vanilla window kept. The offer area holds the totals and an Enchant button, and the list is a
+scrollable side panel placed like the anvil's. (2) Enchanted items and books accepted: add and upgrade. (3) Treasure at
+the table: Mending and Frost Walker only. (4) Binding and Vanishing offered now, with the §5a negative line.
+**Choice (agent):** the pool is the tag `enchanting2:offered_at_table` (`#in_enchanting_table` + those four).
+`treasure_requires_full_power` gates `#treasure` minus `#curse`. Applicability is `supported_items` via `EnchantRules`,
+not vanilla's `primary_items`. The selection is server-held and set by C2S. It's all or nothing: any invalid entry
+means no enchant. The commit is our own payload carrying the selection and the levels and lapis shown, and the server
+refuses on any mismatch. Vanilla `slotsChanged`/`clickMenuButton` are cancelled for menus we handle. The full cost is
+charged via `giveExperienceLevels`. `NetworkProtocol.VERSION` 3 → 4.
+**Why:** the panel reuses `SidePanel`/`SidePanelLayout` and matches the other two stations. The cost model is
+order-independent, so building an item over several visits costs the same as one. Soul Speed, Swift Sneak and Wind
+Burst are exploration rewards. Mending and Frost Walker are already sold by librarians. A tag keeps mods' table
+enchantments in automatically and lets datapacks extend it. `supported_items` is DESIGN §4's applicability, and a
+narrower table would only route players through books and the anvil. All or nothing means the server never charges for
+a set the player didn't pick. A priced commit means a `/reload`, a broken shelf or a lost selection packet can never
+charge a number the player wasn't shown.
+**Rejected:** a new wide screen (new texture and small-window handling, for no gameplay gain); unenchanted items only
+(vanilla rule; owner); all five treasure, or Mending only (owner); curses deferred to 10e (owner); a hardcoded ID list
+(datapack-hostile, and Phase 9 would replace it anyway); every registry enchantment (would sell enchantments mods never
+meant for a table); applying the valid subset of a selection (charges for something other than what was picked);
+committing through vanilla's button packet after a separate selection packet (no room for the price, and it relies on
+packet order).
+**Affects:** `table/*`, `EnchantmentMenuMixin`, `EnchantmentScreenMixin`, `network/Table*`, `NetworkProtocol`,
+`config/TableSection`, `SidePanel`, `data/enchanting2/tags/enchantment/offered_at_table.json`, DESIGN §6

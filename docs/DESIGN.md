@@ -359,17 +359,30 @@ later costs `max(30, ceil(0.15 × 17))` = 30.
 
 ### Enchanting table
 Readable and not random. The vanilla three-random-offers screen is replaced by our own screen.
-- Lists **every enabled enchantment applicable to the item, Mending included**. The player
-  picks one or more with a target level. The XP and lapis totals and the per-line breakdown
-  update live.
-- Curses are offered as optional picks with a **negative** cost line (the §5a discount).
+- Lists **every offered enchantment applicable to the item** (`supported_items`, as at the
+  anvil), Mending included. The player picks one or more with a target level. The XP and lapis
+  totals and the per-line breakdown update live. A selection with any invalid entry enchants
+  nothing; the panel names the entry and why.
+- **Offered** = the `enchanting2:offered_at_table` enchantment tag: `#minecraft:in_enchanting_table`
+  plus Mending, Frost Walker, Binding and Vanishing (owner, 2026-10-07). Soul Speed, Swift Sneak
+  and Wind Burst stay loot-only. Datapacks can extend the tag.
+- **Enchanted items and enchanted books are accepted** (owner, 2026-10-07). The player can add
+  enchantments and raise levels. Upgrades are priced by `upgrade_cost_mode`. Nothing is ever
+  lowered or removed.
+- Curses (Binding and Vanishing for now) are offered as optional picks with a **negative** cost
+  line (the §5a discount).
 - **Bookshelves:** placement rules and the 15-shelf maximum are unchanged from vanilla, so
   existing setups keep working. Power tier = `1 + floor(shelves × 4 / 15)`:
   0–3 → 1, 4–7 → 2, 8–11 → 3, 12–14 → 4, 15 → 5.
   Max selectable level = `ceil(enchantment_max_level × tier / 5)`, so 15 shelves unlocks
   every enchantment's max.
-- Treasure enchantments (Mending) need tier 5 (15 shelves) by default
-  (`table.treasure_requires_full_power = true`).
+- Offered treasure enchantments (Mending, Frost Walker) need tier 5 (15 shelves) by default
+  (`table.treasure_requires_full_power = true`). Curses are never gated: they're a discount, not
+  power.
+- **Screen** (only when the server runs Enchanting 2): the vanilla window stays (slots, book).
+  Its three-offer area shows the XP and lapis totals and an Enchant button. The list is a
+  scrollable side panel placed like the anvil's. The commit carries the numbers the player saw,
+  and the server refuses it if they no longer match.
 - Books can be enchanted with any table enchantment, several at once.
 - The server recomputes everything. The client's numbers are display only.
 
