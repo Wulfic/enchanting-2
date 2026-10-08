@@ -438,43 +438,63 @@ block's loot table opts in (ores, gravel→flint, leaves, melons, crops). That's
 vanilla: if Fortune multiplied a block that drops *itself*, you could mine 1, place 3, mine
 them and repeat forever. See `gotchas.md`.
 
-**Our rule: Fortune multiplies the block's own drop, but only for natural blocks.** A
-placed-block tracker breaks the loop: a block a player placed (or manufactured) never gets
-the Fortune bonus. The design is ported from the mcMMO-Singleplayer
-`PlacedBlockTracker`/`BlockRules` pattern.
-- Blocks Fortune affects: data tags `enchanting2:fortune_multiplies/<tool>`. Multiplier is
-  vanilla's ore formula (`1 + max(0, rand(0, level+2) − 1)`), so Fortune V averages 22/7 ≈ 3.1× (outcomes 1, 1, 2, 3, 4, 5, 6).
-- Draft defaults (adjust in Phase 8):
+**Our rule: Fortune multiplies every drop of a natural block in its tool's tag** (owner,
+2026-10-08: gravel's flint, clay's clay balls, a snow block's snowballs, a mushroom block's
+mushrooms). A placed-block tracker breaks the loop: a block a player placed (or manufactured)
+never gets the Fortune bonus. The design is ported from the mcMMO-Singleplayer
+`PlacedBlockTracker`/`BlockRules` pattern. Implemented in Phase 8 (`fortune/*`).
+- Blocks Fortune affects: block tags `enchanting2:fortune_multiplies/<kind>` for the kinds
+  axes, shovels, hoes and pickaxes. A tool's kinds are the vanilla item tags it's in
+  (`#minecraft:axes` etc.), so a modded paxel gets the union. Multiplier is vanilla's ore
+  formula (`1 + max(0, rand(0, level+2) − 1)`), so Fortune V averages 22/7 ≈ 3.1× (outcomes
+  1, 1, 2, 3, 4, 5, 6). Stacks are split at the max stack size.
+- Applied in Fabric's `LootTableEvents.MODIFY_DROPS`, after the block's own loot table, and
+  only for that table (never chests, mobs or nested tables). Any error leaves vanilla's drops.
+- Defaults (datapacks can extend any of them):
 
   | Tool | Default tag |
   |---|---|
-  | Axe | logs and stems, mushroom blocks |
-  | Shovel | dirt, sand, red sand, gravel (the block itself; flint chance stays vanilla), clay, soul sand/soil, mud, snow block |
-  | Hoe | vanilla crops (unchanged), moss block, nether/warped wart block, shroomlight |
-  | Pickaxe | vanilla only. **Ancient debris is hard-excluded** (multiplying it breaks the netherite economy) |
+  | Axe | `#minecraft:logs` (logs and stems), mushroom blocks and stems |
+  | Shovel | dirt, sand, red sand, gravel, clay, soul sand/soil, mud, snow block |
+  | Hoe | moss block, nether/warped wart block, shroomlight (vanilla crops keep vanilla Fortune) |
+  | Pickaxe | empty: vanilla only. **Ancient debris is hard-excluded in code** whatever the tags say (multiplying it breaks the netherite economy) |
 
+- **Silk Touch + Fortune** (§4): `SILK_WINS` (default) still multiplies a tagged block
+  **unless Silk Touch changed its drop** (owner, 2026-10-08). Logs, sand, dirt and moss
+  multiply. Clay, snow blocks, mushroom blocks and gravel at Fortune III+ give one silk-touched
+  block. "Changed" means a second roll of the block's table with a Silk-free copy of the tool
+  drops different item types. `FORTUNE_MULTIPLIES_SILK` multiplies the silk-touched drop of a
+  block in the tool's tag or in `enchanting2:fortune_multiplies_silk` (default `#c:ores`),
+  natural blocks only, so it can't loop either.
 - **What counts as placed (marked ineligible):**
-  - Hand placement (`BlockItem` place)
-  - Piston moves: the mark moves with the block. Read all, clear all, write all as three
-    separate passes, as mcMMO does, or pushed columns lose marks.
-  - **Falling blocks:** sand or gravel placed in the air lands somewhere else. The mark must
-    ride the falling-block entity, or the drop launders a placed block into a natural one.
-    mcMMO never needed this; we do, because sand and gravel are in the shovel tag.
-  - Lava/water generator output and snow-golem snow, when that block is in a Fortune tag
-  - Breaking a block clears its mark. Blocks grown from a sapling or bone meal stay
-    natural (renewable anyway).
-- Storage: per-chunk persistent data via the Fabric Data Attachment API rather than mcMMO's
-  single world file. A multiplayer server with many players placing blocks would otherwise
-  hold the whole set in memory and rewrite one growing file. Chunk attachments load,
-  unload and save with their chunk. (Confirm chunk-attachment persistence on 1.21.11 in
-  Phase 1.8.)
-- Every failure path fails **closed**: if the tracker can't be read for a chunk, Fortune
-  gives no bonus there and logs a WARN. mcMMO fails open (placed blocks pay out again),
-  which is fine for XP but not for item duplication.
-- Silk Touch + Fortune (`FORTUNE_MULTIPLIES_SILK`, still off by default) uses the same
-  tracker, so it can't loop either.
-- Tests: place → mine with Fortune V → exactly one drop. The same through a piston push and
-  a sand fall. A natural block → multiplied. An unreadable chunk → no bonus.
+  - **Every** block placed from an item (`BlockItem.place`), by a player or a dispenser,
+    whatever the block (owner, 2026-10-08), so a later tag change can't pay out on it.
+  - Piston moves: the mark moves with the block. Read all, clear all (sources, destinations and
+    destroyed blocks), then write, as separate passes, or pushed columns lose marks. Works
+    across chunk borders.
+  - **Falling blocks:** sand or gravel placed in the air lands somewhere else. The mark rides
+    the falling-block entity (a persistent entity attachment), or the drop would launder a
+    placed block into a natural one. Landing sets the landing position either way.
+  - Endermen setting a block down (it may be a placed block they picked up).
+  - Lava/water generator output and snow-golem snow, when that block is in a Fortune tag.
+  - A player breaking a block clears its mark, **after** its loot is rolled
+    (`ServerPlayerGameMode.destroyBlock` RETURN; Fabric's `PlayerBlockBreakEvents.AFTER` fires
+    before the loot). Other removals (explosions, fire) leave a stale mark, which fails closed.
+  - A mark belongs to a position, so in-place conversions (dirt → path, log → stripped) keep
+    it. Blocks grown from a sapling or bone meal stay natural (renewable anyway).
+- Storage: a Fabric Data Attachment on each chunk (`enchanting2:placed_blocks`), a 4096-bit set
+  per 16-high section (≤ 512 bytes per section), rather than mcMMO's single world file. A
+  multiplayer server with many players placing blocks would otherwise hold the whole set in
+  memory and rewrite one growing file. Chunk attachments load, unload and save with their chunk.
+- Every failure path fails **closed**. Fabric drops an attachment whose codec fails, which
+  would make the chunk's placed blocks natural, so our codec never fails. Data it can't read
+  becomes "unreadable" (no bonus anywhere in that chunk, WARN at load) and is written back
+  unchanged. mcMMO fails open (placed blocks pay out again), which is fine for XP but not for
+  item duplication. Removing the mod drops the attachment on the next save (Fabric WARNs about
+  an unknown type), so re-adding it treats those chunks' placed blocks as natural once (§2a).
+- Tests: place → mine with Fortune V → exactly one drop, ten times over (`FortuneDropsGameTest`).
+  Marks through piston push and pull, sand falls, endermen, generators and golems
+  (`PlacedBlocksGameTest`). A natural block → multiplied. An unreadable chunk → no bonus.
 
 ### Books
 Can hold any enabled enchantment, mixed. Applicability is checked when the book is applied.

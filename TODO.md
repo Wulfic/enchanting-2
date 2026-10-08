@@ -1038,7 +1038,7 @@ go back through vanilla's `removed()` → `clearContainer`.
       **Not automated (owner):** the look in a normal session (is the ready Enchant button clearly clickable?), and a
       modded client on a vanilla server keeping the vanilla table.
 
-## Phase 8 — Conflict effect resolution + Fortune on all tools (four stages, one commit each)
+## Phase 8 — Conflict effect resolution + Fortune on all tools (four stages, one commit each)  ✅ 2026-10-08 (except the owner `runClient` check)
 **Goal:** every relaxed conflict family does what DESIGN §4's table says when combined, and Fortune multiplies the drops
 of natural blocks in the `fortune_multiplies/<tool>` tags, never of a block a player placed or moved (DESIGN §6).
 **Owner (2026-10-08, Phase 8 start):** (1) **Every drop** of a tagged natural block is multiplied: Fortune V gravel
@@ -1188,20 +1188,31 @@ Nothing outside the repo is touched.
       `goalSelector`, GameTest `MobAccessor`). Mutations: all eight mixins off → the 9 hook tests fail and the 2
       persistence tests pass; the break-clear and lava mixins off → exactly those 2 fail. 259 JUnit (+3), 147 GameTests.
 
-### Stage 8D — Fortune drops → commit
+### Stage 8D — Fortune drops → commit  ✅ 2026-10-08
 - [x] 8D.1 Tags (done in 8C): `data/enchanting2/tags/block/fortune_multiplies/{axes,shovels,hoes,pickaxes}.json` per DESIGN §6's
       table (pickaxes empty), `fortune_multiplies_silk.json` = `#c:ores`. Lang/README note.
-- [ ] 8D.2 `fortune/FortuneDrops` on `LootTableEvents.MODIFY_DROPS`: guard (block table, params present, Fortune > 0,
+- [x] 8D.2 `fortune/FortuneDrops` on `LootTableEvents.MODIFY_DROPS`: guard (block table, params present, Fortune > 0,
       not re-entrant) → tool kinds → tags → silk handling per mode (re-roll for "silk changed") → `isNatural` →
       `FortuneRule` → multiply every stack (split at max stack size). Errors are logged and leave the drops unchanged.
       DEBUG log per decision.
-- [ ] 8D.3 `FortuneDropsGameTest`: natural log + Fortune V axe → more than one log over N breaks (seeded, or the
+- [x] 8D.3 `FortuneDropsGameTest`: natural log + Fortune V axe → more than one log over N breaks (seeded, or the
       expected-value bound); placed log → exactly 1; piston-pushed placed log → 1; sand placed, fallen, mined → 1;
       natural gravel Fortune V → flint multiplied; clay → clay balls multiplied; wrong tool kind (Fortune hoe on a log) →
       1; Fortune 0 → vanilla; SILK_WINS + Silk on a log → multiplied, on clay → 1 clay block; FORTUNE_MULTIPLIES_SILK +
       Silk on natural diamond ore → multiplied ore, placed → 1; ancient debris in a test tag → never; an `UNREADABLE`
       chunk → no bonus + WARN; a chest or mob loot roll untouched. Mutation: skip `isNatural` → the placed tests fail.
-- [ ] 8D.4 DESIGN §6 updated to match (owner answers, tag list, silk rule). Build green, commit. state.md, decisions.md.
+- [x] 8D.4 DESIGN §6 updated to match (owner answers, tag list, silk rule). Build green, commit. state.md, decisions.md.
+      **Done:** `FortuneDrops.apply(table, context, drops, mode)` is public. The event passes the live mode, and the
+      FORTUNE_MULTIPLIES_SILK GameTests pass it directly (parallel GameTests must not flip the server config). The
+      Silk-free re-roll goes through `LootTable.getRandomItems` behind a `ThreadLocal` guard, because loot also rolls
+      on worldgen threads. Each "multiplies" test rolls 20 times (an all-×1 run has odds (2/7)^20). The place-and-mine
+      test runs a survival mock player: place a log, break it with a Fortune V axe, ten times → exactly 10 logs. The
+      GameTest datapack adds ancient debris to pickaxes, so the hard exclusion is tested against a tag that includes it.
+      Not done: a piston-pushed or fallen placed block mined → 1. 8C proves the marks follow the block, and 8D proves
+      a mark gates the drop, so that test would repeat both. Mutations: origin forced NATURAL → exactly the 4 placed
+      and unreadable tests fail. Clearing in Fabric's `AFTER` instead (the plan's original design) → only the
+      place-and-mine loop fails (30 logs, gotchas.md). My own test bug on the first run: 1 flint × 6 = 6, not 4.
+      259 JUnit, 159 GameTests (+12).
 
 ## Phase 9 — Acquisition (loot, trades, table pools)
 - [ ] 9.1 Per-enchantment table/loot/trade flags and weights

@@ -2,6 +2,7 @@ package com.wulfnet.enchanting2;
 
 import com.wulfnet.enchanting2.config.ServerConfigs;
 import com.wulfnet.enchanting2.enchantment.MaxLevelHook;
+import com.wulfnet.enchanting2.fortune.FortuneDrops;
 import com.wulfnet.enchanting2.fortune.PlacedBlocks;
 import com.wulfnet.enchanting2.network.ServerNetworking;
 import net.fabricmc.api.ModInitializer;
@@ -19,6 +20,7 @@ public final class Enchanting2 implements ModInitializer {
 		ServerConfigs.register();
 		MaxLevelHook.register();
 		PlacedBlocks.register();
+		FortuneDrops.register();
 		LOGGER.info("Enchanting 2 initialized");
 	}
 }

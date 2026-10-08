@@ -327,6 +327,8 @@ drop hook reads the mark while the loot is rolled, so it would always have seen 
 `Block.destroy` call in `destroyBlock`. Vanilla's order is `playerWillDestroy` → `removeBlock` → `destroy` (AFTER) →
 `playerDestroy` (loot). "After" means after removal, not after drops.
 **Fix:** our own `ServerPlayerGameModeMixin` clears at `destroyBlock` RETURN when it returns true. Mutation-tested:
-without it, "after the player broke it" stays PLACED.
+without it, "after the player broke it" stays PLACED. Confirmed in Stage 8D: with the clear moved into `AFTER`, 10
+place-and-mine loops with a Fortune V axe dropped 30 logs instead of 10. Only the end-to-end loop test caught it; the
+mark-level tests all passed.
 **Lesson:** read where a Fabric event's mixin injects before relying on its name for ordering.
 **Affects:** `mixin/ServerPlayerGameModeMixin`, `fortune/PlacedBlocks`, Stage 8D's loot hook

@@ -1,6 +1,7 @@
 {
   "values": [
     "minecraft:obsidian",
-    "minecraft:stone"
+    "minecraft:stone",
+    "minecraft:ancient_debris"
   ]
 }

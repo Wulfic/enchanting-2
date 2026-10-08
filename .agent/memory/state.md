@@ -8,7 +8,7 @@
 **Branch:** main (commit straight to main and push; no CI; see decisions.md)
 
 ## Where we are
-Phases 1–7 done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
+Phases 1–8 done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
 - 3: `ExperienceCurve`, no level cap, exact XP points, counters saturate. 4: `MaxLevels` via `MODIFY` (restart to
   apply), `ConflictFamily` + `allow_together`, `EnchantRules`, Lure/Riptide 5 with safe caps.
 - 5: `cost/` (`CostModel`, `PricingTable`, curse discount, `cleanseCost`, `extractCost`).
@@ -20,17 +20,22 @@ Phases 1–7 done (TODO.md has each stage's notes; owner `runClient` checks stil
 - 7 (2026-10-07): table on `TableCalculator` (pool = tag `offered_at_table`, `TablePower` tiers, `table` config),
   `EnchantmentMenuMixin` (vanilla offers off, server-held selection, priced Enchant payload, protocol v4), panel
   (`TablePanelView`, scrolling `SidePanel.drawList`) and `EnchantmentScreenMixin` (price + Enchant in the offer rows).
-- Tests: 228 JUnit + 125 GameTests (`./gradlew build`) + 3 client GameTests (`./gradlew runClientGameTest`).
+- 8 (2026-10-08): `fortune.silk_fortune_mode`, `TridentItemMixin` (Riptide throws on land), conflict-effect GameTests;
+  placed-block tracker (`fortune/PlacedMarks` per-chunk attachment, fail-closed codec, `MarkMoves`, 8 marking mixins,
+  clear at `destroyBlock` RETURN); `FortuneDrops` on `MODIFY_DROPS` with `fortune_multiplies/<kind>` tags.
+- Tests: 259 JUnit + 159 GameTests (`./gradlew build`) + 3 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Phase 8 (2026-10-08): stages 8A–8D in TODO.md, owner answers in decisions.md "Phase 8". 8A (silk_fortune_mode,
-   trident mixin, conflict-effect GameTests) and 8B (`fortune/PlacedMarks`, codec, `FortuneRule`) committed. Next:
-   Stage 8C (chunk attachment + marking hooks), then 8D (loot `MODIFY_DROPS`). Tests: 256 JUnit + 135 GameTests.
+1. Phase 9 (acquisition: per-enchantment table/loot/trade flags and weights): plan it into TODO.md first, ask the
+   owner the open questions early.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
    ~1,000,000) + 6D: panel look, config screen "Display" toggle, and a vanilla server keeping the vanilla anvil screen +
    6bC: grindstone panel look, and a vanilla server keeping the vanilla grindstone + 7D: table panel and window look
    (does the ready Enchant button, vanilla's beige offer sprite, read as clickable?), and a vanilla server keeping the
-   vanilla table.
+   vanilla table + 8: the config screen's "Fortune" category and its warning tooltip, and a quick feel check (Fortune V
+   axe on a tree; place a log and mine it).
+3. Owner, optional: the Fortune default tags are DESIGN §6's draft list. Grass, podzol, coarse/rooted dirt, mycelium,
+   bamboo blocks and leaves aren't in them.
 
 ## Open questions / blockers
 - None. Owner (2026-10-06): a lowered max level never touches existing items (decisions.md).
