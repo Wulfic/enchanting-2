@@ -1131,22 +1131,29 @@ Nothing outside the repo is touched.
       Mutation (trident mixin unregistered) → exactly the two land tests fail ("use refused the trident"). 232
       JUnit (+4), 135 GameTests (+10).
 
-### Stage 8B — MC-free core: marks and the Fortune rule → commit
-- [ ] 8B.1 `fortune/PlacedMarks`: per chunk, section Y → `long[64]` bitset over local (x, y, z). `mark`, `clear`,
+### Stage 8B — MC-free core: marks and the Fortune rule → commit  ✅ 2026-10-08
+- [x] 8B.1 `fortune/PlacedMarks`: per chunk, section Y → `long[64]` bitset over local (x, y, z). `mark`, `clear`,
       `isMarked`, `isEmpty`, `count`. Three-pass `move(from[], to[])` (read all, clear all, write all), so a pushed
       column keeps every mark. `UNREADABLE` state: `isMarked` → true everywhere, mutations are no-ops, the raw data is
       kept. Defensive copies, no MC types (positions as packed longs or ints).
-- [ ] 8B.2 `fortune/PlacedMarksCodec` (versioned `{v:1, sections:[{y, bits}]}`): decode never fails. Wrong version,
+- [x] 8B.2 `fortune/PlacedMarksCodec` (versioned `{v:1, sections:[{y, bits}]}`): decode never fails. Wrong version,
       wrong array length, duplicate Y, or a non-map → `UNREADABLE(raw)` + a WARN with the reason. Encoding an
       `UNREADABLE` writes the raw value back unchanged. An empty set encodes to nothing (no attachment written).
-- [ ] 8B.3 `fortune/FortuneRule` (pure): `multiplier(level, random)` = vanilla ore formula `1 + max(0, nextInt(level+2)
+- [x] 8B.3 `fortune/FortuneRule` (pure): `multiplier(level, random)` = vanilla ore formula `1 + max(0, nextInt(level+2)
       − 1)`. `decide(fortuneLevel, hasSilk, mode, silkChangedDrop, tagged, silkTagged, natural, excluded)` →
       `MULTIPLY | NONE` with a reason enum for the debug log.
-- [ ] 8B.4 JUnit: every bit of a section round-trips; the boundary sections (y −64, 319); move of a 12-block column
+- [x] 8B.4 JUnit: every bit of a section round-trips; the boundary sections (y −64, 319); move of a 12-block column
       by one (overlapping from/to) keeps 12 marks; clear of an unmarked position is a no-op; codec round-trip; each
       corrupt input → `UNREADABLE`, marked everywhere, re-encodes byte-identical; `decide` truth table (silk × mode ×
       changed × natural × excluded); multiplier distribution at Fortune V within bounds (seeded random, mean 22/7 ≈ 3.14).
       Mutation: single-pass move → the column test fails. Build green, commit.
+      **Done:** `PlacedMarks` is immutable (a chunk attachment is only saved when it's set again), with copy-on-write
+      per section. `moved` takes packed local positions (`pack(x, y, z)`). The codec is a hand-written DFU `Codec`
+      tested with `JsonOps`. It reads `sections` through `ops.getStream`, because `Dynamic.asList` turns a non-list into
+      an empty list (fail open). Section Y is bounded −128..127. `decide` takes the origin and the Silk re-roll as
+      suppliers. Order: Fortune → excluded → tags → origin → re-roll, so the re-roll only runs for a natural, tagged
+      block on a Silk tool under SILK_WINS (tested). Fortune V averages 22/7, not 2.9 (gotchas.md). Mutations: a
+      single-pass move and the `asList` read → exactly one test fails each. 256 JUnit (+24), 135 GameTests.
 
 ### Stage 8C — Persistence and marking hooks → commit
 - [ ] 8C.1 `fortune/PlacedBlocks` (MC side): chunk `AttachmentType<PlacedMarks>` `enchanting2:placed_blocks`
