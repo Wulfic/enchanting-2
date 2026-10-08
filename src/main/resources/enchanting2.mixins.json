@@ -5,6 +5,7 @@
 	"mixins": [
 		"AnvilMenuMixin",
 		"EnchantmentBuilderAccessor",
+		"EnchantmentMenuMixin",
 		"GrindstoneInputSlotMixin",
 		"GrindstoneMenuInvoker",
 		"GrindstoneMenuMixin",

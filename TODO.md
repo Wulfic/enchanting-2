@@ -946,21 +946,21 @@ go back through vanilla's `removed()` → `clearContainer`.
       7A.3 pool checks live in `TableCalculatorGameTest` (17 tests). Mutation (tier check skipped) → 2 fail. 213 JUnit
       (+5 `TablePowerTest`, +2 table config parse) + 113 GameTests.
 
-### Stage 7B — Server menu + payloads → commit
-- [ ] 7B.1 `network/TableSelectPayload` (C2S: container ID, selection), `network/TableEnchantPayload` (C2S: container
+### Stage 7B — Server menu + payloads → commit  ✅ 2026-10-07
+- [x] 7B.1 `network/TableSelectPayload` (C2S: container ID, selection), `network/TableEnchantPayload` (C2S: container
       ID, selection, levels, lapis), `network/TablePreviewPayload` (S2C: container ID, status, rows, breakdown lines,
       totals, shelves, tier). Sizes checked in the constructor, shared codecs in `PayloadCodecs`. `VERSION` → 4.
       Registered in `registerPayloads`.
-- [ ] 7B.2 `mixin/EnchantmentMenuMixin`: player captured at `<init>`; `slotsChanged` HEAD → on the server, count shelves
+- [x] 7B.2 `mixin/EnchantmentMenuMixin`: player captured at `<init>`; `slotsChanged` HEAD → on the server, count shelves
       through `access`, compute, send the preview when changed (dedup as the grindstone), cancel; on a client of our
       server, cancel. `clickMenuButton` HEAD → return false for menus we handle (logged at debug). Duck
       `table/TableMenuAccess` (`select`, `enchant`, outcome, last preview) for the handlers and tests.
       `table/TableBridge` (client sources: server is ours, latest preview).
-- [ ] 7B.3 `ServerNetworking.handleTableSelect` / `handleTableEnchant`: ignore unless `player.containerMenu` is a table
+- [x] 7B.3 `ServerNetworking.handleTableSelect` / `handleTableEnchant`: ignore unless `player.containerMenu` is a table
       with that ID. Enchant recomputes. It refuses unless status `OK` and the payload's selection, levels and lapis equal
       the recomputed ones. It then writes slot 0, consumes lapis, charges levels, awards the stat and trigger, plays the
       sound, clears the selection and recomputes.
-- [ ] 7B.4 `TableGameTest` (real table + shelves placed in the structure, real `EnchantmentMenu`, mock player with
+- [x] 7B.4 `TableGameTest` (real table + shelves placed in the structure, real `EnchantmentMenu`, mock player with
       `instabuild` off): no vanilla offers (`costs[]` stay 0); select → preview; enchant → exact levels and lapis
       charged, item has exactly the picks; plain book → enchanted book with several entries; enchanted book gains
       entries; upgrade; forged payloads (wrong container ID, inapplicable, above max, above tier, not in pool, Soul
@@ -971,6 +971,17 @@ go back through vanilla's `removed()` → `clearContainer`.
       (seeded, 300): random item/book, existing enchantments, shelves, selection → after an OK enchant, every prior
       (ID, level) is still present at ≥ its level and the charge equals the preview. Mutations: skip the stale-cost check
       → fails; charge before validating → fails. `NetworkProtocolTest` pins v4. Build green, commit.
+      **Done:** the preview carries the selection as the server holds it (the client echoes it in the Enchant payload)
+      and enforces `TableOutcome`'s invariants (an OK or priced status always has a cost), so a malformed packet can't
+      crash the client. The breakdown codec moved from `AnvilPreviewPayload` to `PayloadCodecs` (anvil wire format
+      unchanged). Shelves are counted through `access.evaluate`, so a `ContainerLevelAccess.NULL` menu is `NONE` and
+      can't enchant. The enchant compares selection + levels + lapis, **not the status**. A player who gained levels
+      since a panel that said "insufficient" can enchant at the shown price, and the server's own check decides. A
+      refused enchant force-resends the panel. Vanilla's seed reroll is dropped (nothing reads the seed). The
+      `ENCHANTED_ITEM` trigger gets the levels charged. Slot 1 counts as 0 lapis unless it holds lapis. `TableGameTest`
+      12 (incl. a corner shelf blocked by stone → 14, the property: 300 cases, ≥ 60 enchants). Mutations: stale-number
+      check dropped → 1 fails; payload levels charged before validating → 6 fail (incl. the property). 213 JUnit + 125
+      GameTests + 2 client GameTests.
 
 ### Stage 7C — Panel model and scrolling → commit
 - [ ] 7C.1 `table/TablePanelView` (pure): a row per offered enchantment (name, current → selected level, its line cost
@@ -990,7 +1001,9 @@ go back through vanilla's `removed()` → `clearContainer`.
       and lapis totals, the status line, and an Enchant button drawn with vanilla's own `enchantment_slot` sprites
       (normal / highlighted / disabled). Panel at TAIL. Row body click toggles a pick (default level = the highest
       selectable), arrows step the level, and each change sends `TableSelectPayload`. Enchant sends
-      `TableEnchantPayload` with the shown numbers. Vanilla `mouseClicked` offer hit-test is skipped.
+      `TableEnchantPayload` with the shown numbers: the cost's levels and lapis, enabled for a priced status when the
+      local player's levels and the lapis slot cover them. The panel's `INSUFFICIENT_LEVELS` can be stale, see 7B.
+      Vanilla `mouseClicked` offer hit-test is skipped.
       `hasClickedOutside` is false over the panel.
 - [ ] 7D.2 Client GameTest: singleplayer, real table with 15 shelves, diamond sword + lapis → rows; pick Sharpness V
       and Mending → totals shown; Enchant → sword has both, levels and lapis charged; plain book with two picks →

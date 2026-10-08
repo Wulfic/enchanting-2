@@ -9,6 +9,7 @@ import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.experience.ExperienceCurve;
 import com.wulfnet.enchanting2.experience.PlayerExperience;
 import com.wulfnet.enchanting2.grindstone.GrindstoneBridge;
+import com.wulfnet.enchanting2.table.TableBridge;
 import net.fabricmc.api.ClientModInitializer;
 
 public final class Enchanting2Client implements ClientModInitializer {
@@ -25,6 +26,7 @@ public final class Enchanting2Client implements ClientModInitializer {
 		// Same signal: a synced config means the server runs our anvil, so the client mustn't compute its own result.
 		AnvilBridge.setClientSource(() -> ClientConfigState.serverCopy().isPresent());
 		GrindstoneBridge.setClientSource(() -> ClientConfigState.serverCopy().isPresent());
+		TableBridge.setClientSource(() -> ClientConfigState.serverCopy().isPresent());
 		Enchanting2.LOGGER.info("Enchanting 2 client initialized");
 	}
 }

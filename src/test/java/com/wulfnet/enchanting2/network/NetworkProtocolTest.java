@@ -19,13 +19,13 @@ class NetworkProtocolTest {
 	}
 
 	/**
-	 * v3 (Stage 6bB): the grindstone panel and pick. A v2 client computes vanilla grindstone results locally and can't
-	 * pick, so it must not join; nor a v1 client, which computes vanilla anvil results.
+	 * v4 (Stage 7B): the enchanting table panel, selection and enchant. A v3 client waits for vanilla table offers the
+	 * server never makes, so it must not join; nor older ones (v3 the grindstone, v2 and v1 the anvil).
 	 */
 	@Test
-	void protocolIsV3AndOlderClientsAreAMismatch() {
-		assertEquals(3, NetworkProtocol.VERSION);
-		for (int old : new int[] {1, 2}) {
+	void protocolIsV4AndOlderClientsAreAMismatch() {
+		assertEquals(4, NetworkProtocol.VERSION);
+		for (int old : new int[] {1, 2, 3}) {
 			Verdict v = NetworkProtocol.classify(Set.of("minecraft:brand", "enchanting2:v" + old + "/config_sync"),
 					REQUIRED);
 			assertEquals(new Verdict(Kind.MISMATCH, List.of(old)), v);

@@ -18,12 +18,14 @@ Phases 1–6b done (TODO.md has each stage's notes; owner `runClient` checks sti
   `GrindstoneChoicePayload`), picker panel. `NetworkProtocol.VERSION` 3. Shared panel code in `screen/` and
   `client/SidePanel`.
 - 7A (2026-10-07): `table/` calculator (`TableCalculator`, `TablePower`, `TablePool` + tag `offered_at_table`), `table`
-  config section. Not wired to the menu yet (7B).
-- Tests: 213 JUnit + 113 GameTests (`./gradlew build`) + 2 client GameTests (`./gradlew runClientGameTest`).
+  config section. 7B: `EnchantmentMenuMixin` (vanilla offers off, server-held selection, priced Enchant payload),
+  `Table{Select,Enchant,Preview}Payload`, `NetworkProtocol.VERSION` 4. No client screen yet (7C/7D): on a real
+  server the table shows vanilla's empty offer slots until then.
+- Tests: 213 JUnit + 125 GameTests (`./gradlew build`) + 2 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
 1. Phase 7 (enchanting table), planned in TODO.md as 7A–7D (owner answers in decisions.md 2026-10-07 "Enchanting
-   table"). 7A done. Next: Stage 7B (`EnchantmentMenuMixin`, the three `Table*` payloads, protocol v4, `TableGameTest`).
+   table"). 7A, 7B done. Next: Stage 7C (`TablePanelView`, `SidePanel` scrolling + level arrows, `TablePreviewState`).
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
    ~1,000,000) + 6D: panel look, config screen "Display" toggle, and a vanilla server keeping the vanilla anvil screen +
    6bC: grindstone panel look, and a vanilla server keeping the vanilla grindstone.

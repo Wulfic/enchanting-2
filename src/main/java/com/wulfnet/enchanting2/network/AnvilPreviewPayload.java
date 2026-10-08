@@ -30,7 +30,7 @@ public record AnvilPreviewPayload(int containerId, Status status, Optional<CostB
 		List<Entry> entries) implements CustomPacketPayload {
 	/** Per list. Far above any real anvil (one entry per enchantment, at most a few lines per entry). */
 	public static final int MAX_ENTRIES = 1024;
-	public static final int MAX_LINES = 1024;
+	public static final int MAX_LINES = PayloadCodecs.MAX_LINES;
 	/** Characters in an enchantment ID. */
 	public static final int MAX_ID_CHARS = PayloadCodecs.MAX_ID_CHARS;
 
@@ -38,24 +38,6 @@ public record AnvilPreviewPayload(int containerId, Status status, Optional<CostB
 			Identifier.fromNamespaceAndPath(Enchanting2.MOD_ID, NetworkProtocol.path("anvil_preview")));
 
 	private static final StreamCodec<ByteBuf, String> ID = PayloadCodecs.ID;
-
-	private static final StreamCodec<ByteBuf, CostBreakdown.Line> LINE = StreamCodec.composite(
-			PayloadCodecs.ordinal(CostBreakdown.Kind.class), CostBreakdown.Line::kind,
-			ID, CostBreakdown.Line::id,
-			ByteBufCodecs.VAR_INT, CostBreakdown.Line::from,
-			ByteBufCodecs.VAR_INT, CostBreakdown.Line::to,
-			ByteBufCodecs.VAR_LONG, CostBreakdown.Line::amount,
-			CostBreakdown.Line::new);
-
-	/** Decoding runs {@code CostBreakdown}'s checks, so totals that don't match their lines fail to decode. */
-	private static final StreamCodec<ByteBuf, CostBreakdown> BREAKDOWN = StreamCodec.composite(
-			LINE.apply(ByteBufCodecs.list(MAX_LINES)), CostBreakdown::lines,
-			ByteBufCodecs.VAR_INT, CostBreakdown::enchantCost,
-			ByteBufCodecs.VAR_INT, CostBreakdown::total,
-			ByteBufCodecs.VAR_INT, CostBreakdown::lapis,
-			ByteBufCodecs.BOOL, CostBreakdown::free,
-			ByteBufCodecs.BOOL, CostBreakdown::tooExpensive,
-			CostBreakdown::new);
 
 	private static final StreamCodec<ByteBuf, Entry> ENTRY = StreamCodec.composite(
 			ID, Entry::id,
@@ -68,7 +50,7 @@ public record AnvilPreviewPayload(int containerId, Status status, Optional<CostB
 	public static final StreamCodec<ByteBuf, AnvilPreviewPayload> CODEC = StreamCodec.composite(
 			ByteBufCodecs.VAR_INT, AnvilPreviewPayload::containerId,
 			PayloadCodecs.ordinal(Status.class), AnvilPreviewPayload::status,
-			ByteBufCodecs.optional(BREAKDOWN), AnvilPreviewPayload::breakdown,
+			ByteBufCodecs.optional(PayloadCodecs.BREAKDOWN), AnvilPreviewPayload::breakdown,
 			ENTRY.apply(ByteBufCodecs.list(MAX_ENTRIES)), AnvilPreviewPayload::entries,
 			AnvilPreviewPayload::new);
 
@@ -83,13 +65,7 @@ public record AnvilPreviewPayload(int containerId, Status status, Optional<CostB
 		if (entries.size() > MAX_ENTRIES) {
 			throw new IllegalArgumentException(entries.size() + " entries, max " + MAX_ENTRIES);
 		}
-		if (breakdown.isPresent()) {
-			List<CostBreakdown.Line> lines = breakdown.get().lines();
-			if (lines.size() > MAX_LINES) {
-				throw new IllegalArgumentException(lines.size() + " cost lines, max " + MAX_LINES);
-			}
-			lines.forEach(line -> PayloadCodecs.checkId(line.id()));
-		}
+		breakdown.ifPresent(PayloadCodecs::checkBreakdown);
 		for (Entry entry : entries) {
 			PayloadCodecs.checkId(entry.id());
 			entry.conflictsWith().ifPresent(PayloadCodecs::checkId);

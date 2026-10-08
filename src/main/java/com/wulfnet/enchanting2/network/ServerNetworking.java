@@ -3,6 +3,7 @@ package com.wulfnet.enchanting2.network;
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.config.ServerConfigs;
 import com.wulfnet.enchanting2.grindstone.GrindstoneMenuAccess;
+import com.wulfnet.enchanting2.table.TableMenuAccess;
 import java.util.List;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerConfigurationConnectionEvents;
@@ -15,6 +16,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +34,9 @@ public final class ServerNetworking {
 		PayloadTypeRegistry.playS2C().register(AnvilPreviewPayload.TYPE, AnvilPreviewPayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(GrindstoneOptionsPayload.TYPE, GrindstoneOptionsPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(GrindstoneChoicePayload.TYPE, GrindstoneChoicePayload.CODEC);
+		PayloadTypeRegistry.playS2C().register(TablePreviewPayload.TYPE, TablePreviewPayload.CODEC);
+		PayloadTypeRegistry.playC2S().register(TableSelectPayload.TYPE, TableSelectPayload.CODEC);
+		PayloadTypeRegistry.playC2S().register(TableEnchantPayload.TYPE, TableEnchantPayload.CODEC);
 	}
 
 	/**
@@ -52,6 +57,38 @@ public final class ServerNetworking {
 		return true;
 	}
 
+	/** Stores a table selection on the player's open table, if its container ID matches. Server thread. */
+	public static boolean handleTableSelect(ServerPlayer player, TableSelectPayload payload) {
+		TableMenuAccess table = openTable(player, payload.containerId(), "selection");
+		if (table == null) {
+			return false;
+		}
+		table.enchanting2$select(payload.selection());
+		return true;
+	}
+
+	/**
+	 * The Enchant button on the player's open table, if its container ID matches. The menu enchants only when the
+	 * payload's selection, levels and lapis equal what it would charge now. Server thread.
+	 *
+	 * @return whether the item was enchanted
+	 */
+	public static boolean handleTableEnchant(ServerPlayer player, TableEnchantPayload payload) {
+		TableMenuAccess table = openTable(player, payload.containerId(), "enchant");
+		return table != null && table.enchanting2$enchant(payload.selection(), payload.levels(), payload.lapis());
+	}
+
+	/** The player's open table with that container ID; null (logged) for anything else: closed, stale, forged. */
+	private static @Nullable TableMenuAccess openTable(ServerPlayer player, int containerId, String what) {
+		AbstractContainerMenu menu = player.containerMenu;
+		if (!(menu instanceof TableMenuAccess table) || menu.containerId != containerId) {
+			LOG.debug("Ignoring a table {} from {} for container {}: their open menu is {} ({})", what,
+					player.getName().getString(), containerId, menu.getClass().getSimpleName(), menu.containerId);
+			return null;
+		}
+		return table;
+	}
+
 	public static void registerServer() {
 		// Netty thread. Every client goes through configuration, the singleplayer host included.
 		ServerConfigurationConnectionEvents.CONFIGURE.register((handler, server) -> {
@@ -70,6 +107,10 @@ public final class ServerNetworking {
 		// Fabric runs play receivers on the server thread.
 		ServerPlayNetworking.registerGlobalReceiver(GrindstoneChoicePayload.TYPE,
 				(payload, context) -> handleGrindstoneChoice(context.player(), payload));
+		ServerPlayNetworking.registerGlobalReceiver(TableSelectPayload.TYPE,
+				(payload, context) -> handleTableSelect(context.player(), payload));
+		ServerPlayNetworking.registerGlobalReceiver(TableEnchantPayload.TYPE,
+				(payload, context) -> handleTableEnchant(context.player(), payload));
 		// Again at play join: a /reload while this player was still configuring missed them in syncToAll.
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			if (ServerPlayNetworking.canSend(handler.player, ConfigSyncPayload.TYPE)) {
