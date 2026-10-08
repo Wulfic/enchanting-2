@@ -1,6 +1,5 @@
 package com.wulfnet.enchanting2.client;
 
-import com.wulfnet.enchanting2.anvil.AnvilPanelLayout;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.Tooltip;
@@ -14,6 +13,7 @@ import net.minecraft.network.chat.Component;
  * texture.
  */
 public final class AnvilPanelTab extends AbstractButton {
+	public static final int WIDTH = 14;
 	public static final int HEIGHT = 18;
 	private static final int BACKGROUND = 0xFFC6C6C6;
 	private static final int BACKGROUND_OPEN = 0xFFA8A8A8;
@@ -27,7 +27,7 @@ public final class AnvilPanelTab extends AbstractButton {
 	private boolean open;
 
 	public AnvilPanelTab(int x, int y, boolean open, Runnable onToggle) {
-		super(x, y, AnvilPanelLayout.TAB_WIDTH, HEIGHT, Component.empty());
+		super(x, y, WIDTH, HEIGHT, Component.empty());
 		this.onToggle = onToggle;
 		setOpen(open);
 	}

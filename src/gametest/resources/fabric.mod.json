@@ -18,7 +18,8 @@
 			"com.wulfnet.enchanting2.gametest.GrindstoneGameTest"
 		],
 		"fabric-client-gametest": [
-			"com.wulfnet.enchanting2.gametest.AnvilScreenClientGameTest"
+			"com.wulfnet.enchanting2.gametest.AnvilScreenClientGameTest",
+			"com.wulfnet.enchanting2.gametest.GrindstoneScreenClientGameTest"
 		]
 	},
 	"mixins": [

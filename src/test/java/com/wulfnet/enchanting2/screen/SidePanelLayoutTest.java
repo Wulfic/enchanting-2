@@ -1,19 +1,23 @@
-package com.wulfnet.enchanting2.anvil;
+package com.wulfnet.enchanting2.screen;
 
-import static com.wulfnet.enchanting2.anvil.AnvilPanelLayout.GAP;
-import static com.wulfnet.enchanting2.anvil.AnvilPanelLayout.MARGIN;
-import static com.wulfnet.enchanting2.anvil.AnvilPanelLayout.PANEL_WIDTH;
-import static com.wulfnet.enchanting2.anvil.AnvilPanelLayout.TAB_WIDTH;
+import static com.wulfnet.enchanting2.screen.SidePanelLayout.GAP;
+import static com.wulfnet.enchanting2.screen.SidePanelLayout.MARGIN;
+import static com.wulfnet.enchanting2.screen.SidePanelLayout.PANEL_WIDTH;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.wulfnet.enchanting2.anvil.AnvilPanelLayout.Placement;
+import com.wulfnet.enchanting2.screen.SidePanelLayout.Placement;
 import org.junit.jupiter.api.Test;
 
-/** Stage 6D: panel left, else right, else the window shifts (owner); hidden → vanilla's centred window. */
-class AnvilPanelLayoutTest {
-	/** Vanilla's anvil window. */
+/**
+ * Stage 6D: panel left, else right, else the window shifts (owner); hidden → vanilla's centred window. Run with the
+ * anvil's tab (14) and with none (the grindstone, Stage 6bC).
+ */
+class SidePanelLayoutTest {
+	/** Vanilla's anvil and grindstone windows. */
 	private static final int IMAGE = 176;
+	/** The anvil's tab, {@code AnvilPanelTab.WIDTH} (client code, which JUnit can't load). */
+	private static final int TAB_WIDTH = 14;
 
 	private static int centered(int screen) {
 		return (screen - IMAGE) / 2;
@@ -23,7 +27,7 @@ class AnvilPanelLayoutTest {
 	void commonScreensPlaceThePanelLeft() {
 		// 1920x1080 at GUI scale 4, and 2560x1440 at 4.
 		for (int screen : new int[] {480, 640}) {
-			AnvilPanelLayout layout = AnvilPanelLayout.compute(screen, IMAGE, true);
+			SidePanelLayout layout = SidePanelLayout.compute(screen, IMAGE, TAB_WIDTH, true);
 			assertEquals(Placement.LEFT, layout.placement(), "width " + screen);
 			assertEquals(centered(screen), layout.leftPos());
 			assertEquals(PANEL_WIDTH, layout.panelWidth());
@@ -33,7 +37,7 @@ class AnvilPanelLayoutTest {
 	@Test
 	void narrowScreenShiftsTheWindowOnlyAsFarAsNeeded() {
 		// 1280x720 at GUI scale 3: neither side has room for the full panel.
-		AnvilPanelLayout layout = AnvilPanelLayout.compute(427, IMAGE, true);
+		SidePanelLayout layout = SidePanelLayout.compute(427, IMAGE, TAB_WIDTH, true);
 		assertEquals(Placement.SHIFTED, layout.placement());
 		assertEquals(MARGIN, layout.panelX(), "panel against the left margin");
 		assertEquals(PANEL_WIDTH, layout.panelWidth());
@@ -42,7 +46,7 @@ class AnvilPanelLayoutTest {
 
 	@Test
 	void minimumScreenNarrowsTheShiftedPanel() {
-		AnvilPanelLayout layout = AnvilPanelLayout.compute(320, IMAGE, true);
+		SidePanelLayout layout = SidePanelLayout.compute(320, IMAGE, TAB_WIDTH, true);
 		assertEquals(Placement.SHIFTED, layout.placement());
 		assertEquals(320 - MARGIN - IMAGE, layout.leftPos(), "window against the right margin");
 		assertEquals(124, layout.panelWidth());
@@ -51,7 +55,7 @@ class AnvilPanelLayoutTest {
 	@Test
 	void hiddenPanelLeavesTheWindowCentred() {
 		for (int screen = 200; screen <= 2000; screen++) {
-			AnvilPanelLayout layout = AnvilPanelLayout.compute(screen, IMAGE, false);
+			SidePanelLayout layout = SidePanelLayout.compute(screen, IMAGE, TAB_WIDTH, false);
 			assertEquals(Placement.HIDDEN, layout.placement());
 			assertEquals(centered(screen), layout.leftPos());
 			assertEquals(layout.leftPos() - TAB_WIDTH, layout.tabX());
@@ -62,7 +66,7 @@ class AnvilPanelLayoutTest {
 	@Test
 	void everyWidthKeepsPanelTabAndWindowApartAndOnScreen() {
 		for (int screen = 320; screen <= 2000; screen++) {
-			AnvilPanelLayout layout = AnvilPanelLayout.compute(screen, IMAGE, true);
+			SidePanelLayout layout = SidePanelLayout.compute(screen, IMAGE, TAB_WIDTH, true);
 			String at = "width " + screen + ": " + layout;
 			assertTrue(layout.panelShown(), at);
 			assertEquals(layout.leftPos() - TAB_WIDTH, layout.tabX(), at);
@@ -83,8 +87,28 @@ class AnvilPanelLayoutTest {
 
 	@Test
 	void screenBelowMinecraftsMinimumHidesThePanelRatherThanCrowdIt() {
-		AnvilPanelLayout layout = AnvilPanelLayout.compute(250, IMAGE, true);
+		SidePanelLayout layout = SidePanelLayout.compute(250, IMAGE, TAB_WIDTH, true);
 		assertEquals(Placement.HIDDEN, layout.placement());
 		assertEquals(centered(250), layout.leftPos());
+	}
+
+	/** The grindstone: no tab, so the panel sits a gap from the window and the shift is the tab's width smaller. */
+	@Test
+	void noTabPutsThePanelAGapFromTheWindow() {
+		for (int screen = 320; screen <= 2000; screen++) {
+			SidePanelLayout layout = SidePanelLayout.compute(screen, IMAGE, 0, true);
+			String at = "width " + screen + ": " + layout;
+			assertTrue(layout.panelShown(), at);
+			assertEquals(layout.leftPos(), layout.tabX(), at);
+			assertTrue(layout.panelX() >= MARGIN && layout.leftPos() + IMAGE <= screen, at);
+			if (layout.placement() == Placement.RIGHT) {
+				assertTrue(layout.panelX() >= layout.leftPos() + IMAGE + GAP, at);
+			} else {
+				assertTrue(layout.panelX() + layout.panelWidth() + GAP <= layout.leftPos(), at);
+			}
+		}
+		SidePanelLayout shifted = SidePanelLayout.compute(427, IMAGE, 0, true);
+		assertEquals(Placement.SHIFTED, shifted.placement());
+		assertEquals(MARGIN + PANEL_WIDTH + GAP, shifted.leftPos());
 	}
 }

@@ -608,3 +608,16 @@ slots), so it stays vanilla plus whatever other mods do to it.
 a port; another mod's grindstone tweaks keep working. `computeResult` reads only its arguments (decompiled 1.21.11).
 **Rejected:** a copy (drifts silently on the 26.x port, and drops other mods' changes).
 **Affects:** `grindstone/GrindstoneCalculator`, `mixin/GrindstoneMenuInvoker`
+
+## 2026-10-07 — Side panels share a `screen` package (Stage 6bC)
+**Context:** the grindstone's picker needs the anvil panel's layout, text types, text resolver and drawing. Those lived
+in `anvil` and `client/AnvilPreview*`, so reusing them as-is meant grindstone code importing anvil classes.
+**Choice:** move them, not copy them: `screen/SidePanelLayout` (tab width is a parameter: anvil 14, grindstone 0),
+`screen/PanelText` (`Tone`, `Arg`, `Msg`, `Row`), `client/SidePanel` (adds a selected row, hover highlight and
+`rowAt` for clicks), `client/PanelTextResolver`. Anvil-specific pieces (`AnvilPreviewView`, `AnvilPanelTab`, the label)
+stay in `anvil`/`client`.
+**Why:** one layout and one drawing path, so both panels look and behave the same and a fix lands in both. The
+anvil's client GameTest passing unchanged is the check that the move didn't alter it.
+**Rejected:** grindstone importing `anvil.*` types (wrong dependency direction, names that lie); a parallel copy for the
+grindstone (two panels that drift apart).
+**Affects:** `screen/*`, `client/SidePanel`, `client/PanelTextResolver`, `AnvilScreenMixin`, `GrindstoneScreenMixin`

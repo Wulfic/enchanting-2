@@ -1,7 +1,5 @@
 package com.wulfnet.enchanting2.gametest;
 
-import com.wulfnet.enchanting2.anvil.AnvilPanelLayout;
-import com.wulfnet.enchanting2.anvil.AnvilPanelLayout.Placement;
 import com.wulfnet.enchanting2.client.AnvilPanelTab;
 import com.wulfnet.enchanting2.client.AnvilPreviewState;
 import com.wulfnet.enchanting2.client.AnvilScreenAccess;
@@ -11,6 +9,8 @@ import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.config.ConfigFiles;
 import com.wulfnet.enchanting2.config.CostsSection;
 import com.wulfnet.enchanting2.config.ServerConfigs;
+import com.wulfnet.enchanting2.screen.SidePanelLayout.Placement;
+import com.wulfnet.enchanting2.screen.SidePanelLayout;
 import java.util.List;
 import java.util.function.Function;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
@@ -99,7 +99,7 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 	}
 
 	private static void narrowScreenShiftsTheWindow(ClientGameTestContext context) {
-		AnvilPanelLayout layout = screen(context, AnvilScreenAccess::enchanting2$layout);
+		SidePanelLayout layout = screen(context, AnvilScreenAccess::enchanting2$layout);
 		check(layout != null, "our server, but the screen has no layout (mixin not applied?)");
 		check(layout.placement() == Placement.SHIFTED, "427 wide should shift, got " + layout);
 		int width = context.computeOnClient(client -> client.getWindow().getGuiScaledWidth());
@@ -130,7 +130,7 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 			menu.getSlot(AnvilMenu.ADDITIONAL_SLOT).set(book);
 		});
 		context.waitTicks(2);
-		AnvilPanelLayout layout = screen(context, AnvilScreenAccess::enchanting2$layout);
+		SidePanelLayout layout = screen(context, AnvilScreenAccess::enchanting2$layout);
 		check(layout != null && layout.placement() == Placement.LEFT, "1920x1080 should place the panel left: " + layout);
 		int total = total(context);
 		check(total > 0, "a priced preview arrived");
@@ -177,7 +177,7 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 			menu.broadcastChanges();
 		});
 		context.waitTicks(2);
-		AnvilPanelLayout layout = screen(context, AnvilScreenAccess::enchanting2$layout);
+		SidePanelLayout layout = screen(context, AnvilScreenAccess::enchanting2$layout);
 		int top = context.computeOnClient(client -> (client.getWindow().getGuiScaledHeight() - 166) / 2);
 		// Inside the panel, below the title line.
 		click(context, layout.panelX() + 10, top + 30);
@@ -196,7 +196,7 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 	private static void tabHidesPanelAndSavesClientConfig(ClientGameTestContext context) {
 		check(ClientSettings.get().showAnvilPreviewPanel(), "panel shown by default");
 		clickTab(context);
-		AnvilPanelLayout layout = screen(context, AnvilScreenAccess::enchanting2$layout);
+		SidePanelLayout layout = screen(context, AnvilScreenAccess::enchanting2$layout);
 		int width = context.computeOnClient(client -> client.getWindow().getGuiScaledWidth());
 		check(layout.placement() == Placement.HIDDEN, "tab click hides the panel: " + layout);
 		check(layout.leftPos() == (width - 176) / 2, "hidden panel centres the window: " + layout);

@@ -5,6 +5,10 @@ import com.wulfnet.enchanting2.anvil.AnvilOutcome.Status;
 import com.wulfnet.enchanting2.anvil.TransferRules.Fate;
 import com.wulfnet.enchanting2.cost.CostBreakdown;
 import com.wulfnet.enchanting2.enchantment.EnchantRules.Verdict;
+import com.wulfnet.enchanting2.screen.PanelText.Arg;
+import com.wulfnet.enchanting2.screen.PanelText.Msg;
+import com.wulfnet.enchanting2.screen.PanelText.Row;
+import com.wulfnet.enchanting2.screen.PanelText.Tone;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -25,49 +29,6 @@ public final class AnvilPreviewView {
 	public static final String VANILLA_TOO_EXPENSIVE = "container.repair.expensive";
 
 	private AnvilPreviewView() {
-	}
-
-	public enum Tone {
-		/** Vanilla's green cost colour: the result can be taken. */
-		GOOD,
-		/** Vanilla's red: blocked, unaffordable, or something will be lost. */
-		BAD,
-		NORMAL,
-		/** Informational: nothing is lost (a dominated entry). */
-		MUTED
-	}
-
-	/** A lang-key argument the client resolves. */
-	public sealed interface Arg {
-		record Num(long value) implements Arg {
-		}
-
-		/** An enchantment's name, no level. */
-		record Ench(String id) implements Arg {
-		}
-
-		/** An enchantment's name and level, like a tooltip. */
-		record EnchLevel(String id, int level) implements Arg {
-		}
-
-		/** A level as a numeral (I..X, then digits). */
-		record Level(int level) implements Arg {
-		}
-
-		/** The item in the left slot. */
-		record TargetItem() implements Arg {
-		}
-	}
-
-	public record Msg(String key, List<Arg> args) {
-		public Msg {
-			Objects.requireNonNull(key, "key");
-			args = List.copyOf(args);
-		}
-
-		static Msg of(String key, Arg... args) {
-			return new Msg(key, List.of(args));
-		}
 	}
 
 	/**
@@ -93,18 +54,6 @@ public final class AnvilPreviewView {
 
 		public Msg compact() {
 			return forms.getLast();
-		}
-	}
-
-	/**
-	 * One panel row.
-	 *
-	 * @param amount XP levels, shown right-aligned; empty for rows that aren't a price
-	 * @param indent a detail of the row above
-	 */
-	public record Row(Msg text, OptionalLong amount, Tone tone, boolean indent) {
-		static Row of(Msg text, Tone tone) {
-			return new Row(text, OptionalLong.empty(), tone, false);
 		}
 	}
 

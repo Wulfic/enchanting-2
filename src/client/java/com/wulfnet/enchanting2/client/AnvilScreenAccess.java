@@ -1,6 +1,6 @@
 package com.wulfnet.enchanting2.client;
 
-import com.wulfnet.enchanting2.anvil.AnvilPanelLayout;
+import com.wulfnet.enchanting2.screen.SidePanelLayout;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 
@@ -11,7 +11,7 @@ import org.jspecify.annotations.Nullable;
 public interface AnvilScreenAccess {
 	/** @return null on a vanilla server (no panel, no tab) */
 	@Nullable
-	AnvilPanelLayout enchanting2$layout();
+	SidePanelLayout enchanting2$layout();
 
 	/** @return null on a vanilla server */
 	@Nullable

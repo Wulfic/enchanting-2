@@ -376,23 +376,43 @@ Readable and not random. The vanilla three-random-offers screen is replaced by o
 ### Grindstone extraction
 Moves one chosen enchantment from an item onto a book, which makes enchantments
 transferable instead of destroyable.
-- Enchanted item (or a multi-enchantment book) goes in slot 1 and a plain book in slot 2. The
-  grindstone screen gains an enchantment list, and the player picks one.
-- **The enchantment is moved, not copied.** The source item keeps every other enchantment.
-  Result and source are updated atomically, so a crash or desync can never leave the
-  enchantment on both items or on neither. A test asserts this.
+- An enchanted item (or a multi-enchantment book) goes in one input slot and plain books in the
+  other, either way round. Each take uses one book. The grindstone's slots accept plain books
+  only on a server running Enchanting 2.
+- **The enchantment is moved, not copied.** The source keeps every other enchantment, at the
+  level it has (a level above the current maximum moves as it is). The server writes the result,
+  the source and the book stack in one step on the take, so it can never end up on both or on
+  neither. A 300-case property test asserts this.
+- A book holding nothing but the picked enchantment is refused (nothing to split). A book with
+  that enchantment plus a curse can be split, which separates the curse.
 - Cost: XP levels from the §5 model, priced as adding that enchantment at its current level
-  to a blank item (Efficiency V = 5, Mending = 2). No lapis.
+  to a blank item (Efficiency V = 5, Mending = 2). No lapis, no XP orbs.
 - Curses can't be *extracted* onto a book. They can be *removed* (see Cleanse below).
 
 ### Grindstone modes
-The grindstone screen lists actions depending on what's in the slots:
+The panel beside the grindstone lists the actions for what's in the slots, one row per pick with
+its price:
 
-| Slot 1 | Slot 2 | Action |
-|---|---|---|
-| enchanted item / book | plain book | **Extract** one chosen non-curse enchantment (above) |
-| cursed item | empty | **Cleanse** one chosen curse (§5a removal cost) |
-| enchanted item | empty | **Disenchant** (vanilla behavior: strip non-curse enchantments, return XP), as an explicit choice |
+| Slots | Action |
+|---|---|
+| enchanted item / book + plain books | **Extract** one chosen non-curse enchantment (above). Curses are listed but refused |
+| cursed item alone | **Cleanse** one chosen curse (§5a removal cost). No XP orbs |
+| enchanted item alone | **Disenchant**: vanilla (strip non-curse enchantments, XP orbs back) |
+| two of the same item | **Repair**: vanilla's combine (also strips non-curse enchantments, XP orbs back) |
+
+- **Nothing happens until the player picks a row**, vanilla Disenchant included (owner,
+  2026-10-07). So a shift-click can't strip an item the player meant to extract from. Clicking
+  the picked row again clears the pick. Putting in a different item clears it too; changing the
+  number of books doesn't.
+- The pick is server state, set by a client message the server checks against what's in the
+  grindstone. A pick that isn't a row for the current inputs gives no result.
+- `maximum_operation_cost` caps Extract and Cleanse like the anvil (Cleanse's minimum of 30
+  means a cap below 30 blocks it). Creative players bypass the cap, and `creative_free` makes it
+  free.
+- The panel is placed like the anvil's (left, else right, else the window shifts) and has no
+  hide tab: it's the control. Vanilla's red X shows only when the server refuses something,
+  not while it waits for a pick.
+- On a vanilla server, a modded client keeps the vanilla grindstone.
 
 ### Fortune on all mining tools
 Fortune already goes on pickaxes, shovels, axes and hoes, but it only does anything when a

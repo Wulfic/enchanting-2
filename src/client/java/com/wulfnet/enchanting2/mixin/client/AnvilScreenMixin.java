@@ -4,21 +4,21 @@ import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.wulfnet.enchanting2.anvil.AnvilBridge;
 import com.wulfnet.enchanting2.anvil.AnvilOutcome.Entry;
 import com.wulfnet.enchanting2.anvil.AnvilOutcome.Status;
-import com.wulfnet.enchanting2.anvil.AnvilPanelLayout;
-import com.wulfnet.enchanting2.anvil.AnvilPreviewView;
 import com.wulfnet.enchanting2.anvil.AnvilPreviewView.Label;
-import com.wulfnet.enchanting2.anvil.AnvilPreviewView.Msg;
-import com.wulfnet.enchanting2.anvil.AnvilPreviewView.Row;
-import com.wulfnet.enchanting2.anvil.AnvilPreviewView.Tone;
+import com.wulfnet.enchanting2.anvil.AnvilPreviewView;
 import com.wulfnet.enchanting2.client.AnvilPanelTab;
-import com.wulfnet.enchanting2.client.AnvilPreviewPanel;
 import com.wulfnet.enchanting2.client.AnvilPreviewState;
 import com.wulfnet.enchanting2.client.AnvilScreenAccess;
 import com.wulfnet.enchanting2.client.ClientConfigState;
 import com.wulfnet.enchanting2.client.ClientSettings;
+import com.wulfnet.enchanting2.client.SidePanel;
 import com.wulfnet.enchanting2.config.CostsSection;
 import com.wulfnet.enchanting2.cost.CostBreakdown;
 import com.wulfnet.enchanting2.network.AnvilPreviewPayload;
+import com.wulfnet.enchanting2.screen.PanelText.Msg;
+import com.wulfnet.enchanting2.screen.PanelText.Row;
+import com.wulfnet.enchanting2.screen.PanelText.Tone;
+import com.wulfnet.enchanting2.screen.SidePanelLayout;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -69,11 +69,11 @@ abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> implements
 	private Player player;
 
 	@Unique
-	private @Nullable AnvilPanelLayout enchanting2$layout;
+	private @Nullable SidePanelLayout enchanting2$layout;
 	@Unique
 	private @Nullable AnvilPanelTab enchanting2$tab;
 	@Unique
-	private @Nullable AnvilPreviewPanel enchanting2$panel;
+	private @Nullable SidePanel enchanting2$panel;
 	@Unique
 	private @Nullable String enchanting2$labelText;
 	@Unique
@@ -91,7 +91,7 @@ abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> implements
 		if (!AnvilBridge.clientServerIsOurs()) {
 			return;
 		}
-		enchanting2$panel = new AnvilPreviewPanel(font);
+		enchanting2$panel = new SidePanel(font);
 		enchanting2$tab = addRenderableWidget(new AnvilPanelTab(0, topPos + TAB_Y,
 				ClientSettings.get().showAnvilPreviewPanel(), this::enchanting2$toggle));
 		enchanting2$applyLayout();
@@ -101,7 +101,7 @@ abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> implements
 	@Unique
 	private void enchanting2$applyLayout() {
 		boolean show = ClientSettings.get().showAnvilPreviewPanel();
-		AnvilPanelLayout layout = AnvilPanelLayout.compute(width, imageWidth, show);
+		SidePanelLayout layout = SidePanelLayout.compute(width, imageWidth, AnvilPanelTab.WIDTH, show);
 		enchanting2$layout = layout;
 		leftPos = layout.leftPos();
 		name.setX(leftPos + NAME_BOX_X);
@@ -129,7 +129,7 @@ abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> implements
 	@Inject(method = "renderLabels", at = @At("TAIL"))
 	private void enchanting2$drawLabel(GuiGraphics graphics, int mouseX, int mouseY, CallbackInfo ci) {
 		enchanting2$labelText = null;
-		AnvilPreviewPanel panel = enchanting2$panel;
+		SidePanel panel = enchanting2$panel;
 		if (enchanting2$layout == null || panel == null) {
 			return;
 		}
@@ -160,8 +160,8 @@ abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> implements
 	@Inject(method = "renderBg", at = @At("TAIL"))
 	private void enchanting2$drawPanel(GuiGraphics graphics, float partialTick, int mouseX, int mouseY,
 			CallbackInfo ci) {
-		AnvilPanelLayout layout = enchanting2$layout;
-		AnvilPreviewPanel panel = enchanting2$panel;
+		SidePanelLayout layout = enchanting2$layout;
+		SidePanel panel = enchanting2$panel;
 		if (layout == null || panel == null) {
 			return;
 		}
@@ -172,14 +172,15 @@ abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> implements
 		Optional<AnvilPreviewPayload> preview = AnvilPreviewState.forContainer(menu.containerId);
 		List<Row> rows = AnvilPreviewView.panel(enchanting2$status(preview), enchanting2$breakdown(preview),
 				enchanting2$entries(preview), player.experienceLevel, enchanting2$maximumOperationCost());
-		panel.draw(graphics, rows, menu.getSlot(0).getItem(), layout.panelX(), topPos, layout.panelWidth(),
-				height - topPos - AnvilPanelLayout.MARGIN);
+		panel.draw(graphics, Component.translatable(AnvilPreviewView.KEY + "panel.title"), rows,
+				menu.getSlot(0).getItem(), layout.panelX(), topPos, layout.panelWidth(),
+				height - topPos - SidePanelLayout.MARGIN);
 	}
 
 	/** A click on the panel or tab isn't "outside": vanilla would throw the carried item into the world. */
 	@Override
 	protected boolean hasClickedOutside(double mouseX, double mouseY, int left, int top) {
-		AnvilPreviewPanel panel = enchanting2$panel;
+		SidePanel panel = enchanting2$panel;
 		if (panel != null && panel.contains(mouseX, mouseY)) {
 			return false;
 		}
@@ -217,7 +218,7 @@ abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> implements
 	}
 
 	@Override
-	public @Nullable AnvilPanelLayout enchanting2$layout() {
+	public @Nullable SidePanelLayout enchanting2$layout() {
 		return enchanting2$layout;
 	}
 

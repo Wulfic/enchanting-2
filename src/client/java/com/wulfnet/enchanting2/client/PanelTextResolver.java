@@ -1,8 +1,8 @@
 package com.wulfnet.enchanting2.client;
 
 import com.wulfnet.enchanting2.Enchanting2;
-import com.wulfnet.enchanting2.anvil.AnvilPreviewView.Arg;
-import com.wulfnet.enchanting2.anvil.AnvilPreviewView.Msg;
+import com.wulfnet.enchanting2.screen.PanelText.Arg;
+import com.wulfnet.enchanting2.screen.PanelText.Msg;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,8 +19,8 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Turns {@code AnvilPreviewView} messages into components: enchantment names from the client's registry, numerals. */
-final class AnvilPreviewText {
+/** Turns {@code PanelText} messages into components: enchantment names from the client's registry, numerals. */
+final class PanelTextResolver {
 	private static final Logger LOG = LoggerFactory.getLogger(Enchanting2.MOD_ID);
 	/** Vanilla ships {@code enchantment.level.1..10}; past that a level is plain digits. */
 	private static final int MAX_NUMERAL = 10;
@@ -31,7 +31,7 @@ final class AnvilPreviewText {
 	record Context(HolderLookup.@Nullable Provider registries, ItemStack target) {
 	}
 
-	private AnvilPreviewText() {
+	private PanelTextResolver() {
 	}
 
 	static Component of(Msg msg, Context context) {
@@ -86,7 +86,7 @@ final class AnvilPreviewText {
 
 	private static void warnOnce(String id, String why) {
 		if (WARNED.add(id)) {
-			LOG.warn("Anvil preview names enchantment {} by ID: {}", id, why);
+			LOG.warn("A panel names enchantment {} by ID: {}", id, why);
 		}
 	}
 }

@@ -715,7 +715,7 @@ revert`; a leftover `client.json5` is harmless (nothing else reads it) and can b
       `build/run/clientGameTest/screenshots/`. **Not automated (owner):** the config screen's Display toggle, and a
       modded client on a vanilla server keeping the vanilla anvil screen.
 
-## Phase 6b — Grindstone (three stages, one commit each)
+## Phase 6b — Grindstone (three stages, one commit each)  ✅ 2026-10-07 (except the owner `runClient` checks)
 **Goal:** the grindstone offers Extract (one non-curse enchantment onto a plain book, moved, never copied or lost),
 Cleanse (one curse, §5a repay cost) and vanilla Disenchant / two-item Repair, each as an explicit pick from a side
 panel. The server decides and charges everything (DESIGN §6).
@@ -818,24 +818,38 @@ when the mod is removed is returned by vanilla's `removed()` like any other item
       property. Nothing on the client receives the panel or sends picks yet (6bC), so on a real server the grindstone
       shows nothing to pick until then. 195 JUnit + 96 GameTests.
 
-### Stage 6bC — Grindstone screen → commit
-- [ ] 6bC.1 Generalize the layout: `anvil/AnvilPanelLayout` → `screen/SidePanelLayout` with a tab width parameter
+### Stage 6bC — Grindstone screen → commit  ✅ 2026-10-07
+- [x] 6bC.1 Generalize the layout: `anvil/AnvilPanelLayout` → `screen/SidePanelLayout` with a tab width parameter
       (anvil 14, grindstone 0); update `AnvilScreenMixin` and the test (pure rename + parameter; existing cases unchanged).
-- [ ] 6bC.2 `grindstone/GrindstonePanelView` (pure): rows (action header, enchantment + level + cost, refused reason),
+- [x] 6bC.2 `grindstone/GrindstonePanelView` (pure): rows (action header, enchantment + level + cost, refused reason),
       the selected row, and a footer (cost / free / too expensive with the max / insufficient levels / pick an action).
       JUnit for every status and action. `GrindstoneLangKeysTest` walks every key it can produce.
-- [ ] 6bC.3 `client/GrindstoneOptionsState` (receiver; cleared on close, config INIT, disconnect) + `GrindstoneBridge`
+- [x] 6bC.3 `client/GrindstoneOptionsState` (receiver; cleared on close, config INIT, disconnect) + `GrindstoneBridge`
       client sources (server is ours, levels charged).
-- [ ] 6bC.4 `mixin/client/GrindstoneScreenMixin`: `init` TAIL applies the layout to `leftPos`; `renderBg` blits at
+- [x] 6bC.4 `mixin/client/GrindstoneScreenMixin`: `init` TAIL applies the layout to `leftPos`; `renderBg` blits at
       `leftPos` (vanilla uses the centered value) and shows the error sprite only on a refusal; panel drawn at TAIL; a
       click on a row sends the choice (clicking the selected row clears it); `hasClickedOutside` false over the panel.
-- [ ] 6bC.5 Lang keys (en_us) for actions, statuses and footer forms.
-- [ ] 6bC.6 Client GameTest: singleplayer, real grindstone, sword (Sharpness + Unbreaking) + 3 books → panel rows;
+- [x] 6bC.5 Lang keys (en_us) for actions, statuses and footer forms.
+- [x] 6bC.6 Client GameTest: singleplayer, real grindstone, sword (Sharpness + Unbreaking) + 3 books → panel rows;
       click Sharpness → result is a Sharpness book; take → sword keeps Unbreaking, 2 books left; cursed item → Cleanse
       row with its cost; tiny window → panel on screen. Screenshots.
-- [ ] 6bC.7 DESIGN §6 (grindstone modes as built), state.md, decisions.md. Owner `runClient` list: panel look, a
+- [x] 6bC.7 DESIGN §6 (grindstone modes as built), state.md, decisions.md. Owner `runClient` list: panel look, a
       modded client on a vanilla server keeping the vanilla grindstone. Mutation: row click sends nothing → client test
       fails. Build + `runClientGameTest` green, commit.
+      **Done:** wider than 6bC.1 planned: the shared screen pieces moved out of `anvil` so the grindstone doesn't
+      import anvil classes. `screen/SidePanelLayout` (tab width a parameter), `screen/PanelText` (`Tone`, `Arg`, `Msg`,
+      `Row`), `client/SidePanel` (was `AnvilPreviewPanel`; adds a selected row, hover and `rowAt`) and
+      `client/PanelTextResolver` (was `AnvilPreviewText`). Anvil behaviour unchanged (its client test still passes).
+      `GrindstoneScreen` declares neither `init` nor `mouseClicked`, so the mixin adds both overrides; `renderBg` is
+      shifted with a pose translation (vanilla blits at the centred X, not `leftPos`). The red X is a v2
+      `@WrapWithCondition`. The panel eats its own clicks, so a carried item is never thrown from it. Tests:
+      `GrindstonePanelViewTest` 7, `GrindstoneLangKeysTest` 3, `SidePanelLayoutTest` +1 (no tab),
+      `GrindstoneScreenClientGameTest` (narrow shift, rows, click → server pick → result → take moves Sharpness and
+      charges 5, Cleanse row at 30, panel click keeps carried diamonds, close clears). Mutation: the row click sends
+      nothing → "the click picked Sharpness on the server" fails. Screenshots `0004`–`0007` in
+      `build/run/clientGameTest/screenshots/`. 206 JUnit + 96 GameTests + 2 client GameTests.
+      **Not automated (owner):** the panel's look in a normal session, and a modded client on a vanilla server keeping
+      the vanilla grindstone (no book placement, no panel).
 
 ## Phase 7 — Enchanting table (new screen)
 - [ ] 7.1 Server menu: list of applicable enchantments (Mending included, curses off),
