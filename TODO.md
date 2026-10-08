@@ -1038,23 +1038,139 @@ go back through vanilla's `removed()` → `clearContainer`.
       **Not automated (owner):** the look in a normal session (is the ready Enchant button clearly clickable?), and a
       modded client on a vanilla server keeping the vanilla table.
 
-## Phase 8 — Conflict effect resolution + Fortune on all tools
-- [ ] 8.1 Silk/Fortune behavior per Q5 (loot-table modification, not item hacks). Adds the
-      `silk_fortune_mode` key and its screen toggle with the duplication warning (moved from Phase 2).
-- [ ] 8.2 Damage-family stacking, Protection family (keep EPF cap), Mending + Infinity
-- [ ] 8.3 Riptide/Loyalty/Channeling per Q11
-- [ ] 8.4 `compat/PlacedBlockTracker`: MC-free core ported from
-      `mcMMO-Singleplayer/.../util/PlacedBlockTracker.java` + `BlockRules` (mark/clear/move),
-      unit-tested outside Minecraft
-- [ ] 8.5 Per-chunk persistence via Fabric Data Attachment API; fail closed + WARN on read errors
-- [ ] 8.6 Marking hooks: hand placement, piston move (three-pass), **falling block carries
-      the mark**, lava/water generators and snow golems (only for blocks in a Fortune tag),
-      break clears it
-- [ ] 8.7 Fortune multiplies natural blocks in `fortune_multiplies/<tool>` tags; ancient
-      debris hard-excluded; `FORTUNE_MULTIPLIES_SILK` uses the same tracker
-- [ ] 8.8 GameTests: place → Fortune V mine → exactly 1 drop; the same via piston push and
-      sand fall; natural → multiplied; unreadable chunk → no bonus
-- [ ] 8.9 GameTests per rule (8.1–8.3)
+## Phase 8 — Conflict effect resolution + Fortune on all tools (four stages, one commit each)
+**Goal:** every relaxed conflict family does what DESIGN §4's table says when combined, and Fortune multiplies the drops
+of natural blocks in the `fortune_multiplies/<tool>` tags, never of a block a player placed or moved (DESIGN §6).
+**Owner (2026-10-08, Phase 8 start):** (1) **Every drop** of a tagged natural block is multiplied: Fortune V gravel
+gives ~2.9 flint, clay ~2.9× clay balls, snow blocks snowballs, mushroom blocks mushrooms. (2) **Every hand-placed
+block** is marked (mcMMO behavior), not only tagged ones, so a datapack or `/reload` adding a block to a tag later
+can't pay out on blocks already placed. (3) **Any Riptide trident** throws normally out of water and rain (Riptide-only
+ones too), and launches in water or rain. (4) **SILK_WINS:** a tool with Silk Touch + Fortune still multiplies a tagged
+block **unless Silk changed the drop** (logs, sand, dirt, moss → multiplied; clay, snow, mushroom blocks, gravel at
+Fortune III+ → one silk-touched block).
+**Facts (1.21.11 `javap`, FAPI 0.141.6 sources):**
+- `TridentItem.use` and `releaseUsing` each call `EnchantmentHelper.getTridentSpinAttackStrength(stack, entity)` once,
+  then `> 0 && !player.isInWaterOrRain()` → FAIL / return false. With a strength of 0, `releaseUsing` takes the
+  normal throw branch (Loyalty and Channeling are on the thrown entity's stack).
+- `ServerPlayerGameMode.destroyBlock`: `playerWillDestroy` → `level.removeBlock` → `Block.destroy` →
+  `playerDestroy` (loot). The block is gone before its loot is rolled, so a mark must be cleared **after** the loot,
+  not on removal.
+- Fabric loot v3 `LootTableEvents.MODIFY_DROPS(Holder<LootTable>, LootContext, List<ItemStack>)` wraps
+  `LootTable.getRandomItemsRaw`, so it fires for every table roll, nested `loot_table` entries included.
+- Fabric attachments: a decode error is logged ("Skipping invalid attachments") and **the attachment is dropped**. To
+  fail closed, our codec must never fail. It decodes bad data into an `UNREADABLE` value that keeps the raw tag and
+  writes it back verbatim. An unknown type (mod removed, then added back) is also dropped, so that chunk's marks are
+  lost and its placed blocks count as natural once (the same one-time exploit as pre-install blocks, DESIGN §2a).
+- Fortune itself has no effect components. Its bonus lives in loot tables (`apply_bonus`), decisions.md Phase 1.8.
+**Agent calls (decisions.md "Phase 8"):**
+- **8.2 needs no effect code.** In 1.21 every damage, protection, ammo, projectile and movement effect is a data
+  component evaluated per enchantment and summed. Our families only relax `EnchantRules`. The stage adds GameTests that
+  prove each combination works, and that the vanilla EPF clamp (`CombatRules`, 20) still limits Protection stacking.
+- **Trident:** one `@WrapOperation` on both `getTridentSpinAttackStrength` calls in `TridentItem`, returning 0 when
+  the user is a player not `isInWaterOrRain()`. It keys off the item, not the `allow_together` toggle (a grandfathered
+  or `/enchant`ed trident behaves the same). It runs on both sides, so the client predicts the same thing.
+- **`silk_fortune_mode`** goes in a new `fortune` section of `common.json5` (`SILK_WINS` default |
+  `FORTUNE_MULTIPLIES_SILK`). Its config-screen entry carries the duplication warning in its tooltip.
+- **Which tool kind:** the tool must be in `#minecraft:axes` / `#minecraft:shovels` / `#minecraft:hoes` /
+  `#minecraft:pickaxes` and the block in the matching `enchanting2:fortune_multiplies/<kind>` tag. A tool in several
+  kinds (a modded paxel) gets the union.
+- **`FORTUNE_MULTIPLIES_SILK`** multiplies the silk-touched drop of a block in its tool's `fortune_multiplies` tag or
+  in `enchanting2:fortune_multiplies_silk` (default `#c:ores`). Same tracker, same exclusions.
+- **"Silk changed the drop"** is decided by rolling the block's own loot table once more, with a copy of the tool
+  without Silk Touch, and comparing item types. The re-roll goes through a re-entrancy guard so our own handler doesn't
+  act on it. Gravel at Fortune I–II is the one default-tag block where the answer varies roll to roll (vanilla's flint
+  chance), which is acceptable.
+- **Only the block's own table:** the handler acts only when the context has `BLOCK_STATE`, `ORIGIN` and `TOOL`, and
+  the table is `state.getBlock().getLootTable()`. It's a no-op for chests, mobs and nested tables.
+- **Ancient debris** is excluded in code by ID, whatever the tags say.
+- **Storage:** per chunk, a map of section Y → 4096-bit set (≤ 512 bytes per section). A dense build is bounded by
+  the chunk, unlike a set of packed longs.
+- **Marking:** `BlockItem.place` success (players **and** dispensers) → mark. Piston `moveBlocks` → three passes (read
+  every source mark, clear them all, write at the destinations). `FallingBlockEntity.fall` moves the mark from the
+  position to the entity (a persistent entity attachment), and landing writes it back. Endermen placing a carried
+  block → mark (it may be a placed block, so fail closed). Lava/water generator output and snow-golem snow → mark
+  only when the block is in a `fortune_multiplies` tag (DESIGN §6). Grown blocks (saplings, bone meal, moss spread)
+  stay natural. A player break clears the mark in `PlayerBlockBreakEvents.AFTER` (after the loot). Other removals
+  (explosions, fire, water) leave a stale mark, which fails closed (one natural block there gets no bonus once).
+- In-place conversions (dirt → path, farmland, mud; log → stripped) keep the mark, because a mark belongs to the
+  position.
+**Not doing:** Fortune on pickaxe blocks beyond vanilla; a per-block multiplier config; a server command to inspect or
+clear marks (a later debug tool if needed); migrating mcMMO's single-file store; changing vanilla's crop, ore or leaf
+Fortune; tracking blocks moved by other mods' movers (Create contraptions etc.), which count as natural.
+**Blast radius:** server only (no client code beyond the config-screen toggle and the shared trident mixin). Every
+block break with a Fortune tool on a tagged block can drop more items. Every block placement now writes a chunk
+attachment (the chunk is marked dirty, which it already is after a placement). Chunk NBT gains `fabric:attachments` →
+`enchanting2:placed_blocks`. Removing the mod: Fabric WARNs once per chunk load about an unknown attachment and drops
+it on the next save, and the world otherwise loads unchanged. Nothing existing is deleted or overwritten.
+**Rollback:** `git revert` the stage's commit. Dev worlds in `run/` (gitignored, disposable) may hold attachments.
+Nothing outside the repo is touched.
+
+### Stage 8A — Conflict effects: config, trident, family GameTests → commit
+- [ ] 8A.1 `config/FortuneSection` (`silk_fortune_mode`: `SILK_WINS` | `FORTUNE_MULTIPLIES_SILK`, default `SILK_WINS`)
+      in `CommonConfig` (read/write, synced like the others). An unknown value → default + `ConfigIssue`.
+      `ConfigParseTest`/`ConfigViewTest` cases. Config-screen cycling entry, its tooltip names the ore-duplication
+      loop, lang keys (`ConfigLangKeysTest`).
+- [ ] 8A.2 `mixin/TridentItemMixin`: `@WrapOperation` both `getTridentSpinAttackStrength` calls → 0 for a player not in
+      water or rain. GameTests (mock player, `EntityInvoker` water refresh per gotchas.md): Riptide + Loyalty on land →
+      a `ThrownTrident` with Loyalty, no spin; Riptide alone on land → thrown; Riptide + Loyalty in water → spin, no
+      projectile; plain Loyalty trident unchanged. Mutation: drop the wrap → the land tests fail.
+- [ ] 8A.3 `ConflictEffectsGameTest` (8.2): Sharpness V + Smite V vs a zombie deals the sum of both bonuses (vs each
+      alone); Bane + Sharpness vs a spider likewise; Density + Breach on a mace both apply; Protection IV + Blast
+      Protection IV + Fire Protection IV + Projectile Protection IV still clamp at EPF 20 (check `CombatRules` by
+      `javap` first); Mending + Infinity: a bow with both fires without consuming the arrow and is repaired by an
+      orb; Multishot + Piercing fires three arrows each with pierce level; Depth Strider + Frost Walker: water freezes
+      and the movement attribute applies. Each test fails if the family toggle is off and the item is built through
+      `EnchantRules` (so the test proves the combination came from us, not `/enchant`).
+- [ ] 8A.4 Build green (JUnit + GameTests), update DESIGN §4 if anything differed, commit.
+
+### Stage 8B — MC-free core: marks and the Fortune rule → commit
+- [ ] 8B.1 `fortune/PlacedMarks`: per chunk, section Y → `long[64]` bitset over local (x, y, z). `mark`, `clear`,
+      `isMarked`, `isEmpty`, `count`. Three-pass `move(from[], to[])` (read all, clear all, write all), so a pushed
+      column keeps every mark. `UNREADABLE` state: `isMarked` → true everywhere, mutations are no-ops, the raw data is
+      kept. Defensive copies, no MC types (positions as packed longs or ints).
+- [ ] 8B.2 `fortune/PlacedMarksCodec` (versioned `{v:1, sections:[{y, bits}]}`): decode never fails. Wrong version,
+      wrong array length, duplicate Y, or a non-map → `UNREADABLE(raw)` + a WARN with the reason. Encoding an
+      `UNREADABLE` writes the raw value back unchanged. An empty set encodes to nothing (no attachment written).
+- [ ] 8B.3 `fortune/FortuneRule` (pure): `multiplier(level, random)` = vanilla ore formula `1 + max(0, nextInt(level+2)
+      − 1)`. `decide(fortuneLevel, hasSilk, mode, silkChangedDrop, tagged, silkTagged, natural, excluded)` →
+      `MULTIPLY | NONE` with a reason enum for the debug log.
+- [ ] 8B.4 JUnit: every bit of a section round-trips; the boundary sections (y −64, 319); move of a 12-block column
+      by one (overlapping from/to) keeps 12 marks; clear of an unmarked position is a no-op; codec round-trip; each
+      corrupt input → `UNREADABLE`, marked everywhere, re-encodes byte-identical; `decide` truth table (silk × mode ×
+      changed × natural × excluded); multiplier distribution at Fortune V within bounds (seeded random, mean ~2.9).
+      Mutation: single-pass move → the column test fails. Build green, commit.
+
+### Stage 8C — Persistence and marking hooks → commit
+- [ ] 8C.1 `fortune/PlacedBlocks` (MC side): chunk `AttachmentType<PlacedMarks>` `enchanting2:placed_blocks`
+      (persistent, 8B codec, not synced), entity `AttachmentType<Boolean>` `enchanting2:placed_falling`. API:
+      `mark(level, pos)`, `clear(level, pos)`, `isNatural(level, pos)` (`UNREADABLE` → false, logged at WARN once per
+      chunk per load), `move(level, from[], to[])`. An emptied set removes the attachment.
+- [ ] 8C.2 Hooks: `BlockItem.place` success → mark (mixin at `RETURN`, server side only); `PistonBaseBlock.moveBlocks` →
+      three passes via `PlacedBlocks.move` (read the to-move and to-destroy lists vanilla builds; check targets by
+      `javap` first); `FallingBlockEntity.fall` → move to the entity, its landing `setBlock` → write back
+      (destroyed-on-landing → nothing); enderman `LeaveBlockGoal` place → mark; fluid generator and snow golem
+      placements → mark if tagged; `PlayerBlockBreakEvents.AFTER` → clear.
+- [ ] 8C.3 `PlacedBlocksGameTest`: place by player → marked; by dispenser → marked; player break → cleared; piston push
+      and pull of a 3-block column → marks at the new positions, none left behind; sticky pull; sand placed in the air →
+      falls → marked where it lands; natural sand falling → not marked; enderman place → marked; cobble generator
+      output not tagged → not marked (and marked with a test tag); explosion leaves a stale mark (documented behavior).
+      Persistence: encode the attachment through the chunk codec path and back (or a dev-server smoke run in
+      `scripts/checks/` that places, restarts, and checks). Build green, commit.
+
+### Stage 8D — Fortune drops → commit
+- [ ] 8D.1 Tags: `data/enchanting2/tags/block/fortune_multiplies/{axes,shovels,hoes,pickaxes}.json` per DESIGN §6's
+      table (pickaxes empty), `fortune_multiplies_silk.json` = `#c:ores`. Lang/README note.
+- [ ] 8D.2 `fortune/FortuneDrops` on `LootTableEvents.MODIFY_DROPS`: guard (block table, params present, Fortune > 0,
+      not re-entrant) → tool kinds → tags → silk handling per mode (re-roll for "silk changed") → `isNatural` →
+      `FortuneRule` → multiply every stack (split at max stack size). Errors are logged and leave the drops unchanged.
+      DEBUG log per decision.
+- [ ] 8D.3 `FortuneDropsGameTest`: natural log + Fortune V axe → more than one log over N breaks (seeded, or the
+      expected-value bound); placed log → exactly 1; piston-pushed placed log → 1; sand placed, fallen, mined → 1;
+      natural gravel Fortune V → flint multiplied; clay → clay balls multiplied; wrong tool kind (Fortune hoe on a log) →
+      1; Fortune 0 → vanilla; SILK_WINS + Silk on a log → multiplied, on clay → 1 clay block; FORTUNE_MULTIPLIES_SILK +
+      Silk on natural diamond ore → multiplied ore, placed → 1; ancient debris in a test tag → never; an `UNREADABLE`
+      chunk → no bonus + WARN; a chest or mob loot roll untouched. Mutation: skip `isNatural` → the placed tests fail.
+- [ ] 8D.4 DESIGN §6 updated to match (owner answers, tag list, silk rule). Build green, commit. state.md, decisions.md.
 
 ## Phase 9 — Acquisition (loot, trades, table pools)
 - [ ] 9.1 Per-enchantment table/loot/trade flags and weights

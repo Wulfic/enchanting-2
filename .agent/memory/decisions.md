@@ -667,3 +667,27 @@ can't get out of step with the server through a lost delta.
 **Rejected:** a separate cost tooltip (hidden until hover); defaulting a pick to level I (one click per level for the
 common case); a vanilla `Button` widget (looks unlike the table's rows).
 **Affects:** `mixin/client/EnchantmentScreenMixin`, `table/TablePanelView`, `client/SidePanel`
+
+## 2026-10-08 — Phase 8: conflict effects, trident rule, Fortune drops and the placed-block tracker
+**Context:** DESIGN §4 and §6 left open which drops Fortune multiplies, which placements are marked, which Riptide
+tridents throw on land, and what SILK_WINS does on blocks where Silk Touch doesn't change the drop. Facts: Fabric drops
+an attachment that fails to decode (fail open), and vanilla removes a broken block before rolling its loot.
+**Choice (owner):** every drop of a tagged natural block is multiplied (gravel → flint, clay → clay balls). Every
+hand-placed block is marked, not only tagged ones. Any Riptide trident throws normally out of water and rain. SILK_WINS
+still multiplies unless Silk changed the drop.
+**Choice (agent):** 8.2 is GameTests only, because 1.21 sums per-enchantment effect components once `EnchantRules`
+allows the pair. The trident rule is one `@WrapOperation` on `getTridentSpinAttackStrength` in `TridentItem`, keyed off
+the item, not the toggle. Fortune runs in `LootTableEvents.MODIFY_DROPS`, only for the broken block's own table. "Silk
+changed the drop" = a guarded re-roll with a Silk-free tool copy, compared by item type. Marks are per-chunk section
+bitsets in a chunk attachment. The codec never fails: bad data becomes `UNREADABLE` (no bonus anywhere in the chunk,
+raw data written back). A player break clears the mark after the loot (`PlayerBlockBreakEvents.AFTER`). Other removals
+leave a stale mark, which fails closed. Endermen placements are marked. `FORTUNE_MULTIPLIES_SILK` covers the tool's
+tag plus `enchanting2:fortune_multiplies_silk` (`#c:ores`).
+**Why:** one drop rule is predictable, and the tracker already stops loops. Marking every placement survives tag edits.
+A decode failure must not turn placed blocks natural, and Fabric's default would. Clearing on removal would erase the
+mark before the loot reads it.
+**Rejected:** only the block's own item multiplied (gravel at Fortune III+ never multiplies, and clay/snow/mushrooms fall
+out of the tags); marking only tagged blocks (tag edits launder); Riptide throw only with Loyalty/Channeling; a static
+"silk changes the drop" tag (hand-maintained, wrong for modded blocks); a mixin on `Block.getDrops` (misses tables
+rolled elsewhere and other mods' loot hooks run in MODIFY_DROPS anyway); a set of packed longs (unbounded per chunk).
+**Affects:** TODO Phase 8, `fortune/*`, `mixin/TridentItemMixin`, `config/FortuneSection`, DESIGN §4, §6
