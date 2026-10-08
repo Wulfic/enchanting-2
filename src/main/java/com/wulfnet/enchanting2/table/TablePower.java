@@ -32,4 +32,25 @@ public final class TablePower {
 	public static boolean fullPower(int tier) {
 		return tier == MAX_TIER;
 	}
+
+	/** The fewest shelves that reach {@code tier}: 0, 4, 8, 12, 15. */
+	public static int shelvesFor(int tier) {
+		if (tier < 1 || tier > MAX_TIER) {
+			throw new IllegalArgumentException("tier = " + tier);
+		}
+		return ((tier - 1) * MAX_SHELVES + MAX_TIER - 2) / (MAX_TIER - 1);
+	}
+
+	/** The fewest shelves that sell {@code level} of an enchantment whose max is {@code maxLevel}. */
+	public static int shelvesFor(int maxLevel, int level) {
+		if (level < 1 || level > maxLevel) {
+			throw new IllegalArgumentException("level " + level + " of max " + maxLevel);
+		}
+		for (int tier = 1; tier < MAX_TIER; tier++) {
+			if (maxSelectable(maxLevel, tier) >= level) {
+				return shelvesFor(tier);
+			}
+		}
+		return MAX_SHELVES;
+	}
 }

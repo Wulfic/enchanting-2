@@ -45,6 +45,37 @@ class TablePowerTest {
 	}
 
 	@Test
+	void shelvesForATierAreTheLeastThatReachIt() {
+		int[] expected = {0, 4, 8, 12, 15};
+		for (int tier = 1; tier <= 5; tier++) {
+			assertEquals(expected[tier - 1], TablePower.shelvesFor(tier), "tier " + tier);
+			assertEquals(tier, TablePower.tier(TablePower.shelvesFor(tier)), "tier " + tier + " round trip");
+			if (TablePower.shelvesFor(tier) > 0) {
+				assertEquals(tier - 1, TablePower.tier(TablePower.shelvesFor(tier) - 1), "one fewer, tier " + tier);
+			}
+		}
+	}
+
+	/** Checked against the definition: the least shelf count whose tier sells the level. */
+	@Test
+	void shelvesForALevelMatchTheDefinition() {
+		for (int max = 1; max <= 255; max++) {
+			for (int level = 1; level <= max; level++) {
+				int least = -1;
+				for (int shelves = 0; shelves <= 15 && least < 0; shelves++) {
+					if (TablePower.maxSelectable(max, TablePower.tier(shelves)) >= level) {
+						least = shelves;
+					}
+				}
+				assertEquals(least, TablePower.shelvesFor(max, level), "max " + max + " level " + level);
+			}
+		}
+		assertEquals(8, TablePower.shelvesFor(5, 3), "Sharpness III");
+		assertThrows(IllegalArgumentException.class, () -> TablePower.shelvesFor(5, 6));
+		assertThrows(IllegalArgumentException.class, () -> TablePower.shelvesFor(0));
+	}
+
+	@Test
 	void invalidArgumentsAreRefused() {
 		assertThrows(IllegalArgumentException.class, () -> TablePower.maxSelectable(0, 3));
 		assertThrows(IllegalArgumentException.class, () -> TablePower.maxSelectable(5, 0));

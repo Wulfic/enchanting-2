@@ -73,4 +73,20 @@ public final class PanelText {
 			return new Row(text, OptionalLong.empty(), tone, false);
 		}
 	}
+
+	/** A "&lt; label &gt;" control on a row: the table's level picker. */
+	public record Stepper(Msg label, boolean canDecrease, boolean canIncrease) {
+		public Stepper {
+			Objects.requireNonNull(label, "label");
+		}
+	}
+
+	/** Where on a row a click landed. */
+	public enum Zone {
+		BODY,
+		/** The stepper's "&lt;". */
+		DECREASE,
+		/** The stepper's "&gt;". */
+		INCREASE
+	}
 }

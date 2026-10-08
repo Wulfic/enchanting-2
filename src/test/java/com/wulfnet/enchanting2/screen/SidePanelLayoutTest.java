@@ -4,9 +4,11 @@ import static com.wulfnet.enchanting2.screen.SidePanelLayout.GAP;
 import static com.wulfnet.enchanting2.screen.SidePanelLayout.MARGIN;
 import static com.wulfnet.enchanting2.screen.SidePanelLayout.PANEL_WIDTH;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.wulfnet.enchanting2.screen.SidePanelLayout.Placement;
+import com.wulfnet.enchanting2.table.TablePanelView;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -110,5 +112,29 @@ class SidePanelLayoutTest {
 		SidePanelLayout shifted = SidePanelLayout.compute(427, IMAGE, 0, true);
 		assertEquals(Placement.SHIFTED, shifted.placement());
 		assertEquals(MARGIN + PANEL_WIDTH + GAP, shifted.leftPos());
+	}
+
+	/** The enchanting table: no tab and a wider panel, under the same rules; only a shifted panel can be narrower. */
+	@Test
+	void aWiderPanelFollowsTheSameRules() {
+		int wide = TablePanelView.PANEL_WIDTH;
+		for (int screen = 320; screen <= 2000; screen++) {
+			SidePanelLayout layout = SidePanelLayout.compute(screen, IMAGE, 0, true, wide);
+			String at = "width " + screen + ": " + layout;
+			assertTrue(layout.panelShown(), at);
+			assertTrue(layout.panelX() >= MARGIN && layout.leftPos() + IMAGE <= screen, at);
+			assertTrue(layout.panelX() + layout.panelWidth() <= screen - MARGIN, at);
+			assertTrue(layout.placement() == Placement.SHIFTED ? layout.panelWidth() <= wide
+					: layout.panelWidth() == wide, at);
+			assertTrue(layout.panelWidth() >= SidePanelLayout.MIN_PANEL_WIDTH, at);
+			boolean leftFits = centered(screen) >= MARGIN + wide + GAP;
+			assertEquals(leftFits, layout.placement() == Placement.LEFT, at);
+		}
+		// 1920x1080 at GUI scale 4: shifted 12 pixels, full width.
+		SidePanelLayout scale4 = SidePanelLayout.compute(480, IMAGE, 0, true, wide);
+		assertEquals(Placement.SHIFTED, scale4.placement());
+		assertEquals(centered(480) + 12, scale4.leftPos());
+		assertEquals(wide, scale4.panelWidth());
+		assertThrows(IllegalArgumentException.class, () -> SidePanelLayout.compute(480, IMAGE, 0, true, 95));
 	}
 }

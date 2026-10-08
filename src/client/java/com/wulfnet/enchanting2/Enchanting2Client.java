@@ -5,6 +5,7 @@ import com.wulfnet.enchanting2.client.AnvilPreviewState;
 import com.wulfnet.enchanting2.client.ClientConfigState;
 import com.wulfnet.enchanting2.client.ClientSettings;
 import com.wulfnet.enchanting2.client.GrindstoneOptionsState;
+import com.wulfnet.enchanting2.client.TablePreviewState;
 import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.experience.ExperienceCurve;
 import com.wulfnet.enchanting2.experience.PlayerExperience;
@@ -19,6 +20,7 @@ public final class Enchanting2Client implements ClientModInitializer {
 		ClientConfigState.register();
 		AnvilPreviewState.register();
 		GrindstoneOptionsState.register();
+		TablePreviewState.register();
 		// No synced copy means a vanilla server (or not connected): draw the vanilla curve.
 		PlayerExperience.setClientSource(() -> ClientConfigState.serverCopy()
 				.map(CommonConfig::experience)

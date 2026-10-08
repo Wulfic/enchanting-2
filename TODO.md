@@ -983,17 +983,29 @@ go back through vanilla's `removed()` → `clearContainer`.
       check dropped → 1 fails; payload levels charged before validating → 6 fail (incl. the property). 213 JUnit + 125
       GameTests + 2 client GameTests.
 
-### Stage 7C — Panel model and scrolling → commit
-- [ ] 7C.1 `table/TablePanelView` (pure): a row per offered enchantment (name, current → selected level, its line cost
+### Stage 7C — Panel model and scrolling → commit  ✅ 2026-10-07
+- [x] 7C.1 `table/TablePanelView` (pure): a row per offered enchantment (name, current → selected level, its line cost
       or the reason it can't be picked), surcharge / discount / total lines, footer (cost and lapis, too expensive with
       the max, insufficient levels or lapis, invalid pick named, pick something). JUnit for every status.
       `TableLangKeysTest` walks every key it can produce. Lang keys (en_us).
-- [ ] 7C.2 `client/SidePanel`: vertical scrolling (wheel, clamped, kept across rebuilds while the item is unchanged)
+- [x] 7C.2 `client/SidePanel`: vertical scrolling (wheel, clamped, kept across rebuilds while the item is unchanged)
       and per-row hit zones (`<` / `>` level arrows, the row body). Anvil and grindstone panels unchanged (a list that
       fits never scrolls). `screen/SidePanelLayout` takes the panel width (the table panel is wider for names + level
       + cost); JUnit for the new width.
-- [ ] 7C.3 `client/TablePreviewState` (receiver; cleared on close, config INIT, disconnect), `client/TableScreenAccess`.
+- [x] 7C.3 `client/TablePreviewState` (receiver; cleared on close, config INIT, disconnect), `client/TableScreenAccess`.
       Build green, commit.
+      **Done:** `TablePanelView` has `body` (one item per row, plus a reason line under every row that can't be picked,
+      or whose pick is refused), `footer` (surcharge and curse lines, totals, status), `ready` and `click`. **`ready` is
+      re-derived from the cost and the client's own levels and lapis**, so a stale server status never greys out a
+      button that would work. A body click picks at the highest level the table sells, or unpicks; the stepper stays
+      within `current + 1 .. maxSelectable`. Reasons name the shelves needed (`TablePower.shelvesFor`: 0/4/8/12/15,
+      checked against the definition for every max and level up to 255). `PanelText` gained `Stepper` and `Zone`.
+      `SidePanel.drawList`: a scrolling body under the title (scrollbar, 2 lines per wheel notch, clamped on draw), a
+      pinned footer, several selected rows, steppers, `hitAt`/`arrowCenterX`; the existing `draw` is unchanged (anvil
+      and grindstone client tests pass). `SidePanelLayout.compute` takes a width (`TablePanelView.PANEL_WIDTH` 160).
+      `TableScreenAccess` moved to 7D with the screen it describes. Tests: `TablePanelViewTest` 10,
+      `TableLangKeysTest` 3 (its own coverage check caught that the walk never reached "insufficient lapis"),
+      `TablePowerTest` +2, `SidePanelLayoutTest` +1. 228 JUnit + 125 GameTests + 2 client GameTests.
 
 ### Stage 7D — Enchanting table screen → commit
 - [ ] 7D.1 `mixin/client/EnchantmentScreenMixin`: `init` TAIL applies the layout to `leftPos`; `renderBg` shifted to

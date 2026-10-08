@@ -29,24 +29,33 @@ public record SidePanelLayout(Placement placement, int leftPos, int tabX, int pa
 	}
 
 	public static SidePanelLayout compute(int screenWidth, int imageWidth, int tabWidth, boolean showPanel) {
+		return compute(screenWidth, imageWidth, tabWidth, showPanel, PANEL_WIDTH);
+	}
+
+	/** @param panelWidth the width wanted; a shifted panel may come out narrower, never below {@link #MIN_PANEL_WIDTH} */
+	public static SidePanelLayout compute(int screenWidth, int imageWidth, int tabWidth, boolean showPanel,
+			int panelWidth) {
 		if (tabWidth < 0) {
 			throw new IllegalArgumentException("tabWidth = " + tabWidth);
+		}
+		if (panelWidth < MIN_PANEL_WIDTH) {
+			throw new IllegalArgumentException("panelWidth = " + panelWidth + ", below " + MIN_PANEL_WIDTH);
 		}
 		int centered = (screenWidth - imageWidth) / 2;
 		if (!showPanel) {
 			return new SidePanelLayout(Placement.HIDDEN, centered, centered - tabWidth, 0, 0);
 		}
-		int leftNeeds = MARGIN + PANEL_WIDTH + GAP + tabWidth;
+		int leftNeeds = MARGIN + panelWidth + GAP + tabWidth;
 		if (centered >= leftNeeds) {
-			return left(Placement.LEFT, centered, tabWidth, PANEL_WIDTH);
+			return left(Placement.LEFT, centered, tabWidth, panelWidth);
 		}
 		int rightPanelX = centered + imageWidth + GAP;
-		if (rightPanelX + PANEL_WIDTH <= screenWidth - MARGIN) {
-			return new SidePanelLayout(Placement.RIGHT, centered, centered - tabWidth, rightPanelX, PANEL_WIDTH);
+		if (rightPanelX + panelWidth <= screenWidth - MARGIN) {
+			return new SidePanelLayout(Placement.RIGHT, centered, centered - tabWidth, rightPanelX, panelWidth);
 		}
 		// Shift only as far as needed, but never push the window off the right edge.
 		int leftPos = Math.max(centered, Math.min(leftNeeds, screenWidth - MARGIN - imageWidth));
-		int width = Math.min(PANEL_WIDTH, leftPos - tabWidth - GAP - MARGIN);
+		int width = Math.min(panelWidth, leftPos - tabWidth - GAP - MARGIN);
 		if (width < MIN_PANEL_WIDTH) {
 			// Narrower than any screen Minecraft allows; keep the window usable rather than draw an unreadable panel.
 			return new SidePanelLayout(Placement.HIDDEN, centered, centered - tabWidth, 0, 0);
