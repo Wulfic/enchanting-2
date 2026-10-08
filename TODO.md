@@ -1042,7 +1042,7 @@ go back through vanilla's `removed()` → `clearContainer`.
 **Goal:** every relaxed conflict family does what DESIGN §4's table says when combined, and Fortune multiplies the drops
 of natural blocks in the `fortune_multiplies/<tool>` tags, never of a block a player placed or moved (DESIGN §6).
 **Owner (2026-10-08, Phase 8 start):** (1) **Every drop** of a tagged natural block is multiplied: Fortune V gravel
-gives ~2.9 flint, clay ~2.9× clay balls, snow blocks snowballs, mushroom blocks mushrooms. (2) **Every hand-placed
+gives ~3.1× flint, clay ~3.1× clay balls, snow blocks snowballs, mushroom blocks mushrooms. (2) **Every hand-placed
 block** is marked (mcMMO behavior), not only tagged ones, so a datapack or `/reload` adding a block to a tag later
 can't pay out on blocks already placed. (3) **Any Riptide trident** throws normally out of water and rain (Riptide-only
 ones too), and launches in water or rain. (4) **SILK_WINS:** a tool with Silk Touch + Fortune still multiplies a tagged
@@ -1105,23 +1105,31 @@ it on the next save, and the world otherwise loads unchanged. Nothing existing i
 **Rollback:** `git revert` the stage's commit. Dev worlds in `run/` (gitignored, disposable) may hold attachments.
 Nothing outside the repo is touched.
 
-### Stage 8A — Conflict effects: config, trident, family GameTests → commit
-- [ ] 8A.1 `config/FortuneSection` (`silk_fortune_mode`: `SILK_WINS` | `FORTUNE_MULTIPLIES_SILK`, default `SILK_WINS`)
+### Stage 8A — Conflict effects: config, trident, family GameTests → commit  ✅ 2026-10-08
+- [x] 8A.1 `config/FortuneSection` (`silk_fortune_mode`: `SILK_WINS` | `FORTUNE_MULTIPLIES_SILK`, default `SILK_WINS`)
       in `CommonConfig` (read/write, synced like the others). An unknown value → default + `ConfigIssue`.
       `ConfigParseTest`/`ConfigViewTest` cases. Config-screen cycling entry, its tooltip names the ore-duplication
       loop, lang keys (`ConfigLangKeysTest`).
-- [ ] 8A.2 `mixin/TridentItemMixin`: `@WrapOperation` both `getTridentSpinAttackStrength` calls → 0 for a player not in
+- [x] 8A.2 `mixin/TridentItemMixin`: `@WrapOperation` both `getTridentSpinAttackStrength` calls → 0 for a player not in
       water or rain. GameTests (mock player, `EntityInvoker` water refresh per gotchas.md): Riptide + Loyalty on land →
       a `ThrownTrident` with Loyalty, no spin; Riptide alone on land → thrown; Riptide + Loyalty in water → spin, no
       projectile; plain Loyalty trident unchanged. Mutation: drop the wrap → the land tests fail.
-- [ ] 8A.3 `ConflictEffectsGameTest` (8.2): Sharpness V + Smite V vs a zombie deals the sum of both bonuses (vs each
+- [x] 8A.3 `ConflictEffectsGameTest` (8.2): Sharpness V + Smite V vs a zombie deals the sum of both bonuses (vs each
       alone); Bane + Sharpness vs a spider likewise; Density + Breach on a mace both apply; Protection IV + Blast
       Protection IV + Fire Protection IV + Projectile Protection IV still clamp at EPF 20 (check `CombatRules` by
       `javap` first); Mending + Infinity: a bow with both fires without consuming the arrow and is repaired by an
       orb; Multishot + Piercing fires three arrows each with pierce level; Depth Strider + Frost Walker: water freezes
       and the movement attribute applies. Each test fails if the family toggle is off and the item is built through
       `EnchantRules` (so the test proves the combination came from us, not `/enchant`).
-- [ ] 8A.4 Build green (JUnit + GameTests), update DESIGN §4 if anything differed, commit.
+- [x] 8A.4 Build green (JUnit + GameTests), update DESIGN §4 if anything differed, commit.
+      **Done:** the enum is `fortune/SilkFortuneMode`, and the screen has its own "Fortune" category. The trident tests
+      live in `ConflictEffectsGameTest` (10 tests: 3 trident, 7 family). Every item is built through `EnchantRules`,
+      and each test first asserts the same build is a `CONFLICT` with its family off. Levels come from the live
+      registry max. `CombatRules.getDamageAfterMagicAbsorb` clamps EPF to 0..20 (`javap`). With four protections on
+      every piece the explosion EPF is above 20, and 10 damage → 2. Impaling: no vanilla item takes it with another
+      damage member (DESIGN §4 note). Frost Walker needed `setOnGround(true)` on the never-ticked mock player.
+      Mutation (trident mixin unregistered) → exactly the two land tests fail ("use refused the trident"). 232
+      JUnit (+4), 135 GameTests (+10).
 
 ### Stage 8B — MC-free core: marks and the Fortune rule → commit
 - [ ] 8B.1 `fortune/PlacedMarks`: per chunk, section Y → `long[64]` bitset over local (x, y, z). `mark`, `clear`,
@@ -1137,7 +1145,7 @@ Nothing outside the repo is touched.
 - [ ] 8B.4 JUnit: every bit of a section round-trips; the boundary sections (y −64, 319); move of a 12-block column
       by one (overlapping from/to) keeps 12 marks; clear of an unmarked position is a no-op; codec round-trip; each
       corrupt input → `UNREADABLE`, marked everywhere, re-encodes byte-identical; `decide` truth table (silk × mode ×
-      changed × natural × excluded); multiplier distribution at Fortune V within bounds (seeded random, mean ~2.9).
+      changed × natural × excluded); multiplier distribution at Fortune V within bounds (seeded random, mean 22/7 ≈ 3.14).
       Mutation: single-pass move → the column test fails. Build green, commit.
 
 ### Stage 8C — Persistence and marking hooks → commit

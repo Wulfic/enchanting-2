@@ -9,6 +9,7 @@ import blue.endless.jankson.api.SyntaxError;
 import com.wulfnet.enchanting2.anvil.InvalidBookMode;
 import com.wulfnet.enchanting2.cost.UpgradeMode;
 import com.wulfnet.enchanting2.enchantment.ConflictFamily;
+import com.wulfnet.enchanting2.fortune.SilkFortuneMode;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +38,8 @@ class ConfigParseTest {
 	@Test
 	void nonDefaultValuesRoundTrip() throws SyntaxError {
 		var custom = new CommonConfig(new ExperienceSection(false, 0, 1), AllowTogetherSection.DEFAULTS,
-				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS);
+				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
+				FortuneSection.DEFAULTS);
 		assertEquals(custom, common(ConfigFiles.render(custom, CommonConfig.CODEC)).config());
 	}
 
@@ -47,13 +49,15 @@ class ConfigParseTest {
 			EnumSet<ConflictFamily> allowed = EnumSet.allOf(ConflictFamily.class);
 			allowed.remove(off);
 			var custom = new CommonConfig(ExperienceSection.DEFAULTS, new AllowTogetherSection(allowed),
-					CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS);
+					CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
+					FortuneSection.DEFAULTS);
 			var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 			assertEquals(custom, parsed.config(), off.key());
 			assertEquals(List.of(), parsed.issues());
 		}
 		var none = new CommonConfig(ExperienceSection.DEFAULTS, new AllowTogetherSection(Set.of()),
-				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS);
+				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
+				FortuneSection.DEFAULTS);
 		assertEquals(none, common(ConfigFiles.render(none, CommonConfig.CODEC)).config());
 	}
 
@@ -290,7 +294,8 @@ class ConfigParseTest {
 	@Test
 	void strictRenderIsCommentFreeAndRoundTrips() throws SyntaxError {
 		var config = new CommonConfig(new ExperienceSection(false, 12, 345), AllowTogetherSection.DEFAULTS,
-				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS);
+				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
+				FortuneSection.DEFAULTS);
 		String json = ConfigFiles.renderStrict(config, CommonConfig.CODEC);
 		assertFalse(json.contains("//") || json.contains("/*"), json);
 		assertFalse(json.contains("\n"), json);
@@ -335,7 +340,8 @@ class ConfigParseTest {
 	void costsAndCursesRoundTrip() throws SyntaxError {
 		var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
 				new CostsSection(0, 3, 5, 0, false), new CursesSection(95, 0),
-				new AnvilSection(InvalidBookMode.STRIP_INVALID), new TableSection(false));
+				new AnvilSection(InvalidBookMode.STRIP_INVALID), new TableSection(false),
+				new FortuneSection(SilkFortuneMode.FORTUNE_MULTIPLIES_SILK));
 		var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 		assertEquals(custom, parsed.config());
 		assertEquals(List.of(), parsed.issues());
@@ -388,7 +394,8 @@ class ConfigParseTest {
 	void anvilModeIsReadForEveryValue() throws SyntaxError {
 		for (InvalidBookMode mode : InvalidBookMode.values()) {
 			var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
-					CostsSection.DEFAULTS, CursesSection.DEFAULTS, new AnvilSection(mode), TableSection.DEFAULTS);
+					CostsSection.DEFAULTS, CursesSection.DEFAULTS, new AnvilSection(mode), TableSection.DEFAULTS,
+					FortuneSection.DEFAULTS);
 			var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 			assertEquals(custom, parsed.config(), mode.name());
 			assertEquals(List.of(), parsed.issues(), mode.name());
@@ -428,6 +435,35 @@ class ConfigParseTest {
 		}
 		var missing = common("{ schema_version: 1, experience: { enabled: true } }");
 		assertEquals(TableSection.DEFAULTS, missing.config().table());
+		assertEquals(List.of(), missing.issues());
+	}
+
+	@Test
+	void fortuneDefaultsToSilkWins() {
+		assertEquals(SilkFortuneMode.SILK_WINS, CommonConfig.defaults().fortune().silkFortuneMode());
+	}
+
+	@Test
+	void fortuneModeIsReadForEveryValue() throws SyntaxError {
+		for (SilkFortuneMode mode : SilkFortuneMode.values()) {
+			var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
+					CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
+					new FortuneSection(mode));
+			var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
+			assertEquals(custom, parsed.config(), mode.name());
+			assertEquals(List.of(), parsed.issues(), mode.name());
+		}
+	}
+
+	@Test
+	void fortuneUnknownModeIsAnIssueAndDefaults() throws SyntaxError {
+		for (String bad : List.of("\"fortune_wins\"", "\"SILK_WINS\"", "1", "true")) {
+			var parsed = common("{ schema_version: 1, fortune: { silk_fortune_mode: " + bad + " } }");
+			assertEquals(FortuneSection.DEFAULTS, parsed.config().fortune(), bad);
+			assertEquals(List.of("fortune.silk_fortune_mode"), keys(parsed.issues()), bad);
+		}
+		var missing = common("{ schema_version: 1, experience: { enabled: true } }");
+		assertEquals(FortuneSection.DEFAULTS, missing.config().fortune());
 		assertEquals(List.of(), missing.issues());
 	}
 

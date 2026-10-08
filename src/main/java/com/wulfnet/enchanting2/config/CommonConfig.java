@@ -8,7 +8,7 @@ import java.util.Objects;
  * Each phase adds its section here together with the code that reads it.
  */
 public record CommonConfig(ExperienceSection experience, AllowTogetherSection allowTogether, CostsSection costs,
-		CursesSection curses, AnvilSection anvil, TableSection table) {
+		CursesSection curses, AnvilSection anvil, TableSection table, FortuneSection fortune) {
 	public static final String FILE_NAME = "common.json5";
 	public static final int SCHEMA_VERSION = 1;
 
@@ -33,7 +33,7 @@ public record CommonConfig(ExperienceSection experience, AllowTogetherSection al
 			return new CommonConfig(ExperienceSection.read(root.section("experience")),
 					AllowTogetherSection.read(root.section("allow_together")), CostsSection.read(root.section("costs")),
 					CursesSection.read(root.section("curses")), AnvilSection.read(root.section("anvil")),
-					TableSection.read(root.section("table")));
+					TableSection.read(root.section("table")), FortuneSection.read(root.section("fortune")));
 		}
 
 		@Override
@@ -45,6 +45,7 @@ public record CommonConfig(ExperienceSection experience, AllowTogetherSection al
 			root.put("curses", value.curses.write(), "Each curse on the result makes enchanting cheaper.");
 			root.put("anvil", value.anvil.write(), "Anvil behavior.");
 			root.put("table", value.table.write(), "Enchanting table behavior.");
+			root.put("fortune", value.fortune.write(), "Fortune and Silk Touch on mining tools.");
 		}
 	};
 
@@ -55,10 +56,11 @@ public record CommonConfig(ExperienceSection experience, AllowTogetherSection al
 		Objects.requireNonNull(curses, "curses");
 		Objects.requireNonNull(anvil, "anvil");
 		Objects.requireNonNull(table, "table");
+		Objects.requireNonNull(fortune, "fortune");
 	}
 
 	public static CommonConfig defaults() {
 		return new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS, CostsSection.DEFAULTS,
-				CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS);
+				CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS, FortuneSection.DEFAULTS);
 	}
 }

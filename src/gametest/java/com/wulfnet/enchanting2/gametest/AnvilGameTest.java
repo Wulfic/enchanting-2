@@ -110,7 +110,8 @@ public class AnvilGameTest {
 
 	private static CommonConfig config(InvalidBookMode mode, AllowTogetherSection allowTogether, CostsSection costs) {
 		CommonConfig d = CommonConfig.defaults();
-		return new CommonConfig(d.experience(), allowTogether, costs, d.curses(), new AnvilSection(mode), d.table());
+		return new CommonConfig(d.experience(), allowTogether, costs, d.curses(), new AnvilSection(mode), d.table(),
+				d.fortune());
 	}
 
 	private static CommonConfig mode(InvalidBookMode mode) {

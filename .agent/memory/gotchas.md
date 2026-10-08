@@ -311,3 +311,11 @@ included, then follows the window. The 1.21.11 jar has a LocalVariableTable, so 
 `tickBook`'s only boolean works too.
 **Dead ends:** pose translation (fine for the grindstone, which has no picture-in-picture element).
 **Affects:** `mixin/client/EnchantmentScreenMixin`
+
+## 2026-10-08 — Fortune V averages 22/7 ≈ 3.14×, not "about 2.9×"
+**Symptom:** DESIGN §6 said Fortune V's ore multiplier averages about 2.9×. The plan, the config tooltip and the
+`FortuneRule` javadoc copied it.
+**Cause:** never computed. `ApplyBonusCount.OreDrops` (`javap`, 1.21.11) is `count × (max(0, nextInt(level + 2) − 1) + 1)`.
+At level 5 that's 1, 1, 2, 3, 4, 5, 6 with equal odds, so the mean is 22/7. Fortune III is 2.2 (matches the wiki).
+**Fix:** corrected everywhere before Stage 8A was committed. Derive a formula's numbers from the bytecode, not memory.
+**Affects:** DESIGN §6, `FortuneRule`, `FortuneSection`, en_us.json

@@ -9,8 +9,10 @@ import com.wulfnet.enchanting2.config.ConfigView;
 import com.wulfnet.enchanting2.config.CostsSection;
 import com.wulfnet.enchanting2.config.CursesSection;
 import com.wulfnet.enchanting2.config.ExperienceSection;
+import com.wulfnet.enchanting2.config.FortuneSection;
 import com.wulfnet.enchanting2.config.TableSection;
 import com.wulfnet.enchanting2.enchantment.ConflictFamily;
+import com.wulfnet.enchanting2.fortune.SilkFortuneMode;
 import dev.isxander.yacl3.api.ConfigCategory;
 import dev.isxander.yacl3.api.LabelOption;
 import dev.isxander.yacl3.api.Option;
@@ -72,6 +74,9 @@ final class ConfigScreen {
 				.option(LabelOption.create(modeLabel));
 		ConfigCategory.Builder table = ConfigCategory.createBuilder()
 				.name(Component.translatable(KEY + "category.table"))
+				.option(LabelOption.create(modeLabel));
+		ConfigCategory.Builder fortune = ConfigCategory.createBuilder()
+				.name(Component.translatable(KEY + "category.fortune"))
 				.option(LabelOption.create(modeLabel));
 		if (view.values().isPresent()) {
 			ExperienceSection d = ExperienceSection.DEFAULTS;
@@ -146,6 +151,16 @@ final class ConfigScreen {
 					.controller(TickBoxControllerBuilder::create)
 					.available(editable)
 					.build());
+			fortune.option(Option.<SilkFortuneMode>createBuilder()
+					.name(Component.translatable(KEY + "fortune.silk_fortune_mode"))
+					.description(description("fortune.silk_fortune_mode"))
+					.binding(FortuneSection.DEFAULTS.silkFortuneMode(), () -> draft.silkFortuneMode,
+							v -> draft.silkFortuneMode = v)
+					.controller(option -> EnumControllerBuilder.create(option).enumClass(SilkFortuneMode.class)
+							.formatValue(mode -> Component.translatable(
+									KEY + "fortune.silk_fortune_mode." + mode.name().toLowerCase(Locale.ROOT))))
+					.available(editable)
+					.build());
 		}
 
 		return YetAnotherConfigLib.createBuilder()
@@ -156,6 +171,7 @@ final class ConfigScreen {
 				.category(curses.build())
 				.category(anvil.build())
 				.category(table.build())
+				.category(fortune.build())
 				.category(display)
 				// YACL saves when any option changed, the display one included, so write only the files that did.
 				.save(() -> {
@@ -198,6 +214,7 @@ final class ConfigScreen {
 		int removalMinCost;
 		InvalidBookMode invalidBookMode;
 		boolean treasureRequiresFullPower;
+		SilkFortuneMode silkFortuneMode;
 
 		Draft(CommonConfig from) {
 			enabled = from.experience().enabled();
@@ -213,6 +230,7 @@ final class ConfigScreen {
 			removalMinCost = from.curses().removalMinCost();
 			invalidBookMode = from.anvil().invalidBookMode();
 			treasureRequiresFullPower = from.table().treasureRequiresFullPower();
+			silkFortuneMode = from.fortune().silkFortuneMode();
 		}
 
 		void setAllowed(ConflictFamily family, boolean value) {
@@ -229,7 +247,7 @@ final class ConfigScreen {
 					new CostsSection(renameCost, repairCostPerMaterial, repairCombineCost, maximumOperationCost,
 							creativeFree),
 					new CursesSection(maxDiscountPercent, removalMinCost), new AnvilSection(invalidBookMode),
-					new TableSection(treasureRequiresFullPower));
+					new TableSection(treasureRequiresFullPower), new FortuneSection(silkFortuneMode));
 		}
 	}
 }

@@ -98,7 +98,7 @@ public class TableCalculatorGameTest {
 
 	private static CommonConfig config(AllowTogetherSection allowTogether, CostsSection costs, TableSection table) {
 		CommonConfig d = CommonConfig.defaults();
-		return new CommonConfig(d.experience(), allowTogether, costs, d.curses(), d.anvil(), table);
+		return new CommonConfig(d.experience(), allowTogether, costs, d.curses(), d.anvil(), table, d.fortune());
 	}
 
 	private static CostsSection maximum(int maximum, boolean creativeFree) {

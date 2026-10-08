@@ -217,11 +217,11 @@ vanilla IDs below; an enchantment a datapack adds to a vanilla exclusive-set tag
 
 | Family | Vanilla rule | When combined |
 |---|---|---|
-| Silk Touch / Fortune | exclusive | `silk_fortune_mode`: `SILK_WINS` (default; Fortune ignored on silk-touched drops) or `FORTUNE_MULTIPLIES_SILK` (Mod Menu toggle; the tooltip warns it enables an ore-duplication loop) |
+| Silk Touch / Fortune | exclusive | `fortune.silk_fortune_mode`: `SILK_WINS` (default; Fortune never multiplies a drop Silk Touch changed, §6) or `FORTUNE_MULTIPLIES_SILK` (config screen; the tooltip warns it multiplies ore blocks) |
 | Mending / Infinity | exclusive | both work normally |
 | Protection family | exclusive | all apply; vanilla 20-EPF cap still limits the total |
-| Damage: Sharpness / Smite / Bane / Impaling / Density / Breach (vanilla `exclusive_set/damage`) | exclusive | all applicable bonuses add (owner: all six, 2026-10-06) |
-| Riptide / Loyalty / Channeling | exclusive | in water or rain → Riptide launch; otherwise → normal throw with Loyalty/Channeling |
+| Damage: Sharpness / Smite / Bane / Impaling / Density / Breach (vanilla `exclusive_set/damage`) | exclusive | all applicable bonuses add (owner: all six, 2026-10-06). No vanilla item takes Impaling with another member (the trident supports only Impaling) |
+| Riptide / Loyalty / Channeling | exclusive | in water or rain → Riptide launch; otherwise → normal throw with Loyalty/Channeling. Applies to **any** Riptide trident, Riptide alone included (owner, 2026-10-08) |
 | Multishot / Piercing | exclusive | both apply |
 | Depth Strider / Frost Walker | exclusive | both apply |
 | Silk Touch + Smelting (new) | n/a | `smelting_vs_silk_priority`, default Silk Touch |
@@ -443,7 +443,7 @@ placed-block tracker breaks the loop: a block a player placed (or manufactured) 
 the Fortune bonus. The design is ported from the mcMMO-Singleplayer
 `PlacedBlockTracker`/`BlockRules` pattern.
 - Blocks Fortune affects: data tags `enchanting2:fortune_multiplies/<tool>`. Multiplier is
-  vanilla's ore formula (`1 + max(0, rand(0, level+2) − 1)`), so Fortune V averages about 2.9×.
+  vanilla's ore formula (`1 + max(0, rand(0, level+2) − 1)`), so Fortune V averages 22/7 ≈ 3.1× (outcomes 1, 1, 2, 3, 4, 5, 6).
 - Draft defaults (adjust in Phase 8):
 
   | Tool | Default tag |

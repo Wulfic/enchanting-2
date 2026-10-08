@@ -8,6 +8,7 @@ import blue.endless.jankson.Jankson;
 import blue.endless.jankson.JsonObject;
 import com.wulfnet.enchanting2.anvil.InvalidBookMode;
 import com.wulfnet.enchanting2.enchantment.ConflictFamily;
+import com.wulfnet.enchanting2.fortune.SilkFortuneMode;
 import java.io.InputStream;
 import java.util.Locale;
 import java.util.Map;
@@ -48,7 +49,7 @@ class ConfigLangKeysTest {
 		JsonObject lang = lang();
 		Map<String, JsonObject> sections = Map.of("costs", CostsSection.DEFAULTS.write(),
 				"curses", CursesSection.DEFAULTS.write(), "anvil", AnvilSection.DEFAULTS.write(), "table",
-				TableSection.DEFAULTS.write());
+				TableSection.DEFAULTS.write(), "fortune", FortuneSection.DEFAULTS.write());
 		sections.forEach((section, written) -> {
 			assertTrue(lang.containsKey("enchanting2.config.category." + section), section);
 			assertFalse(written.keySet().isEmpty(), section);
@@ -65,6 +66,15 @@ class ConfigLangKeysTest {
 		JsonObject lang = lang();
 		for (InvalidBookMode mode : InvalidBookMode.values()) {
 			String key = "enchanting2.config.anvil.invalid_book_mode." + mode.name().toLowerCase(Locale.ROOT);
+			assertTrue(lang.containsKey(key), key);
+		}
+	}
+
+	@Test
+	void everySilkFortuneModeHasText() throws Exception {
+		JsonObject lang = lang();
+		for (SilkFortuneMode mode : SilkFortuneMode.values()) {
+			String key = "enchanting2.config.fortune.silk_fortune_mode." + mode.name().toLowerCase(Locale.ROOT);
 			assertTrue(lang.containsKey(key), key);
 		}
 	}
