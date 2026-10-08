@@ -32,7 +32,9 @@ import org.junit.jupiter.api.Test;
  */
 class TableLangKeysTest {
 	/** Built in client code, which JUnit can't load; kept in step by hand. */
-	private static final List<String> CLIENT_KEYS = List.of(TablePanelView.KEY + "panel.title");
+	private static final List<String> CLIENT_KEYS = List.of(TablePanelView.KEY + "panel.title",
+			TablePanelView.KEY + "window.levels", TablePanelView.KEY + "window.lapis",
+			TablePanelView.KEY + "window.enchant");
 	private static final Pattern PLACEHOLDER = Pattern.compile("%(?:(\\d+)\\$)?s");
 
 	private static JsonObject lang() throws Exception {

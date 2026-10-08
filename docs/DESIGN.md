@@ -379,10 +379,15 @@ Readable and not random. The vanilla three-random-offers screen is replaced by o
 - Offered treasure enchantments (Mending, Frost Walker) need tier 5 (15 shelves) by default
   (`table.treasure_requires_full_power = true`). Curses are never gated: they're a discount, not
   power.
-- **Screen** (only when the server runs Enchanting 2): the vanilla window stays (slots, book).
-  Its three-offer area shows the XP and lapis totals and an Enchant button. The list is a
-  scrollable side panel placed like the anvil's. The commit carries the numbers the player saw,
-  and the server refuses it if they no longer match.
+- **Screen** (only when the server runs Enchanting 2; on a vanilla server the screen is vanilla):
+  the vanilla window stays (slots, book). Its first two offer rows show the XP levels and lapis
+  (green if affordable, red if not) or why there is no price, and the third is the Enchant
+  button. The list is a scrollable side panel (160 wide) placed like the grindstone's. A row
+  click picks at the highest level the table sells, or unpicks; `<` / `>` step the level. Rows
+  that can't be picked say why ("Needs 8 bookshelves", "Conflicts with Fortune", "Already at
+  maximum level"). The footer shows the Mending surcharge, the curse discount, the totals and
+  the status. Enchant carries the numbers the player saw, and the server refuses it if they no
+  longer match. A click on the panel never throws the carried item.
 - Books can be enchanted with any table enchantment, several at once.
 - The server recomputes everything. The client's numbers are display only.
 

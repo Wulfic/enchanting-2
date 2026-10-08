@@ -299,3 +299,15 @@ A mixin on the wrong class would apply cleanly, since every one of them is a val
 menu also hands itself to its slots through a duck interface, and its constructor casts every slot to it, so a
 mistargeted slot mixin fails loudly (`ClassCastException`) in any test that builds the menu.
 **Affects:** `mixin/GrindstoneInputSlotMixin`, `mixin/GrindstoneResultSlotMixin`
+
+## 2026-10-07 — The enchanting table's book doesn't follow a pose translation
+**Symptom (caught before it shipped):** the 7D plan shifted `EnchantmentScreen.renderBg` with a pose translation, as the
+grindstone does. That would move the background and slots but leave the 3D book at the centred position.
+**Cause:** `renderBook` calls `GuiGraphics.submitBookModelRenderState(..., x0, y0, x1, y1)`. It's a picture-in-picture
+element drawn later at those absolute screen coordinates, and the pose stack doesn't apply to it.
+**Fix:** change `renderBg`'s own X instead: `@ModifyVariable(method = "renderBg", at = @At("STORE"), index = 5)` returns
+`leftPos` (local 5 is `k = (width - imageWidth) / 2`, per `javap -c -l`). Everything vanilla draws from `k`, the book
+included, then follows the window. The 1.21.11 jar has a LocalVariableTable, so `@ModifyVariable(ordinal = 0)` on
+`tickBook`'s only boolean works too.
+**Dead ends:** pose translation (fine for the grindstone, which has no picture-in-picture element).
+**Affects:** `mixin/client/EnchantmentScreenMixin`

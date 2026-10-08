@@ -851,7 +851,7 @@ when the mod is removed is returned by vanilla's `removed()` like any other item
       **Not automated (owner):** the panel's look in a normal session, and a modded client on a vanilla server keeping
       the vanilla grindstone (no book placement, no panel).
 
-## Phase 7 — Enchanting table (four stages, one commit each)
+## Phase 7 — Enchanting table (four stages, one commit each)  ✅ 2026-10-07 (except the owner `runClient` checks)
 **Goal:** the table lists every offered enchantment applicable to the item in slot 0, the player picks any number of
 them, each at a chosen level, and sees the per-line XP cost, the lapis and the totals before committing. The server
 validates, prices and charges everything (DESIGN §5, §6). No randomness.
@@ -1007,8 +1007,8 @@ go back through vanilla's `removed()` → `clearContainer`.
       `TableLangKeysTest` 3 (its own coverage check caught that the walk never reached "insufficient lapis"),
       `TablePowerTest` +2, `SidePanelLayoutTest` +1. 228 JUnit + 125 GameTests + 2 client GameTests.
 
-### Stage 7D — Enchanting table screen → commit
-- [ ] 7D.1 `mixin/client/EnchantmentScreenMixin`: `init` TAIL applies the layout to `leftPos`; `renderBg` shifted to
+### Stage 7D — Enchanting table screen → commit  ✅ 2026-10-07
+- [x] 7D.1 `mixin/client/EnchantmentScreenMixin`: `init` TAIL applies the layout to `leftPos`; `renderBg` shifted to
       `leftPos` (pose translation, as the grindstone); vanilla's three offer rows suppressed. In their 108×57 area: XP
       and lapis totals, the status line, and an Enchant button drawn with vanilla's own `enchantment_slot` sprites
       (normal / highlighted / disabled). Panel at TAIL. Row body click toggles a pick (default level = the highest
@@ -1017,13 +1017,26 @@ go back through vanilla's `removed()` → `clearContainer`.
       local player's levels and the lapis slot cover them. The panel's `INSUFFICIENT_LEVELS` can be stale, see 7B.
       Vanilla `mouseClicked` offer hit-test is skipped.
       `hasClickedOutside` is false over the panel.
-- [ ] 7D.2 Client GameTest: singleplayer, real table with 15 shelves, diamond sword + lapis → rows; pick Sharpness V
+- [x] 7D.2 Client GameTest: singleplayer, real table with 15 shelves, diamond sword + lapis → rows; pick Sharpness V
       and Mending → totals shown; Enchant → sword has both, levels and lapis charged; plain book with two picks →
       enchanted book; scrolling on a book reaches the last row; tiny window → panel on screen; a panel click keeps a
       carried item. Screenshots.
-- [ ] 7D.3 DESIGN §6 (table as built), state.md, decisions.md. Owner `runClient` list: panel look, a modded client on a
+- [x] 7D.3 DESIGN §6 (table as built), state.md, decisions.md. Owner `runClient` list: panel look, a modded client on a
       vanilla server keeping the vanilla table. Mutation: the Enchant button sends nothing → client test fails. Build +
       `runClientGameTest` green, commit.
+      **Done:** **changed from the plan:** no pose translation. The book is a picture-in-picture element at absolute
+      coordinates, so `renderBg`'s own X (local 5) is set to `leftPos` instead (gotchas.md). `EnchantmentScreen`
+      declares `init` and `mouseClicked` (injected) but not `mouseScrolled`, `hasClickedOutside` or `removed`
+      (overridden). Vanilla's offer sprites are suppressed with a `@WrapWithCondition`. The book opens when the panel
+      has rows (`@ModifyVariable` on `tickBook`'s boolean). `TableScreenAccess` (layout, panel and window text, row Y,
+      arrow X, scroll). `TableScreenClientGameTest`: a real table + 15 shelves 3 blocks from the player; narrow window
+      shifts; sword rows; clicks pick Sharpness V and Mending on the server; window shows 17 levels and 17 lapis;
+      Enchant → sword has both, 17 levels and 17 lapis taken (vanilla's "Enchanter" advancement fires); stepper V → IV
+      → V, re-click unpicks; plain book with Aqua Affinity + Efficiency, its list scrolls to the last row, enchanted
+      book; a panel click keeps carried diamonds; close clears. Mutation: Enchant sends nothing → "the sword has
+      Sharpness V and Mending" fails. Screenshots `0008`–`0012`. 228 JUnit + 125 GameTests + 3 client GameTests.
+      **Not automated (owner):** the look in a normal session (is the ready Enchant button clearly clickable?), and a
+      modded client on a vanilla server keeping the vanilla table.
 
 ## Phase 8 — Conflict effect resolution + Fortune on all tools
 - [ ] 8.1 Silk/Fortune behavior per Q5 (loot-table modification, not item hacks). Adds the

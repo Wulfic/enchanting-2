@@ -651,3 +651,19 @@ committing through vanilla's button packet after a separate selection packet (no
 packet order).
 **Affects:** `table/*`, `EnchantmentMenuMixin`, `EnchantmentScreenMixin`, `network/Table*`, `NetworkProtocol`,
 `config/TableSection`, `SidePanel`, `data/enchanting2/tags/enchantment/offered_at_table.json`, DESIGN §6
+
+## 2026-10-07 — Enchanting table screen: price in the offer rows, Enchant as the third (Stage 7D)
+**Context:** the owner chose "vanilla window + side panel" and left the details of the offer area and the clicks open.
+**Choice (agent):** offer rows 1 and 2 show the XP levels and lapis on vanilla's dark (disabled) offer sprite, green
+when the player can pay and red when not. Without a price they show the panel's status line instead. Row 3 is Enchant,
+drawn with vanilla's own offer sprites (normal / highlighted / disabled). A row body click picks at the highest level
+the table sells, or unpicks, and `<` / `>` step the level. Every change sends the whole selection. The panel scrolls
+back to the top when the item changes. The book opens when the panel has rows, as vanilla's opens when it has offers.
+Enchant is enabled from the price plus the client's own levels and lapis (`TablePanelView.ready`), never the server's
+status alone, which goes stale when the player gains levels.
+**Why:** the window keeps vanilla's look and layout, and the price sits where vanilla showed its level cost. Picking at
+the highest sellable level is what nearly every player wants, and the stepper fixes the rest. A whole-selection payload
+can't get out of step with the server through a lost delta.
+**Rejected:** a separate cost tooltip (hidden until hover); defaulting a pick to level I (one click per level for the
+common case); a vanilla `Button` widget (looks unlike the table's rows).
+**Affects:** `mixin/client/EnchantmentScreenMixin`, `table/TablePanelView`, `client/SidePanel`

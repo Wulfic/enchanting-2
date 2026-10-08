@@ -159,7 +159,7 @@ public final class TablePanelView {
 		return footer;
 	}
 
-	static List<Row> status(Status status, List<TableRow> rows, Optional<Invalid> invalid,
+	public static List<Row> status(Status status, List<TableRow> rows, Optional<Invalid> invalid,
 			Optional<CostBreakdown> cost, int playerLevel, int lapisCount, OptionalInt maximumOperationCost) {
 		Ready ready = ready(status, cost, playerLevel, lapisCount);
 		return switch (ready) {
