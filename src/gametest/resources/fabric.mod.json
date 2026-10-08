@@ -18,7 +18,8 @@
 			"com.wulfnet.enchanting2.gametest.GrindstoneGameTest",
 			"com.wulfnet.enchanting2.gametest.TableCalculatorGameTest",
 			"com.wulfnet.enchanting2.gametest.TableGameTest",
-			"com.wulfnet.enchanting2.gametest.ConflictEffectsGameTest"
+			"com.wulfnet.enchanting2.gametest.ConflictEffectsGameTest",
+			"com.wulfnet.enchanting2.gametest.PlacedBlocksGameTest"
 		],
 		"fabric-client-gametest": [
 			"com.wulfnet.enchanting2.gametest.AnvilScreenClientGameTest",

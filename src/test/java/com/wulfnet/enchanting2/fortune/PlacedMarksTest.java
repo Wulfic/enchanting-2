@@ -72,48 +72,6 @@ class PlacedMarksTest {
 	void outOfChunkCoordinatesAreRefused() {
 		assertThrows(IllegalArgumentException.class, () -> PlacedMarks.EMPTY.withMark(16, 0, 0));
 		assertThrows(IllegalArgumentException.class, () -> PlacedMarks.EMPTY.isMarked(0, 0, -1));
-		assertThrows(IllegalArgumentException.class, () -> PlacedMarks.pack(-1, 0, 0));
-	}
-
-	@Test
-	void packRoundTripsNegativeY() {
-		for (int y : new int[] {-2032, -64, -1, 0, 1, 319, 2031}) {
-			int packed = PlacedMarks.pack(15, y, 7);
-			assertEquals(15, PlacedMarks.unpackX(packed));
-			assertEquals(y, PlacedMarks.unpackY(packed));
-			assertEquals(7, PlacedMarks.unpackZ(packed));
-		}
-	}
-
-	/** A 12-block column pushed up by one: every source but the bottom is also a destination. */
-	@Test
-	void movingAnOverlappingColumnKeepsEveryMark() {
-		PlacedMarks marks = PlacedMarks.EMPTY;
-		int[] from = new int[12];
-		int[] to = new int[12];
-		for (int i = 0; i < 12; i++) {
-			marks = marks.withMark(8, 60 + i, 8);
-			from[i] = PlacedMarks.pack(8, 60 + i, 8);
-			to[i] = PlacedMarks.pack(8, 61 + i, 8);
-		}
-		PlacedMarks moved = marks.moved(from, to);
-		assertEquals(12, moved.count());
-		assertFalse(moved.isMarked(8, 60, 8));
-		for (int i = 0; i < 12; i++) {
-			assertTrue(moved.isMarked(8, 61 + i, 8), "y " + (61 + i));
-		}
-	}
-
-	@Test
-	void movingCarriesOnlyMarkedSources() {
-		PlacedMarks marks = PlacedMarks.EMPTY.withMark(0, 10, 0);
-		int[] from = {PlacedMarks.pack(0, 10, 0), PlacedMarks.pack(1, 10, 0)};
-		int[] to = {PlacedMarks.pack(0, 11, 0), PlacedMarks.pack(1, 11, 0)};
-		PlacedMarks moved = marks.moved(from, to);
-		assertTrue(moved.isMarked(0, 11, 0));
-		assertFalse(moved.isMarked(1, 11, 0), "a natural block stays natural when moved");
-		assertEquals(1, moved.count());
-		assertThrows(IllegalArgumentException.class, () -> marks.moved(from, new int[1]));
 	}
 
 	@Test
@@ -125,7 +83,6 @@ class PlacedMarksTest {
 		assertTrue(unreadable.isMarked(15, 319, 15));
 		assertSame(unreadable, unreadable.withoutMark(0, 0, 0));
 		assertSame(unreadable, unreadable.withMark(0, 0, 0));
-		assertSame(unreadable, unreadable.moved(new int[] {0}, new int[] {256}));
 		assertEquals("raw", unreadable.raw());
 		assertThrows(IllegalStateException.class, PlacedMarks.EMPTY::raw);
 	}

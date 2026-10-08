@@ -85,34 +85,6 @@ public final class PlacedMarks {
 		return with(x, y, z, false);
 	}
 
-	/**
-	 * Moves marks the way a piston moves blocks: read every source, clear every source, then mark every destination
-	 * whose source was marked. Three passes, so a pushed column whose positions overlap keeps every mark (mcMMO). Both
-	 * arrays hold packed local positions ({@link #pack}) and pair up by index.
-	 */
-	public PlacedMarks moved(int[] from, int[] to) {
-		if (from.length != to.length) {
-			throw new IllegalArgumentException(from.length + " sources but " + to.length + " destinations");
-		}
-		if (raw != null) {
-			return this;
-		}
-		boolean[] marked = new boolean[from.length];
-		for (int i = 0; i < from.length; i++) {
-			marked[i] = isMarked(unpackX(from[i]), unpackY(from[i]), unpackZ(from[i]));
-		}
-		PlacedMarks result = this;
-		for (int packed : from) {
-			result = result.withoutMark(unpackX(packed), unpackY(packed), unpackZ(packed));
-		}
-		for (int i = 0; i < to.length; i++) {
-			if (marked[i]) {
-				result = result.withMark(unpackX(to[i]), unpackY(to[i]), unpackZ(to[i]));
-			}
-		}
-		return result;
-	}
-
 	/** Marked positions; 0 for an unreadable value. */
 	public int count() {
 		int count = 0;
@@ -129,24 +101,6 @@ public final class PlacedMarks {
 		TreeMap<Integer, long[]> copy = new TreeMap<>();
 		sections.forEach((y, bits) -> copy.put(y, bits.clone()));
 		return copy;
-	}
-
-	/** A chunk-local position packed into an int for {@link #moved}: x and z in 4 bits each, y in the remaining 24. */
-	public static int pack(int x, int y, int z) {
-		checkLocal(x, z);
-		return (y << 8) | (z << 4) | x;
-	}
-
-	static int unpackX(int packed) {
-		return packed & 15;
-	}
-
-	static int unpackZ(int packed) {
-		return (packed >>> 4) & 15;
-	}
-
-	static int unpackY(int packed) {
-		return packed >> 8;
 	}
 
 	private PlacedMarks with(int x, int y, int z, boolean value) {

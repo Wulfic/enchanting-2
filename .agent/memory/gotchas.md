@@ -319,3 +319,14 @@ included, then follows the window. The 1.21.11 jar has a LocalVariableTable, so 
 At level 5 that's 1, 1, 2, 3, 4, 5, 6 with equal odds, so the mean is 22/7. Fortune III is 2.2 (matches the wiki).
 **Fix:** corrected everywhere before Stage 8A was committed. Derive a formula's numbers from the bytecode, not memory.
 **Affects:** DESIGN §6, `FortuneRule`, `FortuneSection`, en_us.json
+
+## 2026-10-08 — `PlayerBlockBreakEvents.AFTER` fires before the broken block's loot is rolled
+**Symptom (caught in planning, before code):** the Phase 8 plan cleared a placed-block mark in `AFTER`. The Fortune
+drop hook reads the mark while the loot is rolled, so it would always have seen "natural".
+**Cause:** Fabric 0.141.6 (`fabric-events-interaction-v0` 4.1.1) fires `AFTER` from `ServerPlayerGameModeMixin` at the
+`Block.destroy` call in `destroyBlock`. Vanilla's order is `playerWillDestroy` → `removeBlock` → `destroy` (AFTER) →
+`playerDestroy` (loot). "After" means after removal, not after drops.
+**Fix:** our own `ServerPlayerGameModeMixin` clears at `destroyBlock` RETURN when it returns true. Mutation-tested:
+without it, "after the player broke it" stays PLACED.
+**Lesson:** read where a Fabric event's mixin injects before relying on its name for ordering.
+**Affects:** `mixin/ServerPlayerGameModeMixin`, `fortune/PlacedBlocks`, Stage 8D's loot hook

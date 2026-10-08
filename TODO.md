@@ -1155,25 +1155,41 @@ Nothing outside the repo is touched.
       block on a Silk tool under SILK_WINS (tested). Fortune V averages 22/7, not 2.9 (gotchas.md). Mutations: a
       single-pass move and the `asList` read → exactly one test fails each. 256 JUnit (+24), 135 GameTests.
 
-### Stage 8C — Persistence and marking hooks → commit
-- [ ] 8C.1 `fortune/PlacedBlocks` (MC side): chunk `AttachmentType<PlacedMarks>` `enchanting2:placed_blocks`
+### Stage 8C — Persistence and marking hooks → commit  ✅ 2026-10-08
+- [x] 8C.1 `fortune/PlacedBlocks` (MC side): chunk `AttachmentType<PlacedMarks>` `enchanting2:placed_blocks`
       (persistent, 8B codec, not synced), entity `AttachmentType<Boolean>` `enchanting2:placed_falling`. API:
       `mark(level, pos)`, `clear(level, pos)`, `isNatural(level, pos)` (`UNREADABLE` → false, logged at WARN once per
       chunk per load), `move(level, from[], to[])`. An emptied set removes the attachment.
-- [ ] 8C.2 Hooks: `BlockItem.place` success → mark (mixin at `RETURN`, server side only); `PistonBaseBlock.moveBlocks` →
+- [x] 8C.2 Hooks: `BlockItem.place` success → mark (mixin at `RETURN`, server side only); `PistonBaseBlock.moveBlocks` →
       three passes via `PlacedBlocks.move` (read the to-move and to-destroy lists vanilla builds; check targets by
       `javap` first); `FallingBlockEntity.fall` → move to the entity, its landing `setBlock` → write back
       (destroyed-on-landing → nothing); enderman `LeaveBlockGoal` place → mark; fluid generator and snow golem
       placements → mark if tagged; `PlayerBlockBreakEvents.AFTER` → clear.
-- [ ] 8C.3 `PlacedBlocksGameTest`: place by player → marked; by dispenser → marked; player break → cleared; piston push
+- [x] 8C.3 `PlacedBlocksGameTest`: place by player → marked; by dispenser → marked; player break → cleared; piston push
       and pull of a 3-block column → marks at the new positions, none left behind; sticky pull; sand placed in the air →
       falls → marked where it lands; natural sand falling → not marked; enderman place → marked; cobble generator
       output not tagged → not marked (and marked with a test tag); explosion leaves a stale mark (documented behavior).
       Persistence: encode the attachment through the chunk codec path and back (or a dev-server smoke run in
       `scripts/checks/` that places, restarts, and checks). Build green, commit.
+      **Done:** **correction to the plan:** Fabric's `PlayerBlockBreakEvents.AFTER` fires at `Block.destroy`, *before*
+      `playerDestroy` rolls the loot (gotchas.md). The clear is our own `ServerPlayerGameModeMixin` at `destroyBlock`
+      RETURN. A piston push can cross a chunk border, so the three passes moved out of `PlacedMarks` into MC-free
+      `MarkMoves` over a `Store` (`PlacedBlocks.move` adapts it). Pass 2 also clears every destination, so a natural
+      block pushed onto a stale mark arrives natural. Landing likewise *sets* the landing position (placed or natural).
+      Mixins: `BlockItemMixin` (wraps `placeBlock`, so players and dispensers), `PistonBaseBlockMixin` (wraps `resolve`
+      in `moveBlocks` only), `FallingBlockEntityMixin` (`fall` RETURN + the one landing `setBlock` in `tick`),
+      `EndermanLeaveBlockGoalMixin`, `LiquidBlockMixin` (both generator `setBlockAndUpdate`s), `LavaFluidMixin`
+      (`spreadTo` stone), `SnowGolemMixin`, `ServerPlayerGameModeMixin`. Tags (8D.1) were created here, since the
+      tag-gated hooks need them (`FortuneTags`: tool kind = vanilla item tag, block tag per kind, plus
+      `fortune_multiplies_silk` = optional `#c:ores`). The GameTest datapack adds obsidian and stone (pickaxes) and snow
+      layers (shovels). Persistence: `SerializableChunkData.copyOf(...).write()` carries the attachment under Fabric's
+      key and decodes back with `NbtOps`. `read()` was skipped, because it runs `PoiManager` consistency checks on a
+      live test chunk. Corrupt NBT → `UNREADABLE`, written back as-is. 12 GameTests (enderman via its leave goal from
+      `goalSelector`, GameTest `MobAccessor`). Mutations: all eight mixins off → the 9 hook tests fail and the 2
+      persistence tests pass; the break-clear and lava mixins off → exactly those 2 fail. 259 JUnit (+3), 147 GameTests.
 
 ### Stage 8D — Fortune drops → commit
-- [ ] 8D.1 Tags: `data/enchanting2/tags/block/fortune_multiplies/{axes,shovels,hoes,pickaxes}.json` per DESIGN §6's
+- [x] 8D.1 Tags (done in 8C): `data/enchanting2/tags/block/fortune_multiplies/{axes,shovels,hoes,pickaxes}.json` per DESIGN §6's
       table (pickaxes empty), `fortune_multiplies_silk.json` = `#c:ores`. Lang/README note.
 - [ ] 8D.2 `fortune/FortuneDrops` on `LootTableEvents.MODIFY_DROPS`: guard (block table, params present, Fortune > 0,
       not re-entrant) → tool kinds → tags → silk handling per mode (re-roll for "silk changed") → `isNatural` →
