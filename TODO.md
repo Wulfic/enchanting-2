@@ -907,28 +907,28 @@ Client: the table screen only, and only when the server is ours. Nothing is dele
 go back through vanilla's `removed()` → `clearContainer`.
 **Rollback:** `git revert` the stage's commit. Nothing outside the repo is touched.
 
-### Stage 7A — Rules, pool, calculator (server logic, no menu wiring) → commit
-- [ ] 7A.1 `config/TableSection` (`treasure_requires_full_power`, default true) in `CommonConfig` (+ write/read, synced
+### Stage 7A — Rules, pool, calculator (server logic, no menu wiring) → commit  ✅ 2026-10-07
+- [x] 7A.1 `config/TableSection` (`treasure_requires_full_power`, default true) in `CommonConfig` (+ write/read, synced
       like the others). `ConfigParseTest`/`ConfigViewTest` cases; config screen toggle + lang key
       (`ConfigLangKeysTest`).
-- [ ] 7A.2 `table/TablePower` (pure): `tier(shelves)`, `maxSelectable(maxLevel, tier)`, shelves clamped to 0..15.
+- [x] 7A.2 `table/TablePower` (pure): `tier(shelves)`, `maxSelectable(maxLevel, tier)`, shelves clamped to 0..15.
       JUnit: every shelf count 0–15 → DESIGN's tier table; max 1/3/4/5 × tier 1–5; 15 shelves unlocks every max,
       including a 255 override.
-- [ ] 7A.3 `data/enchanting2/tags/enchantment/offered_at_table.json` + `table/TablePool` (the tag key, `isGated(holder,
+- [x] 7A.3 `data/enchanting2/tags/enchantment/offered_at_table.json` + `table/TablePool` (the tag key, `isGated(holder,
       config)`). GameTest: Mending, Frost Walker, Binding, Vanishing and every `#in_enchanting_table` member are in;
       Soul Speed, Swift Sneak and Wind Burst aren't.
-- [ ] 7A.4 `table/TableSelection` (sorted ID → level map, size ≤ the pool, levels 1..255), `table/TableRow` (ID, current
+- [x] 7A.4 `table/TableSelection` (sorted ID → level map, size ≤ the pool, levels 1..255), `table/TableRow` (ID, current
       level, max selectable, max level, selected level or 0, status), `table/TableOutcome` (status, rows,
       `CostBreakdown`, result stack, levels, lapis). Status: `OK | NONE | NOTHING_TO_ENCHANT | NO_SELECTION | INVALID_PICK
       | TOO_EXPENSIVE | INSUFFICIENT_LEVELS | INSUFFICIENT_LAPIS`. Row status: `OK | NEEDS_POWER | NEEDS_FULL_POWER |
       ALREADY_AT_LEVEL | CONFLICT (+ with) | ABOVE_MAX`.
-- [ ] 7A.5 `table/TableCalculator.compute(target, lapisCount, shelves, selection, playerLevels, creative, config,
+- [x] 7A.5 `table/TableCalculator.compute(target, lapisCount, shelves, selection, playerLevels, creative, config,
       pricing, pool)`: rows = pool members `EnchantRules` doesn't call `NOT_APPLICABLE` (every member for a book), in ID
       order. Unselected rows are checked against the item plus the current selection, so they show a conflict before
       they're picked. The result is a copy with `EnchantRules.withEnchantment` per pick. A plain book is transmuted to
       `ENCHANTED_BOOK`, and an enchanted book gains stored entries. Priced with `CostRequest.table`. Never mutates its
       inputs. Failures are logged and fail closed (`NONE`).
-- [ ] 7A.6 `TableCalculatorGameTest`: sword rows match `supported_items`; book lists the whole pool; tier gating at 0/4/
+- [x] 7A.6 `TableCalculatorGameTest`: sword rows match `supported_items`; book lists the whole pool; tier gating at 0/4/
       8/12/15 shelves; Mending/Frost Walker need 15 (and don't with the toggle off); curses ungated; curse pick → negative
       line, lapis follows the discounted cost; Mending + Eff V = 17 and lapis 17; enchanted pickaxe Eff III → V = 2;
       Mending in two visits = one visit (DESIGN table); upgrade on an item past the tier's max → `NEEDS_POWER`, existing
@@ -936,6 +936,15 @@ go back through vanilla's `removed()` → `clearContainer`.
       with the family exclusive) → `INVALID_PICK`, no result; cap → `TOO_EXPENSIVE`, creative bypasses; `creative_free`
       → 0 levels and 0 lapis; never removes or lowers an existing entry (third-party entry kept). Mutation: skip the
       tier check → fails. Build green, commit.
+      **Done:** `TableOutcome` carries the shelf count (the tier is derived) and an `Invalid` (the first blocking pick
+      in ID order: ID, level, reason, conflict). `NOT_OFFERED` is an `Invalid` reason only: a row is offered by
+      definition, and the constructor refuses it. Its cost is present exactly from `TOO_EXPENSIVE` on (`priced()`), so
+      the panel can show "requires X (you have Y)". Row statuses add `MAXED` (unpicked, at or past the max). The
+      calculator takes the player's levels for `INSUFFICIENT_LEVELS`. Added to the plan: a stack of more than one item,
+      and a plain `BOOK` that holds `ENCHANTMENTS` (only a command makes one; enchanting it would leave entries in both
+      components) → `NONE`, fail closed. Shelf counts above 15 are clamped (vanilla's offsets cover 32 positions). The
+      7A.3 pool checks live in `TableCalculatorGameTest` (17 tests). Mutation (tier check skipped) → 2 fail. 213 JUnit
+      (+5 `TablePowerTest`, +2 table config parse) + 113 GameTests.
 
 ### Stage 7B — Server menu + payloads → commit
 - [ ] 7B.1 `network/TableSelectPayload` (C2S: container ID, selection), `network/TableEnchantPayload` (C2S: container

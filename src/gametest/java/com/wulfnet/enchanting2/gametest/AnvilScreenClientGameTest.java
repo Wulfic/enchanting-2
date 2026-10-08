@@ -238,7 +238,8 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 		CostsSection c = defaults.costs();
 		CommonConfig huge = new CommonConfig(defaults.experience(), defaults.allowTogether(),
 				new CostsSection(HUGE_RENAME_COST, c.repairCostPerMaterial(), c.repairCombineCost(),
-						c.maximumOperationCost(), c.creativeFree()), defaults.curses(), defaults.anvil());
+						c.maximumOperationCost(), c.creativeFree()), defaults.curses(), defaults.anvil(),
+				defaults.table());
 		check(ConfigFiles.saveWithBackup(ServerConfigs.commonFile(), CommonConfig.CODEC, huge)
 				== ConfigFiles.SaveOutcome.SAVED, "test config written");
 		try {

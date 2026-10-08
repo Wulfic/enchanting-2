@@ -9,6 +9,7 @@ import com.wulfnet.enchanting2.config.ConfigView;
 import com.wulfnet.enchanting2.config.CostsSection;
 import com.wulfnet.enchanting2.config.CursesSection;
 import com.wulfnet.enchanting2.config.ExperienceSection;
+import com.wulfnet.enchanting2.config.TableSection;
 import com.wulfnet.enchanting2.enchantment.ConflictFamily;
 import dev.isxander.yacl3.api.ConfigCategory;
 import dev.isxander.yacl3.api.LabelOption;
@@ -68,6 +69,9 @@ final class ConfigScreen {
 				.option(LabelOption.create(modeLabel));
 		ConfigCategory.Builder anvil = ConfigCategory.createBuilder()
 				.name(Component.translatable(KEY + "category.anvil"))
+				.option(LabelOption.create(modeLabel));
+		ConfigCategory.Builder table = ConfigCategory.createBuilder()
+				.name(Component.translatable(KEY + "category.table"))
 				.option(LabelOption.create(modeLabel));
 		if (view.values().isPresent()) {
 			ExperienceSection d = ExperienceSection.DEFAULTS;
@@ -134,6 +138,14 @@ final class ConfigScreen {
 									KEY + "anvil.invalid_book_mode." + mode.name().toLowerCase(Locale.ROOT))))
 					.available(editable)
 					.build());
+			table.option(Option.<Boolean>createBuilder()
+					.name(Component.translatable(KEY + "table.treasure_requires_full_power"))
+					.description(description("table.treasure_requires_full_power"))
+					.binding(TableSection.DEFAULTS.treasureRequiresFullPower(), () -> draft.treasureRequiresFullPower,
+							v -> draft.treasureRequiresFullPower = v)
+					.controller(TickBoxControllerBuilder::create)
+					.available(editable)
+					.build());
 		}
 
 		return YetAnotherConfigLib.createBuilder()
@@ -143,6 +155,7 @@ final class ConfigScreen {
 				.category(costs.build())
 				.category(curses.build())
 				.category(anvil.build())
+				.category(table.build())
 				.category(display)
 				// YACL saves when any option changed, the display one included, so write only the files that did.
 				.save(() -> {
@@ -184,6 +197,7 @@ final class ConfigScreen {
 		int maxDiscountPercent;
 		int removalMinCost;
 		InvalidBookMode invalidBookMode;
+		boolean treasureRequiresFullPower;
 
 		Draft(CommonConfig from) {
 			enabled = from.experience().enabled();
@@ -198,6 +212,7 @@ final class ConfigScreen {
 			maxDiscountPercent = from.curses().maxDiscountPercent();
 			removalMinCost = from.curses().removalMinCost();
 			invalidBookMode = from.anvil().invalidBookMode();
+			treasureRequiresFullPower = from.table().treasureRequiresFullPower();
 		}
 
 		void setAllowed(ConflictFamily family, boolean value) {
@@ -213,7 +228,8 @@ final class ConfigScreen {
 					new AllowTogetherSection(allowed),
 					new CostsSection(renameCost, repairCostPerMaterial, repairCombineCost, maximumOperationCost,
 							creativeFree),
-					new CursesSection(maxDiscountPercent, removalMinCost), new AnvilSection(invalidBookMode));
+					new CursesSection(maxDiscountPercent, removalMinCost), new AnvilSection(invalidBookMode),
+					new TableSection(treasureRequiresFullPower));
 		}
 	}
 }

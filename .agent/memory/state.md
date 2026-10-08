@@ -17,12 +17,13 @@ Phases 1–6b done (TODO.md has each stage's notes; owner `runClient` checks sti
 - 6b (2026-10-07): grindstone Extract / Cleanse / Disenchant / Repair, nothing until a pick (server-held, set by C2S
   `GrindstoneChoicePayload`), picker panel. `NetworkProtocol.VERSION` 3. Shared panel code in `screen/` and
   `client/SidePanel`.
-- Tests: 206 JUnit + 96 GameTests (`./gradlew build`) + 2 client GameTests (`./gradlew runClientGameTest`).
+- 7A (2026-10-07): `table/` calculator (`TableCalculator`, `TablePower`, `TablePool` + tag `offered_at_table`), `table`
+  config section. Not wired to the menu yet (7B).
+- Tests: 213 JUnit + 113 GameTests (`./gradlew build`) + 2 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Phase 7 (enchanting table) is planned in TODO.md as stages 7A–7D, and the owner answered the four open questions
-   (decisions.md 2026-10-07 "Enchanting table"). Next: Stage 7A (TableSection, TablePower, offered_at_table tag,
-   TableCalculator + GameTest).
+1. Phase 7 (enchanting table), planned in TODO.md as 7A–7D (owner answers in decisions.md 2026-10-07 "Enchanting
+   table"). 7A done. Next: Stage 7B (`EnchantmentMenuMixin`, the three `Table*` payloads, protocol v4, `TableGameTest`).
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
    ~1,000,000) + 6D: panel look, config screen "Display" toggle, and a vanilla server keeping the vanilla anvil screen +
    6bC: grindstone panel look, and a vanilla server keeping the vanilla grindstone.

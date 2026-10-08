@@ -37,7 +37,7 @@ class ConfigParseTest {
 	@Test
 	void nonDefaultValuesRoundTrip() throws SyntaxError {
 		var custom = new CommonConfig(new ExperienceSection(false, 0, 1), AllowTogetherSection.DEFAULTS,
-				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS);
+				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS);
 		assertEquals(custom, common(ConfigFiles.render(custom, CommonConfig.CODEC)).config());
 	}
 
@@ -47,13 +47,13 @@ class ConfigParseTest {
 			EnumSet<ConflictFamily> allowed = EnumSet.allOf(ConflictFamily.class);
 			allowed.remove(off);
 			var custom = new CommonConfig(ExperienceSection.DEFAULTS, new AllowTogetherSection(allowed),
-					CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS);
+					CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS);
 			var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 			assertEquals(custom, parsed.config(), off.key());
 			assertEquals(List.of(), parsed.issues());
 		}
 		var none = new CommonConfig(ExperienceSection.DEFAULTS, new AllowTogetherSection(Set.of()),
-				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS);
+				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS);
 		assertEquals(none, common(ConfigFiles.render(none, CommonConfig.CODEC)).config());
 	}
 
@@ -290,7 +290,7 @@ class ConfigParseTest {
 	@Test
 	void strictRenderIsCommentFreeAndRoundTrips() throws SyntaxError {
 		var config = new CommonConfig(new ExperienceSection(false, 12, 345), AllowTogetherSection.DEFAULTS,
-				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS);
+				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS);
 		String json = ConfigFiles.renderStrict(config, CommonConfig.CODEC);
 		assertFalse(json.contains("//") || json.contains("/*"), json);
 		assertFalse(json.contains("\n"), json);
@@ -335,7 +335,7 @@ class ConfigParseTest {
 	void costsAndCursesRoundTrip() throws SyntaxError {
 		var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
 				new CostsSection(0, 3, 5, 0, false), new CursesSection(95, 0),
-				new AnvilSection(InvalidBookMode.STRIP_INVALID));
+				new AnvilSection(InvalidBookMode.STRIP_INVALID), new TableSection(false));
 		var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 		assertEquals(custom, parsed.config());
 		assertEquals(List.of(), parsed.issues());
@@ -388,7 +388,7 @@ class ConfigParseTest {
 	void anvilModeIsReadForEveryValue() throws SyntaxError {
 		for (InvalidBookMode mode : InvalidBookMode.values()) {
 			var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
-					CostsSection.DEFAULTS, CursesSection.DEFAULTS, new AnvilSection(mode));
+					CostsSection.DEFAULTS, CursesSection.DEFAULTS, new AnvilSection(mode), TableSection.DEFAULTS);
 			var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 			assertEquals(custom, parsed.config(), mode.name());
 			assertEquals(List.of(), parsed.issues(), mode.name());
@@ -409,6 +409,26 @@ class ConfigParseTest {
 		var parsed = common("{ schema_version: 1, experience: { enabled: true } }");
 		assertEquals(AnvilSection.DEFAULTS, parsed.config().anvil());
 		assertEquals(List.of(), parsed.issues());
+	}
+
+	@Test
+	void tableDefaultsToTreasureRequiringFullPower() {
+		assertEquals(true, CommonConfig.defaults().table().treasureRequiresFullPower());
+	}
+
+	@Test
+	void tableToggleIsReadAndBadValuesDefault() throws SyntaxError {
+		var off = common("{ schema_version: 1, table: { treasure_requires_full_power: false } }");
+		assertEquals(new TableSection(false), off.config().table());
+		assertEquals(List.of(), off.issues());
+		for (String bad : List.of("\"no\"", "0", "{}")) {
+			var parsed = common("{ schema_version: 1, table: { treasure_requires_full_power: " + bad + " } }");
+			assertEquals(TableSection.DEFAULTS, parsed.config().table(), bad);
+			assertEquals(List.of("table.treasure_requires_full_power"), keys(parsed.issues()), bad);
+		}
+		var missing = common("{ schema_version: 1, experience: { enabled: true } }");
+		assertEquals(TableSection.DEFAULTS, missing.config().table());
+		assertEquals(List.of(), missing.issues());
 	}
 
 	@Test

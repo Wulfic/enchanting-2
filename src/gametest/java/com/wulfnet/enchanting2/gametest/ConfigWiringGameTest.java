@@ -10,6 +10,7 @@ import com.wulfnet.enchanting2.config.EnchantmentOverrides;
 import com.wulfnet.enchanting2.config.ExperienceSection;
 import com.wulfnet.enchanting2.config.ServerConfigHolder;
 import com.wulfnet.enchanting2.config.ServerConfigs;
+import com.wulfnet.enchanting2.config.TableSection;
 import com.wulfnet.enchanting2.network.ConfigSyncPayload;
 import io.netty.buffer.Unpooled;
 import java.io.IOException;
@@ -45,7 +46,8 @@ public class ConfigWiringGameTest {
 	@GameTest
 	public void payloadRoundTrips(GameTestHelper helper) {
 		ConfigSyncPayload sent = ConfigSyncPayload.of(new CommonConfig(new ExperienceSection(false, 7, 99),
-				AllowTogetherSection.DEFAULTS, CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS));
+				AllowTogetherSection.DEFAULTS, CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS,
+				TableSection.DEFAULTS));
 		FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
 		ConfigSyncPayload.CODEC.encode(buf, sent);
 		ConfigSyncPayload received = ConfigSyncPayload.CODEC.decode(buf);

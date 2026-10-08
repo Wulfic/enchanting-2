@@ -47,7 +47,8 @@ class ConfigLangKeysTest {
 	void everySectionKeyHasNameAndDescription() throws Exception {
 		JsonObject lang = lang();
 		Map<String, JsonObject> sections = Map.of("costs", CostsSection.DEFAULTS.write(),
-				"curses", CursesSection.DEFAULTS.write(), "anvil", AnvilSection.DEFAULTS.write());
+				"curses", CursesSection.DEFAULTS.write(), "anvil", AnvilSection.DEFAULTS.write(), "table",
+				TableSection.DEFAULTS.write());
 		sections.forEach((section, written) -> {
 			assertTrue(lang.containsKey("enchanting2.config.category." + section), section);
 			assertFalse(written.keySet().isEmpty(), section);

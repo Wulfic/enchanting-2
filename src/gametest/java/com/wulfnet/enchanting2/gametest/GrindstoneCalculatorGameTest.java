@@ -82,7 +82,7 @@ public class GrindstoneCalculatorGameTest {
 
 	private static CommonConfig costs(CostsSection costs) {
 		CommonConfig d = CommonConfig.defaults();
-		return new CommonConfig(d.experience(), d.allowTogether(), costs, d.curses(), d.anvil());
+		return new CommonConfig(d.experience(), d.allowTogether(), costs, d.curses(), d.anvil(), d.table());
 	}
 
 	private static CostsSection maximum(int maximum, boolean creativeFree) {
@@ -253,7 +253,7 @@ public class GrindstoneCalculatorGameTest {
 
 		CommonConfig d = CommonConfig.defaults();
 		CommonConfig noMinimum = new CommonConfig(d.experience(), d.allowTogether(), d.costs(),
-				new CursesSection(d.curses().maxDiscountPercent(), 0), d.anvil());
+				new CursesSection(d.curses().maxDiscountPercent(), 0), d.anvil(), d.table());
 		GrindstoneOutcome repaid = compute(helper, sword, ItemStack.EMPTY, Optional.of(cleanse(VANISHING)), false,
 				noMinimum);
 		equal(helper, 1, repaid.levelsCharged(), "ceil(10% × 8) = 1 with no minimum");
