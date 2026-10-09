@@ -1214,10 +1214,104 @@ Nothing outside the repo is touched.
       place-and-mine loop fails (30 logs, gotchas.md). My own test bug on the first run: 1 flint × 6 = 6, not 4.
       259 JUnit, 159 GameTests (+12).
 
-## Phase 9 — Acquisition (loot, trades, table pools)
-- [ ] 9.1 Per-enchantment table/loot/trade flags and weights
-- [ ] 9.2 Treasure flag configurable; disabled enchantments disappear from every source
-- [ ] 9.3 Tests: a disabled enchantment never appears from loot or trades
+## Phase 9 — Acquisition: flags, weights, treasure, config screen (three stages, one commit each)
+**Goal:** every per-enchantment acquisition setting in DESIGN §5/§6 (`enabled`, `table`/`loot`/`trade` flags, loot and
+trade weights, `treasure`) works for every random source, and the config screen edits enable plus the three flags.
+**Owner (2026-10-09, Phase 9 start):** (1) **Disabled = acquisition only.** It disappears from the table, loot, trades
+and mob/villager gear. Existing items keep it and it keeps working; the anvil and grindstone still move it. (2)
+**Weighted by default.** Librarian books and `enchant_randomly` loot (both uniform in vanilla) use the registry weight
+unless `trade_weight` / `loot_weight` is set. (3) **Levels up to the new max.** Loot and trades roll levels exactly as
+vanilla does against the raised max (librarians can sell Protection V). (4) **`treasure` overrides our rules only:** the
+table's 15-shelf gate and the librarian's doubled price. Vanilla tags stay untouched. (5) **GUI in Phase 9:** the config
+screen edits enable and the three source flags.
+**Facts (1.21.11 `javap`):**
+- Every weighted random pick goes through `EnchantmentHelper.selectEnchantment`. It calls
+  `getAvailableEnchantmentResults` and then `WeightedRandom.getRandomItem(random, list, EnchantmentInstance::weight)`
+  twice (first pick, then each extra pick after `filterCompatibleEnchantments`). Callers: `enchantItem` (loot
+  `enchant_with_levels`, villager `EnchantedItemForEmeralds` on `#on_traded_equipment`), the `EnchantmentsByCost[WithDifficulty]`
+  providers (`enchantItemFromProvider`: mob spawn gear in `Mob`/`Pillager`/`Vindicator`/`EnderMan`/`SkeletonTrapGoal`,
+  villager `ItemsForEmeralds`/`ItemsAndEmeraldsToItems`) and vanilla's `EnchantmentMenu` (already replaced by ours).
+- Two uniform picks: `EnchantRandomlyFunction.run` → `Util.getRandomSafe(list, random)` over its options (the **whole
+  registry** when it has none, filtered by `canEnchant`), and `VillagerTrades$EnchantBookForEmeralds.getOffer` →
+  `Registry.getRandomElementOf(#tradeable, random)`, level `Mth.nextInt(min, max)`, price doubled when
+  `holder.is(#double_trade_price)`, capped at 64. An empty pick returns no offer.
+- `SingleEnchantment` providers and `set_enchantments` name the enchantment in data: fixed grants, not random picks.
+- `selectEnchantment` has no level or server. A registry holder's private `owner` is the `MappedRegistry` that made it
+  (`createStandAlone(this, key)`), and each server builds its own enchantment registry.
+- Registry `weight` codec range is 1..1024.
+**Agent calls (decisions.md "Phase 9"):**
+- **Config:** all keys go in `enchantments.json5` entries, all optional (absent = built-in): `enabled`, `table`, `loot`,
+  `trade` (bool, default true), `loot_weight`, `trade_weight` (1..1024, default the registry weight), `treasure` (bool,
+  default the `#treasure` / `#double_trade_price` tag). No schema bump: the keys are additive. Flags only **remove** from
+  a source. Adding an enchantment to a source is the tags' job (`#tradeable`, `#on_random_loot`, `offered_at_table`, ...).
+- **Sources:** TABLE = our table pool. LOOT = loot tables (`enchant_randomly`, `enchant_with_levels`, fishing, chests,
+  bartering) and mob spawn gear. TRADE = librarian books and villager-sold enchanted gear. The table isn't random, so it
+  has a flag and no weight.
+- **Config in `selectEnchantment`:** the server stamps itself on its enchantment registry at `SERVER_STARTING`
+  (`MappedRegistry` duck) and clears it at `SERVER_STOPPED`. The hook reads the holder's `owner` (accessor), then
+  that server's live `enchantments.json5`. It's per-server and covers callers from other mods, with no static world
+  state. An unstamped registry (a client copy) → vanilla behaviour, WARN once.
+- **Trade vs loot inside `selectEnchantment`:** `@WrapMethod` on the three villager `getOffer`s opens a TRADE scope
+  (thread-local, restored in `finally`). Outside one, the source is LOOT.
+- **Fail-safe:** a pick with no allowed candidate returns empty, which vanilla already handles (no offer; the loot item
+  stays unenchanted with vanilla's WARN).
+- **GUI:** an "Enchantments" category, one collapsed group per enchantment (translated name, ID as fallback) with four
+  tick boxes. Title screen: §8's vanilla IDs plus IDs in the file. Hosting: the server's registry plus the file. A
+  remote server shows a label and no values, because `enchantments.json5` isn't synced (decisions.md 2026-10-07
+  "Anvil"). A save changes only those four keys, writes a key only when it differs from the default or was already
+  set, and keeps every other field and unknown ID. Same backed-up writer, same host-only rule as `common.json5`.
+**Not doing:** syncing `enchantments.json5` to clients; GUI for weights, `treasure`, costs or max levels (file-only; a
+later stage per §10); removing a disabled enchantment from existing items; filtering fixed grants (`set_enchantments`,
+`SingleEnchantment` providers); `/enchant` and the creative tab; capping loot or trade levels (owner); a global
+uniform/weighted toggle; adding an enchantment to a source from config (tags do that); vanilla's `EnchantmentMenu`
+offers (unused); re-rolling trades villagers already have (they're saved on the villager).
+**Blast radius:** on a modded server every newly rolled enchanted loot item, mob spawn item and villager offer goes
+through our filter, and librarian / `enchant_randomly` odds change from uniform to weighted. Existing items and existing
+villager offers are untouched. No world data is written. `enchantments.json5` gains optional keys. The config screen now
+also writes `enchantments.json5` (`.bak` first, host or title screen only). Removing the mod leaves vanilla items only.
+**Rollback:** `git revert` the stage's commit. Dev files in `run/` (gitignored) may hold new keys, which an older build
+reports as unknown keys and ignores. Nothing outside the repo is touched.
+
+### Stage 9A — Config keys and pure rules (no MC classes) → commit
+- [ ] 9A.1 `EnchantmentOverrides.Entry`: `enabled`, `table`, `loot`, `trade` (`Optional<Boolean>`), `loot_weight`,
+      `trade_weight` (`OptionalInt`, 1..1024), `treasure` (`Optional<Boolean>`). Read (`ConfigReader.readOptionalBool`,
+      new), write only the set keys, file comment. Bad value → `ConfigIssue`, key treated as absent.
+- [ ] 9A.2 `acquisition/Source` (TABLE, LOOT, TRADE) and `acquisition/AcquisitionRules` over `EnchantmentOverrides`:
+      `allows(id, source)` (= enabled && flag), `weight(id, source, registryWeight)` (TABLE throws),
+      `treasure(id, tagged)`.
+- [ ] 9A.3 `acquisition/WeightedPick.pick(list, weight, nextInt)`: vanilla's walk. Empty or zero total → empty.
+- [ ] 9A.4 JUnit: parse, round trip, every range edge, unknown-ID kept; rules truth table; pick distribution (fixed seed,
+      bounds) and never picking an excluded item. Mutation: `allows` ignoring `enabled` → a test fails.
+
+### Stage 9B — Every random source on the server → commit
+- [ ] 9B.1 `acquisition/Acquisition`: register the stamp (`mixin/MappedRegistryMixin` + `AcquisitionHost` duck,
+      `mixin/HolderReferenceAccessor`), `rules(holder)`, WARN once when unstamped. `AcquisitionScope` (TRADE).
+- [ ] 9B.2 `mixin/EnchantmentHelperMixin` on `selectEnchantment`: filter `getAvailableEnchantmentResults` by the scope's
+      source, and both `WeightedRandom.getRandomItem` calls weigh by `rules.weight`.
+- [ ] 9B.3 `mixin/EnchantRandomlyFunctionMixin`: `getRandomSafe` → LOOT filter + `WeightedPick` by loot weight.
+- [ ] 9B.4 `mixin/EnchantBookForEmeraldsMixin`: `getRandomElementOf` → TRADE filter + trade weight; the
+      `#double_trade_price` check → `rules.treasure(id, tagged)`.
+- [ ] 9B.5 `mixin/VillagerTradeScopeMixin`: `@WrapMethod` TRADE scope on `EnchantedItemForEmeralds`, `ItemsForEmeralds`,
+      `ItemsAndEmeraldsToItems` `getOffer`.
+- [ ] 9B.6 Table: `TablePool.members` filters TABLE; `needsFullPower` uses `rules.treasure`. `EnchantmentMenuMixin` and
+      `TableCalculator` take the rules.
+- [ ] 9B.7 GameTests (`AcquisitionGameTest`, gametest loot tables `e2test:enchant_randomly_book`,
+      `e2test:enchant_with_levels_book`): for librarian books, villager gear, `enchant_randomly`, `enchant_with_levels`
+      and mob spawn gear, a control run where X appears within N seeded rolls, then `enabled: false` and the source's own
+      flag → X never appears, and the other source's flag → X still appears. `trade_weight 1024` Mending > 50% of
+      librarian books vs < 15% default. `treasure` doubles the librarian price on the same seed. Table: `table: false` /
+      `enabled: false` → not in the pool; `treasure: false` Mending pickable at 0 shelves; `treasure: true` Sharpness
+      needs 15. Mutations: drop each mixin's filter → that source's test fails.
+
+### Stage 9C — Config screen "Enchantments" category → commit
+- [ ] 9C.1 `ConfigView` generic over the file (`ConfigView<T>`), plus the remote "kept on the server" mode for
+      `enchantments.json5`. Existing `ConfigViewTest` cases pass unchanged; new cases for the enchantments view.
+- [ ] 9C.2 `acquisition/EnchantmentFlagsDraft` (main source set, pure): rows from an ID set, `apply(overrides)` changes
+      only the four keys. JUnit: no change → equal; one toggle → one key; cost-only entry keeps its costs; unknown ID kept;
+      a toggle back to the default on an absent key leaves it absent.
+- [ ] 9C.3 `ConfigScreen` category + `ConfigEditing.saveEnchantments` (re-checks editable, backed-up write, host reload).
+- [ ] 9C.4 Lang keys (en_us) + `ConfigLangKeysTest` coverage.
+- [ ] 9C.5 `./gradlew runClientGameTest`: the existing client tests stay green. Owner `runClient`: the category's look.
 
 ## Phase 10 — New enchantments (DESIGN §9), by route
 - [ ] 10a Data-only (D): Withering, Poisoning, Freezing, Attack Speed, Critical Strike,

@@ -691,3 +691,29 @@ out of the tags); marking only tagged blocks (tag edits launder); Riptide throw 
 "silk changes the drop" tag (hand-maintained, wrong for modded blocks); a mixin on `Block.getDrops` (misses tables
 rolled elsewhere and other mods' loot hooks run in MODIFY_DROPS anyway); a set of packed longs (unbounded per chunk).
 **Affects:** TODO Phase 8, `fortune/*`, `mixin/TridentItemMixin`, `config/FortuneSection`, DESIGN §4, §6
+
+## 2026-10-09 — Phase 9: acquisition flags, weights, treasure, config screen
+**Context:** DESIGN §5/§6/§7 list `enabled`, table/loot/trade flags + weights and a treasure flag per enchantment
+without saying what "disabled" does to existing items, whether vanilla's uniform picks (librarian books,
+`enchant_randomly`) become weighted, whether loot/trade levels are capped now that maxes are 5, or what `treasure`
+changes. Facts: every weighted pick goes through `EnchantmentHelper.selectEnchantment`, which has no server; a registry
+holder's `owner` is the server's own `MappedRegistry`.
+**Choice (owner):** disabled = acquisition only (items keep it, it keeps working). Weighted by default (registry weight).
+Loot and trade levels roll up to the new max, as vanilla does. `treasure` overrides only our table gate and the
+librarian's doubled price. The config screen edits enable + the three flags in Phase 9.
+**Choice (agent):** keys in `enchantments.json5`, all optional; flags only remove from a source (tags add). LOOT includes
+mob spawn gear; TRADE includes villager-sold gear. The server stamps itself on its enchantment registry and the
+`selectEnchantment` hook finds it through the holder's owner. A `@WrapMethod` TRADE scope on the three villager
+`getOffer`s tells trade from loot. The screen lists §8's vanilla IDs + file IDs (title screen) or registry + file IDs
+(host). Remote shows a "kept on the server" label, because `enchantments.json5` isn't synced.
+**Why:** acquisition-only matches the "never touch existing items" rule for lowered maxes. One hook in
+`selectEnchantment` covers every weighted caller, other mods' included; per-caller hooks would miss mods and need ~9
+mixins. The owner stamp keeps config per server (DESIGN §2a: no static world state). Remove-only flags can't make a mod
+sell something it never meant to.
+**Rejected:** editing vanilla tags at load (the config reloads after tags on `/reload`, and `enchant_randomly` without
+options ignores tags); writing weights into the registry at `MODIFY` (one weight can't be both loot and trade; weight 0
+fails the client sync codec); a static "current server" (§2a); a thread-local set by every caller that has a level
+(misses other mods' calls); stripping disabled enchantments from loot output (owner); a level cap for loot/trades (owner);
+rewriting `#treasure` (owner); syncing `enchantments.json5` just for a read-only remote view.
+**Affects:** TODO Phase 9, `config/EnchantmentOverrides`, `acquisition/*`, `table/TablePool`, `client/ConfigScreen`,
+`config/ConfigView`
