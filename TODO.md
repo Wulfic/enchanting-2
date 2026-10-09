@@ -1334,7 +1334,7 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
 - [x] 10a Data-only (D): Withering, Poisoning, Freezing, Attack Speed, Critical Strike,
       Toughness, Health, Swiftness, Reach, XP Boost, Cushion. JSON + lang + tags +
       GameTest each. Plan and stages below. (Vision moved to 10b, owner 2026-10-09.)
-- [ ] 10b Custom effect types (E): Vampirism, TrueShot Aura, Smelting, Beheading, Vision. Plan and stages below.
+- [x] 10b Custom effect types (E): Vampirism, TrueShot Aura, Smelting, Beheading, Vision. Plan and stages below.
 - [ ] 10c Mixin/network (M): Quick Strike, Magnetic, Ender Link, Keep on Death, Double Jump,
       Flight, Area Mining, Replant, Tiller, Last Stand, Deflect, Shield Bash.
       Each gets its own written sub-plan here first, covering edge cases from §9 and dupe tests.
@@ -1470,11 +1470,19 @@ unknown attachment. Nothing outside the repo is touched.
       Fortune, non-persistent attachment, no NoGravity check, Smelting outside the re-roll guard): every one failed
       its test. 301 JUnit, 210 GameTests, 4 client GameTests (no client change).
 
-### Stage 10bC — Vision + config screen + docs → commit
-- [ ] 10bC.1 `effect/NightVisionTicker` (`END_SERVER_TICK`, every 20 ticks, players only) + JSON `vision` + lang + keys.
-- [ ] 10bC.2 GameTests: wearing → NV ambient, at most 300 ticks; at 219 left → refreshed; a 3-minute potion → untouched;
-      unequipped → ours removed, a potion kept; mutation run.
-- [ ] 10bC.3 DESIGN §9 rows and §4 note updated. state.md. (Config screen entries done in 10bA.)
+### Stage 10bC — Vision + docs → commit  ✅ 2026-10-09
+- [x] 10bC.1 `effect/NightVisionTicker` (`END_SERVER_TICK`, every 20 ticks, players only) + component
+      `enchanting2:night_vision` + JSON `vision` (head slot, `#minecraft:enchantable/head_armor`) + lang + keys.
+      Changed: no remove-before-replace for a running-out potion. A mutation run showed vanilla's
+      `MobEffectInstance.update` already takes our ambient flag along with the longer duration, so that branch was dead.
+- [x] 10bC.2 GameTests (+6): wearing → ambient, particle-free, 300 ticks; plain helmet → nothing; ours at 219 →
+      refreshed, at 220 → untouched; a 3-minute and an infinite potion untouched on and off; a running-out potion
+      becomes ours and goes with the helmet; a short potion without the helmet stays; the real server tick grants it
+      within 60 ticks; helmets only. Mutation runs (refresh at 200, no ambient marker, no infinite check, ticker not
+      registered, no removal on unequip): every one failed its test. 301 JUnit, 216 GameTests, 4 client GameTests.
+- [x] 10bC.3 DESIGN §9 rows + Phase 10b note, §4 Silk/Smelting row. Config screen entries done in 10bA.
+- [x] 10b done 2026-10-09. Owner: in the next `runClient` session, check the five names, a Vision helmet at night
+      (no flicker, gone when taken off), a TrueShot arrow's flight, and the "Enchantment effects" config category.
 
 ### Phase 10a — Data-only enchantments (three stages, one commit each)
 **Goal:** the eleven D-route enchantments exist as `enchanting2:` registry entries with effect components, show up in

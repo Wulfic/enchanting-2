@@ -798,3 +798,21 @@ including overkill; thrown tridents (Vampirism); Vision on all living entities.
 enchantment never counts. Dragon heads still come from End ships.
 **Rejected:** a mixin that remembers the Beheading hit that started the death animation.
 **Affects:** TODO Phase 10b, DESIGN §9
+
+## 2026-10-09 — Phase 10b: E-route enchantments on our own effect components
+**Context:** DESIGN §9 route E: Vampirism, Beheading, Smelting, TrueShot Aura, Vision need small Java.
+**Choice (agent):** each behaviour reads an effect component we register (`enchanting2:lifesteal`, `head_drop_chance`,
+`smelt_drops`, `night_vision`; entity effect `suspend_gravity` inside vanilla's `projectile_spawned`), not an
+enchantment ID, so datapacks can move or retune them. Vampirism wraps `LivingEntity.hurtServer` (Fabric's
+`AFTER_DAMAGE` skips killing blows). Beheading and Smelting run in `MODIFY_DROPS` on the victim's or block's own table
+only. Smelting is called inside `FortuneDrops`' listener after Fortune and inside its re-roll guard. Beheading's mob → head
+mapping is our loot table `enchanting2:beheading/heads` (vanilla's charged-creeper mapping + `fill_player_head`).
+TrueShot's countdown is a persistent entity attachment. Vision's marker is the ambient flag. Both config sections
+landed in 10bA (one `CommonConfig` churn), with one "Enchantment effects" screen category instead of two one-option tabs.
+**Why:** data-shaped like vanilla's own effects; every hook is a vanilla or Fabric seam already used in this repo.
+A separate listener for Smelting would smelt the Silk-free re-roll (a mutation run proved the test catches it).
+**Rejected:** ID-keyed checks (not datapack-movable); Fabric `AFTER_DAMAGE` (no killing blow, post-armor amount);
+reusing `minecraft:charged_creeper/root` (a datapack retuning charged creepers would change Beheading);
+a non-persistent TrueShot timer (vanilla saves `NoGravity`, so a reload would float the arrow forever).
+**Affects:** src/main/java/com/wulfnet/enchanting2/effect/*, mixin/LivingEntityMixin, mixin/AbstractArrowMixin,
+fortune/FortuneDrops, config/BeheadingSection, config/SmeltingSection

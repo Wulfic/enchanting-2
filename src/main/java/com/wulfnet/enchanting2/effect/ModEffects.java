@@ -23,6 +23,8 @@ public final class ModEffects {
 			LevelBasedValue.CODEC);
 	/** The broken block's drops are smelted (Smelting). */
 	public static final DataComponentType<Unit> SMELT_DROPS = register("smelt_drops", Unit.CODEC);
+	/** Night Vision while worn, for players (Vision). */
+	public static final DataComponentType<Unit> NIGHT_VISION = register("night_vision", Unit.CODEC);
 	/** Entity effect for {@code minecraft:projectile_spawned}: the arrow ignores gravity for a while (TrueShot Aura). */
 	public static final MapCodec<SuspendGravity> SUSPEND_GRAVITY = Registry.register(
 			BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE,
@@ -33,8 +35,8 @@ public final class ModEffects {
 
 	/** Loads the class, which registers the fields above. Call once from mod init. */
 	public static void register() {
-		Enchanting2.LOGGER.debug("Registered effect components {}, {}, {} and entity effect {}", key(LIFESTEAL),
-				key(HEAD_DROP_CHANCE), key(SMELT_DROPS),
+		Enchanting2.LOGGER.debug("Registered effect components {}, {}, {}, {} and entity effect {}", key(LIFESTEAL),
+				key(HEAD_DROP_CHANCE), key(SMELT_DROPS), key(NIGHT_VISION),
 				BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE.getKey(SUSPEND_GRAVITY));
 		SuspendGravity.register();
 	}

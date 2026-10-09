@@ -1,6 +1,7 @@
 package com.wulfnet.enchanting2.gametest;
 
 import com.wulfnet.enchanting2.effect.HeadDrops;
+import com.wulfnet.enchanting2.effect.NightVisionTicker;
 import com.wulfnet.enchanting2.effect.SmeltingDrops;
 import com.wulfnet.enchanting2.effect.SmeltingSilkPriority;
 import com.wulfnet.enchanting2.effect.SuspendGravity;
@@ -23,6 +24,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
@@ -577,6 +580,107 @@ public class EffectEnchantmentsGameTest {
 		helper.assertFalse(arrow.hasAttached(SuspendGravity.TICKS_LEFT),
 				Component.literal("countdown on a floating arrow"));
 		helper.assertTrue(arrow.isNoGravity(), Component.literal("the command's NoGravity was cleared"));
+		helper.succeed();
+	}
+
+	// --- Vision --------------------------------------------------------------------------------------------------
+
+	private static ServerPlayer inVisionHelmet(GameTestHelper helper) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		player.setItemSlot(EquipmentSlot.HEAD, enchanted(helper, Items.IRON_HELMET, ModEnchantments.VISION, 1));
+		return player;
+	}
+
+	private static MobEffectInstance nightVision(ServerPlayer player) {
+		return player.getEffect(MobEffects.NIGHT_VISION);
+	}
+
+	@GameTest
+	public void visionGivesAmbientNightVisionWhileWorn(GameTestHelper helper) {
+		ServerPlayer player = inVisionHelmet(helper);
+		NightVisionTicker.tick(player);
+		MobEffectInstance effect = nightVision(player);
+		helper.assertTrue(effect != null, Component.literal("no Night Vision while wearing Vision"));
+		helper.assertValueEqual(NightVisionTicker.DURATION, effect.getDuration(), Component.literal("duration"));
+		helper.assertTrue(effect.isAmbient() && !effect.isVisible() && effect.getAmplifier() == 0,
+				Component.literal("ours should be ambient, particle-free, level I: " + effect));
+		ServerPlayer bare = helper.makeMockServerPlayerInLevel();
+		bare.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.IRON_HELMET));
+		NightVisionTicker.tick(bare);
+		helper.assertTrue(nightVision(bare) == null, Component.literal("Night Vision from a plain helmet"));
+		helper.succeed();
+	}
+
+	/** Refreshed below 220 ticks (11 s), never in vanilla's last-10-seconds flicker; left alone at 220+. */
+	@GameTest
+	public void visionRefreshesBeforeTheFlicker(GameTestHelper helper) {
+		ServerPlayer low = inVisionHelmet(helper);
+		low.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 219, 0, true, false, true));
+		NightVisionTicker.tick(low);
+		helper.assertValueEqual(NightVisionTicker.DURATION, nightVision(low).getDuration(),
+				Component.literal("refreshed at 219"));
+		ServerPlayer high = inVisionHelmet(helper);
+		high.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 220, 0, true, false, true));
+		NightVisionTicker.tick(high);
+		helper.assertValueEqual(220, nightVision(high).getDuration(), Component.literal("left alone at 220"));
+		helper.succeed();
+	}
+
+	/** A 3-minute potion (or an infinite one) is never touched, on or off, and outlives the helmet. */
+	@GameTest
+	public void visionNeverTouchesALongerPotion(GameTestHelper helper) {
+		for (int duration : new int[] { 3600, MobEffectInstance.INFINITE_DURATION }) {
+			ServerPlayer player = inVisionHelmet(helper);
+			player.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, duration));
+			NightVisionTicker.tick(player);
+			helper.assertValueEqual(duration, nightVision(player).getDuration(),
+					Component.literal("potion " + duration + " while wearing"));
+			helper.assertFalse(nightVision(player).isAmbient(), Component.literal("potion became ambient"));
+			player.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
+			NightVisionTicker.tick(player);
+			helper.assertTrue(nightVision(player) != null && nightVision(player).getDuration() == duration,
+					Component.literal("potion " + duration + " after taking the helmet off"));
+		}
+		helper.succeed();
+	}
+
+	/** Taking the helmet off removes ours; a potion about to run out is replaced by ours while worn. */
+	@GameTest
+	public void visionIsRemovedWithTheHelmet(GameTestHelper helper) {
+		ServerPlayer player = inVisionHelmet(helper);
+		player.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 100));
+		NightVisionTicker.tick(player);
+		helper.assertTrue(NightVisionTicker.isOurs(nightVision(player)),
+				Component.literal("a running-out potion should become ours: " + nightVision(player)));
+		player.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
+		NightVisionTicker.tick(player);
+		helper.assertTrue(nightVision(player) == null, Component.literal("ours stayed after unequip"));
+		// A short potion on a player without Vision isn't ours (not ambient), so it stays.
+		ServerPlayer drinker = helper.makeMockServerPlayerInLevel();
+		drinker.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 100));
+		NightVisionTicker.tick(drinker);
+		helper.assertTrue(nightVision(drinker) != null, Component.literal("a short potion was removed"));
+		helper.succeed();
+	}
+
+	/** The real server tick reaches a player in the world within a second. */
+	@GameTest(maxTicks = 60)
+	public void visionRunsOnTheServerTick(GameTestHelper helper) {
+		ServerPlayer player = inVisionHelmet(helper);
+		helper.succeedWhen(() -> helper.assertTrue(nightVision(player) != null,
+				Component.literal("no Night Vision from the server tick yet")));
+	}
+
+	@GameTest
+	public void visionGoesOnHelmetsOnly(GameTestHelper helper) {
+		Enchantment vision = get(helper, ModEnchantments.VISION).value();
+		for (Item item : List.of(Items.IRON_HELMET, Items.LEATHER_HELMET, Items.TURTLE_HELMET)) {
+			helper.assertTrue(vision.isSupportedItem(new ItemStack(item)), Component.literal("Vision on " + item));
+		}
+		for (Item item : List.of(Items.IRON_CHESTPLATE, Items.IRON_BOOTS, Items.DIAMOND_SWORD)) {
+			helper.assertFalse(vision.isSupportedItem(new ItemStack(item)),
+					Component.literal("Vision should not go on " + item));
+		}
 		helper.succeed();
 	}
 }

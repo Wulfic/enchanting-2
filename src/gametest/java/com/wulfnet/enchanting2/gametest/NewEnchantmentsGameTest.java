@@ -68,7 +68,8 @@ public class NewEnchantmentsGameTest {
 			Map.entry(ModEnchantments.VAMPIRISM, 5),
 			Map.entry(ModEnchantments.BEHEADING, 5),
 			Map.entry(ModEnchantments.SMELTING, 1),
-			Map.entry(ModEnchantments.TRUE_SHOT_AURA, 1));
+			Map.entry(ModEnchantments.TRUE_SHOT_AURA, 1),
+			Map.entry(ModEnchantments.VISION, 1));
 
 	/** The vanilla source tags (owner 2026-10-09: everywhere), plus our table pool. */
 	private static final List<TagKey<Enchantment>> SOURCES = List.of(EnchantmentTags.NON_TREASURE,

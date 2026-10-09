@@ -27,21 +27,22 @@ Phases 1–9 and 10a done (TODO.md has each stage's notes; owner `runClient` che
   (`AcquisitionRules`, `WeightedPick`, registry stamp + holder-owner lookup, TRADE scope), mixins on `selectEnchantment`,
   `enchant_randomly`, librarian books, villager `getOffer`s; table pool filter + treasure override; config screen
   "Enchantments" category (`ConfigView<T>`, `EnchantmentFlagsDraft`, `VanillaEnchantments`).
-- Tests: 301 JUnit + 210 GameTests (`./gradlew build`) + 4 client GameTests (`./gradlew runClientGameTest`).
+- Tests: 301 JUnit + 216 GameTests (`./gradlew build`) + 4 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Phase 10b in progress (plan + stages in TODO.md; owner answers in decisions.md "Phase 10b", "round 2", "dragon").
-   10bA done (d5ea75d): `effect/ModEffects` components, Vampirism (`hurtServer` wrap), Beheading (`HeadDrops`,
-   `loot_table/beheading/heads`), `beheading` + `smelting` config sections and the screen's "Enchantment effects"
-   category. 10bB done: Smelting (`SmeltingDrops`, inside `FortuneDrops`' listener after Fortune), TrueShot Aura
-   (`SuspendGravity`, `AbstractArrowMixin`). Next: 10bC Vision (`NightVisionTicker`), then DESIGN §9 update.
+1. Phase 10b done (2026-10-09): Vampirism, Beheading, Smelting, TrueShot Aura, Vision on our effect components
+   (`effect/*`), `beheading` + `smelting` config sections, config screen "Enchantment effects" category.
+   Next: 10c (M route: Quick Strike, Magnetic, Ender Link, Keep on Death, Double Jump, Flight, Area Mining, Replant,
+   Tiller, Last Stand, Deflect, Shield Bash). Each needs its own written sub-plan in TODO.md first (owner questions
+   first: edge cases from DESIGN §9).
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
    ~1,000,000) + 6D: panel look, config screen "Display" toggle, and a vanilla server keeping the vanilla anvil screen +
    6bC: grindstone panel look, and a vanilla server keeping the vanilla grindstone + 7D: table panel and window look
    (does the ready Enchant button, vanilla's beige offer sprite, read as clickable?), and a vanilla server keeping the
    vanilla table + 8: the config screen's "Fortune" category and its warning tooltip, and a quick feel check (Fortune V
    axe on a tree; place a log and mine it) + 9C: the config screen's "Enchantments" category (tick boxes, names,
-   the remote "kept on the server" label) + 10a: new names in tooltips, a Health V set's hearts.
+   the remote "kept on the server" label) + 10a: new names in tooltips, a Health V set's hearts + 10b: the five new names, a Vision helmet at night
+   (no flicker, gone when taken off), a TrueShot arrow's flight, the "Enchantment effects" config category.
 3. Owner, optional: the table panel lists rows in ID order, so all `enchanting2:` rows come before `minecraft:` ones.
    Sorting by translated name would interleave them (a client-side change to the panel's order).
 4. Owner, optional: the Fortune default tags are DESIGN §6's draft list. Grass, podzol, coarse/rooted dirt, mycelium,

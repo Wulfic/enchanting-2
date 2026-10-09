@@ -224,7 +224,7 @@ vanilla IDs below; an enchantment a datapack adds to a vanilla exclusive-set tag
 | Riptide / Loyalty / Channeling | exclusive | in water or rain → Riptide launch; otherwise → normal throw with Loyalty/Channeling. Applies to **any** Riptide trident, Riptide alone included (owner, 2026-10-08) |
 | Multishot / Piercing | exclusive | both apply |
 | Depth Strider / Frost Walker | exclusive | both apply |
-| Silk Touch + Smelting (new) | n/a | `smelting_vs_silk_priority`, default Silk Touch |
+| Silk Touch + Smelting (new) | n/a | `smelting.silk_priority`: `silk_touch` (default; nothing is smelted) or `smelting` (the silk drop is smelted) |
 
 - An item never holds the same enchantment twice. The enchantment component is a map, but
   merge code must normalize to one entry per ID and take the max level (or the upgrade result).
@@ -569,24 +569,24 @@ when launched along a fall). A datapack-set max is not clamped. Arithmetic in TO
 
 | Name | Max | Items | Effect | Route | Concerns |
 |---|---|---|---|---|---|
-| Vampirism | 5 | melee | heal 4% × level of the damage dealt, every hit, no cooldown (owner, 2026-10-09) | E | works on players and bosses |
+| Vampirism | 5 | melee | heal 4% × level of the health the target lost (overkill never counts), direct melee hits only, every hit, no cooldown (owner, 2026-10-09) | E | works on players and bosses; a thrown trident doesn't heal |
 | Withering | 5 | melee, ranged | Wither on hit, duration per level | D | verify `post_attack` fires for projectiles |
 | Poisoning | 5 | melee, ranged | Poison on hit | D | same |
 | Freezing | 5 | melee, ranged | Slowness on hit | D | same |
 | Attack Speed | 5 | melee | `attack_speed` attribute | D | |
 | Critical Strike | 5 | all weapons | 5%/level chance of +50% damage (max 25%) | D | `damage` + `random_chance` |
 | Quick Strike | 5 | melee | 5%/level chance of a second hit (max 25%) | M | i-frames, effect/crit duplication, Vampirism, durability, PvP |
-| TrueShot Aura | 1 | bows | arrows ignore gravity for 5 s, then fall normally (owner, 2026-10-09) | E/M | despawn as normal arrows |
+| TrueShot Aura | 1 | bows | arrows ignore gravity for 5 s, then fall normally (owner, 2026-10-09) | E | despawn as normal arrows; the countdown survives a save |
 | Toughness | 5 | armor | `armor_toughness` attribute | D | |
 | Health | 5 | armor | `max_health` attribute | D | health clamping on unequip |
 | Swiftness | 5 | boots | `movement_speed` attribute | D | conflicts with Soul Speed? |
 | Double Jump | 1 | boots | one extra air jump; resets on ground | M | client input packet; water/lava/ladder/creative/vehicle; server validation |
 | Flight | 5 | elytra | powered flight without fireworks | M | activation, durability, speed, takeoff, anti-cheat |
-| Smelting | 1 | mining tools | smelt drops via recipe lookup, after Fortune; grants the recipe's XP (owner, 2026-10-09) | E/M | Silk Touch wins by default (§4); no hard-coded ore list |
+| Smelting | 1 | pickaxe, shovel, axe, hoe | smelts every drop with a smelting recipe (logs → charcoal), after Fortune; grants the recipe's XP (owner, 2026-10-09) | E | Silk Touch wins by default (§4); no ore list, `enchanting2:smelting_excluded` item tag for datapacks |
 | Magnetic | 1 | tools, weapons | drops go straight into the inventory; overflow drops normally | M | ownership, pickup events, dupes |
 | Reach | 3 | tools, weapons | `block_/entity_interaction_range` attributes | D | vanilla server already validates against attributes |
 | XP Boost | 5 | tools, weapons | +5% XP per level | D | `mob_experience` / `block_experience`; Mending loop |
-| Vision | 1 | helmet | Night Vision while worn | E | tick handler refreshes under 11 s (no flicker), removes on unequip, never touches a longer potion (owner, 2026-10-09) |
+| Vision | 1 | helmet | Night Vision while worn, players only | E | tick handler refreshes under 11 s (no flicker), removes on unequip, never touches a longer potion (owner, 2026-10-09) |
 | Keep on Death | 1 | durables (configurable) | kept through death | M | keepInventory, graves mods, dupes |
 | Area Mining | 1 | pickaxe, shovel | breaks 3×3 facing the hit face; sneak to break one block | M | only blocks with hardness ≤ the centre block and mineable by the tool; each extra block fires the break event (protection/claim mods) and costs durability; Fortune/Silk/Smelting/Magnetic apply per block |
 | Replant | 1 | hoe | breaking a mature crop replants it, using a seed taken from its own drops | M | never creates a seed; immature crops break normally |
@@ -596,12 +596,18 @@ when launched along a fall). A datapack-set max is not clamped. Arithmetic in TO
 | Deflect | 3 | shield | blocked projectiles reflect at the shooter; chance 33 / 66 / 100% | M | reflected projectile ownership; no infinite ping-pong between two shields |
 | Shield Bash | 3 | shield | attacking while blocking knocks the target back and briefly stuns | M | cooldown; balance vs. Knockback |
 | Cushion | 3 | elytra, chestplate | reduces wall-collision damage | D | `damage_protection` on `fly_into_wall` |
-| Beheading | 5 | melee | 2% × level to drop the victim's head, on top of vanilla's wither skull roll (owner, 2026-10-09) | E | mobs with a head item only; player heads behind `beheading.player_heads` (default off) |
+| Beheading | 5 | melee | 2% × level to drop the victim's head on a player's direct melee kill, on top of vanilla's wither skull roll (owner, 2026-10-09) | E | zombie, skeleton, wither skeleton, creeper, piglin (loot table `enchanting2:beheading/heads`); no ender dragon (it never rolls death loot); player heads behind `beheading.player_heads` (default off) |
 
 **Phase 10a (owner, 2026-10-09):** every new non-curse enchantment joins `#minecraft:non_treasure`, so it comes from
 every source (table, books, loot, mob and villager gear) and Phase 9's flags remove it per source. No `exclusive_set` on
 any (§4). Health keeps the saved health through a relog (vanilla clamps it to 20 before armor applies, MC-17876). XP
 Boost's fraction rounds up at random, because vanilla truncates (5 × 1.15 → 5). Starting numbers are in TODO 10a.
+
+**Phase 10b (owner, 2026-10-09):** the E-route enchantments run on our own effect components
+(`enchanting2:lifesteal`, `head_drop_chance`, `smelt_drops`, `night_vision`, and the entity effect `suspend_gravity` in
+`projectile_spawned`), so a datapack can put the behaviour on any enchantment. They come from every source like 10a.
+Config: `beheading.player_heads` (off) and `smelting.silk_priority` (`silk_touch`), in the config screen's
+"Enchantment effects" category.
 
 **Deferred (not in v1, kept for later):** Vein Miner, Leaping, Cleansing, Executioner,
 Seeking, Shockwave.
