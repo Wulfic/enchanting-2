@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.IntSupplier;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -52,7 +53,8 @@ public class NewEnchantmentsGameTest {
 			ModEnchantments.FREEZING, 5,
 			ModEnchantments.ATTACK_SPEED, 5,
 			ModEnchantments.CRITICAL_STRIKE, 5,
-			ModEnchantments.REACH, 3);
+			ModEnchantments.REACH, 3,
+			ModEnchantments.XP_BOOST, 5);
 
 	/** The vanilla source tags (owner 2026-10-09: everywhere), plus our table pool. */
 	private static final List<TagKey<Enchantment>> SOURCES = List.of(EnchantmentTags.NON_TREASURE,
@@ -165,7 +167,11 @@ public class NewEnchantmentsGameTest {
 				new Case(ModEnchantments.REACH, Items.SHEARS, true),
 				new Case(ModEnchantments.REACH, Items.DIAMOND_SWORD, true),
 				new Case(ModEnchantments.REACH, Items.BOW, false),
-				new Case(ModEnchantments.REACH, Items.DIAMOND_CHESTPLATE, false));
+				new Case(ModEnchantments.REACH, Items.DIAMOND_CHESTPLATE, false),
+				new Case(ModEnchantments.XP_BOOST, Items.DIAMOND_PICKAXE, true),
+				new Case(ModEnchantments.XP_BOOST, Items.DIAMOND_SWORD, true),
+				new Case(ModEnchantments.XP_BOOST, Items.CROSSBOW, true),
+				new Case(ModEnchantments.XP_BOOST, Items.DIAMOND_CHESTPLATE, false));
 		for (Case c : cases) {
 			boolean actual = get(helper, c.key()).value().isSupportedItem(new ItemStack(c.item()));
 			helper.assertValueEqual(c.supported(), actual,
@@ -270,5 +276,53 @@ public class NewEnchantmentsGameTest {
 		double rate = crits / (double) rolls;
 		helper.assertTrue(rate >= min && rate <= max,
 				Component.literal("critical rate " + rate + " outside [" + min + ", " + max + "] for " + weapon));
+	}
+
+	/**
+	 * XP Boost V = ×1.25 with random rounding (decisions.md "Phase 10a"): 5 mob XP is 6 or 7 and averages 6.25, 2 block
+	 * XP is 2 or 3 and averages 2.5. Vanilla's truncation would give exactly 6 and 2. The bounds are about four
+	 * standard deviations of the mean over 4000 calls.
+	 */
+	@GameTest
+	public void xpBoostAddsFivePercentPerLevelOnAverage(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		Pig pig = still(helper, new BlockPos(1, 1, 1));
+		player.setItemSlot(EquipmentSlot.MAINHAND, enchanted(helper, Items.DIAMOND_SWORD, ModEnchantments.XP_BOOST, 5));
+		assertMeanXp(helper, () -> EnchantmentHelper.processMobExperience(level, player, pig, 5), 6, 7, 6.25, 0.03,
+				"mob XP with XP Boost V");
+		ItemStack pickaxe = enchanted(helper, Items.DIAMOND_PICKAXE, ModEnchantments.XP_BOOST, 5);
+		assertMeanXp(helper, () -> EnchantmentHelper.processBlockExperience(level, pickaxe, 2), 2, 3, 2.5, 0.035,
+				"block XP with XP Boost V");
+		helper.succeed();
+	}
+
+	/** Without the enchantment every value is whole, so rounding changes nothing: exactly vanilla's number, every time. */
+	@GameTest
+	public void experienceWithoutXpBoostIsExactlyVanilla(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		Pig pig = still(helper, new BlockPos(1, 1, 1));
+		player.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.DIAMOND_SWORD));
+		assertMeanXp(helper, () -> EnchantmentHelper.processMobExperience(level, player, pig, 5), 5, 5, 5.0, 0.0,
+				"mob XP without XP Boost");
+		assertMeanXp(helper, () -> EnchantmentHelper.processBlockExperience(level, new ItemStack(Items.DIAMOND_PICKAXE),
+				2), 2, 2, 2.0, 0.0, "block XP without XP Boost");
+		helper.succeed();
+	}
+
+	private static void assertMeanXp(GameTestHelper helper, IntSupplier xp, int min, int max, double mean,
+			double tolerance, String what) {
+		int calls = 4000;
+		long total = 0;
+		for (int i = 0; i < calls; i++) {
+			int value = xp.getAsInt();
+			helper.assertTrue(value >= min && value <= max,
+					Component.literal(what + ": " + value + " outside [" + min + ", " + max + "]"));
+			total += value;
+		}
+		double actual = total / (double) calls;
+		helper.assertTrue(Math.abs(actual - mean) <= tolerance,
+				Component.literal(what + ": mean " + actual + ", want " + mean + " ± " + tolerance));
 	}
 }

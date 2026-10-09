@@ -27,11 +27,11 @@ Phases 1–9 done (TODO.md has each stage's notes; owner `runClient` checks stil
   (`AcquisitionRules`, `WeightedPick`, registry stamp + holder-owner lookup, TRADE scope), mixins on `selectEnchantment`,
   `enchant_randomly`, librarian books, villager `getOffer`s; table pool filter + treasure override; config screen
   "Enchantments" category (`ConfigView<T>`, `EnchantmentFlagsDraft`, `VanillaEnchantments`).
-- Tests: 291 JUnit + 179 GameTests (`./gradlew build`) + 4 client GameTests (`./gradlew runClientGameTest`).
+- Tests: 297 JUnit + 181 GameTests (`./gradlew build`) + 4 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
 1. Phase 10a (data enchantments) planned in TODO.md as stages 10aA (shared data + weapons), 10aB (XP Boost + random
-   rounding), 10aC (armor + Health relog fix). Owner answers in decisions.md "Phase 10a". 10aA done (6 weapon enchantments). Next: 10aB.
+   rounding), 10aC (armor + Health relog fix). Owner answers in decisions.md "Phase 10a". 10aA done (6 weapon enchantments), 10aB done (XP Boost, random rounding). Next: 10aC.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
    ~1,000,000) + 6D: panel look, config screen "Display" toggle, and a vanilla server keeping the vanilla anvil screen +
    6bC: grindstone panel look, and a vanilla server keeping the vanilla grindstone + 7D: table panel and window look

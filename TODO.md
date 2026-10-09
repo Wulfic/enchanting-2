@@ -1417,14 +1417,18 @@ the next load with a vanilla WARN. Nothing outside the repo is touched.
       directly: `runLocationChangedEffects` only adds attributes when an effect becomes active, and a mock player
       never ticks its equipment. 291 JUnit (+5), 179 GameTests (+8), 4 client GameTests.
 
-### Stage 10aB — XP Boost + random rounding → commit
-- [ ] 10aB.1 `enchantment/StochasticRounding.round(float, float roll)` (MC-free): `floor(x) + (roll < frac ? 1 : 0)`,
+### Stage 10aB — XP Boost + random rounding → commit  ✅ 2026-10-09
+- [x] 10aB.1 `enchantment/StochasticRounding.round(float, float roll)` (MC-free): `floor(x) + (roll < frac ? 1 : 0)`,
       negatives and NaN/∞ handled (log + vanilla `intValue`). JUnit: integers unchanged, 5.75 rounds up iff roll < 0.75, mean
       over a fixed seed within bounds.
-- [ ] 10aB.2 `mixin/EnchantmentHelperMixin` (extend): `processMob/BlockExperience` return the rounded value, using
+- [x] 10aB.2 `mixin/EnchantmentHelperMixin` (extend): `processMob/BlockExperience` return the rounded value, using
       the level's random.
-- [ ] 10aB.3 JSON `xp_boost` + tags + lang. GameTest: XP Boost V on 5 mob XP over N seeded calls averages 6.25 ± bound;
+- [x] 10aB.3 JSON `xp_boost` + tags + lang. GameTest: XP Boost V on 5 mob XP over N seeded calls averages 6.25 ± bound;
       no enchantment → exactly 5 every call (rounding is a no-op on whole numbers). Mutation: drop the mixin → average 6.
+      Done: `round(float, DoubleSupplier)` draws a roll only for a fractional value, so vanilla's random sequence is
+      untouched when no such enchantment applies; a non-finite value keeps vanilla's `intValue` with a WARN. Block XP
+      tested too (2 → 2.5 average). Mutation (handler returns vanilla's `intValue`): exactly
+      `xpBoostAddsFivePercentPerLevelOnAverage` failed, mean 6.0. 297 JUnit (+6), 181 GameTests (+2).
 
 ### Stage 10aC — Armor enchantments + Health relog fix → commit
 - [ ] 10aC.1 JSON `toughness`, `health`, `swiftness`, `cushion` + tags + lang.
