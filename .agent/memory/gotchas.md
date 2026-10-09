@@ -372,3 +372,10 @@ nothing, so a datapack removing our table makes the feature silently do nothing.
 **Fix:** compare against `LootTable.EMPTY` and WARN (`HeadDrops`). A `MODIFY_DROPS` handler that rolls another table
 must keep its own-table guard, or the nested roll re-enters it (mutation run showed infinite recursion).
 **Affects:** src/main/java/com/wulfnet/enchanting2/effect/HeadDrops.java
+
+## 2026-10-09 — `projectile_spawned` runs in `Projectile.applyOnProjectileSpawned`, not the arrow constructor
+**Trap:** `new Arrow(level, x, y, z, arrowStack, bow)` runs no `projectile_spawned` effects (`javap`: only
+`Projectile.applyOnProjectileSpawned(level, weapon)` and `spawnProjectile` call `EnchantmentHelper.onProjectileSpawned`).
+A test that builds an arrow with the bow sees no Flame and no TrueShot.
+**Fix:** call `arrow.applyOnProjectileSpawned(level, bow)` after constructing it, as the shoot path does.
+**Affects:** src/gametest/java/com/wulfnet/enchanting2/gametest/EffectEnchantmentsGameTest.java

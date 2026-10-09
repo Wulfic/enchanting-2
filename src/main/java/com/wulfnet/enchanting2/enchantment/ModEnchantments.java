@@ -30,10 +30,12 @@ public final class ModEnchantments {
 	public static final ResourceKey<Enchantment> CUSHION = key("cushion");
 	public static final ResourceKey<Enchantment> VAMPIRISM = key("vampirism");
 	public static final ResourceKey<Enchantment> BEHEADING = key("beheading");
+	public static final ResourceKey<Enchantment> SMELTING = key("smelting");
+	public static final ResourceKey<Enchantment> TRUE_SHOT_AURA = key("true_shot_aura");
 
 	public static final List<ResourceKey<Enchantment>> KEYS = List.of(
 			WITHERING, POISONING, FREEZING, ATTACK_SPEED, CRITICAL_STRIKE, REACH, XP_BOOST, TOUGHNESS, HEALTH,
-			SWIFTNESS, CUSHION, VAMPIRISM, BEHEADING);
+			SWIFTNESS, CUSHION, VAMPIRISM, BEHEADING, SMELTING, TRUE_SHOT_AURA);
 
 	private ModEnchantments() {
 	}

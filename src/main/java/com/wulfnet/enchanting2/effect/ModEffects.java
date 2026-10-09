@@ -1,11 +1,13 @@
 package com.wulfnet.enchanting2.effect;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.wulfnet.enchanting2.Enchanting2;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.Unit;
 import net.minecraft.world.item.enchantment.LevelBasedValue;
 
 /**
@@ -19,13 +21,22 @@ public final class ModEffects {
 	/** Chance that a player's direct melee kill drops the victim's head (Beheading). */
 	public static final DataComponentType<LevelBasedValue> HEAD_DROP_CHANCE = register("head_drop_chance",
 			LevelBasedValue.CODEC);
+	/** The broken block's drops are smelted (Smelting). */
+	public static final DataComponentType<Unit> SMELT_DROPS = register("smelt_drops", Unit.CODEC);
+	/** Entity effect for {@code minecraft:projectile_spawned}: the arrow ignores gravity for a while (TrueShot Aura). */
+	public static final MapCodec<SuspendGravity> SUSPEND_GRAVITY = Registry.register(
+			BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE,
+			Identifier.fromNamespaceAndPath(Enchanting2.MOD_ID, "suspend_gravity"), SuspendGravity.CODEC);
 
 	private ModEffects() {
 	}
 
 	/** Loads the class, which registers the fields above. Call once from mod init. */
 	public static void register() {
-		Enchanting2.LOGGER.debug("Registered effect components {}, {}", key(LIFESTEAL), key(HEAD_DROP_CHANCE));
+		Enchanting2.LOGGER.debug("Registered effect components {}, {}, {} and entity effect {}", key(LIFESTEAL),
+				key(HEAD_DROP_CHANCE), key(SMELT_DROPS),
+				BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE.getKey(SUSPEND_GRAVITY));
+		SuspendGravity.register();
 	}
 
 	private static <T> DataComponentType<T> register(String path, Codec<T> codec) {

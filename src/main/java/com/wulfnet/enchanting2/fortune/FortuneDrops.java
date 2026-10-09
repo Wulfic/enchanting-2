@@ -1,7 +1,9 @@
 package com.wulfnet.enchanting2.fortune;
 
 import com.wulfnet.enchanting2.Enchanting2;
+import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.config.ServerConfigs;
+import com.wulfnet.enchanting2.effect.SmeltingDrops;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -44,8 +46,11 @@ public final class FortuneDrops {
 	public static void register() {
 		LootTableEvents.MODIFY_DROPS.register((table, context, drops) -> {
 			if (!REROLLING.get()) {
-				apply(table, context, drops,
-						ServerConfigs.get(context.getLevel().getServer()).fortune().silkFortuneMode());
+				CommonConfig config = ServerConfigs.get(context.getLevel().getServer());
+				apply(table, context, drops, config.fortune().silkFortuneMode());
+				// Smelting after Fortune (owner, 2026-10-09), and here rather than in its own listener so it never
+				// sees the re-roll: smelted re-roll drops would always read as "Silk Touch changed the drop".
+				SmeltingDrops.apply(table, context, drops, config.smelting().silkPriority());
 			}
 		});
 	}

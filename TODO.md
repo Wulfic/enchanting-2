@@ -1448,18 +1448,27 @@ unknown attachment. Nothing outside the repo is touched.
       (the nested heads roll re-enters the handler), which the real-kill test catches.
       301 JUnit (+4), 199 GameTests (+12), 4 client GameTests.
 
-### Stage 10bB — Smelting + TrueShot Aura → commit
+### Stage 10bB — Smelting + TrueShot Aura → commit  ✅ 2026-10-09
 - [x] 10bB.1 `config/SmeltingSection` (`silk_priority`) + JUnit. Done in 10bA.
-- [ ] 10bB.2 `effect/SmeltingDrops.apply(...)`, called at the end of `FortuneDrops`' listener (not on the re-roll).
-      Item tag `enchanting2:enchantable/smelting`, `enchanting2:smelting_excluded` (empty).
-- [ ] 10bB.3 `effect/SuspendGravity` entity effect + `AbstractArrowMixin` (server tick countdown) + attachment.
-- [ ] 10bB.4 JSON `smelting`, `true_shot_aura` + lang + tags + keys.
-- [ ] 10bB.5 GameTests: iron ore with a Smelting pickaxe → iron ingot (+ XP orb total over N breaks ≈ 0.7 × N); log with
-      a Smelting axe → charcoal; Fortune V axe + Smelting on a natural log → charcoal count = Fortune multiplier (Fortune
-      still decides, the re-roll isn't smelted); Silk + Smelting on iron ore → ore block (default), iron ingot under
-      `smelting`; excluded tag (test datapack) → unsmelted; a drop with no recipe (dirt) unchanged; placed log → one
-      charcoal. TrueShot: a bow-spawned arrow is `NoGravity` with 100 ticks; after 100 ticks gravity is back and the
-      attachment is gone; a save/load round-trip keeps the remaining ticks; an arrow already `NoGravity` is left alone.
+- [x] 10bB.2 `effect/SmeltingDrops.apply(...)`, called inside `FortuneDrops`' listener after Fortune and inside its
+      `!REROLLING` guard. One recipe lookup per drop; result × count split at max stack; XP = Σ experience × count,
+      `StochasticRounding`, one `ExperienceOrb.award` at the block. Item tags `enchanting2:enchantable/smelting`
+      (pickaxes, shovels, axes, hoes) and `enchanting2:smelting_excluded` (empty).
+- [x] 10bB.3 `effect/SuspendGravity` (entity effect `enchanting2:suspend_gravity`, attachment `enchanting2:gravity_ticks`)
+      + `AbstractArrowMixin` (server tick countdown). Vanilla runs `projectile_spawned` in
+      `Projectile.applyOnProjectileSpawned(level, weapon)`, not in the arrow constructor; the tests call it.
+- [x] 10bB.4 JSON `smelting` (`smelt_drops`), `true_shot_aura` (`projectile_spawned` → `suspend_gravity` 100) + lang +
+      tags + keys. Both max 1, min cost 15, max 65.
+- [x] 10bB.5 GameTests (+11): gold ore → gold ingot and exactly 1 XP each, iron ore × 40 → XP 18..38 (0.7 each, merged
+      orbs counted through a GameTest accessor); log → charcoal, dirt unchanged, excluded raw copper (GameTest datapack)
+      unchanged; Fortune V + Smelting on clay → bricks multiplied and XP > 40 (smelting first would pay ~24); Silk +
+      Smelting iron ore → ore, no XP; Silk + Fortune + Smelting log still multiplies (the re-roll isn't smelted);
+      `smelting` priority via `SmeltingDrops.apply`; placed log → one charcoal; supported items for both. TrueShot: bow
+      arrow is `NoGravity` with 100 ticks, a plain one isn't; hanging arrow still floating at 90, gravity back with no
+      attachment at 101; save/load keeps 40 ticks left; an already-`NoGravity` arrow gets no countdown. Mutation runs
+      (three builds, 10 mutations: no XP orb, no silk check, no exclusion, endless countdown, ticks 120, Smelting before
+      Fortune, non-persistent attachment, no NoGravity check, Smelting outside the re-roll guard): every one failed
+      its test. 301 JUnit, 210 GameTests, 4 client GameTests (no client change).
 
 ### Stage 10bC — Vision + config screen + docs → commit
 - [ ] 10bC.1 `effect/NightVisionTicker` (`END_SERVER_TICK`, every 20 ticks, players only) + JSON `vision` + lang + keys.

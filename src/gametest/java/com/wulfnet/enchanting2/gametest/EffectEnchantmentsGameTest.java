@@ -1,7 +1,12 @@
 package com.wulfnet.enchanting2.gametest;
 
 import com.wulfnet.enchanting2.effect.HeadDrops;
+import com.wulfnet.enchanting2.effect.SmeltingDrops;
+import com.wulfnet.enchanting2.effect.SmeltingSilkPriority;
+import com.wulfnet.enchanting2.effect.SuspendGravity;
 import com.wulfnet.enchanting2.enchantment.ModEnchantments;
+import com.wulfnet.enchanting2.fortune.PlacedBlocks;
+import com.wulfnet.enchanting2.gametest.mixin.ExperienceOrbAccessor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -11,29 +16,41 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.zombie.Zombie;
+import net.minecraft.world.entity.projectile.arrow.Arrow;
 import net.minecraft.world.entity.projectile.arrow.ThrownTrident;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * Phase 10b: our effect-component enchantments (DESIGN §9, numbers in TODO 10b) against the live registry. Vampirism
@@ -317,5 +334,249 @@ public class EffectEnchantmentsGameTest {
 	private static long heads(ServerLevel level, LivingEntity victim) {
 		return level.getEntitiesOfClass(ItemEntity.class, new AABB(victim.blockPosition()).inflate(1.5)).stream()
 				.filter(item -> item.getItem().is(Items.ZOMBIE_HEAD)).count();
+	}
+
+	// --- Smelting ------------------------------------------------------------------------------------------------
+
+	private static final int ROLLS = 20;
+
+	@SafeVarargs
+	private static ItemStack tool(GameTestHelper helper, Item item, ResourceKey<Enchantment>... keys) {
+		ItemStack stack = new ItemStack(item);
+		for (ResourceKey<Enchantment> key : keys) {
+			Holder<Enchantment> holder = get(helper, key);
+			stack.enchant(holder, holder.value().getMaxLevel());
+		}
+		return stack;
+	}
+
+	/** {@code state}'s drops at {@code pos} with {@code tool}, through vanilla's {@code Block.getDrops}. */
+	private static List<ItemStack> drops(GameTestHelper helper, BlockPos pos, BlockState state, ItemStack tool) {
+		helper.setBlock(pos, state);
+		return Block.getDrops(state, helper.getLevel(), helper.absolutePos(pos), null, null, tool);
+	}
+
+	/** How many of {@code item} dropped; any other drop fails the test. */
+	private static int only(GameTestHelper helper, List<ItemStack> stacks, Item item) {
+		int total = 0;
+		for (ItemStack stack : stacks) {
+			helper.assertTrue(stack.is(item), Component.literal("unexpected drop " + stack + ", expected " + item));
+			total += stack.getCount();
+		}
+		return total;
+	}
+
+	/** Total XP in orbs around {@code pos}, merged orbs counted. */
+	private static int experience(GameTestHelper helper, BlockPos pos) {
+		return helper.getLevel()
+				.getEntitiesOfClass(ExperienceOrb.class, new AABB(helper.absolutePos(pos)).inflate(1.5)).stream()
+				.mapToInt(orb -> orb.getValue() * ((ExperienceOrbAccessor) orb).e2test$getCount()).sum();
+	}
+
+	/** Raw gold smelts to a gold ingot at exactly 1 XP (no rounding); raw iron at 0.7, randomly rounded. */
+	@GameTest
+	public void smeltingTurnsOreDropsIntoIngotsWithFurnaceXp(GameTestHelper helper) {
+		ItemStack pickaxe = tool(helper, Items.IRON_PICKAXE, ModEnchantments.SMELTING);
+		BlockPos gold = new BlockPos(1, 1, 1);
+		BlockPos iron = new BlockPos(5, 1, 1);
+		for (int i = 0; i < 5; i++) {
+			helper.assertValueEqual(1, only(helper, drops(helper, gold, Blocks.GOLD_ORE.defaultBlockState(), pickaxe),
+					Items.GOLD_INGOT), Component.literal("gold ingots per gold ore"));
+		}
+		helper.assertValueEqual(5, experience(helper, gold), Component.literal("XP from five gold ingots"));
+		int ironBreaks = 40;
+		for (int i = 0; i < ironBreaks; i++) {
+			helper.assertValueEqual(1, only(helper, drops(helper, iron, Blocks.IRON_ORE.defaultBlockState(), pickaxe),
+					Items.IRON_INGOT), Component.literal("iron ingots per iron ore"));
+		}
+		int xp = experience(helper, iron);
+		// 0.7 × 40 = 28 on average, binomial sd ≈ 2.9: 18..38 is over 3σ either side.
+		helper.assertTrue(xp >= 18 && xp <= 38, Component.literal("XP from 40 iron ingots: " + xp + ", want ~28"));
+		helper.succeed();
+	}
+
+	/** Every smelting recipe (owner, 2026-10-09): a log becomes charcoal on an axe. A drop with no recipe stays. */
+	@GameTest
+	public void smeltingUsesEveryRecipeAndLeavesTheRest(GameTestHelper helper) {
+		helper.assertValueEqual(1, only(helper, drops(helper, new BlockPos(1, 1, 1),
+				Blocks.OAK_LOG.defaultBlockState(), tool(helper, Items.IRON_AXE, ModEnchantments.SMELTING)),
+				Items.CHARCOAL), Component.literal("charcoal from a log"));
+		helper.assertValueEqual(1, only(helper, drops(helper, new BlockPos(3, 1, 1), Blocks.DIRT.defaultBlockState(),
+				tool(helper, Items.IRON_SHOVEL, ModEnchantments.SMELTING)), Items.DIRT),
+				Component.literal("dirt has no recipe"));
+		// The GameTest datapack puts raw copper in enchanting2:smelting_excluded.
+		int copper = only(helper, drops(helper, new BlockPos(5, 1, 1), Blocks.COPPER_ORE.defaultBlockState(),
+				tool(helper, Items.IRON_PICKAXE, ModEnchantments.SMELTING)), Items.RAW_COPPER);
+		helper.assertTrue(copper >= 2, Component.literal("excluded raw copper: " + copper));
+		helper.succeed();
+	}
+
+	/**
+	 * Fortune multiplies first, then the multiplied drops are smelted and pay XP each (owner, 2026-10-09). A clay block
+	 * drops 4 clay balls (0.3 XP each as bricks): smelting before Fortune would pay 1.2 XP a block, about 24 over the
+	 * rolls; Fortune V first pays about 0.3 × 4 × 3.1 a block, about 75.
+	 */
+	@GameTest
+	public void fortuneMultipliesBeforeSmelting(GameTestHelper helper) {
+		ItemStack shovel = tool(helper, Items.IRON_SHOVEL, Enchantments.FORTUNE, ModEnchantments.SMELTING);
+		BlockPos pos = new BlockPos(1, 1, 1);
+		int bricks = 0;
+		for (int i = 0; i < ROLLS; i++) {
+			bricks += only(helper, drops(helper, pos, Blocks.CLAY.defaultBlockState(), shovel), Items.BRICK);
+		}
+		helper.assertTrue(bricks > 4 * ROLLS, Component.literal("Fortune never multiplied: " + bricks + " bricks"));
+		int xp = experience(helper, pos);
+		helper.assertTrue(xp > 40, Component.literal("XP " + xp + " for " + bricks + " bricks: smelted before Fortune?"));
+		helper.succeed();
+	}
+
+	/**
+	 * Silk Touch wins by default: nothing is smelted. With Fortune too, a log still multiplies, which also proves the
+	 * Silk-free re-roll isn't smelted (a smelted re-roll would read as "Silk changed the drop" and stop Fortune).
+	 */
+	@GameTest
+	public void silkTouchWinsOverSmeltingByDefault(GameTestHelper helper) {
+		BlockPos ore = new BlockPos(1, 1, 1);
+		helper.assertValueEqual(1, only(helper, drops(helper, ore, Blocks.IRON_ORE.defaultBlockState(),
+				tool(helper, Items.IRON_PICKAXE, Enchantments.SILK_TOUCH, ModEnchantments.SMELTING)),
+				Items.IRON_ORE), Component.literal("silk-touched iron ore"));
+		helper.assertValueEqual(0, experience(helper, ore), Component.literal("XP without smelting"));
+		ItemStack axe = tool(helper, Items.IRON_AXE, Enchantments.SILK_TOUCH, Enchantments.FORTUNE,
+				ModEnchantments.SMELTING);
+		int logs = 0;
+		for (int i = 0; i < ROLLS; i++) {
+			logs += only(helper, drops(helper, new BlockPos(4, 1, 1), Blocks.OAK_LOG.defaultBlockState(), axe),
+					Items.OAK_LOG);
+		}
+		helper.assertTrue(logs > ROLLS, Component.literal("Silk + Fortune + Smelting log never multiplied: " + logs));
+		helper.succeed();
+	}
+
+	/** {@code smelting.silk_priority = smelting}, through the handler with the priority given (configs are shared). */
+	@GameTest
+	public void smeltingPrioritySmeltsTheSilkDrop(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		BlockState ore = Blocks.IRON_ORE.defaultBlockState();
+		ItemStack pickaxe = tool(helper, Items.IRON_PICKAXE, Enchantments.SILK_TOUCH, ModEnchantments.SMELTING);
+		LootParams params = new LootParams.Builder(level)
+				.withParameter(LootContextParams.ORIGIN, helper.absolutePos(new BlockPos(1, 1, 1)).getCenter())
+				.withParameter(LootContextParams.TOOL, pickaxe)
+				.withParameter(LootContextParams.BLOCK_STATE, ore)
+				.create(LootContextParamSets.BLOCK);
+		LootContext context = new LootContext.Builder(params).create(Optional.empty());
+		Holder<LootTable> table = table(level, ore.getBlock().getLootTable().orElseThrow());
+		List<ItemStack> silk = new ArrayList<>(List.of(new ItemStack(Items.IRON_ORE)));
+		SmeltingDrops.apply(table, context, silk, SmeltingSilkPriority.SILK_TOUCH);
+		helper.assertValueEqual(1, only(helper, silk, Items.IRON_ORE), Component.literal("silk_touch priority"));
+		List<ItemStack> smelted = new ArrayList<>(List.of(new ItemStack(Items.IRON_ORE)));
+		SmeltingDrops.apply(table, context, smelted, SmeltingSilkPriority.SMELTING);
+		helper.assertValueEqual(1, only(helper, smelted, Items.IRON_INGOT), Component.literal("smelting priority"));
+		helper.succeed();
+	}
+
+	/** A placed log gets no Fortune bonus, smelted or not: one charcoal per break. */
+	@GameTest
+	public void placedLogGivesOneCharcoal(GameTestHelper helper) {
+		ItemStack axe = tool(helper, Items.IRON_AXE, Enchantments.FORTUNE, ModEnchantments.SMELTING);
+		BlockPos pos = new BlockPos(1, 1, 1);
+		for (int i = 0; i < ROLLS; i++) {
+			helper.setBlock(pos, Blocks.OAK_LOG.defaultBlockState());
+			PlacedBlocks.mark(helper.getLevel(), helper.absolutePos(pos));
+			helper.assertValueEqual(1, only(helper, Block.getDrops(Blocks.OAK_LOG.defaultBlockState(),
+					helper.getLevel(), helper.absolutePos(pos), null, null, axe), Items.CHARCOAL),
+					Component.literal("charcoal from a placed log"));
+		}
+		helper.succeed();
+	}
+
+	@GameTest
+	public void smeltingAndTrueShotGoOnTheirTools(GameTestHelper helper) {
+		Enchantment smelting = get(helper, ModEnchantments.SMELTING).value();
+		for (Item item : List.of(Items.IRON_PICKAXE, Items.IRON_SHOVEL, Items.IRON_AXE, Items.IRON_HOE)) {
+			helper.assertTrue(smelting.isSupportedItem(new ItemStack(item)),
+					Component.literal("Smelting should go on " + item));
+		}
+		for (Item item : List.of(Items.SHEARS, Items.DIAMOND_SWORD, Items.BOW)) {
+			helper.assertFalse(smelting.isSupportedItem(new ItemStack(item)),
+					Component.literal("Smelting should not go on " + item));
+		}
+		Enchantment trueShot = get(helper, ModEnchantments.TRUE_SHOT_AURA).value();
+		helper.assertTrue(trueShot.isSupportedItem(new ItemStack(Items.BOW)), Component.literal("TrueShot on a bow"));
+		for (Item item : List.of(Items.CROSSBOW, Items.TRIDENT, Items.DIAMOND_SWORD)) {
+			helper.assertFalse(trueShot.isSupportedItem(new ItemStack(item)),
+					Component.literal("TrueShot should not go on " + item));
+		}
+		helper.succeed();
+	}
+
+	// --- TrueShot Aura -------------------------------------------------------------------------------------------
+
+	/** An arrow as a bow shoots it: built with the bow, then vanilla's {@code projectile_spawned} effects run. */
+	private static Arrow shot(GameTestHelper helper, ItemStack bow, BlockPos pos) {
+		ServerLevel level = helper.getLevel();
+		Vec3 at = helper.absolutePos(pos).getCenter();
+		Arrow arrow = new Arrow(level, at.x, at.y, at.z, new ItemStack(Items.ARROW), bow);
+		arrow.applyOnProjectileSpawned(level, bow);
+		return arrow;
+	}
+
+	@GameTest
+	public void trueShotArrowIgnoresGravityForOneHundredTicks(GameTestHelper helper) {
+		ItemStack bow = enchanted(helper, Items.BOW, ModEnchantments.TRUE_SHOT_AURA, 1);
+		Arrow arrow = shot(helper, bow, new BlockPos(2, 5, 2));
+		Arrow plain = shot(helper, new ItemStack(Items.BOW), new BlockPos(5, 5, 2));
+		helper.assertTrue(arrow.isNoGravity(), Component.literal("a TrueShot arrow has gravity"));
+		helper.assertValueEqual(100, arrow.getAttached(SuspendGravity.TICKS_LEFT), Component.literal("ticks left"));
+		helper.assertFalse(plain.isNoGravity(), Component.literal("a plain arrow has no gravity"));
+		helper.assertFalse(plain.hasAttached(SuspendGravity.TICKS_LEFT), Component.literal("plain arrow countdown"));
+		helper.succeed();
+	}
+
+	/** Hanging still in the air, the arrow keeps no gravity through tick 90 and has it back (and no timer) by 101. */
+	@GameTest(maxTicks = 200)
+	public void trueShotArrowGetsItsGravityBack(GameTestHelper helper) {
+		ItemStack bow = enchanted(helper, Items.BOW, ModEnchantments.TRUE_SHOT_AURA, 1);
+		Arrow arrow = shot(helper, bow, new BlockPos(2, 5, 2));
+		arrow.setDeltaMovement(Vec3.ZERO);
+		helper.getLevel().addFreshEntity(arrow);
+		helper.runAfterDelay(90, () -> helper.assertTrue(arrow.isNoGravity(),
+				Component.literal("gravity came back before 100 ticks")));
+		helper.runAfterDelay(101, () -> {
+			helper.assertFalse(arrow.isNoGravity(), Component.literal("no gravity after 100 ticks"));
+			helper.assertFalse(arrow.hasAttached(SuspendGravity.TICKS_LEFT), Component.literal("countdown left over"));
+			helper.succeed();
+		});
+	}
+
+	/** A save mid-flight keeps the countdown, so a reloaded arrow doesn't float forever on vanilla's saved NoGravity. */
+	@GameTest
+	public void trueShotCountdownSurvivesASaveAndLoad(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		Arrow arrow = shot(helper, enchanted(helper, Items.BOW, ModEnchantments.TRUE_SHOT_AURA, 1),
+				new BlockPos(2, 5, 2));
+		arrow.setAttached(SuspendGravity.TICKS_LEFT, 40);
+		TagValueOutput output = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, level.registryAccess());
+		arrow.saveWithoutId(output);
+		CompoundTag saved = output.buildResult();
+		Arrow loaded = EntityType.ARROW.create(level, EntitySpawnReason.LOAD);
+		helper.assertTrue(loaded != null, Component.literal("no arrow created"));
+		loaded.load(TagValueInput.create(ProblemReporter.DISCARDING, level.registryAccess(), saved));
+		helper.assertTrue(loaded.isNoGravity(), Component.literal("the loaded arrow has gravity"));
+		helper.assertValueEqual(40, loaded.getAttached(SuspendGravity.TICKS_LEFT),
+				Component.literal("ticks left after load"));
+		helper.succeed();
+	}
+
+	/** Gravity someone else took away (a command) is left alone: no countdown, so it is never handed back. */
+	@GameTest
+	public void trueShotLeavesAnAlreadyFloatingArrowAlone(GameTestHelper helper) {
+		Vec3 at = helper.absolutePos(new BlockPos(2, 5, 2)).getCenter();
+		Arrow arrow = new Arrow(helper.getLevel(), at.x, at.y, at.z, new ItemStack(Items.ARROW), null);
+		arrow.setNoGravity(true);
+		SuspendGravity.suspend(arrow, 100);
+		helper.assertFalse(arrow.hasAttached(SuspendGravity.TICKS_LEFT),
+				Component.literal("countdown on a floating arrow"));
+		helper.assertTrue(arrow.isNoGravity(), Component.literal("the command's NoGravity was cleared"));
+		helper.succeed();
 	}
 }
