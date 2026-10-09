@@ -1,4 +1,10 @@
 {
+	"enchantment.enchanting2.withering": "Withering",
+	"enchantment.enchanting2.poisoning": "Poisoning",
+	"enchantment.enchanting2.freezing": "Freezing",
+	"enchantment.enchanting2.attack_speed": "Attack Speed",
+	"enchantment.enchanting2.critical_strike": "Critical Strike",
+	"enchantment.enchanting2.reach": "Reach",
 	"enchanting2.config.title": "Enchanting 2",
 	"enchanting2.config.category.experience": "Experience",
 	"enchanting2.config.category.allow_together": "Conflicts",

@@ -341,3 +341,13 @@ integrated server ticks. The client GameTest framework runs `computeOnServer` wi
 **Fix:** `context.waitTicks(2)` after anything that queues server work, before `computeOnServer` checks its effect.
 **Dead ends:** none. The failing assertion message plus the log timestamps were enough.
 **Affects:** `src/gametest/.../ConfigScreenClientGameTest.java`, any client test after a `ConfigEditing` save
+
+## 2026-10-09 — `runLocationChangedEffects` doesn't add enchantment attributes in a GameTest
+**Symptom:** Attack Speed / Reach tests read the bare base value after
+`EnchantmentHelper.runLocationChangedEffects(level, stack, player, slot)`.
+**Cause:** `EnchantmentAttributeEffect.onChangedBlock` only adds modifiers when its "became active" flag is set. Real
+equipping adds them in `LivingEntity.collectEquipmentChanges` through `ItemStack#forEachModifier` (which includes the
+enchantment's), and a mock `ServerPlayer` never ticks, so that path never runs.
+**Fix:** in tests, add `EnchantmentHelper.forEachModifier(stack, slot, ...)` to the attribute instances yourself. It
+leaves out the item's own modifiers, so the value is the enchantment's alone.
+**Affects:** src/gametest/**/NewEnchantmentsGameTest.java, any attribute enchantment test (10aC armor)

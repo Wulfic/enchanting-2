@@ -8,7 +8,7 @@ import com.wulfnet.enchanting2.client.ModMenuIntegration;
 import com.wulfnet.enchanting2.config.ConfigView.Mode;
 import com.wulfnet.enchanting2.config.EnchantmentOverrides;
 import com.wulfnet.enchanting2.config.ServerConfigs;
-import com.wulfnet.enchanting2.enchantment.VanillaEnchantments;
+import com.wulfnet.enchanting2.enchantment.ModEnchantments;
 import java.util.Set;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
@@ -17,8 +17,8 @@ import net.minecraft.client.gui.screens.Screen;
 
 /**
  * Stage 9C on the real client: the config screen (with its Enchantments category) builds on the title screen, where
- * only vanilla's enchantments are known, and in a hosted world, where the registry's are. A save from the screen's
- * path reaches the running server's rules; the test then saves the previous file back.
+ * only vanilla's enchantments and ours are known, and in a hosted world, where the registry's are. A save from the
+ * screen's path reaches the running server's rules; the test then saves the previous file back.
  */
 public class ConfigScreenClientGameTest implements FabricClientGameTest {
 	private static final String SHARPNESS = "minecraft:sharpness";
@@ -30,7 +30,8 @@ public class ConfigScreenClientGameTest implements FabricClientGameTest {
 		context.runOnClient(client -> {
 			check(client.getSingleplayerServer() == null, "no world is open");
 			Set<String> listed = ConfigEditing.enchantmentNames().keySet();
-			check(listed.equals(VanillaEnchantments.ids()), "the title screen lists vanilla's enchantments: " + listed);
+			check(listed.equals(ModEnchantments.knownWithoutRegistry()),
+					"the title screen lists vanilla's enchantments and ours: " + listed);
 			Mode mode = ConfigEditing.currentEnchantmentsView().mode();
 			check(mode == Mode.EDIT_FILE, "the title screen edits enchantments.json5: " + mode);
 		});
@@ -40,7 +41,7 @@ public class ConfigScreenClientGameTest implements FabricClientGameTest {
 			world.getClientWorld().waitForChunksRender();
 			context.runOnClient(client -> {
 				Set<String> listed = ConfigEditing.enchantmentNames().keySet();
-				check(listed.contains(THIRD_PARTY) && listed.containsAll(VanillaEnchantments.ids()),
+				check(listed.contains(THIRD_PARTY) && listed.containsAll(ModEnchantments.knownWithoutRegistry()),
 						"a hosted world lists the registry's enchantments: " + listed);
 				Mode mode = ConfigEditing.currentEnchantmentsView().mode();
 				check(mode == Mode.EDIT_HOSTED, "the host edits enchantments.json5: " + mode);

@@ -1397,19 +1397,25 @@ restores a saved value, clamped to the live max. No config file changes, no worl
 **Rollback:** `git revert` the stage's commit. Items in dev worlds (`run/`, gitignored) lose the new enchantments on
 the next load with a vanilla WARN. Nothing outside the repo is touched.
 
-### Stage 10aA — Shared data + weapon enchantments → commit
-- [ ] 10aA.1 Item tags (`enchanting2:enchantable/*`), damage-type tag `enchanting2:cushioned` (used in 10aC, ships here
+### Stage 10aA — Shared data + weapon enchantments → commit  ✅ 2026-10-09
+- [x] 10aA.1 Item tags (`enchanting2:enchantable/*`), damage-type tag `enchanting2:cushioned` (used in 10aC, ships here
       with the other tags), `#minecraft:non_treasure` / `#minecraft:tooltip_order` entries for the six weapon ones.
-- [ ] 10aA.2 JSON: `withering`, `poisoning`, `freezing`, `attack_speed`, `critical_strike`, `reach`. Lang names.
-- [ ] 10aA.3 `enchantment/ModEnchantments.KEYS` (+ `ids()`); `ConfigEditing.enchantmentNames` title screen = vanilla + ours.
+- [x] 10aA.2 JSON: `withering`, `poisoning`, `freezing`, `attack_speed`, `critical_strike`, `reach`. Lang names.
+- [x] 10aA.3 `enchantment/ModEnchantments.KEYS` (+ `ids()`); `ConfigEditing.enchantmentNames` title screen = vanilla + ours.
       `ConfigScreenClientGameTest` title-screen assertion follows.
-- [ ] 10aA.4 GameTests (`NewEnchantmentsGameTest`): registry pin (every `enchanting2:` ID is in `ModEnchantments.KEYS`
+- [x] 10aA.4 GameTests (`NewEnchantmentsGameTest`): registry pin (every `enchanting2:` ID is in `ModEnchantments.KEYS`
       and vice versa, max levels as the table, every one in `non_treasure` and the table pool); supported items (a sword,
       bow and trident take Withering; a pickaxe doesn't; Reach on a pickaxe, not a bow). Effects: melee hit with level
       3 → victim has the effect for 80 ticks (each of the three); a bow's arrow hitting → effect applied; Attack Speed V
       → attack speed attribute = base × 1.5; Critical Strike: over N seeded `modifyDamage` calls at level 5, the ×1.5 rate is
       within bounds of 25% and every result is 1.0 or 1.5; Reach III → both ranges +1.5.
       Mutation: delete one JSON's effect → its test fails.
+      Mutation run (five at once: `is_direct` on Poisoning, Attack Speed +0.2/level, Reach's entity range dropped,
+      Withering base 3 s, crit 6%/level): exactly the five matching tests failed, each on its own assertion. Also
+      `ModEnchantmentDataTest` (JUnit): JSON ↔ `ModEnchantments`, lang key per JSON, `non_treasure` + `tooltip_order`
+      membership, no `exclusive_set`, own item tags exist. Attribute tests add `EnchantmentHelper.forEachModifier`
+      directly: `runLocationChangedEffects` only adds attributes when an effect becomes active, and a mock player
+      never ticks its equipment. 291 JUnit (+5), 179 GameTests (+8), 4 client GameTests.
 
 ### Stage 10aB — XP Boost + random rounding → commit
 - [ ] 10aB.1 `enchantment/StochasticRounding.round(float, float roll)` (MC-free): `floor(x) + (roll < frac ? 1 : 0)`,

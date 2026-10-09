@@ -1,0 +1,274 @@
+package com.wulfnet.enchanting2.gametest;
+
+import com.wulfnet.enchanting2.acquisition.AcquisitionRules;
+import com.wulfnet.enchanting2.config.EnchantmentOverrides;
+import com.wulfnet.enchanting2.enchantment.ModEnchantments;
+import com.wulfnet.enchanting2.table.TablePool;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import net.fabricmc.fabric.api.gametest.v1.GameTest;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.EnchantmentTags;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.animal.pig.Pig;
+import net.minecraft.world.entity.projectile.arrow.Arrow;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.phys.Vec3;
+
+/**
+ * Phase 10a: our data-only enchantments (DESIGN §9, numbers in TODO 10a) against the live registry. Each effect test
+ * fails if its JSON loses or changes its effect, and the projectile tests fail if an on-hit effect picks up Fire
+ * Aspect's {@code is_direct} requirement.
+ */
+public class NewEnchantmentsGameTest {
+	private static final double EPSILON = 1.0E-6;
+
+	/** The max level of every enchantment in {@link ModEnchantments#KEYS}, as TODO 10a's table says. */
+	private static final Map<ResourceKey<Enchantment>, Integer> MAX = Map.of(
+			ModEnchantments.WITHERING, 5,
+			ModEnchantments.POISONING, 5,
+			ModEnchantments.FREEZING, 5,
+			ModEnchantments.ATTACK_SPEED, 5,
+			ModEnchantments.CRITICAL_STRIKE, 5,
+			ModEnchantments.REACH, 3);
+
+	/** The vanilla source tags (owner 2026-10-09: everywhere), plus our table pool. */
+	private static final List<TagKey<Enchantment>> SOURCES = List.of(EnchantmentTags.NON_TREASURE,
+			EnchantmentTags.IN_ENCHANTING_TABLE, EnchantmentTags.TRADEABLE, EnchantmentTags.ON_RANDOM_LOOT,
+			EnchantmentTags.ON_MOB_SPAWN_EQUIPMENT, EnchantmentTags.ON_TRADED_EQUIPMENT, TablePool.OFFERED);
+
+	private record OnHit(ResourceKey<Enchantment> key, Holder<MobEffect> effect) {
+	}
+
+	private static final List<OnHit> ON_HIT = List.of(new OnHit(ModEnchantments.WITHERING, MobEffects.WITHER),
+			new OnHit(ModEnchantments.POISONING, MobEffects.POISON),
+			new OnHit(ModEnchantments.FREEZING, MobEffects.SLOWNESS));
+
+	private static HolderLookup.RegistryLookup<Enchantment> registry(GameTestHelper helper) {
+		return helper.getLevel().registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
+	}
+
+	private static Holder<Enchantment> get(GameTestHelper helper, ResourceKey<Enchantment> key) {
+		return registry(helper).getOrThrow(key);
+	}
+
+	private static ItemStack enchanted(GameTestHelper helper, Item item, ResourceKey<Enchantment> key, int level) {
+		ItemStack stack = new ItemStack(item);
+		stack.enchant(get(helper, key), level);
+		return stack;
+	}
+
+	private static Pig still(GameTestHelper helper, BlockPos pos) {
+		Pig pig = helper.spawn(EntityType.PIG, pos);
+		pig.setNoAi(true);
+		return pig;
+	}
+
+	/** Level 3 = {@code 2 + (3 − 1)} = 4 s = 80 ticks, level I (amplifier 0). */
+	private static void assertEffect(GameTestHelper helper, Pig pig, OnHit onHit) {
+		MobEffectInstance instance = pig.getEffect(onHit.effect());
+		helper.assertTrue(instance != null, Component.literal(onHit.key().identifier() + ": no " + onHit.effect()));
+		helper.assertValueEqual(0, instance.getAmplifier(), Component.literal(onHit.key().identifier() + " amplifier"));
+		helper.assertTrue(instance.getDuration() > 70 && instance.getDuration() <= 80,
+				Component.literal(onHit.key().identifier() + " duration " + instance.getDuration() + ", want 80"));
+	}
+
+	/**
+	 * {@code attribute} on {@code player} with the stack's enchantment modifiers added, as equipping it does
+	 * ({@code LivingEntity} adds {@code ItemStack#forEachModifier}, which includes these). The item's own modifiers
+	 * (a sword's attack speed) are left out, so the result is the enchantment's alone.
+	 */
+	private static double withEnchantment(ServerPlayer player, ItemStack stack, EquipmentSlot slot,
+			Holder<Attribute> attribute) {
+		EnchantmentHelper.forEachModifier(stack, slot,
+				(holder, modifier) -> player.getAttributes().getInstance(holder).addOrUpdateTransientModifier(modifier));
+		return player.getAttributeValue(attribute);
+	}
+
+	private static void assertClose(GameTestHelper helper, double expected, double actual, String what) {
+		helper.assertTrue(Math.abs(expected - actual) < EPSILON,
+				Component.literal(what + ": expected " + expected + ", got " + actual));
+	}
+
+	@GameTest
+	public void everyOwnEnchantmentIsRegisteredAtItsMax(GameTestHelper helper) {
+		Set<ResourceKey<Enchantment>> registered = new HashSet<>();
+		registry(helper).listElementIds().filter(key -> key.identifier().getNamespace().equals("enchanting2"))
+				.forEach(registered::add);
+		helper.assertValueEqual(Set.copyOf(ModEnchantments.KEYS), registered,
+				Component.literal("enchanting2 registry IDs vs ModEnchantments.KEYS"));
+		helper.assertValueEqual(MAX.keySet(), registered, Component.literal("enchantments this test knows a max for"));
+		MAX.forEach((key, max) -> helper.assertValueEqual(max, get(helper, key).value().getMaxLevel(),
+				Component.literal("max level of " + key.identifier())));
+		helper.succeed();
+	}
+
+	@GameTest
+	public void everyOwnEnchantmentComesFromEverySource(GameTestHelper helper) {
+		List<Holder<Enchantment>> pool = TablePool.members(registry(helper),
+				new AcquisitionRules(EnchantmentOverrides.defaults()));
+		for (ResourceKey<Enchantment> key : ModEnchantments.KEYS) {
+			Holder<Enchantment> holder = get(helper, key);
+			for (TagKey<Enchantment> source : SOURCES) {
+				helper.assertTrue(holder.is(source),
+						Component.literal(key.identifier() + " is not in #" + source.location()));
+			}
+			helper.assertFalse(holder.is(EnchantmentTags.TREASURE),
+					Component.literal(key.identifier() + " is treasure"));
+			helper.assertTrue(pool.contains(holder), Component.literal(key.identifier() + " is not in the table pool"));
+		}
+		helper.succeed();
+	}
+
+	@GameTest
+	public void supportedItemsFollowTheTags(GameTestHelper helper) {
+		record Case(ResourceKey<Enchantment> key, Item item, boolean supported) {
+		}
+		List<Case> cases = List.of(
+				new Case(ModEnchantments.WITHERING, Items.DIAMOND_SWORD, true),
+				new Case(ModEnchantments.WITHERING, Items.IRON_AXE, true),
+				new Case(ModEnchantments.WITHERING, Items.MACE, true),
+				new Case(ModEnchantments.WITHERING, Items.BOW, true),
+				new Case(ModEnchantments.WITHERING, Items.CROSSBOW, true),
+				new Case(ModEnchantments.WITHERING, Items.TRIDENT, true),
+				new Case(ModEnchantments.WITHERING, Items.DIAMOND_PICKAXE, false),
+				new Case(ModEnchantments.POISONING, Items.CROSSBOW, true),
+				new Case(ModEnchantments.FREEZING, Items.BOW, true),
+				new Case(ModEnchantments.ATTACK_SPEED, Items.DIAMOND_SWORD, true),
+				new Case(ModEnchantments.ATTACK_SPEED, Items.TRIDENT, true),
+				new Case(ModEnchantments.ATTACK_SPEED, Items.BOW, false),
+				new Case(ModEnchantments.CRITICAL_STRIKE, Items.BOW, true),
+				new Case(ModEnchantments.CRITICAL_STRIKE, Items.DIAMOND_PICKAXE, false),
+				new Case(ModEnchantments.REACH, Items.DIAMOND_PICKAXE, true),
+				new Case(ModEnchantments.REACH, Items.SHEARS, true),
+				new Case(ModEnchantments.REACH, Items.DIAMOND_SWORD, true),
+				new Case(ModEnchantments.REACH, Items.BOW, false),
+				new Case(ModEnchantments.REACH, Items.DIAMOND_CHESTPLATE, false));
+		for (Case c : cases) {
+			boolean actual = get(helper, c.key()).value().isSupportedItem(new ItemStack(c.item()));
+			helper.assertValueEqual(c.supported(), actual,
+					Component.literal(c.key().identifier() + " supports " + c.item()));
+		}
+		helper.succeed();
+	}
+
+	@GameTest
+	public void meleeHitAppliesTheOnHitEffect(GameTestHelper helper) {
+		for (int i = 0; i < ON_HIT.size(); i++) {
+			OnHit onHit = ON_HIT.get(i);
+			Pig pig = still(helper, new BlockPos(1 + 2 * i, 1, 1));
+			ServerPlayer player = helper.makeMockServerPlayerInLevel();
+			player.setItemSlot(EquipmentSlot.MAINHAND, enchanted(helper, Items.DIAMOND_SWORD, onHit.key(), 3));
+			player.attack(pig);
+			assertEffect(helper, pig, onHit);
+		}
+		helper.succeed();
+	}
+
+	/** An arrow fired from an enchanted bow carries the effect: vanilla runs post_attack with the firing weapon. */
+	@GameTest
+	public void arrowFromAnEnchantedBowAppliesTheOnHitEffect(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		Pig[] pigs = new Pig[ON_HIT.size()];
+		for (int i = 0; i < ON_HIT.size(); i++) {
+			pigs[i] = still(helper, new BlockPos(1 + 2 * i, 1, 1));
+			ItemStack bow = enchanted(helper, Items.BOW, ON_HIT.get(i).key(), 3);
+			Vec3 above = pigs[i].position().add(0.0, 3.0, 0.0);
+			Arrow arrow = new Arrow(level, above.x, above.y, above.z, new ItemStack(Items.ARROW), bow);
+			arrow.setOwner(player);
+			arrow.setDeltaMovement(0.0, -1.5, 0.0);
+			level.addFreshEntity(arrow);
+		}
+		helper.succeedWhen(() -> {
+			for (int i = 0; i < ON_HIT.size(); i++) {
+				assertEffect(helper, pigs[i], ON_HIT.get(i));
+			}
+		});
+	}
+
+	/** {@code add_multiplied_base} +10% per level: level 1 = base × 1.1, level 5 = base × 1.5. */
+	@GameTest
+	public void attackSpeedAddsTenPercentOfBasePerLevel(GameTestHelper helper) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		double base = player.getAttributeBaseValue(Attributes.ATTACK_SPEED);
+		assertClose(helper, base * 1.1, withEnchantment(player,
+				enchanted(helper, Items.DIAMOND_SWORD, ModEnchantments.ATTACK_SPEED, 1), EquipmentSlot.MAINHAND,
+				Attributes.ATTACK_SPEED), "Attack Speed I");
+		assertClose(helper, base * 1.5, withEnchantment(player,
+				enchanted(helper, Items.DIAMOND_SWORD, ModEnchantments.ATTACK_SPEED, 5), EquipmentSlot.MAINHAND,
+				Attributes.ATTACK_SPEED), "Attack Speed V");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void reachAddsHalfABlockPerLevelToBothRanges(GameTestHelper helper) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		double blockBase = player.getAttributeBaseValue(Attributes.BLOCK_INTERACTION_RANGE);
+		double entityBase = player.getAttributeBaseValue(Attributes.ENTITY_INTERACTION_RANGE);
+		ItemStack pickaxe = enchanted(helper, Items.DIAMOND_PICKAXE, ModEnchantments.REACH, 3);
+		assertClose(helper, blockBase + 1.5,
+				withEnchantment(player, pickaxe, EquipmentSlot.MAINHAND, Attributes.BLOCK_INTERACTION_RANGE),
+				"Reach III block range");
+		assertClose(helper, entityBase + 1.5, player.getAttributeValue(Attributes.ENTITY_INTERACTION_RANGE),
+				"Reach III entity range");
+		helper.succeed();
+	}
+
+	/**
+	 * 5% per level of ×1.5. Each hit is either the base or exactly 1.5 × it, and the rate stays inside about four
+	 * standard deviations of the target (level V: 4000 rolls at 25%; level I: 4000 at 5%), so a wrong chance fails and
+	 * a correct one essentially never does.
+	 */
+	@GameTest
+	public void criticalStrikeMultipliesByOneAndAHalfAtFivePercentPerLevel(GameTestHelper helper) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		Pig pig = still(helper, new BlockPos(1, 1, 1));
+		DamageSource source = helper.getLevel().damageSources().playerAttack(player);
+		assertCritRate(helper, enchanted(helper, Items.DIAMOND_SWORD, ModEnchantments.CRITICAL_STRIKE, 5), pig, source,
+				0.22, 0.28);
+		assertCritRate(helper, enchanted(helper, Items.DIAMOND_SWORD, ModEnchantments.CRITICAL_STRIKE, 1), pig, source,
+				0.035, 0.065);
+		assertCritRate(helper, new ItemStack(Items.DIAMOND_SWORD), pig, source, 0.0, 0.0);
+		helper.succeed();
+	}
+
+	private static void assertCritRate(GameTestHelper helper, ItemStack weapon, Pig target, DamageSource source,
+			double min, double max) {
+		int rolls = 4000;
+		int crits = 0;
+		for (int i = 0; i < rolls; i++) {
+			float damage = EnchantmentHelper.modifyDamage(helper.getLevel(), weapon, target, source, 10.0F);
+			if (damage == 15.0F) {
+				crits++;
+			} else {
+				helper.assertValueEqual(10.0F, damage, Component.literal("a non-critical hit"));
+			}
+		}
+		double rate = crits / (double) rolls;
+		helper.assertTrue(rate >= min && rate <= max,
+				Component.literal("critical rate " + rate + " outside [" + min + ", " + max + "] for " + weapon));
+	}
+}

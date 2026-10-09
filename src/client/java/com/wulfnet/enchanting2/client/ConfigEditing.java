@@ -8,7 +8,7 @@ import com.wulfnet.enchanting2.config.ConfigView;
 import com.wulfnet.enchanting2.config.ConfigView.Connection;
 import com.wulfnet.enchanting2.config.EnchantmentOverrides;
 import com.wulfnet.enchanting2.config.ServerConfigs;
-import com.wulfnet.enchanting2.enchantment.VanillaEnchantments;
+import com.wulfnet.enchanting2.enchantment.ModEnchantments;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Locale;
@@ -83,7 +83,7 @@ public final class ConfigEditing {
 
 	/**
 	 * The enchantments the screen lists, with their names: the hosted server's registry (mods and datapacks included),
-	 * or vanilla's on the title screen, where no registry exists.
+	 * or vanilla's and ours on the title screen, where no registry exists.
 	 */
 	public static Map<String, Component> enchantmentNames() {
 		IntegratedServer server = Minecraft.getInstance().getSingleplayerServer();
@@ -92,7 +92,7 @@ public final class ConfigEditing {
 			server.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).listElements()
 					.forEach(e -> names.put(e.getRegisteredName(), e.value().description()));
 		} else {
-			VanillaEnchantments.ids().forEach(id -> names.put(id, fallbackName(id)));
+			ModEnchantments.knownWithoutRegistry().forEach(id -> names.put(id, fallbackName(id)));
 		}
 		return names;
 	}
