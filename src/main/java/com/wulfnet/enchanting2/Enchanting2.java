@@ -1,5 +1,6 @@
 package com.wulfnet.enchanting2;
 
+import com.wulfnet.enchanting2.acquisition.Acquisition;
 import com.wulfnet.enchanting2.config.ServerConfigs;
 import com.wulfnet.enchanting2.enchantment.MaxLevelHook;
 import com.wulfnet.enchanting2.fortune.FortuneDrops;
@@ -21,6 +22,7 @@ public final class Enchanting2 implements ModInitializer {
 		MaxLevelHook.register();
 		PlacedBlocks.register();
 		FortuneDrops.register();
+		Acquisition.register();
 		LOGGER.info("Enchanting 2 initialized");
 	}
 }

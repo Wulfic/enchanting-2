@@ -5,7 +5,10 @@
 	"mixins": [
 		"AnvilMenuMixin",
 		"BlockItemMixin",
+		"EnchantBookForEmeraldsMixin",
+		"EnchantRandomlyFunctionMixin",
 		"EnchantmentBuilderAccessor",
+		"EnchantmentHelperMixin",
 		"EnchantmentMenuMixin",
 		"EndermanLeaveBlockGoalMixin",
 		"FallingBlockEntityMixin",
@@ -13,8 +16,10 @@
 		"GrindstoneMenuInvoker",
 		"GrindstoneMenuMixin",
 		"GrindstoneResultSlotMixin",
+		"HolderReferenceAccessor",
 		"LavaFluidMixin",
 		"LiquidBlockMixin",
+		"MappedRegistryMixin",
 		"MinecraftServerMixin",
 		"PistonBaseBlockMixin",
 		"PlayerMixin",
@@ -22,7 +27,8 @@
 		"ServerPlayerGameModeMixin",
 		"ServerPlayerMixin",
 		"SnowGolemMixin",
-		"TridentItemMixin"
+		"TridentItemMixin",
+		"VillagerTradeScopeMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

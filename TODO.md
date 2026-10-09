@@ -1284,25 +1284,33 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       bounds) and never picking an excluded item. Mutation: `allows` ignoring `enabled` → a test fails.
       Mutation run: exactly `disabledClosesEverySourceEvenWhenItsFlagSaysTrue` failed. 275 JUnit (+16), 159 GameTests.
 
-### Stage 9B — Every random source on the server → commit
-- [ ] 9B.1 `acquisition/Acquisition`: register the stamp (`mixin/MappedRegistryMixin` + `AcquisitionHost` duck,
+### Stage 9B — Every random source on the server → commit  ✅ 2026-10-09
+- [x] 9B.1 `acquisition/Acquisition`: register the stamp (`mixin/MappedRegistryMixin` + `AcquisitionHost` duck,
       `mixin/HolderReferenceAccessor`), `rules(holder)`, WARN once when unstamped. `AcquisitionScope` (TRADE).
-- [ ] 9B.2 `mixin/EnchantmentHelperMixin` on `selectEnchantment`: filter `getAvailableEnchantmentResults` by the scope's
+- [x] 9B.2 `mixin/EnchantmentHelperMixin` on `selectEnchantment`: filter `getAvailableEnchantmentResults` by the scope's
       source, and both `WeightedRandom.getRandomItem` calls weigh by `rules.weight`.
-- [ ] 9B.3 `mixin/EnchantRandomlyFunctionMixin`: `getRandomSafe` → LOOT filter + `WeightedPick` by loot weight.
-- [ ] 9B.4 `mixin/EnchantBookForEmeraldsMixin`: `getRandomElementOf` → TRADE filter + trade weight; the
+- [x] 9B.3 `mixin/EnchantRandomlyFunctionMixin`: `getRandomSafe` → LOOT filter + `WeightedPick` by loot weight.
+- [x] 9B.4 `mixin/EnchantBookForEmeraldsMixin`: `getRandomElementOf` → TRADE filter + trade weight; the
       `#double_trade_price` check → `rules.treasure(id, tagged)`.
-- [ ] 9B.5 `mixin/VillagerTradeScopeMixin`: `@WrapMethod` TRADE scope on `EnchantedItemForEmeralds`, `ItemsForEmeralds`,
+- [x] 9B.5 `mixin/VillagerTradeScopeMixin`: `@WrapMethod` TRADE scope on `EnchantedItemForEmeralds`, `ItemsForEmeralds`,
       `ItemsAndEmeraldsToItems` `getOffer`.
-- [ ] 9B.6 Table: `TablePool.members` filters TABLE; `needsFullPower` uses `rules.treasure`. `EnchantmentMenuMixin` and
+- [x] 9B.6 Table: `TablePool.members` filters TABLE; `needsFullPower` uses `rules.treasure`. `EnchantmentMenuMixin` and
       `TableCalculator` take the rules.
-- [ ] 9B.7 GameTests (`AcquisitionGameTest`, gametest loot tables `e2test:enchant_randomly_book`,
+- [x] 9B.7 GameTests (`AcquisitionGameTest`, gametest loot tables `e2test:enchant_randomly_book`,
       `e2test:enchant_with_levels_book`): for librarian books, villager gear, `enchant_randomly`, `enchant_with_levels`
       and mob spawn gear, a control run where X appears within N seeded rolls, then `enabled: false` and the source's own
       flag → X never appears, and the other source's flag → X still appears. `trade_weight 1024` Mending > 50% of
       librarian books vs < 15% default. `treasure` doubles the librarian price on the same seed. Table: `table: false` /
       `enabled: false` → not in the pool; `treasure: false` Mending pickable at 0 shelves; `treasure: true` Sharpness
       needs 15. Mutations: drop each mixin's filter → that source's test fails.
+      Added `weightsReachSelectEnchantmentBySource` (Looting on a sword: loot_weight moves `enchant_with_levels` only,
+      trade_weight moves villager gear only), since no other test reached the weight wrap in `selectEnchantment`.
+      Mutation run A (filter in `selectEnchantment`, its weight wrap, `enchant_randomly` pick, librarian pick, treasure
+      price, all at once): all 9 acquisition tests failed, each on its own assertion. Run B (trade scope reports LOOT):
+      exactly the villager-flags and weights tests failed. The two table tests assert the opposite of the default
+      behaviour `treasureNeedsFullPowerAndCursesDont` already pins, so they weren't mutation-run separately. My own
+      test bug on the first full run: villager gear rolls at power 5-19, where Looting often isn't a candidate, so
+      trade_weight 1024 gives 209/400, not > 3/4. 275 JUnit, 170 GameTests (+11).
 
 ### Stage 9C — Config screen "Enchantments" category → commit
 - [ ] 9C.1 `ConfigView` generic over the file (`ConfigView<T>`), plus the remote "kept on the server" mode for

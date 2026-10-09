@@ -1,8 +1,11 @@
 package com.wulfnet.enchanting2.gametest;
 
+import com.wulfnet.enchanting2.acquisition.AcquisitionRules;
+import com.wulfnet.enchanting2.config.AcquisitionSettings;
 import com.wulfnet.enchanting2.config.AllowTogetherSection;
 import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.config.CostsSection;
+import com.wulfnet.enchanting2.config.EnchantmentOverrides;
 import com.wulfnet.enchanting2.config.TableSection;
 import com.wulfnet.enchanting2.cost.CostBreakdown;
 import com.wulfnet.enchanting2.cost.PricingTable;
@@ -14,9 +17,11 @@ import com.wulfnet.enchanting2.table.TablePool;
 import com.wulfnet.enchanting2.table.TableRow;
 import com.wulfnet.enchanting2.table.TableSelection;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.Holder;
@@ -74,8 +79,10 @@ public class TableCalculatorGameTest {
 		return EnchantmentHelper.getEnchantmentsForCrafting(stack).getLevel(get(helper, key));
 	}
 
+	private static final AcquisitionRules NO_OVERRIDES = new AcquisitionRules(EnchantmentOverrides.defaults());
+
 	private static List<Holder<Enchantment>> pool(GameTestHelper helper) {
-		return TablePool.members(registry(helper));
+		return TablePool.members(registry(helper), NO_OVERRIDES);
 	}
 
 	private static TableSelection pick(Object... idLevel) {
@@ -93,7 +100,26 @@ public class TableCalculatorGameTest {
 	private static TableOutcome compute(GameTestHelper helper, ItemStack target, int lapis, int shelves,
 			TableSelection selection, int levels, boolean creative, CommonConfig config) {
 		return TableCalculator.compute(target, lapis, shelves, selection, levels, creative, config,
-				PricingTable.builtIn(), pool(helper));
+				PricingTable.builtIn(), pool(helper), NO_OVERRIDES);
+	}
+
+	/** Default config, with {@code rules} filtering the pool and deciding treasure (Phase 9). */
+	private static TableOutcome compute(GameTestHelper helper, ItemStack target, int shelves, TableSelection selection,
+			AcquisitionRules rules) {
+		return TableCalculator.compute(target, 64, shelves, selection, PLENTY, false, CommonConfig.defaults(),
+				PricingTable.builtIn(), TablePool.members(registry(helper), rules), rules);
+	}
+
+	private static AcquisitionRules rules(Map<String, AcquisitionSettings> settings) {
+		Map<String, EnchantmentOverrides.Entry> entries = new HashMap<>();
+		settings.forEach((id, a) -> entries.put(id, new EnchantmentOverrides.Entry(a)));
+		return new AcquisitionRules(new EnchantmentOverrides(entries));
+	}
+
+	private static AcquisitionSettings acquisition(Optional<Boolean> enabled, Optional<Boolean> table,
+			Optional<Boolean> treasure) {
+		return new AcquisitionSettings(enabled, table, Optional.empty(), Optional.empty(), OptionalInt.empty(),
+				OptionalInt.empty(), treasure);
 	}
 
 	private static CommonConfig config(AllowTogetherSection allowTogether, CostsSection costs, TableSection table) {
@@ -413,6 +439,45 @@ public class TableCalculatorGameTest {
 		equal(helper, 5, result.getLevel(get(helper, Enchantments.EFFICIENCY)), "Efficiency added");
 		equal(helper, 3, result.size(), "nothing else");
 		equal(helper, 5, outcome.levelsCharged(), "only the new entry is charged");
+		helper.succeed();
+	}
+
+	// --- acquisition (9B.6) ---
+
+	@GameTest
+	public void tableFlagAndDisabledTakeEnchantmentsOutOfThePool(GameTestHelper helper) {
+		Optional<Boolean> no = Optional.of(false);
+		Optional<Boolean> unset = Optional.empty();
+		AcquisitionRules rules = rules(Map.of(SHARPNESS, acquisition(unset, no, unset),
+				UNBREAKING, acquisition(no, unset, unset),
+				"minecraft:smite", acquisition(unset, Optional.of(true), unset)));
+		List<String> rows = ids(compute(helper, new ItemStack(Items.DIAMOND_SWORD), FULL, TableSelection.EMPTY, rules));
+		check(helper, !rows.contains(SHARPNESS), "table: false Sharpness has no row: " + rows);
+		check(helper, !rows.contains(UNBREAKING), "enabled: false Unbreaking has no row: " + rows);
+		check(helper, rows.contains("minecraft:smite"), "table: true Smite keeps its row: " + rows);
+		List<String> pool = TablePool.members(registry(helper), rules).stream().map(Holder::getRegisteredName).toList();
+		check(helper, !pool.contains(SHARPNESS) && !pool.contains(UNBREAKING), "pool without both: " + pool);
+		equal(helper, pool(helper).size() - 2, pool.size(), "exactly two left the pool");
+		equal(helper, Status.INVALID_PICK, compute(helper, new ItemStack(Items.DIAMOND_SWORD), FULL,
+				pick(SHARPNESS, 1), rules).status(), "a stale pick of a removed enchantment enchants nothing");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void treasureOverrideMovesTheFullPowerGate(GameTestHelper helper) {
+		Optional<Boolean> unset = Optional.empty();
+		AcquisitionRules rules = rules(Map.of(MENDING, acquisition(unset, unset, Optional.of(false)),
+				SHARPNESS, acquisition(unset, unset, Optional.of(true)),
+				VANISHING, acquisition(unset, unset, Optional.of(true))));
+		equal(helper, TableRow.Status.OK, row(compute(helper, new ItemStack(Items.DIAMOND_BOOTS), 0,
+				TableSelection.EMPTY, rules), MENDING).status(), "treasure: false Mending at 0 shelves");
+		ItemStack sword = new ItemStack(Items.DIAMOND_SWORD);
+		equal(helper, TableRow.Status.NEEDS_FULL_POWER, row(compute(helper, sword, FULL - 1, TableSelection.EMPTY,
+				rules), SHARPNESS).status(), "treasure: true Sharpness at 14 shelves");
+		equal(helper, TableRow.Status.OK, row(compute(helper, sword, FULL, TableSelection.EMPTY, rules), SHARPNESS)
+				.status(), "treasure: true Sharpness at 15 shelves");
+		equal(helper, TableRow.Status.OK, row(compute(helper, sword, 0, TableSelection.EMPTY, rules), VANISHING)
+				.status(), "a curse is never gated, even marked treasure");
 		helper.succeed();
 	}
 }

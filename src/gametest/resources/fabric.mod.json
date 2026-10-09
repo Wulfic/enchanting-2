@@ -20,7 +20,8 @@
 			"com.wulfnet.enchanting2.gametest.TableGameTest",
 			"com.wulfnet.enchanting2.gametest.ConflictEffectsGameTest",
 			"com.wulfnet.enchanting2.gametest.PlacedBlocksGameTest",
-			"com.wulfnet.enchanting2.gametest.FortuneDropsGameTest"
+			"com.wulfnet.enchanting2.gametest.FortuneDropsGameTest",
+			"com.wulfnet.enchanting2.gametest.AcquisitionGameTest"
 		],
 		"fabric-client-gametest": [
 			"com.wulfnet.enchanting2.gametest.AnvilScreenClientGameTest",

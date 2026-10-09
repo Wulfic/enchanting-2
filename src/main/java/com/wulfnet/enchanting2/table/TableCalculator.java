@@ -1,6 +1,7 @@
 package com.wulfnet.enchanting2.table;
 
 import com.wulfnet.enchanting2.Enchanting2;
+import com.wulfnet.enchanting2.acquisition.AcquisitionRules;
 import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.cost.CostBreakdown;
 import com.wulfnet.enchanting2.cost.CostModel;
@@ -43,15 +44,17 @@ public final class TableCalculator {
 	 * @param playerLevels the player's XP levels
 	 * @param creative     the player has infinite materials (as at the anvil)
 	 * @param pool         the offered enchantments ({@link TablePool#members}), any order
+	 * @param acquisition  {@code enchantments.json5}'s treasure overrides
 	 */
 	public static TableOutcome compute(ItemStack target, int lapisCount, int shelves, TableSelection selection,
 			int playerLevels, boolean creative, CommonConfig config, PricingTable pricing,
-			List<Holder<Enchantment>> pool) {
+			List<Holder<Enchantment>> pool, AcquisitionRules acquisition) {
 		Objects.requireNonNull(target, "target");
 		Objects.requireNonNull(selection, "selection");
 		Objects.requireNonNull(config, "config");
 		Objects.requireNonNull(pricing, "pricing");
 		Objects.requireNonNull(pool, "pool");
+		Objects.requireNonNull(acquisition, "acquisition");
 		int counted = Math.clamp(shelves, 0, TablePower.MAX_SHELVES);
 		if (target.isEmpty() || target.getCount() != 1) {
 			return TableOutcome.none(counted);
@@ -84,7 +87,8 @@ public final class TableCalculator {
 			Holder<Enchantment> enchantment = listed.get(id);
 			Verdict verdict = enchantment == null
 					? new Verdict(TableRow.Status.NOT_OFFERED, Optional.empty())
-					: pickVerdict(target, enchantment, level, existing.getLevel(enchantment), after, tier, config);
+					: pickVerdict(target, enchantment, level, existing.getLevel(enchantment), after, tier, config,
+							acquisition);
 			picked.put(id, verdict);
 			if (verdict.status == TableRow.Status.OK) {
 				after = EnchantRules.withEnchantment(after, enchantment, level);
@@ -100,7 +104,7 @@ public final class TableCalculator {
 			int max = enchantment.value().getMaxLevel();
 			int selected = selection.levels().getOrDefault(id, 0);
 			Verdict verdict = selected > 0 ? picked.get(id)
-					: unpickedVerdict(target, enchantment, current, after, tier, config);
+					: unpickedVerdict(target, enchantment, current, after, tier, config, acquisition);
 			rows.add(new TableRow(id, current, max, TablePower.maxSelectable(max, tier), selected, verdict.status,
 					verdict.conflictsWith));
 		}
@@ -148,7 +152,7 @@ public final class TableCalculator {
 
 	/** A picked row: is {@code level} a valid pick on the item as built so far? */
 	private static Verdict pickVerdict(ItemStack target, Holder<Enchantment> enchantment, int level, int current,
-			ItemEnchantments after, int tier, CommonConfig config) {
+			ItemEnchantments after, int tier, CommonConfig config, AcquisitionRules acquisition) {
 		int max = enchantment.value().getMaxLevel();
 		if (level > max) {
 			return Verdict.of(TableRow.Status.ABOVE_MAX);
@@ -156,7 +160,7 @@ public final class TableCalculator {
 		if (level <= current) {
 			return Verdict.of(TableRow.Status.ALREADY_AT_LEVEL);
 		}
-		if (TablePool.needsFullPower(enchantment, config.table()) && !TablePower.fullPower(tier)) {
+		if (TablePool.needsFullPower(enchantment, config.table(), acquisition) && !TablePower.fullPower(tier)) {
 			return Verdict.of(TableRow.Status.NEEDS_FULL_POWER);
 		}
 		if (level > TablePower.maxSelectable(max, tier)) {
@@ -167,12 +171,12 @@ public final class TableCalculator {
 
 	/** An unpicked row: could its next level be picked now? */
 	private static Verdict unpickedVerdict(ItemStack target, Holder<Enchantment> enchantment, int current,
-			ItemEnchantments after, int tier, CommonConfig config) {
+			ItemEnchantments after, int tier, CommonConfig config, AcquisitionRules acquisition) {
 		int max = enchantment.value().getMaxLevel();
 		if (current >= max) {
 			return Verdict.of(TableRow.Status.MAXED);
 		}
-		if (TablePool.needsFullPower(enchantment, config.table()) && !TablePower.fullPower(tier)) {
+		if (TablePool.needsFullPower(enchantment, config.table(), acquisition) && !TablePower.fullPower(tier)) {
 			return Verdict.of(TableRow.Status.NEEDS_FULL_POWER);
 		}
 		if (current + 1 > TablePower.maxSelectable(max, tier)) {

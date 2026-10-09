@@ -1,6 +1,8 @@
 package com.wulfnet.enchanting2.mixin;
 
 import com.wulfnet.enchanting2.Enchanting2;
+import com.wulfnet.enchanting2.acquisition.AcquisitionRules;
+import com.wulfnet.enchanting2.config.EnchantmentOverrides;
 import com.wulfnet.enchanting2.config.ServerConfigs;
 import com.wulfnet.enchanting2.cost.PricingTable;
 import com.wulfnet.enchanting2.network.TablePreviewHolder;
@@ -217,10 +219,13 @@ abstract class EnchantmentMenuMixin extends AbstractContainerMenu implements Tab
 		ItemStack lapis = enchantSlots.getItem(1);
 		MinecraftServer server = player.level().getServer();
 		try {
+			EnchantmentOverrides enchantments = ServerConfigs.enchantments(server);
+			AcquisitionRules acquisition = new AcquisitionRules(enchantments);
 			return TableCalculator.compute(target, lapis.is(Items.LAPIS_LAZULI) ? lapis.getCount() : 0, shelves,
 					enchanting2$selection, player.experienceLevel, player.hasInfiniteMaterials(),
-					ServerConfigs.get(server), new PricingTable(ServerConfigs.enchantments(server)),
-					TablePool.members(level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT)));
+					ServerConfigs.get(server), new PricingTable(enchantments),
+					TablePool.members(level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT), acquisition),
+					acquisition);
 		} catch (RuntimeException e) {
 			// Fail closed: no OK outcome means the Enchant payload is refused, so nothing is charged or changed.
 			Enchanting2.LOGGER.error("Table result failed for {} with {} and selection {}; showing nothing",
