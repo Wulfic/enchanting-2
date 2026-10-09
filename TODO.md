@@ -1312,15 +1312,23 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       test bug on the first full run: villager gear rolls at power 5-19, where Looting often isn't a candidate, so
       trade_weight 1024 gives 209/400, not > 3/4. 275 JUnit, 170 GameTests (+11).
 
-### Stage 9C — Config screen "Enchantments" category → commit
-- [ ] 9C.1 `ConfigView` generic over the file (`ConfigView<T>`), plus the remote "kept on the server" mode for
+### Stage 9C — Config screen "Enchantments" category → commit  ✅ 2026-10-09 (except the owner `runClient` look)
+- [x] 9C.1 `ConfigView` generic over the file (`ConfigView<T>`), plus the remote "kept on the server" mode for
       `enchantments.json5`. Existing `ConfigViewTest` cases pass unchanged; new cases for the enchantments view.
-- [ ] 9C.2 `acquisition/EnchantmentFlagsDraft` (main source set, pure): rows from an ID set, `apply(overrides)` changes
+- [x] 9C.2 `acquisition/EnchantmentFlagsDraft` (main source set, pure): rows from an ID set, `apply(overrides)` changes
       only the four keys. JUnit: no change → equal; one toggle → one key; cost-only entry keeps its costs; unknown ID kept;
       a toggle back to the default on an absent key leaves it absent.
-- [ ] 9C.3 `ConfigScreen` category + `ConfigEditing.saveEnchantments` (re-checks editable, backed-up write, host reload).
-- [ ] 9C.4 Lang keys (en_us) + `ConfigLangKeysTest` coverage.
-- [ ] 9C.5 `./gradlew runClientGameTest`: the existing client tests stay green. Owner `runClient`: the category's look.
+- [x] 9C.3 `ConfigScreen` category + `ConfigEditing.saveEnchantments` (re-checks editable, backed-up write, host reload).
+- [x] 9C.4 Lang keys (en_us) + `ConfigLangKeysTest` coverage.
+- [x] 9C.5 `./gradlew runClientGameTest`: the existing client tests stay green. Owner `runClient`: the category's look.
+      Added `ConfigScreenClientGameTest`: the screen builds on the title screen (vanilla IDs, `EDIT_FILE`) and in a
+      hosted world (registry IDs incl. `e2test:third_party`, `EDIT_HOSTED`), and a save through `ConfigEditing`
+      reaches the running server, then the previous file is saved back.
+      Done differently from the plan: the title-screen list is `enchantment/VanillaEnchantments.KEYS` (pinned to the
+      registry by a new `VanillaEnchantmentIdsGameTest` case), because `MaxLevels.TABLE` only holds the changed rows.
+      The mode texts take the file name as `%1$s`, so both categories share them (a lang test forbids `json5` in them).
+      My own test bug on the first client run: the save's `server.execute` re-read only runs when the server ticks, and
+      `computeOnServer` doesn't tick it (gotchas.md). 286 JUnit (+11), 171 GameTests (+1), 4 client GameTests (+1).
 
 ## Phase 10 — New enchantments (DESIGN §9), by route
 - [ ] 10a Data-only (D): Withering, Poisoning, Freezing, Attack Speed, Critical Strike,

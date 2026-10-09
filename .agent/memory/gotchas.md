@@ -332,3 +332,12 @@ place-and-mine loops with a Fortune V axe dropped 30 logs instead of 10. Only th
 mark-level tests all passed.
 **Lesson:** read where a Fabric event's mixin injects before relying on its name for ordering.
 **Affects:** `mixin/ServerPlayerGameModeMixin`, `fortune/PlacedBlocks`, Stage 8D's loot hook
+
+## 2026-10-09 — Client GameTests: `server.execute` work waits for a server tick
+**Symptom:** `ConfigScreenClientGameTest` saved `enchantments.json5` through `ConfigEditing`, then
+`world.getServer().computeOnServer(...)` still saw the old rules. The log showed the "Reloaded" line only at shutdown.
+**Cause:** `ConfigEditing.save*` queues the re-read with `server.execute`, and that queue only drains when the
+integrated server ticks. The client GameTest framework runs `computeOnServer` without ticking, so it runs first.
+**Fix:** `context.waitTicks(2)` after anything that queues server work, before `computeOnServer` checks its effect.
+**Dead ends:** none. The failing assertion message plus the log timestamps were enough.
+**Affects:** `src/gametest/.../ConfigScreenClientGameTest.java`, any client test after a `ConfigEditing` save

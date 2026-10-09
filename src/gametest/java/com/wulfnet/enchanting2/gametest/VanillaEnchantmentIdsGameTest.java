@@ -1,5 +1,6 @@
 package com.wulfnet.enchanting2.gametest;
 
+import com.wulfnet.enchanting2.enchantment.VanillaEnchantments;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -91,6 +92,20 @@ public class VanillaEnchantmentIdsGameTest {
 
 		helper.assertTrue(unclassified.isEmpty(),
 				Component.literal("vanilla enchantments not classified in DESIGN §8: " + unclassified));
+		helper.succeed();
+	}
+
+	/** The title-screen config list ({@code VanillaEnchantments}) is exactly the registry's vanilla set. */
+	@GameTest
+	public void theNoWorldListIsExactlyTheRegistrysVanillaSet(GameTestHelper helper) {
+		Set<ResourceKey<Enchantment>> registered = new HashSet<>();
+		helper.getLevel().registryAccess().lookupOrThrow(Registries.ENCHANTMENT).listElementIds()
+				.filter(key -> key.identifier().getNamespace().equals("minecraft"))
+				.forEach(registered::add);
+		helper.assertValueEqual(registered, Set.copyOf(VanillaEnchantments.KEYS),
+				Component.literal("VanillaEnchantments.KEYS"));
+		helper.assertValueEqual(VanillaEnchantments.KEYS.size(), Set.copyOf(VanillaEnchantments.KEYS).size(),
+				Component.literal("VanillaEnchantments.KEYS has no duplicates"));
 		helper.succeed();
 	}
 }

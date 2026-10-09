@@ -2,14 +2,21 @@ package com.wulfnet.enchanting2.client;
 
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.config.CommonConfig;
+import com.wulfnet.enchanting2.config.ConfigCodec;
 import com.wulfnet.enchanting2.config.ConfigFiles;
 import com.wulfnet.enchanting2.config.ConfigView;
 import com.wulfnet.enchanting2.config.ConfigView.Connection;
+import com.wulfnet.enchanting2.config.EnchantmentOverrides;
 import com.wulfnet.enchanting2.config.ServerConfigs;
+import com.wulfnet.enchanting2.enchantment.VanillaEnchantments;
+import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.server.IntegratedServer;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +32,7 @@ public final class ConfigEditing {
 	private ConfigEditing() {
 	}
 
-	public static ConfigView currentView() {
+	public static ConfigView<CommonConfig> currentView() {
 		Minecraft minecraft = Minecraft.getInstance();
 		IntegratedServer server = minecraft.getSingleplayerServer();
 		return ConfigView.resolve(connection(minecraft, server),
@@ -33,21 +40,37 @@ public final class ConfigEditing {
 				() -> ServerConfigs.get(server), ClientConfigState.serverCopy());
 	}
 
+	/** {@code enchantments.json5}: like {@link #currentView()}, but a remote server never sends it. */
+	public static ConfigView<EnchantmentOverrides> currentEnchantmentsView() {
+		Minecraft minecraft = Minecraft.getInstance();
+		IntegratedServer server = minecraft.getSingleplayerServer();
+		return ConfigView.resolveUnsynced(connection(minecraft, server),
+				() -> ConfigFiles.load(ServerConfigs.enchantmentsFile(), EnchantmentOverrides.CODEC),
+				() -> ServerConfigs.enchantments(server), ClientConfigState.serverCopy().isPresent());
+	}
+
 	/**
 	 * Writes {@code config} to the shared file (backed up first). When this client hosts the world, the integrated
 	 * server then re-reads the file on its own thread, which also re-syncs LAN guests.
 	 */
 	public static void save(CommonConfig config) {
+		save(currentView(), ServerConfigs.commonFile(), CommonConfig.CODEC, config);
+	}
+
+	/** Writes {@code enchantments.json5} the same way; the flags apply on the host's re-read. */
+	public static void saveEnchantments(EnchantmentOverrides enchantments) {
+		save(currentEnchantmentsView(), ServerConfigs.enchantmentsFile(), EnchantmentOverrides.CODEC, enchantments);
+	}
+
+	/** @param view resolved now, not when the screen opened, so a session that turned remote can never write */
+	private static <T> void save(ConfigView<T> view, Path file, ConfigCodec<T> codec, T value) {
 		Minecraft minecraft = Minecraft.getInstance();
-		// The screen was resolved when it opened; re-check, so a session that turned remote can never write.
-		ConfigView view = currentView();
 		if (!view.editable()) {
-			LOG.warn("Not saving the Enchanting 2 config: it isn't editable right now ({})", view.mode());
+			LOG.warn("Not saving {}: it isn't editable right now ({})", file, view.mode());
 			failed(minecraft, Component.translatable("enchanting2.config.save_failed.not_editable"));
 			return;
 		}
-		ConfigFiles.SaveOutcome outcome = ConfigFiles.saveWithBackup(ServerConfigs.commonFile(), CommonConfig.CODEC,
-				config);
+		ConfigFiles.SaveOutcome outcome = ConfigFiles.saveWithBackup(file, codec, value);
 		if (outcome != ConfigFiles.SaveOutcome.SAVED) {
 			toastSaveFailed(outcome);
 			return;
@@ -56,6 +79,27 @@ public final class ConfigEditing {
 		if (server != null) {
 			server.execute(() -> ServerConfigs.reload(server));
 		}
+	}
+
+	/**
+	 * The enchantments the screen lists, with their names: the hosted server's registry (mods and datapacks included),
+	 * or vanilla's on the title screen, where no registry exists.
+	 */
+	public static Map<String, Component> enchantmentNames() {
+		IntegratedServer server = Minecraft.getInstance().getSingleplayerServer();
+		Map<String, Component> names = new HashMap<>();
+		if (server != null) {
+			server.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).listElements()
+					.forEach(e -> names.put(e.getRegisteredName(), e.value().description()));
+		} else {
+			VanillaEnchantments.ids().forEach(id -> names.put(id, fallbackName(id)));
+		}
+		return names;
+	}
+
+	/** Vanilla's translation key for an enchantment, showing the ID when no language file has it. */
+	public static Component fallbackName(String id) {
+		return Component.translatableWithFallback("enchantment." + id.replace(':', '.'), id);
 	}
 
 	private static Connection connection(Minecraft minecraft, IntegratedServer server) {

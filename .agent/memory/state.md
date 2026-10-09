@@ -8,7 +8,7 @@
 **Branch:** main (commit straight to main and push; no CI; see decisions.md)
 
 ## Where we are
-Phases 1–8 done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
+Phases 1–9 done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
 - 3: `ExperienceCurve`, no level cap, exact XP points, counters saturate. 4: `MaxLevels` via `MODIFY` (restart to
   apply), `ConflictFamily` + `allow_together`, `EnchantRules`, Lure/Riptide 5 with safe caps.
 - 5: `cost/` (`CostModel`, `PricingTable`, curse discount, `cleanseCost`, `extractCost`).
@@ -23,17 +23,22 @@ Phases 1–8 done (TODO.md has each stage's notes; owner `runClient` checks stil
 - 8 (2026-10-08): `fortune.silk_fortune_mode`, `TridentItemMixin` (Riptide throws on land), conflict-effect GameTests;
   placed-block tracker (`fortune/PlacedMarks` per-chunk attachment, fail-closed codec, `MarkMoves`, 8 marking mixins,
   clear at `destroyBlock` RETURN); `FortuneDrops` on `MODIFY_DROPS` with `fortune_multiplies/<kind>` tags.
-- Tests: 259 JUnit + 159 GameTests (`./gradlew build`) + 3 client GameTests (`./gradlew runClientGameTest`).
+- 9 (2026-10-09): `enchantments.json5` acquisition keys (`config/AcquisitionSettings`), `acquisition/*`
+  (`AcquisitionRules`, `WeightedPick`, registry stamp + holder-owner lookup, TRADE scope), mixins on `selectEnchantment`,
+  `enchant_randomly`, librarian books, villager `getOffer`s; table pool filter + treasure override; config screen
+  "Enchantments" category (`ConfigView<T>`, `EnchantmentFlagsDraft`, `VanillaEnchantments`).
+- Tests: 286 JUnit + 171 GameTests (`./gradlew build`) + 4 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Phase 9 planned (TODO.md, decisions.md 2026-10-09): 9A config keys + pure rules → 9B every random source on
-   the server → 9C config screen "Enchantments" category. Owner answers recorded; no open questions.
+1. Phase 10 (new enchantments, DESIGN §9): plan 10a (data-only) into TODO.md first, ask the owner early. Every new
+   enchantment needs its tags (`#tradeable`, `#on_random_loot`, `offered_at_table`, ...) for Phase 9's sources.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
    ~1,000,000) + 6D: panel look, config screen "Display" toggle, and a vanilla server keeping the vanilla anvil screen +
    6bC: grindstone panel look, and a vanilla server keeping the vanilla grindstone + 7D: table panel and window look
    (does the ready Enchant button, vanilla's beige offer sprite, read as clickable?), and a vanilla server keeping the
    vanilla table + 8: the config screen's "Fortune" category and its warning tooltip, and a quick feel check (Fortune V
-   axe on a tree; place a log and mine it).
+   axe on a tree; place a log and mine it) + 9C: the config screen's "Enchantments" category (tick boxes, names,
+   the remote "kept on the server" label).
 3. Owner, optional: the Fortune default tags are DESIGN §6's draft list. Grass, podzol, coarse/rooted dirt, mycelium,
    bamboo blocks and leaves aren't in them.
 

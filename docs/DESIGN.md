@@ -502,7 +502,23 @@ Tooltip shows cost and applicable item categories.
 
 ### Loot and trading
 Per-enchantment flags and separate weights for table, loot and librarian trades. Powerful
-enchantments are not made equally common.
+enchantments are not made equally common. (Phase 9; owner 2026-10-09; decisions.md "Phase 9".)
+- `enchantments.json5` keys, all optional: `enabled`, `table`, `loot`, `trade` (true by default),
+  `loot_weight` and `trade_weight` (1–1024, the registry weight by default), `treasure`.
+- **Sources.** Table = the `offered_at_table` pool. Loot = loot tables (`enchant_randomly`,
+  `enchant_with_levels`: chests, fishing, bartering) and mob spawn gear. Trade = librarian books
+  and villager-sold enchanted gear. Flags only take an enchantment out of a source; tags decide
+  what's in it.
+- **Disabled = acquisition only.** It disappears from every source. Items that already have it keep
+  it, it keeps working, and the anvil and grindstone still move it. Fixed grants that name it in
+  data (`set_enchantments`, single-enchantment providers) and `/enchant` are not filtered.
+- **Weighted by default.** Librarian books and `enchant_randomly`, uniform in vanilla, pick by
+  weight. Levels still roll up to the (raised) max, as in vanilla.
+- **`treasure`** overrides `#treasure` for the table's 15-shelf gate and `#double_trade_price` for
+  the librarian's price. The vanilla tags are untouched.
+- **Config screen:** an Enchantments category with Enabled / table / loot / trade per enchantment
+  (host or title screen only; a remote server keeps `enchantments.json5` to itself). Weights and
+  `treasure` are file-only.
 
 ---
 
@@ -593,7 +609,8 @@ Seeking, Shockwave.
   the new table screen and Double Jump need client code.
 - Changing Mending repair efficiency.
 - In-GUI editing of every per-enchantment field. The GUI covers globals plus
-  enable/cost/max level, and the rest is file-only.
+  enable/cost/max level, and the rest is file-only. (So far: enable and the table/loot/trade
+  flags, Phase 9. Cost and max level are still file-only.)
 
 ---
 

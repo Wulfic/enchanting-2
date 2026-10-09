@@ -1,5 +1,6 @@
 package com.wulfnet.enchanting2.client;
 
+import com.wulfnet.enchanting2.acquisition.EnchantmentFlagsDraft;
 import com.wulfnet.enchanting2.anvil.InvalidBookMode;
 import com.wulfnet.enchanting2.config.AllowTogetherSection;
 import com.wulfnet.enchanting2.config.AnvilSection;
@@ -8,6 +9,7 @@ import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.config.ConfigView;
 import com.wulfnet.enchanting2.config.CostsSection;
 import com.wulfnet.enchanting2.config.CursesSection;
+import com.wulfnet.enchanting2.config.EnchantmentOverrides;
 import com.wulfnet.enchanting2.config.ExperienceSection;
 import com.wulfnet.enchanting2.config.FortuneSection;
 import com.wulfnet.enchanting2.config.TableSection;
@@ -17,12 +19,14 @@ import dev.isxander.yacl3.api.ConfigCategory;
 import dev.isxander.yacl3.api.LabelOption;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
+import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.YetAnotherConfigLib;
 import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import dev.isxander.yacl3.api.controller.IntegerFieldControllerBuilder;
 import dev.isxander.yacl3.api.controller.TickBoxControllerBuilder;
 import java.util.EnumSet;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import net.minecraft.client.gui.screens.Screen;
@@ -39,7 +43,7 @@ final class ConfigScreen {
 	}
 
 	static Screen create(Screen parent) {
-		ConfigView view = ConfigEditing.currentView();
+		ConfigView<CommonConfig> view = ConfigEditing.currentView();
 		CommonConfig original = view.values().orElse(CommonConfig.defaults());
 		Draft draft = new Draft(original);
 		boolean editable = view.editable();
@@ -56,7 +60,7 @@ final class ConfigScreen {
 						.build())
 				.build();
 
-		Component modeLabel = Component.translatable(KEY + "mode." + view.mode().name().toLowerCase(Locale.ROOT));
+		Component modeLabel = modeLabel(view, CommonConfig.FILE_NAME);
 		ConfigCategory.Builder experience = ConfigCategory.createBuilder()
 				.name(Component.translatable(KEY + "category.experience"))
 				.option(LabelOption.create(modeLabel));
@@ -163,6 +167,34 @@ final class ConfigScreen {
 					.build());
 		}
 
+		ConfigView<EnchantmentOverrides> enchantmentsView = ConfigEditing.currentEnchantmentsView();
+		EnchantmentOverrides enchantmentsOriginal = enchantmentsView.values().orElse(EnchantmentOverrides.defaults());
+		Map<String, Component> names = ConfigEditing.enchantmentNames();
+		EnchantmentFlagsDraft flags = new EnchantmentFlagsDraft(enchantmentsOriginal, names.keySet());
+		boolean enchantmentsEditable = enchantmentsView.editable();
+		ConfigCategory.Builder enchantments = ConfigCategory.createBuilder()
+				.name(Component.translatable(KEY + "category.enchantments"))
+				.option(LabelOption.create(modeLabel(enchantmentsView, EnchantmentOverrides.FILE_NAME)));
+		if (enchantmentsView.values().isPresent()) {
+			for (String id : flags.ids()) {
+				OptionGroup.Builder group = OptionGroup.createBuilder()
+						.name(names.getOrDefault(id, ConfigEditing.fallbackName(id)))
+						.description(OptionDescription.of(Component.literal(id)))
+						.collapsed(true);
+				for (EnchantmentFlagsDraft.Flag flag : EnchantmentFlagsDraft.Flag.values()) {
+					group.option(Option.<Boolean>createBuilder()
+							.name(Component.translatable(KEY + "enchantments." + flag.key()))
+							.description(description("enchantments." + flag.key()))
+							.binding(EnchantmentFlagsDraft.DEFAULT, () -> flags.get(id, flag),
+									v -> flags.set(id, flag, v))
+							.controller(TickBoxControllerBuilder::create)
+							.available(enchantmentsEditable)
+							.build());
+				}
+				enchantments.group(group.build());
+			}
+		}
+
 		return YetAnotherConfigLib.createBuilder()
 				.title(Component.translatable(KEY + "title"))
 				.category(experience.build())
@@ -172,16 +204,26 @@ final class ConfigScreen {
 				.category(anvil.build())
 				.category(table.build())
 				.category(fortune.build())
+				.category(enchantments.build())
 				.category(display)
 				// YACL saves when any option changed, the display one included, so write only the files that did.
 				.save(() -> {
 					if (editable && !draft.toConfig().equals(original)) {
 						ConfigEditing.save(draft.toConfig());
 					}
+					EnchantmentOverrides edited = flags.apply();
+					if (enchantmentsEditable && !edited.equals(enchantmentsOriginal)) {
+						ConfigEditing.saveEnchantments(edited);
+					}
 					ClientSettings.save(ClientSettings.get().withShowAnvilPreviewPanel(showPanel[0]));
 				})
 				.build()
 				.generateScreen(parent);
+	}
+
+	/** The file name fills the {@code %s} in the mode text, so one text serves both files. */
+	private static Component modeLabel(ConfigView<?> view, String fileName) {
+		return Component.translatable(KEY + "mode." + view.mode().name().toLowerCase(Locale.ROOT), fileName);
 	}
 
 	private static Option<Integer> intOption(String key, int defaultValue, Supplier<Integer> getter,

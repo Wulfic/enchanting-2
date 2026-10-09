@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import blue.endless.jankson.Jankson;
 import blue.endless.jankson.JsonObject;
+import com.wulfnet.enchanting2.acquisition.EnchantmentFlagsDraft;
 import com.wulfnet.enchanting2.anvil.InvalidBookMode;
 import com.wulfnet.enchanting2.enchantment.ConflictFamily;
 import com.wulfnet.enchanting2.fortune.SilkFortuneMode;
@@ -90,5 +91,28 @@ class ConfigLangKeysTest {
 			String key = "enchanting2.config.save_failed." + outcome.name().toLowerCase(Locale.ROOT);
 			assertTrue(lang.containsKey(key), key);
 		}
+	}
+
+	@Test
+	void everyEnchantmentFlagHasNameAndDescription() throws Exception {
+		JsonObject lang = lang();
+		assertTrue(lang.containsKey("enchanting2.config.category.enchantments"));
+		for (EnchantmentFlagsDraft.Flag flag : EnchantmentFlagsDraft.Flag.values()) {
+			String key = "enchanting2.config.enchantments." + flag.key();
+			assertTrue(lang.containsKey(key), key);
+			assertTrue(lang.containsKey(key + ".desc"), key + ".desc");
+		}
+	}
+
+	/** Both files share the mode texts, so none may name common.json5 itself; the screen passes the file name. */
+	@Test
+	void modeTextsTakeTheFileNameAsAnArgument() throws Exception {
+		JsonObject lang = lang();
+		for (ConfigView.Mode mode : ConfigView.Mode.values()) {
+			String text = lang.get(String.class, "enchanting2.config.mode." + mode.name().toLowerCase(Locale.ROOT));
+			assertFalse(text.contains("json5"), mode + ": " + text);
+		}
+		assertTrue(lang.get(String.class, "enchanting2.config.mode.edit_file").contains("%1$s"));
+		assertTrue(lang.get(String.class, "enchanting2.config.mode.kept_on_server").contains("%1$s"));
 	}
 }

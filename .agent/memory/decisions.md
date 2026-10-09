@@ -717,3 +717,22 @@ fails the client sync codec); a static "current server" (§2a); a thread-local s
 rewriting `#treasure` (owner); syncing `enchantments.json5` just for a read-only remote view.
 **Affects:** TODO Phase 9, `config/EnchantmentOverrides`, `acquisition/*`, `table/TablePool`, `client/ConfigScreen`,
 `config/ConfigView`
+
+## 2026-10-09 — Stage 9C: one ConfigView for both files, file name as a text argument, VanillaEnchantments
+**Context:** the Enchantments category needs the same modes as `common.json5` (title screen, host, locked), but the
+mode texts named `common.json5`, a remote server never sends `enchantments.json5`, and the title screen has no registry
+to list enchantments from.
+**Choice (agent):** `ConfigView<T>` is generic. `resolveUnsynced` gives a remote session `KEPT_ON_SERVER` (or
+`VANILLA_SERVER`) and no values. The mode texts take the file name as `%1$s`. The title screen lists
+`enchantment/VanillaEnchantments.KEYS` (a GameTest pins it to the registry), the host lists its registry, and both add
+IDs found in the file. The draft (`acquisition/EnchantmentFlagsDraft`) writes a key only when it differs from the
+default or was already set.
+**Why:** one resolver keeps "remote never touches the local file" proved once. A text argument avoids a second set of
+six mode texts. A compile-time key list can't name a missing enchantment, and the GameTest catches one added by a
+version bump.
+**Rejected:** syncing `enchantments.json5` for a read-only remote view (a protocol change for display only);
+`MaxLevels.TABLE` as the list (it only holds changed rows); `VanillaRegistries.createLookup()` at the title screen
+(builds every worldgen registry to list 43 IDs); writing all four keys for every listed enchantment (a 43-entry file
+from one click, and it would freeze today's defaults).
+**Affects:** `config/ConfigView`, `client/ConfigEditing`, `client/ConfigScreen`, `acquisition/EnchantmentFlagsDraft`,
+`enchantment/VanillaEnchantments`, `en_us.json`

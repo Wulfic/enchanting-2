@@ -69,6 +69,12 @@ public record EnchantmentOverrides(Map<String, Entry> entries) {
 					AcquisitionSettings.NONE);
 		}
 
+		/** This entry with its acquisition settings replaced and every other field kept. */
+		public Entry withAcquisition(AcquisitionSettings value) {
+			return new Entry(maxLevelOverride, baseCost, costPerLevel, upgradeMode, otherLevelsSurcharge,
+					discountPercent, value);
+		}
+
 		/** An entry with only acquisition settings. */
 		public Entry(AcquisitionSettings acquisition) {
 			this(OptionalInt.empty(), OptionalInt.empty(), OptionalInt.empty(), Optional.empty(), OptionalInt.empty(),
