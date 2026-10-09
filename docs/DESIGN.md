@@ -586,7 +586,7 @@ when launched along a fall). A datapack-set max is not clamped. Arithmetic in TO
 | Magnetic | 1 | tools, weapons | drops go straight into the inventory; overflow drops normally | M | ownership, pickup events, dupes |
 | Reach | 3 | tools, weapons | `block_/entity_interaction_range` attributes | D | vanilla server already validates against attributes |
 | XP Boost | 5 | tools, weapons | +5% XP per level | D | `mob_experience` / `block_experience`; Mending loop |
-| Vision | 1 | helmet | Night Vision while worn | D/E | `tick` effect; avoid flicker under 10 s |
+| Vision | 1 | helmet | Night Vision while worn | E | tick handler refreshes under 11 s (no flicker), removes on unequip, never touches a longer potion (owner, 2026-10-09) |
 | Keep on Death | 1 | durables (configurable) | kept through death | M | keepInventory, graves mods, dupes |
 | Area Mining | 1 | pickaxe, shovel | breaks 3×3 facing the hit face; sneak to break one block | M | only blocks with hardness ≤ the centre block and mineable by the tool; each extra block fires the break event (protection/claim mods) and costs durability; Fortune/Silk/Smelting/Magnetic apply per block |
 | Replant | 1 | hoe | breaking a mature crop replants it, using a seed taken from its own drops | M | never creates a seed; immature crops break normally |
@@ -597,6 +597,11 @@ when launched along a fall). A datapack-set max is not clamped. Arithmetic in TO
 | Shield Bash | 3 | shield | attacking while blocking knocks the target back and briefly stuns | M | cooldown; balance vs. Knockback |
 | Cushion | 3 | elytra, chestplate | reduces wall-collision damage | D | `damage_protection` on `fly_into_wall` |
 | Beheading | 5 | melee | chance (per level) to drop the victim's head | E | mobs with a head item only; player heads behind a config option |
+
+**Phase 10a (owner, 2026-10-09):** every new non-curse enchantment joins `#minecraft:non_treasure`, so it comes from
+every source (table, books, loot, mob and villager gear) and Phase 9's flags remove it per source. No `exclusive_set` on
+any (§4). Health keeps the saved health through a relog (vanilla clamps it to 20 before armor applies, MC-17876). XP
+Boost's fraction rounds up at random, because vanilla truncates (5 × 1.15 → 5). Starting numbers are in TODO 10a.
 
 **Deferred (not in v1, kept for later):** Vein Miner, Leaping, Cleansing, Executioner,
 Seeking, Shockwave.

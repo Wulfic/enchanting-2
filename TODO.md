@@ -1332,15 +1332,103 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
 
 ## Phase 10 — New enchantments (DESIGN §9), by route
 - [ ] 10a Data-only (D): Withering, Poisoning, Freezing, Attack Speed, Critical Strike,
-      Toughness, Health, Swiftness, Reach, XP Boost, Vision, Cushion. JSON + lang + tags +
-      GameTest each.
-- [ ] 10b Custom effect types (E): Vampirism, TrueShot Aura, Smelting, Beheading
+      Toughness, Health, Swiftness, Reach, XP Boost, Cushion. JSON + lang + tags +
+      GameTest each. Plan and stages below. (Vision moved to 10b, owner 2026-10-09.)
+- [ ] 10b Custom effect types (E): Vampirism, TrueShot Aura, Smelting, Beheading, Vision (tick handler: refresh Night
+      Vision under 11 s, remove on unequip, never touch a longer potion effect)
 - [ ] 10c Mixin/network (M): Quick Strike, Magnetic, Ender Link, Keep on Death, Double Jump,
       Flight, Area Mining, Replant, Tiller, Last Stand, Deflect, Shield Bash.
       Each gets its own written sub-plan here first, covering edge cases from §9 and dupe tests.
 - [ ] 10e Curses (§5a): Fragility, Weight, Greed, Fumbling (D); Hunger (M). Curse tag +
       `discount_percent` data; table shows curses as optional picks with a negative cost line
 - [ ] 10d Balance pass: every candidate moves from REVIEW to INCLUDE/DEFER/REMOVE
+
+### Phase 10a — Data-only enchantments (three stages, one commit each)
+**Goal:** the eleven D-route enchantments exist as `enchanting2:` registry entries with effect components, show up in
+every acquisition source, carry lang names, and each has a GameTest that fails when its JSON breaks.
+**Owner (2026-10-09, Phase 10a start):** (1) **Sources: everywhere, like vanilla** (table, librarian books, random loot,
+mob spawn gear, villager gear). (2) **Vision → 10b** (small Java). (3) **Health = data + relog fix.** (4) **Numbers below
+as starting values**, retuned in 10d. (5) **XP Boost: random rounding mixin.**
+**Facts (1.21.11 `javap` + jar data):**
+- Every vanilla source tag (`in_enchanting_table`, `tradeable`, `on_random_loot`, `on_mob_spawn_equipment`,
+  `on_traded_equipment`) includes `#minecraft:non_treasure`. Our `offered_at_table` includes `#in_enchanting_table`.
+- `AbstractArrow` (and so `ThrownTrident`) calls `modifyDamage` and `doPostAttackEffectsWithItemSource` with the firing
+  weapon, so `damage` and `post_attack` on a bow/crossbow/trident reach projectile hits. Fire Aspect's `is_direct`
+  requirement is what keeps it melee-only, and ours have none.
+- `processMobExperience` / `processBlockExperience` accumulate a `MutableFloat` and return `intValue()` (truncation).
+- `LivingEntity.readAdditionalSaveData` calls `setHealth(saved)` after loading attributes. Enchantment attribute modifiers
+  are transient and only return on the first tick's `detectEquipmentUpdates`, so health clamps to the base max.
+- No damage-type tag holds only `fly_into_wall` (it's in `bypasses_armor` and `no_knockback`). Enchantment protection
+  still applies to `bypasses_armor` (Feather Falling works on falls).
+- Attribute IDs: `attack_speed`, `armor_toughness`, `max_health`, `movement_speed`, `block_interaction_range`,
+  `entity_interaction_range`. Vanilla suffixes each enchantment attribute ID with the slot, so armor pieces stack.
+
+**Numbers (per level L; weight / anvil_cost; costs: 5-level min `5 + 8(L−1)`, max `min + 20`; 3-level min
+`10 + 10(L−1)`, max `min + 30`):**
+| ID | Max | Items (tag) | Slot | Effect | Weight |
+|---|---|---|---|---|---|
+| `withering` | 5 | melee + ranged | mainhand | `post_attack` Wither I, `2 + (L−1)` s | 2 |
+| `poisoning` | 5 | melee + ranged | mainhand | `post_attack` Poison I, `2 + (L−1)` s | 5 |
+| `freezing` | 5 | melee + ranged | mainhand | `post_attack` Slowness I, `2 + (L−1)` s | 5 |
+| `attack_speed` | 5 | melee | mainhand | `attack_speed` +10% × L (`add_multiplied_base`) | 2 |
+| `critical_strike` | 5 | melee + ranged | mainhand | `damage` × 1.5, `random_chance` 5% × L | 2 |
+| `reach` | 3 | mining + melee | mainhand | block and entity interaction range +0.5 × L | 1 |
+| `xp_boost` | 5 | mining + melee + ranged | mainhand | `mob_experience` and `block_experience` × (1 + 0.05 L) | 5 |
+| `toughness` | 5 | armor | armor | `armor_toughness` +0.5 × L per piece | 2 |
+| `health` | 5 | armor | armor | `max_health` +1 × L per piece | 1 |
+| `swiftness` | 5 | foot armor | feet | `movement_speed` +5% × L (`add_multiplied_base`) | 2 |
+| `cushion` | 3 | chest armor + elytra | chest | `damage_protection` +4 × L vs `#enchanting2:cushioned` (= `fly_into_wall`) | 5 |
+anvil_cost by weight as vanilla: 5 → 2, 2 → 4, 1 → 8. Item tags: `enchanting2:enchantable/melee` = `#minecraft:enchantable/weapon`
++ trident; `/ranged` = bow, crossbow, trident; `/melee_or_ranged`; `/tool_or_melee` = `#minecraft:enchantable/mining` +
+melee; `/tool_or_weapon` = that + ranged; `/cushion` = `#minecraft:enchantable/chest_armor` + elytra.
+
+**Agent calls (decisions.md "Phase 10a"):** no `exclusive_set` on any of them (§4). All eleven join
+`#minecraft:non_treasure` and `#minecraft:tooltip_order`. `enchantment/ModEnchantments.KEYS` lists our IDs. The title-screen
+config list = vanilla + ours, pinned to the registry by a GameTest. Pure math lives in MC-free classes with JUnit (the
+random rounding).
+**Not doing:** Vision (10b); curses (10e); per-enchantment `.desc` tooltip keys; crit particles or sound for Critical
+Strike; healing mobs that spawn in Health armor up to their new max (vanilla behaviour for any `max_health` item);
+config keys for any number (data, overridable by datapack); changing vanilla's truncation for anything but the two XP
+methods.
+**Blast radius:** a world opened with this build gains eleven `enchanting2:` registry entries. They start appearing on new
+loot, mob gear, villager offers and table rows. Removing the mod later strips them from items (accepted, DESIGN §2a).
+The XP mixin changes rounding for any mod's `mob_/block_experience` effects (vanilla ships none). The Health mixin only
+restores a saved value, clamped to the live max. No config file changes, no world data written by us.
+**Rollback:** `git revert` the stage's commit. Items in dev worlds (`run/`, gitignored) lose the new enchantments on
+the next load with a vanilla WARN. Nothing outside the repo is touched.
+
+### Stage 10aA — Shared data + weapon enchantments → commit
+- [ ] 10aA.1 Item tags (`enchanting2:enchantable/*`), damage-type tag `enchanting2:cushioned` (used in 10aC, ships here
+      with the other tags), `#minecraft:non_treasure` / `#minecraft:tooltip_order` entries for the six weapon ones.
+- [ ] 10aA.2 JSON: `withering`, `poisoning`, `freezing`, `attack_speed`, `critical_strike`, `reach`. Lang names.
+- [ ] 10aA.3 `enchantment/ModEnchantments.KEYS` (+ `ids()`); `ConfigEditing.enchantmentNames` title screen = vanilla + ours.
+      `ConfigScreenClientGameTest` title-screen assertion follows.
+- [ ] 10aA.4 GameTests (`NewEnchantmentsGameTest`): registry pin (every `enchanting2:` ID is in `ModEnchantments.KEYS`
+      and vice versa, max levels as the table, every one in `non_treasure` and the table pool); supported items (a sword,
+      bow and trident take Withering; a pickaxe doesn't; Reach on a pickaxe, not a bow). Effects: melee hit with level
+      3 → victim has the effect for 80 ticks (each of the three); a bow's arrow hitting → effect applied; Attack Speed V
+      → attack speed attribute = base × 1.5; Critical Strike: over N seeded `modifyDamage` calls at level 5, the ×1.5 rate is
+      within bounds of 25% and every result is 1.0 or 1.5; Reach III → both ranges +1.5.
+      Mutation: delete one JSON's effect → its test fails.
+
+### Stage 10aB — XP Boost + random rounding → commit
+- [ ] 10aB.1 `enchantment/StochasticRounding.round(float, float roll)` (MC-free): `floor(x) + (roll < frac ? 1 : 0)`,
+      negatives and NaN/∞ handled (log + vanilla `intValue`). JUnit: integers unchanged, 5.75 rounds up iff roll < 0.75, mean
+      over a fixed seed within bounds.
+- [ ] 10aB.2 `mixin/EnchantmentHelperMixin` (extend): `processMob/BlockExperience` return the rounded value, using
+      the level's random.
+- [ ] 10aB.3 JSON `xp_boost` + tags + lang. GameTest: XP Boost V on 5 mob XP over N seeded calls averages 6.25 ± bound;
+      no enchantment → exactly 5 every call (rounding is a no-op on whole numbers). Mutation: drop the mixin → average 6.
+
+### Stage 10aC — Armor enchantments + Health relog fix → commit
+- [ ] 10aC.1 JSON `toughness`, `health`, `swiftness`, `cushion` + tags + lang.
+- [ ] 10aC.2 `mixin/LivingEntityMixin`: at `readAdditionalSaveData` TAIL keep the saved `Health` when it exceeds the
+      clamped value; at `detectEquipmentUpdates` TAIL (first time only) `setHealth(min(saved, max))` and clear it.
+      DEBUG log when it restores.
+- [ ] 10aC.3 GameTests: Toughness V on four pieces → +10 toughness; Health V on four → max 40; Swiftness V → speed ×1.25 of
+      base; Cushion III → 12 protection vs `fly_into_wall`, 0 vs a fall. Relog: a zombie in Health V armor at 34/40, saved
+      and loaded into a new zombie, has 34/40 after one tick (mutation: drop the mixin → 20). Health armor removed → health
+      clamps to 20 (vanilla, pinned).
 
 ## Phase 11 — v1 wrap-up (private repo; nothing published)
 - [ ] 11.1 README, changelog, config documentation

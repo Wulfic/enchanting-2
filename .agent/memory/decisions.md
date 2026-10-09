@@ -736,3 +736,28 @@ version bump.
 from one click, and it would freeze today's defaults).
 **Affects:** `config/ConfigView`, `client/ConfigEditing`, `client/ConfigScreen`, `acquisition/EnchantmentFlagsDraft`,
 `enchantment/VanillaEnchantments`, `en_us.json`
+
+## 2026-10-09 — Phase 10a: data enchantments, sources, Vision, Health relog, XP rounding
+**Context:** DESIGN §9 lists 12 data-only (D) enchantments with open concerns: which sources they come from, Vision's
+flicker, Health's clamping, and no numbers. Facts (1.21.11 `javap`): `LivingEntity.readAdditionalSaveData` calls
+`setHealth(saved)` before any equipment attribute applies, so it clamps to the base max (MC-17876).
+`processMob/BlockExperience` return `MutableFloat.intValue()` (truncation: 5 × 1.15 → 5). Arrows and thrown tridents
+call `modifyDamage` and `doPostAttackEffectsWithItemSource` with the firing weapon, so on-hit effects reach projectiles.
+**Choice (owner):** (1) **Sources: everywhere, like vanilla.** Every new non-curse enchantment joins
+`#minecraft:non_treasure`, which feeds the table pool, librarian books, random loot, mob spawn gear and villager gear.
+(2) **Vision moves to 10b** (small Java tick: refresh under 11 s, remove on unequip, never touch a longer potion).
+(3) **Health is data plus a relog fix** (a mixin restores the saved health once equipment attributes apply).
+(4) **Starting numbers as proposed** (TODO 10a), retuned in 10d. (5) **XP Boost random rounding:** a mixin rounds the
+fraction of `processMob/BlockExperience` up with that probability, so the average is exact.
+**Choice (agent):** no `exclusive_set` on any new enchantment (DESIGN §4 default = allow together). Own item tags under
+`enchanting2:enchantable/` (melee = `#minecraft:enchantable/weapon` + trident; ranged = bow, crossbow, trident).
+Reach = mining + melee (no bows). `enchantment/ModEnchantments.KEYS` joins `VanillaEnchantments.KEYS` on the title
+screen, pinned to the registry's `enchanting2` namespace by a GameTest.
+**Why:** `non_treasure` is the vanilla idiom, and every vanilla source tag includes it, so one tag entry reaches all
+five sources and Phase 9's flags still remove per source. Truncation would make XP Boost I–III a no-op on most mobs.
+Random rounding keeps it data-shaped (`mob_experience`/`block_experience`) and fixes Greed (10e) the same way.
+**Rejected:** table/books/loot only (owner: everywhere); data-only Vision (lingers 11–15 s, a packet every tick);
+accepting the relog clamp; bigger XP numbers (still truncated); `exclusive_set` on Withering/Poisoning/Freezing or
+Swiftness vs Soul Speed (contradicts §4; 10d can add a family).
+**Affects:** TODO Phase 10a, `data/enchanting2/enchantment/*`, `data/minecraft/tags/enchantment/non_treasure.json`,
+`enchantment/ModEnchantments`, `client/ConfigEditing`, Health and XP mixins
