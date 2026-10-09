@@ -1,0 +1,45 @@
+{
+  "anvil_cost": 2,
+  "description": {
+    "translate": "enchantment.enchanting2.cushion"
+  },
+  "effects": {
+    "minecraft:damage_protection": [
+      {
+        "effect": {
+          "type": "minecraft:add",
+          "value": {
+            "type": "minecraft:linear",
+            "base": 4.0,
+            "per_level_above_first": 4.0
+          }
+        },
+        "requirements": {
+          "condition": "minecraft:damage_source_properties",
+          "predicate": {
+            "tags": [
+              {
+                "id": "enchanting2:cushioned",
+                "expected": true
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "max_cost": {
+    "base": 40,
+    "per_level_above_first": 10
+  },
+  "max_level": 3,
+  "min_cost": {
+    "base": 10,
+    "per_level_above_first": 10
+  },
+  "slots": [
+    "chest"
+  ],
+  "supported_items": "#enchanting2:enchantable/cushion",
+  "weight": 5
+}

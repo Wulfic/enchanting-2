@@ -19,6 +19,7 @@
 		"HolderReferenceAccessor",
 		"LavaFluidMixin",
 		"LiquidBlockMixin",
+		"LivingEntityMixin",
 		"MappedRegistryMixin",
 		"MinecraftServerMixin",
 		"PistonBaseBlockMixin",

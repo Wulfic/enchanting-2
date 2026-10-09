@@ -1331,7 +1331,7 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       `computeOnServer` doesn't tick it (gotchas.md). 286 JUnit (+11), 171 GameTests (+1), 4 client GameTests (+1).
 
 ## Phase 10 — New enchantments (DESIGN §9), by route
-- [ ] 10a Data-only (D): Withering, Poisoning, Freezing, Attack Speed, Critical Strike,
+- [x] 10a Data-only (D): Withering, Poisoning, Freezing, Attack Speed, Critical Strike,
       Toughness, Health, Swiftness, Reach, XP Boost, Cushion. JSON + lang + tags +
       GameTest each. Plan and stages below. (Vision moved to 10b, owner 2026-10-09.)
 - [ ] 10b Custom effect types (E): Vampirism, TrueShot Aura, Smelting, Beheading, Vision (tick handler: refresh Night
@@ -1430,15 +1430,23 @@ the next load with a vanilla WARN. Nothing outside the repo is touched.
       tested too (2 → 2.5 average). Mutation (handler returns vanilla's `intValue`): exactly
       `xpBoostAddsFivePercentPerLevelOnAverage` failed, mean 6.0. 297 JUnit (+6), 181 GameTests (+2).
 
-### Stage 10aC — Armor enchantments + Health relog fix → commit
-- [ ] 10aC.1 JSON `toughness`, `health`, `swiftness`, `cushion` + tags + lang.
-- [ ] 10aC.2 `mixin/LivingEntityMixin`: at `readAdditionalSaveData` TAIL keep the saved `Health` when it exceeds the
+### Stage 10aC — Armor enchantments + Health relog fix → commit  ✅ 2026-10-09
+- [x] 10aC.1 JSON `toughness`, `health`, `swiftness`, `cushion` + tags + lang.
+- [x] 10aC.2 `mixin/LivingEntityMixin`: at `readAdditionalSaveData` TAIL keep the saved `Health` when it exceeds the
       clamped value; at `detectEquipmentUpdates` TAIL (first time only) `setHealth(min(saved, max))` and clear it.
       DEBUG log when it restores.
-- [ ] 10aC.3 GameTests: Toughness V on four pieces → +10 toughness; Health V on four → max 40; Swiftness V → speed ×1.25 of
+- [x] 10aC.3 GameTests: Toughness V on four pieces → +10 toughness; Health V on four → max 40; Swiftness V → speed ×1.25 of
       base; Cushion III → 12 protection vs `fly_into_wall`, 0 vs a fall. Relog: a zombie in Health V armor at 34/40, saved
       and loaded into a new zombie, has 34/40 after one tick (mutation: drop the mixin → 20). Health armor removed → health
       clamps to 20 (vanilla, pinned).
+      Mutation run (restore disabled, Toughness +1.0/level, Cushion base 5, Swiftness +0.1/level): exactly the four
+      matching tests failed (the relog one read 20.0). The `min(saved, max)` guard is redundant with `setHealth`'s own
+      clamp, so it can't be mutation-run; `restoredHealthIsClampedToTheLiveMax` pins the behaviour. Done differently:
+      `TableScreenClientGameTest.clickRow` scrolls the row into view first. It assumed Aqua Affinity and Efficiency
+      start in view, which stopped being true once 11 `enchanting2:` rows sort ahead of `minecraft:` ones.
+      297 JUnit, 187 GameTests (+6), 4 client GameTests.
+- [x] 10a done 2026-10-09. Owner: in the next `runClient` session, check the new names, a Health V set (hearts row)
+      and the table panel order (ours first, ID order; see state.md).
 
 ## Phase 11 — v1 wrap-up (private repo; nothing published)
 - [ ] 11.1 README, changelog, config documentation

@@ -15,27 +15,33 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.EnchantmentTags;
 import net.minecraft.tags.TagKey;
+import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.pig.Pig;
+import net.minecraft.world.entity.monster.zombie.Zombie;
 import net.minecraft.world.entity.projectile.arrow.Arrow;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -47,14 +53,18 @@ public class NewEnchantmentsGameTest {
 	private static final double EPSILON = 1.0E-6;
 
 	/** The max level of every enchantment in {@link ModEnchantments#KEYS}, as TODO 10a's table says. */
-	private static final Map<ResourceKey<Enchantment>, Integer> MAX = Map.of(
-			ModEnchantments.WITHERING, 5,
-			ModEnchantments.POISONING, 5,
-			ModEnchantments.FREEZING, 5,
-			ModEnchantments.ATTACK_SPEED, 5,
-			ModEnchantments.CRITICAL_STRIKE, 5,
-			ModEnchantments.REACH, 3,
-			ModEnchantments.XP_BOOST, 5);
+	private static final Map<ResourceKey<Enchantment>, Integer> MAX = Map.ofEntries(
+			Map.entry(ModEnchantments.WITHERING, 5),
+			Map.entry(ModEnchantments.POISONING, 5),
+			Map.entry(ModEnchantments.FREEZING, 5),
+			Map.entry(ModEnchantments.ATTACK_SPEED, 5),
+			Map.entry(ModEnchantments.CRITICAL_STRIKE, 5),
+			Map.entry(ModEnchantments.REACH, 3),
+			Map.entry(ModEnchantments.XP_BOOST, 5),
+			Map.entry(ModEnchantments.TOUGHNESS, 5),
+			Map.entry(ModEnchantments.HEALTH, 5),
+			Map.entry(ModEnchantments.SWIFTNESS, 5),
+			Map.entry(ModEnchantments.CUSHION, 3));
 
 	/** The vanilla source tags (owner 2026-10-09: everywhere), plus our table pool. */
 	private static final List<TagKey<Enchantment>> SOURCES = List.of(EnchantmentTags.NON_TREASURE,
@@ -67,6 +77,11 @@ public class NewEnchantmentsGameTest {
 	private static final List<OnHit> ON_HIT = List.of(new OnHit(ModEnchantments.WITHERING, MobEffects.WITHER),
 			new OnHit(ModEnchantments.POISONING, MobEffects.POISON),
 			new OnHit(ModEnchantments.FREEZING, MobEffects.SLOWNESS));
+
+	private static final List<EquipmentSlot> ARMOR_SLOTS = List.of(EquipmentSlot.HEAD, EquipmentSlot.CHEST,
+			EquipmentSlot.LEGS, EquipmentSlot.FEET);
+	private static final List<Item> DIAMOND_ARMOR = List.of(Items.DIAMOND_HELMET, Items.DIAMOND_CHESTPLATE,
+			Items.DIAMOND_LEGGINGS, Items.DIAMOND_BOOTS);
 
 	private static HolderLookup.RegistryLookup<Enchantment> registry(GameTestHelper helper) {
 		return helper.getLevel().registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
@@ -171,7 +186,17 @@ public class NewEnchantmentsGameTest {
 				new Case(ModEnchantments.XP_BOOST, Items.DIAMOND_PICKAXE, true),
 				new Case(ModEnchantments.XP_BOOST, Items.DIAMOND_SWORD, true),
 				new Case(ModEnchantments.XP_BOOST, Items.CROSSBOW, true),
-				new Case(ModEnchantments.XP_BOOST, Items.DIAMOND_CHESTPLATE, false));
+				new Case(ModEnchantments.XP_BOOST, Items.DIAMOND_CHESTPLATE, false),
+				new Case(ModEnchantments.TOUGHNESS, Items.DIAMOND_HELMET, true),
+				new Case(ModEnchantments.TOUGHNESS, Items.TURTLE_HELMET, true),
+				new Case(ModEnchantments.TOUGHNESS, Items.ELYTRA, false),
+				new Case(ModEnchantments.HEALTH, Items.LEATHER_LEGGINGS, true),
+				new Case(ModEnchantments.HEALTH, Items.DIAMOND_SWORD, false),
+				new Case(ModEnchantments.SWIFTNESS, Items.IRON_BOOTS, true),
+				new Case(ModEnchantments.SWIFTNESS, Items.IRON_HELMET, false),
+				new Case(ModEnchantments.CUSHION, Items.ELYTRA, true),
+				new Case(ModEnchantments.CUSHION, Items.NETHERITE_CHESTPLATE, true),
+				new Case(ModEnchantments.CUSHION, Items.NETHERITE_LEGGINGS, false));
 		for (Case c : cases) {
 			boolean actual = get(helper, c.key()).value().isSupportedItem(new ItemStack(c.item()));
 			helper.assertValueEqual(c.supported(), actual,
@@ -324,5 +349,146 @@ public class NewEnchantmentsGameTest {
 		double actual = total / (double) calls;
 		helper.assertTrue(Math.abs(actual - mean) <= tolerance,
 				Component.literal(what + ": mean " + actual + ", want " + mean + " ± " + tolerance));
+	}
+
+	/** {@code attribute} on a player wearing four diamond pieces, each with {@code key} at {@code level}. */
+	private static double withFullSet(GameTestHelper helper, ResourceKey<Enchantment> key, int level,
+			Holder<Attribute> attribute) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		for (int i = 0; i < ARMOR_SLOTS.size(); i++) {
+			withEnchantment(player, enchanted(helper, DIAMOND_ARMOR.get(i), key, level), ARMOR_SLOTS.get(i), attribute);
+		}
+		return player.getAttributeValue(attribute);
+	}
+
+	/** Vanilla suffixes each enchantment attribute ID with the slot, so the four pieces add up. */
+	@GameTest
+	public void toughnessAndHealthStackAcrossFourPieces(GameTestHelper helper) {
+		ServerPlayer bare = helper.makeMockServerPlayerInLevel();
+		double toughness = bare.getAttributeBaseValue(Attributes.ARMOR_TOUGHNESS);
+		double health = bare.getAttributeBaseValue(Attributes.MAX_HEALTH);
+		assertClose(helper, toughness + 10.0,
+				withFullSet(helper, ModEnchantments.TOUGHNESS, 5, Attributes.ARMOR_TOUGHNESS), "Toughness V, four pieces");
+		assertClose(helper, toughness + 2.0,
+				withFullSet(helper, ModEnchantments.TOUGHNESS, 1, Attributes.ARMOR_TOUGHNESS), "Toughness I, four pieces");
+		assertClose(helper, health + 20.0, withFullSet(helper, ModEnchantments.HEALTH, 5, Attributes.MAX_HEALTH),
+				"Health V, four pieces");
+		assertClose(helper, health + 4.0, withFullSet(helper, ModEnchantments.HEALTH, 1, Attributes.MAX_HEALTH),
+				"Health I, four pieces");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void swiftnessAddsFivePercentOfBaseSpeedPerLevel(GameTestHelper helper) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		double base = player.getAttributeBaseValue(Attributes.MOVEMENT_SPEED);
+		assertClose(helper, base * 1.25, withEnchantment(player,
+				enchanted(helper, Items.DIAMOND_BOOTS, ModEnchantments.SWIFTNESS, 5), EquipmentSlot.FEET,
+				Attributes.MOVEMENT_SPEED), "Swiftness V");
+		helper.succeed();
+	}
+
+	/** 4 protection points per level against flying into a wall, from a chestplate or an elytra; none against a fall. */
+	@GameTest
+	public void cushionProtectsAgainstFlyingIntoAWallOnly(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		DamageSource wall = level.damageSources().flyIntoWall();
+		DamageSource fall = level.damageSources().fall();
+		for (Item chest : List.of(Items.ELYTRA, Items.DIAMOND_CHESTPLATE)) {
+			player.setItemSlot(EquipmentSlot.CHEST, enchanted(helper, chest, ModEnchantments.CUSHION, 3));
+			assertClose(helper, 12.0, EnchantmentHelper.getDamageProtection(level, player, wall),
+					"Cushion III on " + chest + " vs fly_into_wall");
+			assertClose(helper, 0.0, EnchantmentHelper.getDamageProtection(level, player, fall),
+					"Cushion III on " + chest + " vs a fall");
+		}
+		player.setItemSlot(EquipmentSlot.CHEST, enchanted(helper, Items.ELYTRA, ModEnchantments.CUSHION, 1));
+		assertClose(helper, 4.0, EnchantmentHelper.getDamageProtection(level, player, wall), "Cushion I");
+		helper.succeed();
+	}
+
+	/** A zombie in four pieces of Health V armor: max health 40 once its equipment update has run. */
+	private static Zombie inHealthArmor(GameTestHelper helper, BlockPos pos) {
+		Zombie zombie = helper.spawn(EntityType.ZOMBIE, pos);
+		zombie.setNoAi(true);
+		for (int i = 0; i < ARMOR_SLOTS.size(); i++) {
+			zombie.setItemSlot(ARMOR_SLOTS.get(i), enchanted(helper, DIAMOND_ARMOR.get(i), ModEnchantments.HEALTH, 5));
+		}
+		return zombie;
+	}
+
+	/** Saves {@code zombie}, removes it, and loads the save into a new zombie, as a chunk unload and reload does. */
+	private static Zombie reload(GameTestHelper helper, Zombie zombie) {
+		ServerLevel level = helper.getLevel();
+		TagValueOutput output = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, level.registryAccess());
+		zombie.saveWithoutId(output);
+		CompoundTag saved = output.buildResult();
+		zombie.discard();
+		Zombie loaded = EntityType.ZOMBIE.create(level, EntitySpawnReason.LOAD);
+		helper.assertTrue(loaded != null, Component.literal("no zombie created"));
+		loaded.load(TagValueInput.create(ProblemReporter.DISCARDING, level.registryAccess(), saved));
+		level.addFreshEntity(loaded);
+		return loaded;
+	}
+
+	/**
+	 * MC-17876: the load clamps saved health to the base max before the armor's +20 is back. {@code LivingEntityMixin}
+	 * restores it after the first equipment update.
+	 */
+	@GameTest
+	public void healthKeepsItsValueThroughASaveAndLoad(GameTestHelper helper) {
+		Zombie zombie = inHealthArmor(helper, new BlockPos(1, 1, 1));
+		Zombie[] loaded = new Zombie[1];
+		helper.startSequence()
+				.thenIdle(1)
+				.thenExecute(() -> {
+					helper.assertValueEqual(40.0F, zombie.getMaxHealth(), Component.literal("max in Health V armor"));
+					zombie.setHealth(34.0F);
+					loaded[0] = reload(helper, zombie);
+					helper.assertValueEqual(20.0F, loaded[0].getHealth(),
+							Component.literal("health right after the load (vanilla clamps to the base max)"));
+				})
+				.thenIdle(1)
+				.thenExecute(() -> {
+					helper.assertValueEqual(40.0F, loaded[0].getMaxHealth(), Component.literal("max after the load"));
+					helper.assertValueEqual(34.0F, loaded[0].getHealth(), Component.literal("health after the load"));
+				})
+				.thenSucceed();
+	}
+
+	/** The restore never goes past the live max: armor gone before the first tick → 20, not the saved 34. */
+	@GameTest
+	public void restoredHealthIsClampedToTheLiveMax(GameTestHelper helper) {
+		Zombie zombie = inHealthArmor(helper, new BlockPos(1, 1, 1));
+		Zombie[] loaded = new Zombie[1];
+		helper.startSequence()
+				.thenIdle(1)
+				.thenExecute(() -> {
+					zombie.setHealth(34.0F);
+					loaded[0] = reload(helper, zombie);
+					ARMOR_SLOTS.forEach(slot -> loaded[0].setItemSlot(slot, ItemStack.EMPTY));
+				})
+				.thenIdle(1)
+				.thenExecute(() -> {
+					helper.assertValueEqual(20.0F, loaded[0].getMaxHealth(), Component.literal("max without armor"));
+					helper.assertValueEqual(20.0F, loaded[0].getHealth(), Component.literal("health without armor"));
+				})
+				.thenSucceed();
+	}
+
+	/** Vanilla, pinned: taking Health armor off clamps health to the new max. */
+	@GameTest
+	public void removingHealthArmorClampsHealth(GameTestHelper helper) {
+		Zombie zombie = inHealthArmor(helper, new BlockPos(1, 1, 1));
+		helper.startSequence()
+				.thenIdle(1)
+				.thenExecute(() -> {
+					zombie.setHealth(34.0F);
+					ARMOR_SLOTS.forEach(slot -> zombie.setItemSlot(slot, ItemStack.EMPTY));
+				})
+				.thenIdle(1)
+				.thenExecute(() -> helper.assertValueEqual(20.0F, zombie.getHealth(),
+						Component.literal("health after taking the armor off")))
+				.thenSucceed();
 	}
 }

@@ -8,7 +8,7 @@
 **Branch:** main (commit straight to main and push; no CI; see decisions.md)
 
 ## Where we are
-Phases 1–9 done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
+Phases 1–9 and 10a done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
 - 3: `ExperienceCurve`, no level cap, exact XP points, counters saturate. 4: `MaxLevels` via `MODIFY` (restart to
   apply), `ConflictFamily` + `allow_together`, `EnchantRules`, Lure/Riptide 5 with safe caps.
 - 5: `cost/` (`CostModel`, `PricingTable`, curse discount, `cleanseCost`, `extractCost`).
@@ -27,19 +27,22 @@ Phases 1–9 done (TODO.md has each stage's notes; owner `runClient` checks stil
   (`AcquisitionRules`, `WeightedPick`, registry stamp + holder-owner lookup, TRADE scope), mixins on `selectEnchantment`,
   `enchant_randomly`, librarian books, villager `getOffer`s; table pool filter + treasure override; config screen
   "Enchantments" category (`ConfigView<T>`, `EnchantmentFlagsDraft`, `VanillaEnchantments`).
-- Tests: 297 JUnit + 181 GameTests (`./gradlew build`) + 4 client GameTests (`./gradlew runClientGameTest`).
+- Tests: 297 JUnit + 187 GameTests (`./gradlew build`) + 4 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Phase 10a (data enchantments) planned in TODO.md as stages 10aA (shared data + weapons), 10aB (XP Boost + random
-   rounding), 10aC (armor + Health relog fix). Owner answers in decisions.md "Phase 10a". 10aA done (6 weapon enchantments), 10aB done (XP Boost, random rounding). Next: 10aC.
+1. Phase 10a done (2026-10-09): 11 data enchantments (`enchantment/ModEnchantments`, `data/enchanting2/enchantment/`),
+   all in `#minecraft:non_treasure`; XP random rounding (`StochasticRounding`); Health relog fix (`LivingEntityMixin`).
+   Next: 10b (E route: Vampirism, TrueShot Aura, Smelting, Beheading, Vision). Write its sub-plan first, ask early.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
    ~1,000,000) + 6D: panel look, config screen "Display" toggle, and a vanilla server keeping the vanilla anvil screen +
    6bC: grindstone panel look, and a vanilla server keeping the vanilla grindstone + 7D: table panel and window look
    (does the ready Enchant button, vanilla's beige offer sprite, read as clickable?), and a vanilla server keeping the
    vanilla table + 8: the config screen's "Fortune" category and its warning tooltip, and a quick feel check (Fortune V
    axe on a tree; place a log and mine it) + 9C: the config screen's "Enchantments" category (tick boxes, names,
-   the remote "kept on the server" label).
-3. Owner, optional: the Fortune default tags are DESIGN §6's draft list. Grass, podzol, coarse/rooted dirt, mycelium,
+   the remote "kept on the server" label) + 10a: new names in tooltips, a Health V set's hearts.
+3. Owner, optional: the table panel lists rows in ID order, so all `enchanting2:` rows come before `minecraft:` ones.
+   Sorting by translated name would interleave them (a client-side change to the panel's order).
+4. Owner, optional: the Fortune default tags are DESIGN §6's draft list. Grass, podzol, coarse/rooted dirt, mycelium,
    bamboo blocks and leaves aren't in them.
 
 ## Open questions / blockers

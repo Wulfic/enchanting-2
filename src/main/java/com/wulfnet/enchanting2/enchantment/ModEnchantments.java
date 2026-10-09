@@ -24,9 +24,14 @@ public final class ModEnchantments {
 	public static final ResourceKey<Enchantment> CRITICAL_STRIKE = key("critical_strike");
 	public static final ResourceKey<Enchantment> REACH = key("reach");
 	public static final ResourceKey<Enchantment> XP_BOOST = key("xp_boost");
+	public static final ResourceKey<Enchantment> TOUGHNESS = key("toughness");
+	public static final ResourceKey<Enchantment> HEALTH = key("health");
+	public static final ResourceKey<Enchantment> SWIFTNESS = key("swiftness");
+	public static final ResourceKey<Enchantment> CUSHION = key("cushion");
 
 	public static final List<ResourceKey<Enchantment>> KEYS = List.of(
-			WITHERING, POISONING, FREEZING, ATTACK_SPEED, CRITICAL_STRIKE, REACH, XP_BOOST);
+			WITHERING, POISONING, FREEZING, ATTACK_SPEED, CRITICAL_STRIKE, REACH, XP_BOOST, TOUGHNESS, HEALTH,
+			SWIFTNESS, CUSHION);
 
 	private ModEnchantments() {
 	}

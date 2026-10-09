@@ -156,7 +156,35 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		return (height - IMAGE_HEIGHT) / 2;
 	}
 
+	/** Scrolls the panel list one step at a time with the mouse over it; negative {@code steps} scroll down. */
+	private static void scrollPanel(ClientGameTestContext context, int steps) {
+		SidePanelLayout layout = screen(context, TableScreenAccess::enchanting2$layout);
+		moveTo(context, layout.panelX() + 20, topPos(context) + 40);
+		for (int i = 0; i < Math.abs(steps); i++) {
+			context.getInput().scroll(Integer.signum(steps));
+			context.waitTick();
+		}
+	}
+
+	private static void scrollToTop(ClientGameTestContext context) {
+		scrollPanel(context, screen(context, TableScreenAccess::enchanting2$scrollOffset));
+		check(screen(context, TableScreenAccess::enchanting2$scrollOffset) == 0, "scrolled to the top");
+	}
+
+	/**
+	 * From the top, scrolls down until {@code id}'s row is drawn. Rows are in ID order, so which ones start in view
+	 * depends on what else is registered (our own {@code enchanting2:} rows come first).
+	 */
+	private static void scrollIntoView(ClientGameTestContext context, String id) {
+		scrollToTop(context);
+		int max = screen(context, TableScreenAccess::enchanting2$maxScroll);
+		for (int i = 0; i < max && screen(context, access -> access.enchanting2$rowY(id)).isEmpty(); i++) {
+			scrollPanel(context, -1);
+		}
+	}
+
 	private static void clickRow(ClientGameTestContext context, String id) {
+		scrollIntoView(context, id);
 		SidePanelLayout layout = screen(context, TableScreenAccess::enchanting2$layout);
 		OptionalInt rowY = screen(context, access -> access.enchanting2$rowY(id));
 		check(rowY.isPresent(), id + " is drawn: " + screen(context, TableScreenAccess::enchanting2$panelText));
@@ -271,12 +299,10 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		List<TableRow> rows = context.computeOnClient(client -> TablePreviewState
 				.forContainer(client.player.containerMenu.containerId).map(TablePreviewPayload::rows).orElseThrow());
 		String last = rows.getLast().id();
+		scrollToTop(context);
 		check(screen(context, access -> access.enchanting2$rowY(last)).isEmpty(), "the last row starts out of view");
-		SidePanelLayout layout = screen(context, TableScreenAccess::enchanting2$layout);
-		moveTo(context, layout.panelX() + 20, topPos(context) + 40);
 		for (int i = 0; i < max && screen(context, TableScreenAccess::enchanting2$scrollOffset) < max; i++) {
-			context.getInput().scroll(-1);
-			context.waitTick();
+			scrollPanel(context, -1);
 		}
 		check(screen(context, TableScreenAccess::enchanting2$scrollOffset) == max, "scrolled to the end");
 		check(screen(context, access -> access.enchanting2$rowY(last)).isPresent(), last + " is now drawn");
