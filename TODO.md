@@ -1425,26 +1425,31 @@ on TrueShot arrows.
 vanilla WARN; a TrueShot arrow in flight keeps `NoGravity` (vanilla saves it) until it despawns; Fabric WARNs about the
 unknown attachment. Nothing outside the repo is touched.
 
-### Stage 10bA — Effect registry, Vampirism, Beheading → commit
-- [ ] 10bA.1 `effect/ModEffects`: register the four components + `suspend_gravity` (the type exists from this stage, its
-      enchantment in 10bB). Called first in `Enchanting2.onInitialize` (the enchantment registry parses after).
-- [ ] 10bA.2 `config/BeheadingSection` (`player_heads`), in `CommonConfig`. JUnit: default false, round-trip, absent
-      section → default.
-- [ ] 10bA.3 `LivingEntityMixin` `@WrapMethod hurtServer` → `effect/Lifesteal.afterHurt(victim, source, lostHealth)`;
-      return value untouched; any exception is logged and the hit stands.
-- [ ] 10bA.4 `effect/HeadDrops` on `MODIFY_DROPS` (victim's own table only) + loot table
-      `data/enchanting2/loot_table/beheading/heads.json`. Errors leave vanilla's drops (ERROR log).
-- [ ] 10bA.5 JSON `vampirism`, `beheading` + lang + `non_treasure` + `tooltip_order` + `ModEnchantments.KEYS`.
-- [ ] 10bA.6 GameTests (`EffectEnchantmentsGameTest`): Vampirism V, player at 10 HP hits a zombie for a known amount
-      → health `10 + 0.2 × lost`; a 2 HP target hit for 20 → heal `0.4`; killing blow heals; a thrown-trident source (direct
-      ≠ causing) → no heal; no enchantment → no heal; the wrapped `hurtServer` returns what vanilla returned. Beheading:
-      `HeadDrops.apply` with a fixed roll (chance seam) → zombie head added on a player kill, nothing when the killer is
-      a mob, a player victim gives a `player_head` with its profile only with `player_heads` on, a wither skeleton whose
-      drops already hold a skull gets no second one, an entity with no mapping (cow) gets nothing. Statistical: level V
-      over N seeded calls ≈ 10%. Mutation run before commit.
+### Stage 10bA — Effect registry, Vampirism, Beheading → commit  ✅ 2026-10-09
+- [x] 10bA.1 `effect/ModEffects`: `lifesteal` and `head_drop_chance` components, registered first in
+      `Enchanting2.onInitialize`. Changed: each later component (and `suspend_gravity`) registers in the stage that uses it.
+- [x] 10bA.2 `config/BeheadingSection` (`player_heads`) **and** `config/SmeltingSection` (`silk_priority`, enum
+      `effect/SmeltingSilkPriority`), both in `CommonConfig` now. Changed: `CommonConfig` has 18 constructor sites and the
+      config screen rebuilds it, so both sections (and the screen's "Enchantment effects" category, 10bC.3) land
+      together. JUnit: defaults, every value round-trips, bad values are issues, absent sections default; lang keys.
+- [x] 10bA.3 `LivingEntityMixin` `@WrapMethod hurtServer` → `effect/Lifesteal.afterHurt`; return value untouched;
+      exceptions logged inside `afterHurt`.
+- [x] 10bA.4 `effect/HeadDrops` on `MODIFY_DROPS` (victim's own table only) + `loot_table/beheading/heads.json`. Errors
+      leave vanilla's drops (ERROR log); a missing heads table WARNs.
+- [x] 10bA.5 JSON `vampirism`, `beheading` + lang + `non_treasure` + `tooltip_order` + `ModEnchantments.KEYS`.
+- [x] 10bA.6 `EffectEnchantmentsGameTest` (12): Vampirism V heals 0.2 × lost and the hit loses what a plain one does;
+      2 HP target killed by 20 → heals 0.4; thrown trident → nothing; a missed hit (weaker one inside i-frames) returns
+      false and heals nothing; melee items only. Beheading via `HeadDrops.apply` with a fixed roll: 0.019/0.021 at I and
+      0.099/0.101 at V; each mob's own head, a cow none; no second wither skull; mob kill, thrown trident, no enchantment
+      → nothing; `player_heads` off/on (head carries a profile); another table → nothing; a real kill at level 50 (chance
+      1) drops a zombie head for a player and none for a mob. `NewEnchantmentsGameTest` pin extended. Mutation runs
+      (two builds, 8 mutations: JSON numbers, `isDirect`, health-lost vs amount, Player-only killer, skull dedupe,
+      player-heads gate, own-table guard): every one failed its test. Removing the own-table guard also recurses
+      (the nested heads roll re-enters the handler), which the real-kill test catches.
+      301 JUnit (+4), 199 GameTests (+12), 4 client GameTests.
 
 ### Stage 10bB — Smelting + TrueShot Aura → commit
-- [ ] 10bB.1 `config/SmeltingSection` (`silk_priority`) + JUnit.
+- [x] 10bB.1 `config/SmeltingSection` (`silk_priority`) + JUnit. Done in 10bA.
 - [ ] 10bB.2 `effect/SmeltingDrops.apply(...)`, called at the end of `FortuneDrops`' listener (not on the re-roll).
       Item tag `enchanting2:enchantable/smelting`, `enchanting2:smelting_excluded` (empty).
 - [ ] 10bB.3 `effect/SuspendGravity` entity effect + `AbstractArrowMixin` (server tick countdown) + attachment.
@@ -1460,8 +1465,7 @@ unknown attachment. Nothing outside the repo is touched.
 - [ ] 10bC.1 `effect/NightVisionTicker` (`END_SERVER_TICK`, every 20 ticks, players only) + JSON `vision` + lang + keys.
 - [ ] 10bC.2 GameTests: wearing → NV ambient, at most 300 ticks; at 219 left → refreshed; a 3-minute potion → untouched;
       unequipped → ours removed, a potion kept; mutation run.
-- [ ] 10bC.3 Config screen: `beheading.player_heads` and `smelting.silk_priority` entries + lang (JUnit lang-key test,
-      client GameTest assertion). DESIGN §9 rows and §4 note updated. state.md.
+- [ ] 10bC.3 DESIGN §9 rows and §4 note updated. state.md. (Config screen entries done in 10bA.)
 
 ### Phase 10a — Data-only enchantments (three stages, one commit each)
 **Goal:** the eleven D-route enchantments exist as `enchanting2:` registry entries with effect components, show up in

@@ -4,6 +4,7 @@ import com.wulfnet.enchanting2.acquisition.EnchantmentFlagsDraft;
 import com.wulfnet.enchanting2.anvil.InvalidBookMode;
 import com.wulfnet.enchanting2.config.AllowTogetherSection;
 import com.wulfnet.enchanting2.config.AnvilSection;
+import com.wulfnet.enchanting2.config.BeheadingSection;
 import com.wulfnet.enchanting2.config.ClientConfig;
 import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.config.ConfigView;
@@ -12,7 +13,9 @@ import com.wulfnet.enchanting2.config.CursesSection;
 import com.wulfnet.enchanting2.config.EnchantmentOverrides;
 import com.wulfnet.enchanting2.config.ExperienceSection;
 import com.wulfnet.enchanting2.config.FortuneSection;
+import com.wulfnet.enchanting2.config.SmeltingSection;
 import com.wulfnet.enchanting2.config.TableSection;
+import com.wulfnet.enchanting2.effect.SmeltingSilkPriority;
 import com.wulfnet.enchanting2.enchantment.ConflictFamily;
 import com.wulfnet.enchanting2.fortune.SilkFortuneMode;
 import dev.isxander.yacl3.api.ConfigCategory;
@@ -81,6 +84,9 @@ final class ConfigScreen {
 				.option(LabelOption.create(modeLabel));
 		ConfigCategory.Builder fortune = ConfigCategory.createBuilder()
 				.name(Component.translatable(KEY + "category.fortune"))
+				.option(LabelOption.create(modeLabel));
+		ConfigCategory.Builder effects = ConfigCategory.createBuilder()
+				.name(Component.translatable(KEY + "category.effects"))
 				.option(LabelOption.create(modeLabel));
 		if (view.values().isPresent()) {
 			ExperienceSection d = ExperienceSection.DEFAULTS;
@@ -165,6 +171,23 @@ final class ConfigScreen {
 									KEY + "fortune.silk_fortune_mode." + mode.name().toLowerCase(Locale.ROOT))))
 					.available(editable)
 					.build());
+			effects.option(Option.<Boolean>createBuilder()
+					.name(Component.translatable(KEY + "beheading.player_heads"))
+					.description(description("beheading.player_heads"))
+					.binding(BeheadingSection.DEFAULTS.playerHeads(), () -> draft.playerHeads, v -> draft.playerHeads = v)
+					.controller(TickBoxControllerBuilder::create)
+					.available(editable)
+					.build());
+			effects.option(Option.<SmeltingSilkPriority>createBuilder()
+					.name(Component.translatable(KEY + "smelting.silk_priority"))
+					.description(description("smelting.silk_priority"))
+					.binding(SmeltingSection.DEFAULTS.silkPriority(), () -> draft.smeltingSilkPriority,
+							v -> draft.smeltingSilkPriority = v)
+					.controller(option -> EnumControllerBuilder.create(option).enumClass(SmeltingSilkPriority.class)
+							.formatValue(priority -> Component.translatable(
+									KEY + "smelting.silk_priority." + priority.name().toLowerCase(Locale.ROOT))))
+					.available(editable)
+					.build());
 		}
 
 		ConfigView<EnchantmentOverrides> enchantmentsView = ConfigEditing.currentEnchantmentsView();
@@ -204,6 +227,7 @@ final class ConfigScreen {
 				.category(anvil.build())
 				.category(table.build())
 				.category(fortune.build())
+				.category(effects.build())
 				.category(enchantments.build())
 				.category(display)
 				// YACL saves when any option changed, the display one included, so write only the files that did.
@@ -257,6 +281,8 @@ final class ConfigScreen {
 		InvalidBookMode invalidBookMode;
 		boolean treasureRequiresFullPower;
 		SilkFortuneMode silkFortuneMode;
+		boolean playerHeads;
+		SmeltingSilkPriority smeltingSilkPriority;
 
 		Draft(CommonConfig from) {
 			enabled = from.experience().enabled();
@@ -273,6 +299,8 @@ final class ConfigScreen {
 			invalidBookMode = from.anvil().invalidBookMode();
 			treasureRequiresFullPower = from.table().treasureRequiresFullPower();
 			silkFortuneMode = from.fortune().silkFortuneMode();
+			playerHeads = from.beheading().playerHeads();
+			smeltingSilkPriority = from.smelting().silkPriority();
 		}
 
 		void setAllowed(ConflictFamily family, boolean value) {
@@ -289,7 +317,8 @@ final class ConfigScreen {
 					new CostsSection(renameCost, repairCostPerMaterial, repairCombineCost, maximumOperationCost,
 							creativeFree),
 					new CursesSection(maxDiscountPercent, removalMinCost), new AnvilSection(invalidBookMode),
-					new TableSection(treasureRequiresFullPower), new FortuneSection(silkFortuneMode));
+					new TableSection(treasureRequiresFullPower), new FortuneSection(silkFortuneMode),
+					new BeheadingSection(playerHeads), new SmeltingSection(smeltingSilkPriority));
 		}
 	}
 }

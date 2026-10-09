@@ -8,11 +8,13 @@ import blue.endless.jankson.Jankson;
 import blue.endless.jankson.JsonObject;
 import com.wulfnet.enchanting2.acquisition.EnchantmentFlagsDraft;
 import com.wulfnet.enchanting2.anvil.InvalidBookMode;
+import com.wulfnet.enchanting2.effect.SmeltingSilkPriority;
 import com.wulfnet.enchanting2.enchantment.ConflictFamily;
 import com.wulfnet.enchanting2.fortune.SilkFortuneMode;
 import java.io.InputStream;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 /** The config screen builds these keys from enum names, so a new enum value without text must fail here. */
@@ -50,9 +52,15 @@ class ConfigLangKeysTest {
 		JsonObject lang = lang();
 		Map<String, JsonObject> sections = Map.of("costs", CostsSection.DEFAULTS.write(),
 				"curses", CursesSection.DEFAULTS.write(), "anvil", AnvilSection.DEFAULTS.write(), "table",
-				TableSection.DEFAULTS.write(), "fortune", FortuneSection.DEFAULTS.write());
+				TableSection.DEFAULTS.write(), "fortune", FortuneSection.DEFAULTS.write(), "beheading",
+				BeheadingSection.DEFAULTS.write(), "smelting", SmeltingSection.DEFAULTS.write());
+		// Beheading and Smelting share one "Enchantment effects" category on the screen.
+		Set<String> sharedCategory = Set.of("beheading", "smelting");
+		assertTrue(lang.containsKey("enchanting2.config.category.effects"));
 		sections.forEach((section, written) -> {
-			assertTrue(lang.containsKey("enchanting2.config.category." + section), section);
+			if (!sharedCategory.contains(section)) {
+				assertTrue(lang.containsKey("enchanting2.config.category." + section), section);
+			}
 			assertFalse(written.keySet().isEmpty(), section);
 			for (String key : written.keySet()) {
 				String langKey = "enchanting2.config." + section + "." + key;
@@ -76,6 +84,15 @@ class ConfigLangKeysTest {
 		JsonObject lang = lang();
 		for (SilkFortuneMode mode : SilkFortuneMode.values()) {
 			String key = "enchanting2.config.fortune.silk_fortune_mode." + mode.name().toLowerCase(Locale.ROOT);
+			assertTrue(lang.containsKey(key), key);
+		}
+	}
+
+	@Test
+	void everySmeltingSilkPriorityHasText() throws Exception {
+		JsonObject lang = lang();
+		for (SmeltingSilkPriority priority : SmeltingSilkPriority.values()) {
+			String key = "enchanting2.config.smelting.silk_priority." + priority.name().toLowerCase(Locale.ROOT);
 			assertTrue(lang.containsKey(key), key);
 		}
 	}

@@ -11,6 +11,7 @@ import blue.endless.jankson.api.SyntaxError;
 import com.wulfnet.enchanting2.anvil.InvalidBookMode;
 import com.wulfnet.enchanting2.cost.UpgradeMode;
 import com.wulfnet.enchanting2.enchantment.ConflictFamily;
+import com.wulfnet.enchanting2.effect.SmeltingSilkPriority;
 import com.wulfnet.enchanting2.fortune.SilkFortuneMode;
 import java.util.EnumSet;
 import java.util.List;
@@ -41,7 +42,7 @@ class ConfigParseTest {
 	void nonDefaultValuesRoundTrip() throws SyntaxError {
 		var custom = new CommonConfig(new ExperienceSection(false, 0, 1), AllowTogetherSection.DEFAULTS,
 				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
-				FortuneSection.DEFAULTS);
+				FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS);
 		assertEquals(custom, common(ConfigFiles.render(custom, CommonConfig.CODEC)).config());
 	}
 
@@ -52,14 +53,14 @@ class ConfigParseTest {
 			allowed.remove(off);
 			var custom = new CommonConfig(ExperienceSection.DEFAULTS, new AllowTogetherSection(allowed),
 					CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
-					FortuneSection.DEFAULTS);
+					FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS);
 			var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 			assertEquals(custom, parsed.config(), off.key());
 			assertEquals(List.of(), parsed.issues());
 		}
 		var none = new CommonConfig(ExperienceSection.DEFAULTS, new AllowTogetherSection(Set.of()),
 				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
-				FortuneSection.DEFAULTS);
+				FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS);
 		assertEquals(none, common(ConfigFiles.render(none, CommonConfig.CODEC)).config());
 	}
 
@@ -297,7 +298,7 @@ class ConfigParseTest {
 	void strictRenderIsCommentFreeAndRoundTrips() throws SyntaxError {
 		var config = new CommonConfig(new ExperienceSection(false, 12, 345), AllowTogetherSection.DEFAULTS,
 				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
-				FortuneSection.DEFAULTS);
+				FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS);
 		String json = ConfigFiles.renderStrict(config, CommonConfig.CODEC);
 		assertFalse(json.contains("//") || json.contains("/*"), json);
 		assertFalse(json.contains("\n"), json);
@@ -343,7 +344,8 @@ class ConfigParseTest {
 		var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
 				new CostsSection(0, 3, 5, 0, false), new CursesSection(95, 0),
 				new AnvilSection(InvalidBookMode.STRIP_INVALID), new TableSection(false),
-				new FortuneSection(SilkFortuneMode.FORTUNE_MULTIPLIES_SILK));
+				new FortuneSection(SilkFortuneMode.FORTUNE_MULTIPLIES_SILK), BeheadingSection.DEFAULTS,
+				SmeltingSection.DEFAULTS);
 		var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 		assertEquals(custom, parsed.config());
 		assertEquals(List.of(), parsed.issues());
@@ -397,7 +399,7 @@ class ConfigParseTest {
 		for (InvalidBookMode mode : InvalidBookMode.values()) {
 			var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
 					CostsSection.DEFAULTS, CursesSection.DEFAULTS, new AnvilSection(mode), TableSection.DEFAULTS,
-					FortuneSection.DEFAULTS);
+					FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS);
 			var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 			assertEquals(custom, parsed.config(), mode.name());
 			assertEquals(List.of(), parsed.issues(), mode.name());
@@ -450,7 +452,7 @@ class ConfigParseTest {
 		for (SilkFortuneMode mode : SilkFortuneMode.values()) {
 			var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
 					CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
-					new FortuneSection(mode));
+					new FortuneSection(mode), BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS);
 			var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 			assertEquals(custom, parsed.config(), mode.name());
 			assertEquals(List.of(), parsed.issues(), mode.name());
@@ -466,6 +468,39 @@ class ConfigParseTest {
 		}
 		var missing = common("{ schema_version: 1, experience: { enabled: true } }");
 		assertEquals(FortuneSection.DEFAULTS, missing.config().fortune());
+		assertEquals(List.of(), missing.issues());
+	}
+
+	@Test
+	void beheadingAndSmeltingDefaultToDesignValues() {
+		assertFalse(CommonConfig.defaults().beheading().playerHeads());
+		assertEquals(SmeltingSilkPriority.SILK_TOUCH, CommonConfig.defaults().smelting().silkPriority());
+	}
+
+	@Test
+	void beheadingAndSmeltingAreReadForEveryValue() throws SyntaxError {
+		for (SmeltingSilkPriority priority : SmeltingSilkPriority.values()) {
+			for (boolean playerHeads : new boolean[] { false, true }) {
+				var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
+						CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
+						FortuneSection.DEFAULTS, new BeheadingSection(playerHeads), new SmeltingSection(priority));
+				var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
+				assertEquals(custom, parsed.config(), priority + " " + playerHeads);
+				assertEquals(List.of(), parsed.issues(), priority + " " + playerHeads);
+			}
+		}
+	}
+
+	@Test
+	void beheadingAndSmeltingBadValuesAreIssuesAndDefault() throws SyntaxError {
+		var parsed = common("""
+				{ schema_version: 1, beheading: { player_heads: "yes" }, smelting: { silk_priority: "silk" } }""");
+		assertEquals(BeheadingSection.DEFAULTS, parsed.config().beheading());
+		assertEquals(SmeltingSection.DEFAULTS, parsed.config().smelting());
+		assertEquals(List.of("beheading.player_heads", "smelting.silk_priority"), keys(parsed.issues()));
+		var missing = common("{ schema_version: 1, experience: { enabled: true } }");
+		assertEquals(BeheadingSection.DEFAULTS, missing.config().beheading());
+		assertEquals(SmeltingSection.DEFAULTS, missing.config().smelting());
 		assertEquals(List.of(), missing.issues());
 	}
 

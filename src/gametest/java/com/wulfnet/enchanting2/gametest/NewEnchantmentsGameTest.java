@@ -52,7 +52,7 @@ import net.minecraft.world.phys.Vec3;
 public class NewEnchantmentsGameTest {
 	private static final double EPSILON = 1.0E-6;
 
-	/** The max level of every enchantment in {@link ModEnchantments#KEYS}, as TODO 10a's table says. */
+	/** The max level of every enchantment in {@link ModEnchantments#KEYS}, as the TODO 10a and 10b tables say. */
 	private static final Map<ResourceKey<Enchantment>, Integer> MAX = Map.ofEntries(
 			Map.entry(ModEnchantments.WITHERING, 5),
 			Map.entry(ModEnchantments.POISONING, 5),
@@ -64,7 +64,9 @@ public class NewEnchantmentsGameTest {
 			Map.entry(ModEnchantments.TOUGHNESS, 5),
 			Map.entry(ModEnchantments.HEALTH, 5),
 			Map.entry(ModEnchantments.SWIFTNESS, 5),
-			Map.entry(ModEnchantments.CUSHION, 3));
+			Map.entry(ModEnchantments.CUSHION, 3),
+			Map.entry(ModEnchantments.VAMPIRISM, 5),
+			Map.entry(ModEnchantments.BEHEADING, 5));
 
 	/** The vanilla source tags (owner 2026-10-09: everywhere), plus our table pool. */
 	private static final List<TagKey<Enchantment>> SOURCES = List.of(EnchantmentTags.NON_TREASURE,

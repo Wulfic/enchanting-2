@@ -351,3 +351,24 @@ enchantment's), and a mock `ServerPlayer` never ticks, so that path never runs.
 **Fix:** in tests, add `EnchantmentHelper.forEachModifier(stack, slot, ...)` to the attribute instances yourself. It
 leaves out the item's own modifiers, so the value is the enchantment's alone.
 **Affects:** src/gametest/**/NewEnchantmentsGameTest.java, any attribute enchantment test (10aC armor)
+
+## 2026-10-09 — Fabric `AFTER_DAMAGE` skips killing blows and passes the post-armor amount
+**Context:** Vampirism needs the health a hit actually took, killing blows included.
+**Trap:** FAPI entity-events 5.0.5 fires `ServerLivingEntityEvents.AFTER_DAMAGE` at `hurtServer` TAIL only
+`if (!isDeadOrDying())`, and its `damageTaken` is the post-armor amount, overkill included.
+**Fix:** `LivingEntityMixin` wraps `hurtServer` (`@WrapMethod`) and diffs health + absorption itself.
+**Affects:** src/main/java/com/wulfnet/enchanting2/mixin/LivingEntityMixin.java
+
+## 2026-10-09 — A GameTest mock player's hit ignores `setInvulnerable(true)`
+**Trap:** `target.setInvulnerable(true)` didn't stop `damageSources().playerAttack(mockPlayer)`: the hit landed. The
+mock player's attack bypasses `Invulnerable` (it behaves like a creative player's).
+**Fix:** to test a hit that doesn't land, hit once, then hit weaker inside the invulnerability frames
+(`hurtServer` returns false).
+**Affects:** src/gametest/java/com/wulfnet/enchanting2/gametest/EffectEnchantmentsGameTest.java
+
+## 2026-10-09 — A missing loot table is `LootTable.EMPTY`, silently
+**Trap:** `ReloadableServerRegistries.Holder.getLootTable(key)` returns `LootTable.EMPTY` for an unknown key and logs
+nothing, so a datapack removing our table makes the feature silently do nothing.
+**Fix:** compare against `LootTable.EMPTY` and WARN (`HeadDrops`). A `MODIFY_DROPS` handler that rolls another table
+must keep its own-table guard, or the nested roll re-enters it (mutation run showed infinite recursion).
+**Affects:** src/main/java/com/wulfnet/enchanting2/effect/HeadDrops.java

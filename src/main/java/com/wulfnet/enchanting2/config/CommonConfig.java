@@ -8,7 +8,8 @@ import java.util.Objects;
  * Each phase adds its section here together with the code that reads it.
  */
 public record CommonConfig(ExperienceSection experience, AllowTogetherSection allowTogether, CostsSection costs,
-		CursesSection curses, AnvilSection anvil, TableSection table, FortuneSection fortune) {
+		CursesSection curses, AnvilSection anvil, TableSection table, FortuneSection fortune, BeheadingSection beheading,
+		SmeltingSection smelting) {
 	public static final String FILE_NAME = "common.json5";
 	public static final int SCHEMA_VERSION = 1;
 
@@ -33,7 +34,8 @@ public record CommonConfig(ExperienceSection experience, AllowTogetherSection al
 			return new CommonConfig(ExperienceSection.read(root.section("experience")),
 					AllowTogetherSection.read(root.section("allow_together")), CostsSection.read(root.section("costs")),
 					CursesSection.read(root.section("curses")), AnvilSection.read(root.section("anvil")),
-					TableSection.read(root.section("table")), FortuneSection.read(root.section("fortune")));
+					TableSection.read(root.section("table")), FortuneSection.read(root.section("fortune")),
+					BeheadingSection.read(root.section("beheading")), SmeltingSection.read(root.section("smelting")));
 		}
 
 		@Override
@@ -46,6 +48,8 @@ public record CommonConfig(ExperienceSection experience, AllowTogetherSection al
 			root.put("anvil", value.anvil.write(), "Anvil behavior.");
 			root.put("table", value.table.write(), "Enchanting table behavior.");
 			root.put("fortune", value.fortune.write(), "Fortune and Silk Touch on mining tools.");
+			root.put("beheading", value.beheading.write(), "The Beheading enchantment.");
+			root.put("smelting", value.smelting.write(), "The Smelting enchantment.");
 		}
 	};
 
@@ -57,10 +61,13 @@ public record CommonConfig(ExperienceSection experience, AllowTogetherSection al
 		Objects.requireNonNull(anvil, "anvil");
 		Objects.requireNonNull(table, "table");
 		Objects.requireNonNull(fortune, "fortune");
+		Objects.requireNonNull(beheading, "beheading");
+		Objects.requireNonNull(smelting, "smelting");
 	}
 
 	public static CommonConfig defaults() {
 		return new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS, CostsSection.DEFAULTS,
-				CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS, FortuneSection.DEFAULTS);
+				CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS, FortuneSection.DEFAULTS,
+				BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS);
 	}
 }

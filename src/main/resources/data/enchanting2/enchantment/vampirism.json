@@ -1,0 +1,27 @@
+{
+  "anvil_cost": 4,
+  "description": {
+    "translate": "enchantment.enchanting2.vampirism"
+  },
+  "effects": {
+    "enchanting2:lifesteal": {
+      "type": "minecraft:linear",
+      "base": 0.04,
+      "per_level_above_first": 0.04
+    }
+  },
+  "max_cost": {
+    "base": 25,
+    "per_level_above_first": 8
+  },
+  "max_level": 5,
+  "min_cost": {
+    "base": 5,
+    "per_level_above_first": 8
+  },
+  "slots": [
+    "mainhand"
+  ],
+  "supported_items": "#enchanting2:enchantable/melee",
+  "weight": 2
+}

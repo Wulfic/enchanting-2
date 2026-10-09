@@ -2,6 +2,7 @@ package com.wulfnet.enchanting2.gametest;
 
 import com.wulfnet.enchanting2.config.AllowTogetherSection;
 import com.wulfnet.enchanting2.config.AnvilSection;
+import com.wulfnet.enchanting2.config.BeheadingSection;
 import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.config.ConfigFiles;
 import com.wulfnet.enchanting2.config.CostsSection;
@@ -11,6 +12,7 @@ import com.wulfnet.enchanting2.config.ExperienceSection;
 import com.wulfnet.enchanting2.config.FortuneSection;
 import com.wulfnet.enchanting2.config.ServerConfigHolder;
 import com.wulfnet.enchanting2.config.ServerConfigs;
+import com.wulfnet.enchanting2.config.SmeltingSection;
 import com.wulfnet.enchanting2.config.TableSection;
 import com.wulfnet.enchanting2.network.ConfigSyncPayload;
 import io.netty.buffer.Unpooled;
@@ -48,7 +50,7 @@ public class ConfigWiringGameTest {
 	public void payloadRoundTrips(GameTestHelper helper) {
 		ConfigSyncPayload sent = ConfigSyncPayload.of(new CommonConfig(new ExperienceSection(false, 7, 99),
 				AllowTogetherSection.DEFAULTS, CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS,
-				TableSection.DEFAULTS, FortuneSection.DEFAULTS));
+				TableSection.DEFAULTS, FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS));
 		FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
 		ConfigSyncPayload.CODEC.encode(buf, sent);
 		ConfigSyncPayload received = ConfigSyncPayload.CODEC.decode(buf);

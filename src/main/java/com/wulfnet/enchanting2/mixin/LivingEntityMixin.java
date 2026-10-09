@@ -1,6 +1,11 @@
 package com.wulfnet.enchanting2.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.wulfnet.enchanting2.Enchanting2;
+import com.wulfnet.enchanting2.effect.Lifesteal;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.storage.ValueInput;
 import org.spongepowered.asm.mixin.Mixin;
@@ -42,5 +47,22 @@ abstract class LivingEntityMixin {
 					self.getStringUUID(), restored, self.getHealth(), self.getMaxHealth());
 			self.setHealth(restored);
 		}
+	}
+
+	/**
+	 * Phase 10b, Vampirism: measures the health (+ absorption) the hit actually took. Fabric's {@code AFTER_DAMAGE}
+	 * can't serve: it skips killing blows and passes the post-armor amount, overkill included. The hit itself and the
+	 * return value are untouched.
+	 */
+	@WrapMethod(method = "hurtServer")
+	private boolean enchanting2$lifesteal(ServerLevel level, DamageSource source, float amount,
+			Operation<Boolean> original) {
+		LivingEntity self = (LivingEntity) (Object) this;
+		float before = self.getHealth() + self.getAbsorptionAmount();
+		boolean hurt = original.call(level, source, amount);
+		if (hurt) {
+			Lifesteal.afterHurt(self, source, before - (self.getHealth() + self.getAbsorptionAmount()));
+		}
+		return hurt;
 	}
 }
