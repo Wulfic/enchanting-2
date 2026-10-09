@@ -32,7 +32,8 @@ Phases 1–9 and 10a done (TODO.md has each stage's notes; owner `runClient` che
 ## What's next
 1. Phase 10a done (2026-10-09): 11 data enchantments (`enchantment/ModEnchantments`, `data/enchanting2/enchantment/`),
    all in `#minecraft:non_treasure`; XP random rounding (`StochasticRounding`); Health relog fix (`LivingEntityMixin`).
-   Next: 10b (E route: Vampirism, TrueShot Aura, Smelting, Beheading, Vision). Write its sub-plan first, ask early.
+   Next: 10b (E route: Vampirism, TrueShot Aura, Smelting, Beheading, Vision). Owner answers are in decisions.md
+   "Phase 10b"; write its staged plan into TODO.md next.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
    ~1,000,000) + 6D: panel look, config screen "Display" toggle, and a vanilla server keeping the vanilla anvil screen +
    6bC: grindstone panel look, and a vanilla server keeping the vanilla grindstone + 7D: table panel and window look

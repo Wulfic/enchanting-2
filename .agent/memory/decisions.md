@@ -761,3 +761,18 @@ accepting the relog clamp; bigger XP numbers (still truncated); `exclusive_set` 
 Swiftness vs Soul Speed (contradicts §4; 10d can add a family).
 **Affects:** TODO Phase 10a, `data/enchanting2/enchantment/*`, `data/minecraft/tags/enchantment/non_treasure.json`,
 `enchantment/ModEnchantments`, `client/ConfigEditing`, Health and XP mixins
+
+## 2026-10-09 — Phase 10b owner answers (asked before planning)
+**Context:** DESIGN §9 left the E-route enchantments' models open: Vampirism (threshold vs other), TrueShot Aura
+(unlimited range), Smelting (items, XP, Fortune order), Beheading (chance, player heads).
+**Choice (owner):** (1) **Vampirism = lifesteal percent:** heal 4% × level of the damage dealt (V = 20%), every hit, no
+cooldown, players and bosses included. (2) **TrueShot Aura:** no gravity for 100 ticks (5 s), then normal gravity and
+normal despawn. (3) **Smelting on all mining tools** (pickaxe, shovel, axe, hoe), Fortune multiplies first and then
+each drop is smelted, and the recipe's XP is granted like a furnace (randomly rounded). Silk Touch still wins by default
+(§4 `smelting_vs_silk_priority`). (4) **Beheading:** 2% × level (V = 10%), added to vanilla's own wither-skeleton
+roll, mobs with a head item only (zombie, skeleton, wither skeleton, creeper, piglin, ender dragon); player heads
+behind `beheading.player_heads`, default off.
+**Why:** owner's calls. Lifesteal over the DESIGN threshold model: simpler and scales with the hit.
+**Rejected:** threshold + cooldown, threshold PvE-only (Vampirism); gravity-free until hit (TrueShot); pickaxe-only and
+no-XP Smelting; 5%/level and player heads on by default (Beheading).
+**Affects:** TODO Phase 10b, DESIGN §9

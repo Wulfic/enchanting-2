@@ -569,20 +569,20 @@ when launched along a fall). A datapack-set max is not clamped. Arithmetic in TO
 
 | Name | Max | Items | Effect | Route | Concerns |
 |---|---|---|---|---|---|
-| Vampirism | 5 | melee | heal after damage ≥ threshold; threshold drops per level | E | boss, PvP, cooldown |
+| Vampirism | 5 | melee | heal 4% × level of the damage dealt, every hit, no cooldown (owner, 2026-10-09) | E | works on players and bosses |
 | Withering | 5 | melee, ranged | Wither on hit, duration per level | D | verify `post_attack` fires for projectiles |
 | Poisoning | 5 | melee, ranged | Poison on hit | D | same |
 | Freezing | 5 | melee, ranged | Slowness on hit | D | same |
 | Attack Speed | 5 | melee | `attack_speed` attribute | D | |
 | Critical Strike | 5 | all weapons | 5%/level chance of +50% damage (max 25%) | D | `damage` + `random_chance` |
 | Quick Strike | 5 | melee | 5%/level chance of a second hit (max 25%) | M | i-frames, effect/crit duplication, Vampirism, durability, PvP |
-| TrueShot Aura | 1 | bows | arrows ignore gravity | E/M | infinite-range arrows; despawn |
+| TrueShot Aura | 1 | bows | arrows ignore gravity for 5 s, then fall normally (owner, 2026-10-09) | E/M | despawn as normal arrows |
 | Toughness | 5 | armor | `armor_toughness` attribute | D | |
 | Health | 5 | armor | `max_health` attribute | D | health clamping on unequip |
 | Swiftness | 5 | boots | `movement_speed` attribute | D | conflicts with Soul Speed? |
 | Double Jump | 1 | boots | one extra air jump; resets on ground | M | client input packet; water/lava/ladder/creative/vehicle; server validation |
 | Flight | 5 | elytra | powered flight without fireworks | M | activation, durability, speed, takeoff, anti-cheat |
-| Smelting | 1 | pickaxe (default) | smelt drops via recipe lookup | E/M | Silk/Fortune priority; no hard-coded ore list |
+| Smelting | 1 | mining tools | smelt drops via recipe lookup, after Fortune; grants the recipe's XP (owner, 2026-10-09) | E/M | Silk Touch wins by default (§4); no hard-coded ore list |
 | Magnetic | 1 | tools, weapons | drops go straight into the inventory; overflow drops normally | M | ownership, pickup events, dupes |
 | Reach | 3 | tools, weapons | `block_/entity_interaction_range` attributes | D | vanilla server already validates against attributes |
 | XP Boost | 5 | tools, weapons | +5% XP per level | D | `mob_experience` / `block_experience`; Mending loop |
@@ -596,7 +596,7 @@ when launched along a fall). A datapack-set max is not clamped. Arithmetic in TO
 | Deflect | 3 | shield | blocked projectiles reflect at the shooter; chance 33 / 66 / 100% | M | reflected projectile ownership; no infinite ping-pong between two shields |
 | Shield Bash | 3 | shield | attacking while blocking knocks the target back and briefly stuns | M | cooldown; balance vs. Knockback |
 | Cushion | 3 | elytra, chestplate | reduces wall-collision damage | D | `damage_protection` on `fly_into_wall` |
-| Beheading | 5 | melee | chance (per level) to drop the victim's head | E | mobs with a head item only; player heads behind a config option |
+| Beheading | 5 | melee | 2% × level to drop the victim's head, on top of vanilla's wither skull roll (owner, 2026-10-09) | E | mobs with a head item only; player heads behind `beheading.player_heads` (default off) |
 
 **Phase 10a (owner, 2026-10-09):** every new non-curse enchantment joins `#minecraft:non_treasure`, so it comes from
 every source (table, books, loot, mob and villager gear) and Phase 9's flags remove it per source. No `exclusive_set` on

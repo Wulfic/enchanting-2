@@ -1336,6 +1336,9 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       GameTest each. Plan and stages below. (Vision moved to 10b, owner 2026-10-09.)
 - [ ] 10b Custom effect types (E): Vampirism, TrueShot Aura, Smelting, Beheading, Vision (tick handler: refresh Night
       Vision under 11 s, remove on unequip, never touch a longer potion effect)
+      Owner answers (2026-10-09, decisions.md "Phase 10b"): Vampirism = lifesteal 4%/level of damage dealt; TrueShot =
+      no gravity for 100 ticks; Smelting on all mining tools, after Fortune, with recipe XP; Beheading 2%/level, player
+      heads behind `beheading.player_heads` (off). Next: write the 10b plan (stages, facts from `javap`) here.
 - [ ] 10c Mixin/network (M): Quick Strike, Magnetic, Ender Link, Keep on Death, Double Jump,
       Flight, Area Mining, Replant, Tiller, Last Stand, Deflect, Shield Bash.
       Each gets its own written sub-plan here first, covering edge cases from §9 and dupe tests.
