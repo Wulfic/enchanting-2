@@ -16,8 +16,8 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 /**
- * {@code config/enchanting2/enchantments.json5}: per-enchantment settings keyed by a namespaced ID. Phases 5 and 9 add
- * more fields with the code that reads them.
+ * {@code config/enchanting2/enchantments.json5}: per-enchantment settings keyed by a namespaced ID: max level (Phase 4),
+ * costs (Phase 5) and acquisition (Phase 9).
  */
 public record EnchantmentOverrides(Map<String, Entry> entries) {
 	public static final String FILE_NAME = "enchantments.json5";
@@ -47,9 +47,11 @@ public record EnchantmentOverrides(Map<String, Entry> entries) {
 	 * @param upgradeMode          how adding levels to one already on the item is charged
 	 * @param otherLevelsSurcharge XP levels per level of every other non-curse enchantment (Mending's surcharge)
 	 * @param discountPercent      a curse's discount on the enchant cost; ignored for non-curses
+	 * @param acquisition          where the enchantment can be obtained, and how often (Phase 9)
 	 */
 	public record Entry(OptionalInt maxLevelOverride, OptionalInt baseCost, OptionalInt costPerLevel,
-			Optional<UpgradeMode> upgradeMode, OptionalInt otherLevelsSurcharge, OptionalInt discountPercent) {
+			Optional<UpgradeMode> upgradeMode, OptionalInt otherLevelsSurcharge, OptionalInt discountPercent,
+			AcquisitionSettings acquisition) {
 		public Entry {
 			requireInRange("max_level_override", maxLevelOverride, MIN_MAX_LEVEL, MAX_MAX_LEVEL);
 			requireInRange("base_cost", baseCost, MIN_COST, MAX_COST);
@@ -57,6 +59,20 @@ public record EnchantmentOverrides(Map<String, Entry> entries) {
 			Objects.requireNonNull(upgradeMode, "upgradeMode");
 			requireInRange("other_levels_surcharge", otherLevelsSurcharge, MIN_SURCHARGE, MAX_SURCHARGE);
 			requireInRange("discount_percent", discountPercent, MIN_DISCOUNT_PERCENT, MAX_DISCOUNT_PERCENT);
+			Objects.requireNonNull(acquisition, "acquisition");
+		}
+
+		/** An entry with cost fields and no acquisition settings. */
+		public Entry(OptionalInt maxLevelOverride, OptionalInt baseCost, OptionalInt costPerLevel,
+				Optional<UpgradeMode> upgradeMode, OptionalInt otherLevelsSurcharge, OptionalInt discountPercent) {
+			this(maxLevelOverride, baseCost, costPerLevel, upgradeMode, otherLevelsSurcharge, discountPercent,
+					AcquisitionSettings.NONE);
+		}
+
+		/** An entry with only acquisition settings. */
+		public Entry(AcquisitionSettings acquisition) {
+			this(OptionalInt.empty(), OptionalInt.empty(), OptionalInt.empty(), Optional.empty(), OptionalInt.empty(),
+					OptionalInt.empty(), acquisition);
 		}
 
 		/** An entry with only a max level override. */
@@ -110,7 +126,14 @@ public record EnchantmentOverrides(Map<String, Entry> entries) {
 						entry.readOptionalInt("cost_per_level", MIN_COST, MAX_COST),
 						entry.readOptionalEnum("upgrade_cost_mode", UpgradeMode.class),
 						entry.readOptionalInt("other_levels_surcharge", MIN_SURCHARGE, MAX_SURCHARGE),
-						entry.readOptionalInt("discount_percent", MIN_DISCOUNT_PERCENT, MAX_DISCOUNT_PERCENT)));
+						entry.readOptionalInt("discount_percent", MIN_DISCOUNT_PERCENT, MAX_DISCOUNT_PERCENT),
+						new AcquisitionSettings(entry.readOptionalBool("enabled"), entry.readOptionalBool("table"),
+								entry.readOptionalBool("loot"), entry.readOptionalBool("trade"),
+								entry.readOptionalInt("loot_weight", AcquisitionSettings.MIN_WEIGHT,
+										AcquisitionSettings.MAX_WEIGHT),
+								entry.readOptionalInt("trade_weight", AcquisitionSettings.MIN_WEIGHT,
+										AcquisitionSettings.MAX_WEIGHT),
+								entry.readOptionalBool("treasure"))));
 			}
 			return new EnchantmentOverrides(entries);
 		}
@@ -127,6 +150,14 @@ public record EnchantmentOverrides(Map<String, Entry> entries) {
 						JsonPrimitive.of(m.name().toLowerCase(Locale.ROOT))));
 				entry.otherLevelsSurcharge().ifPresent(n -> o.put("other_levels_surcharge", JsonPrimitive.of((long) n)));
 				entry.discountPercent().ifPresent(n -> o.put("discount_percent", JsonPrimitive.of((long) n)));
+				AcquisitionSettings a = entry.acquisition();
+				a.enabled().ifPresent(b -> o.put("enabled", JsonPrimitive.of(b)));
+				a.table().ifPresent(b -> o.put("table", JsonPrimitive.of(b)));
+				a.loot().ifPresent(b -> o.put("loot", JsonPrimitive.of(b)));
+				a.trade().ifPresent(b -> o.put("trade", JsonPrimitive.of(b)));
+				a.lootWeight().ifPresent(n -> o.put("loot_weight", JsonPrimitive.of((long) n)));
+				a.tradeWeight().ifPresent(n -> o.put("trade_weight", JsonPrimitive.of((long) n)));
+				a.treasure().ifPresent(b -> o.put("treasure", JsonPrimitive.of(b)));
 				overrides.put(id, o);
 			});
 			root.put("overrides", overrides,
@@ -139,7 +170,14 @@ public record EnchantmentOverrides(Map<String, Entry> entries) {
 							+ "when newly added), cost_per_level, upgrade_cost_mode (level_difference = only added levels, "
 							+ "result_level, fixed = cost_per_level once, free), other_levels_surcharge (per level of every "
 							+ "other non-curse enchantment; Mending's is 2), discount_percent (curses: cut to the enchant "
-							+ "cost).");
+							+ "cost). "
+							+ "Where it can be obtained (each optional, true by default; applies on /reload): enabled "
+							+ "(false = never from the table, loot or trades; items that already have it keep it), table, "
+							+ "loot (loot tables and mob gear), trade (librarian books and villager gear). These only take "
+							+ "an enchantment out of a source; tags such as #minecraft:tradeable decide what is in it. "
+							+ "loot_weight and trade_weight (1-1024; the enchantment's own weight by default, e.g. "
+							+ "Sharpness 10, Mending 2): higher is more common. treasure (true/false): needs 15 "
+							+ "bookshelves at the table and costs double from librarians; the vanilla tags by default.");
 		}
 	};
 

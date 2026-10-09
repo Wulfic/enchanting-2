@@ -99,6 +99,19 @@ public final class ConfigReader {
 		return Optional.empty();
 	}
 
+	/** A key with no default: missing → empty. A bad value is reported as ignored and also reads as empty. */
+	public Optional<Boolean> readOptionalBool(String key) {
+		JsonElement e = take(key);
+		if (e == null) {
+			return Optional.empty();
+		}
+		if (e instanceof JsonPrimitive p && p.getValue() instanceof Boolean b) {
+			return Optional.of(b);
+		}
+		issue(key, e, null, "expected true or false");
+		return Optional.empty();
+	}
+
 	public boolean readBool(String key, boolean def) {
 		JsonElement e = take(key);
 		if (e == null) {

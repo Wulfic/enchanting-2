@@ -1272,16 +1272,17 @@ also writes `enchantments.json5` (`.bak` first, host or title screen only). Remo
 **Rollback:** `git revert` the stage's commit. Dev files in `run/` (gitignored) may hold new keys, which an older build
 reports as unknown keys and ignores. Nothing outside the repo is touched.
 
-### Stage 9A — Config keys and pure rules (no MC classes) → commit
-- [ ] 9A.1 `EnchantmentOverrides.Entry`: `enabled`, `table`, `loot`, `trade` (`Optional<Boolean>`), `loot_weight`,
+### Stage 9A — Config keys and pure rules (no MC classes) → commit  ✅ 2026-10-09
+- [x] 9A.1 `EnchantmentOverrides.Entry`: `enabled`, `table`, `loot`, `trade` (`Optional<Boolean>`), `loot_weight`,
       `trade_weight` (`OptionalInt`, 1..1024), `treasure` (`Optional<Boolean>`). Read (`ConfigReader.readOptionalBool`,
       new), write only the set keys, file comment. Bad value → `ConfigIssue`, key treated as absent.
-- [ ] 9A.2 `acquisition/Source` (TABLE, LOOT, TRADE) and `acquisition/AcquisitionRules` over `EnchantmentOverrides`:
+- [x] 9A.2 `acquisition/Source` (TABLE, LOOT, TRADE) and `acquisition/AcquisitionRules` over `EnchantmentOverrides`:
       `allows(id, source)` (= enabled && flag), `weight(id, source, registryWeight)` (TABLE throws),
       `treasure(id, tagged)`.
-- [ ] 9A.3 `acquisition/WeightedPick.pick(list, weight, nextInt)`: vanilla's walk. Empty or zero total → empty.
-- [ ] 9A.4 JUnit: parse, round trip, every range edge, unknown-ID kept; rules truth table; pick distribution (fixed seed,
+- [x] 9A.3 `acquisition/WeightedPick.pick(list, weight, nextInt)`: vanilla's walk. Empty or zero total → empty.
+- [x] 9A.4 JUnit: parse, round trip, every range edge, unknown-ID kept; rules truth table; pick distribution (fixed seed,
       bounds) and never picking an excluded item. Mutation: `allows` ignoring `enabled` → a test fails.
+      Mutation run: exactly `disabledClosesEverySourceEvenWhenItsFlagSaysTrue` failed. 275 JUnit (+16), 159 GameTests.
 
 ### Stage 9B — Every random source on the server → commit
 - [ ] 9B.1 `acquisition/Acquisition`: register the stamp (`mixin/MappedRegistryMixin` + `AcquisitionHost` duck,

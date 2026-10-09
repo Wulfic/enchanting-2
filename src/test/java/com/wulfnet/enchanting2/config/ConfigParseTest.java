@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import blue.endless.jankson.Jankson;
+import blue.endless.jankson.JsonObject;
 import blue.endless.jankson.api.SyntaxError;
 import com.wulfnet.enchanting2.anvil.InvalidBookMode;
 import com.wulfnet.enchanting2.cost.UpgradeMode;
@@ -538,5 +540,59 @@ class ConfigParseTest {
 				Optional.empty(), OptionalInt.of(101), none));
 		assertThrows(IllegalArgumentException.class, () -> new EnchantmentOverrides.Entry(none, none, none,
 				Optional.empty(), none, OptionalInt.of(101)));
+	}
+
+	@Test
+	void acquisitionKeysRoundTrip() throws SyntaxError {
+		var overrides = new EnchantmentOverrides(Map.of(
+				"minecraft:mending", new EnchantmentOverrides.Entry(new AcquisitionSettings(Optional.of(false),
+						Optional.of(true), Optional.of(false), Optional.of(true), OptionalInt.of(1),
+						OptionalInt.of(1024), Optional.of(false))),
+				"minecraft:sharpness", new EnchantmentOverrides.Entry(OptionalInt.of(4), OptionalInt.of(3),
+						OptionalInt.empty(), Optional.empty(), OptionalInt.empty(), OptionalInt.empty(),
+						new AcquisitionSettings(Optional.empty(), Optional.empty(), Optional.empty(),
+								Optional.of(false), OptionalInt.empty(), OptionalInt.of(5), Optional.of(true)))));
+		var parsed = ConfigFiles.parse(ConfigFiles.render(overrides, EnchantmentOverrides.CODEC),
+				EnchantmentOverrides.CODEC);
+		assertEquals(overrides, parsed.config());
+		assertEquals(List.of(), parsed.issues());
+	}
+
+	@Test
+	void unsetAcquisitionKeysAreNotWritten() throws SyntaxError {
+		String text = ConfigFiles.render(new EnchantmentOverrides(Map.of("minecraft:mending",
+				new EnchantmentOverrides.Entry(OptionalInt.of(1)))), EnchantmentOverrides.CODEC);
+		JsonObject entry = Jankson.builder().build().load(text).getObject("overrides").getObject("minecraft:mending");
+		assertEquals(Set.of("max_level_override"), entry.keySet());
+	}
+
+	@Test
+	void badAcquisitionValuesAreReportedAndReadAsUnset() throws SyntaxError {
+		var parsed = ConfigFiles.parse("""
+				{ schema_version: 1, overrides: {
+				  "minecraft:mending": { enabled: "no", table: 0, loot: false, trade: null, loot_weight: 0,
+				    trade_weight: 1025, treasure: "yes" },
+				  "minecraft:sharpness": { loot_weight: 1, trade_weight: 1024 } } }""",
+				EnchantmentOverrides.CODEC);
+		var mending = parsed.config().entries().get("minecraft:mending").acquisition();
+		assertEquals(new AcquisitionSettings(Optional.empty(), Optional.empty(), Optional.of(false), Optional.empty(),
+				OptionalInt.empty(), OptionalInt.empty(), Optional.empty()), mending);
+		var sharpness = parsed.config().entries().get("minecraft:sharpness").acquisition();
+		assertEquals(OptionalInt.of(1), sharpness.lootWeight());
+		assertEquals(OptionalInt.of(1024), sharpness.tradeWeight());
+		assertEquals(Set.of("overrides.minecraft:mending.enabled", "overrides.minecraft:mending.table",
+				"overrides.minecraft:mending.trade", "overrides.minecraft:mending.loot_weight",
+				"overrides.minecraft:mending.trade_weight", "overrides.minecraft:mending.treasure"),
+				Set.copyOf(keys(parsed.issues())));
+	}
+
+	@Test
+	void acquisitionRecordRejectsOutOfRangeWeights() {
+		Optional<Boolean> unset = Optional.empty();
+		OptionalInt none = OptionalInt.empty();
+		assertThrows(IllegalArgumentException.class, () -> new AcquisitionSettings(unset, unset, unset, unset,
+				OptionalInt.of(0), none, unset));
+		assertThrows(IllegalArgumentException.class, () -> new AcquisitionSettings(unset, unset, unset, unset, none,
+				OptionalInt.of(1025), unset));
 	}
 }
