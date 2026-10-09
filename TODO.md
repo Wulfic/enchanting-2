@@ -1334,17 +1334,134 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
 - [x] 10a Data-only (D): Withering, Poisoning, Freezing, Attack Speed, Critical Strike,
       Toughness, Health, Swiftness, Reach, XP Boost, Cushion. JSON + lang + tags +
       GameTest each. Plan and stages below. (Vision moved to 10b, owner 2026-10-09.)
-- [ ] 10b Custom effect types (E): Vampirism, TrueShot Aura, Smelting, Beheading, Vision (tick handler: refresh Night
-      Vision under 11 s, remove on unequip, never touch a longer potion effect)
-      Owner answers (2026-10-09, decisions.md "Phase 10b"): Vampirism = lifesteal 4%/level of damage dealt; TrueShot =
-      no gravity for 100 ticks; Smelting on all mining tools, after Fortune, with recipe XP; Beheading 2%/level, player
-      heads behind `beheading.player_heads` (off). Next: write the 10b plan (stages, facts from `javap`) here.
+- [ ] 10b Custom effect types (E): Vampirism, TrueShot Aura, Smelting, Beheading, Vision. Plan and stages below.
 - [ ] 10c Mixin/network (M): Quick Strike, Magnetic, Ender Link, Keep on Death, Double Jump,
       Flight, Area Mining, Replant, Tiller, Last Stand, Deflect, Shield Bash.
       Each gets its own written sub-plan here first, covering edge cases from §9 and dupe tests.
 - [ ] 10e Curses (§5a): Fragility, Weight, Greed, Fumbling (D); Hunger (M). Curse tag +
       `discount_percent` data; table shows curses as optional picks with a negative cost line
 - [ ] 10d Balance pass: every candidate moves from REVIEW to INCLUDE/DEFER/REMOVE
+
+### Phase 10b — Custom effect types (three stages, one commit each)
+**Goal:** the five E-route enchantments exist as `enchanting2:` data entries whose behaviour is driven by our own effect
+components (so a datapack can put the component on another enchantment). They come from every source like 10a. Each has
+a GameTest that fails when its Java or JSON breaks.
+**Owner (2026-10-09, decisions.md "Phase 10b" + "round 2" + "dragon"):** Vampirism heals 4% × L of the health the
+target actually lost, on direct melee hits only (not a thrown trident), every hit, no cooldown, against any victim.
+TrueShot: no gravity for 100 ticks, then normal. Smelting on pickaxe/shovel/axe/hoe, **every** smelting recipe (logs →
+charcoal), after Fortune, with recipe XP randomly rounded; Silk Touch wins by default. Beheading 2% × L, **player kills
+only**, extra to vanilla's wither-skull roll, zombie / skeleton / wither skeleton / creeper / piglin, player heads behind
+`beheading.player_heads` (off), **no ender dragon**. Vision for **players only**.
+**Facts (1.21.11 `javap` + jar data, FAPI entity-events 5.0.5 source):**
+- Registries: `BuiltInRegistries.ENCHANTMENT_EFFECT_COMPONENT_TYPE` (`DataComponentType`), `ENCHANTMENT_ENTITY_EFFECT_TYPE`
+  (`MapCodec<? extends EnchantmentEntityEffect>`). `EnchantmentHelper.getHighestLevel(stack, type)` → `Pair<T, level>`,
+  `has(stack, type)`, `runIterationOnEquipment` (respects the enchantment's slots).
+- Fabric `AFTER_DAMAGE` is **not fired on a killing blow** (`if (!isDeadOrDying())`) and passes the post-armor amount, not
+  health lost. So Vampirism wraps `LivingEntity.hurtServer` itself (MixinExtras `@WrapMethod`): health + absorption before
+  and after, heal from the difference.
+- `EnchantmentEffectComponents.PROJECTILE_SPAWNED` runs entity effects on a projectile a bow spawns (Flame's `ignite`).
+  `Entity.setNoGravity` is synced entity data (`DATA_NO_GRAVITY`) and saved as `NoGravity`, so the client draws the
+  straight path, and a chunk reload mid-flight would keep it floating forever unless our timer is persistent too.
+- Recipes: `ServerLevel.recipeAccess().getRecipeFor(RecipeType.SMELTING, new SingleRecipeInput(stack), level)`,
+  `AbstractCookingRecipe.experience()`, `assemble(input, registries)`. `ExperienceOrb.award(level, Vec3, int)`.
+- Heads: vanilla maps mob → head in data: `minecraft:charged_creeper/root` (alternatives by `this` entity type → piglin,
+  creeper, skeleton, wither skeleton, zombie). Wither skeleton's own table rolls its skull (`killed_by_player`, 2.5%,
+  +1%/Looting). `entities/player` exists (empty) and `dropAllDeathLoot` rolls it when `shouldDropLoot`. The dragon never
+  rolls loot (DYING phase, then `remove`).
+- Tags: `#minecraft:enchantable/mining` includes shears (owner said four tools, so our own tag), `enchantable/bow` = bow,
+  `enchantable/head_armor` = `#minecraft:head_armor`.
+
+**Effect components (ours, `effect/ModEffects`):**
+| Component | Value | Read by |
+|---|---|---|
+| `enchanting2:lifesteal` | `LevelBasedValue` (fraction healed) | `LivingEntityMixin` wrap of `hurtServer` |
+| `enchanting2:head_drop_chance` | `LevelBasedValue` (chance) | `effect/HeadDrops` on `MODIFY_DROPS` |
+| `enchanting2:smelt_drops` | `Unit` | `effect/SmeltingDrops`, called from `FortuneDrops`' listener after Fortune |
+| `enchanting2:night_vision` | `Unit` | `effect/NightVisionTicker` on `END_SERVER_TICK`, every 20 ticks |
+| entity effect `enchanting2:suspend_gravity` `{ticks: LevelBasedValue}` | in vanilla `projectile_spawned` | `AbstractArrowMixin` tick countdown |
+
+**Numbers:** (costs as 10a: 5-level min `5 + 8(L−1)`, max `min + 20`; 1-level min 15, max 65 like Silk Touch)
+| ID | Max | Items (tag) | Slot | Effect | Weight |
+|---|---|---|---|---|---|
+| `vampirism` | 5 | `enchanting2:enchantable/melee` | mainhand | lifesteal `0.04 × L` | 2 |
+| `beheading` | 5 | `enchanting2:enchantable/melee` | mainhand | head chance `0.02 × L` | 2 |
+| `smelting` | 1 | `enchanting2:enchantable/smelting` (pickaxes, shovels, axes, hoes) | mainhand | `smelt_drops` | 2 |
+| `true_shot_aura` | 1 | `#minecraft:enchantable/bow` | mainhand | `suspend_gravity` 100 ticks | 1 |
+| `vision` | 1 | `#minecraft:enchantable/head_armor` | head | `night_vision` | 2 |
+
+**Agent calls:**
+- Vampirism "direct" = `source.getDirectEntity() == source.getEntity()`, attacker a living, alive entity; weapon =
+  `source.getWeaponItem()`. Health lost counts absorption (`(health + absorption)` before − after, ≥ 0), so overkill
+  never counts. Heal via `LivingEntity.heal`. Mobs holding a Vampirism weapon heal too (vanilla-like).
+- Beheading uses the same "direct" rule (melee enchantment, so a thrown trident doesn't count, consistent with
+  Vampirism). Player kill = the damage source's entity is a `Player`. Heads come from our own loot table
+  `enchanting2:beheading/heads` (vanilla's mapping + `player` → `player_head` with `fill_player_head`), so datapacks can
+  add mobs. One head at most: no roll if the drops already hold that item (the wither skull from vanilla's own roll), so
+  the chance is `p_vanilla + (1 − p_vanilla) × p_ours`, which is close to additive.
+- Smelting runs inside `FortuneDrops`' listener, after Fortune and outside its Silk-free re-roll. Run separately, it would
+  smelt the re-roll and turn every log into "Silk changed the drop". Excluded inputs: item tag
+  `enchanting2:smelting_excluded` (shipped empty). `smelting.silk_priority` = `silk_touch` (default: a Silk Touch tool
+  never smelts) or `smelting` (the silk drop is smelted). XP: sum of `experience × count`, `StochasticRounding`, one
+  `ExperienceOrb.award` at the block.
+- TrueShot's countdown is a persistent entity attachment `enchanting2:gravity_ticks` (remaining ticks), so a reload
+  mid-flight resumes it. At 0: `setNoGravity(false)` and remove the attachment. An arrow that is already `NoGravity` from
+  elsewhere (a command) is left alone: we only set it when it wasn't set, and only clear what we set.
+- Vision: every 20 ticks per player, iterate equipment (respects slots). Wearing it: if there is no Night Vision, or it's
+  ours, or a non-infinite one with < 220 ticks left → add ours (300 ticks, ambient, no particles) when below 220.
+  Ours = ambient + amplifier 0 + at most 300 ticks (potions are never ambient). Not wearing: remove only ours. A potion
+  with 220+ ticks left is never touched.
+- New config sections in `common.json5`: `beheading` {`player_heads`: false}, `smelting` {`silk_priority`: silk_touch}.
+  Absent keys read as defaults; no file is rewritten (existing rule). Config screen entries: in 10bC.
+
+**Not doing:** ender dragon heads; zombie variants (husk, drowned, zombie villager) beyond what the data table maps (a
+datapack can add them); smelting for anything but block drops; Vampirism particles or sound; TrueShot on crossbows or
+tridents; Vision for mobs; balance numbers beyond the starting values (10d).
+**Blast radius:** a world opened with this build gains five more `enchanting2:` entries and five registered effect
+types (registry-synced: clients need this build, as DESIGN §10 already requires). `common.json5` gains two sections
+only through the GUI save (`saveWithBackup`). The `hurtServer` wrap runs on every damage event and must never change
+the damage or the return value (a GameTest pins both). No world data except the arrow attachment, which only exists
+on TrueShot arrows.
+**Rollback:** `git revert` the stage's commit. Dev worlds (`run/`, gitignored) lose the enchantments on load with a
+vanilla WARN; a TrueShot arrow in flight keeps `NoGravity` (vanilla saves it) until it despawns; Fabric WARNs about the
+unknown attachment. Nothing outside the repo is touched.
+
+### Stage 10bA — Effect registry, Vampirism, Beheading → commit
+- [ ] 10bA.1 `effect/ModEffects`: register the four components + `suspend_gravity` (the type exists from this stage, its
+      enchantment in 10bB). Called first in `Enchanting2.onInitialize` (the enchantment registry parses after).
+- [ ] 10bA.2 `config/BeheadingSection` (`player_heads`), in `CommonConfig`. JUnit: default false, round-trip, absent
+      section → default.
+- [ ] 10bA.3 `LivingEntityMixin` `@WrapMethod hurtServer` → `effect/Lifesteal.afterHurt(victim, source, lostHealth)`;
+      return value untouched; any exception is logged and the hit stands.
+- [ ] 10bA.4 `effect/HeadDrops` on `MODIFY_DROPS` (victim's own table only) + loot table
+      `data/enchanting2/loot_table/beheading/heads.json`. Errors leave vanilla's drops (ERROR log).
+- [ ] 10bA.5 JSON `vampirism`, `beheading` + lang + `non_treasure` + `tooltip_order` + `ModEnchantments.KEYS`.
+- [ ] 10bA.6 GameTests (`EffectEnchantmentsGameTest`): Vampirism V, player at 10 HP hits a zombie for a known amount
+      → health `10 + 0.2 × lost`; a 2 HP target hit for 20 → heal `0.4`; killing blow heals; a thrown-trident source (direct
+      ≠ causing) → no heal; no enchantment → no heal; the wrapped `hurtServer` returns what vanilla returned. Beheading:
+      `HeadDrops.apply` with a fixed roll (chance seam) → zombie head added on a player kill, nothing when the killer is
+      a mob, a player victim gives a `player_head` with its profile only with `player_heads` on, a wither skeleton whose
+      drops already hold a skull gets no second one, an entity with no mapping (cow) gets nothing. Statistical: level V
+      over N seeded calls ≈ 10%. Mutation run before commit.
+
+### Stage 10bB — Smelting + TrueShot Aura → commit
+- [ ] 10bB.1 `config/SmeltingSection` (`silk_priority`) + JUnit.
+- [ ] 10bB.2 `effect/SmeltingDrops.apply(...)`, called at the end of `FortuneDrops`' listener (not on the re-roll).
+      Item tag `enchanting2:enchantable/smelting`, `enchanting2:smelting_excluded` (empty).
+- [ ] 10bB.3 `effect/SuspendGravity` entity effect + `AbstractArrowMixin` (server tick countdown) + attachment.
+- [ ] 10bB.4 JSON `smelting`, `true_shot_aura` + lang + tags + keys.
+- [ ] 10bB.5 GameTests: iron ore with a Smelting pickaxe → iron ingot (+ XP orb total over N breaks ≈ 0.7 × N); log with
+      a Smelting axe → charcoal; Fortune V axe + Smelting on a natural log → charcoal count = Fortune multiplier (Fortune
+      still decides, the re-roll isn't smelted); Silk + Smelting on iron ore → ore block (default), iron ingot under
+      `smelting`; excluded tag (test datapack) → unsmelted; a drop with no recipe (dirt) unchanged; placed log → one
+      charcoal. TrueShot: a bow-spawned arrow is `NoGravity` with 100 ticks; after 100 ticks gravity is back and the
+      attachment is gone; a save/load round-trip keeps the remaining ticks; an arrow already `NoGravity` is left alone.
+
+### Stage 10bC — Vision + config screen + docs → commit
+- [ ] 10bC.1 `effect/NightVisionTicker` (`END_SERVER_TICK`, every 20 ticks, players only) + JSON `vision` + lang + keys.
+- [ ] 10bC.2 GameTests: wearing → NV ambient, at most 300 ticks; at 219 left → refreshed; a 3-minute potion → untouched;
+      unequipped → ours removed, a potion kept; mutation run.
+- [ ] 10bC.3 Config screen: `beheading.player_heads` and `smelting.silk_priority` entries + lang (JUnit lang-key test,
+      client GameTest assertion). DESIGN §9 rows and §4 note updated. state.md.
 
 ### Phase 10a — Data-only enchantments (three stages, one commit each)
 **Goal:** the eleven D-route enchantments exist as `enchanting2:` registry entries with effect components, show up in

@@ -776,3 +776,25 @@ behind `beheading.player_heads`, default off.
 **Rejected:** threshold + cooldown, threshold PvE-only (Vampirism); gravity-free until hit (TrueShot); pickaxe-only and
 no-XP Smelting; 5%/level and player heads on by default (Beheading).
 **Affects:** TODO Phase 10b, DESIGN §9
+
+## 2026-10-09 — Phase 10b owner answers, round 2 (asked before planning)
+**Context:** Planning 10b raised four questions the first round didn't cover.
+**Choice (owner):** (1) **Smelting smelts every recipe**: any drop with a smelting recipe is smelted, so logs become
+charcoal on an axe, sand becomes glass and potatoes become baked potatoes. We ship an empty item tag
+`enchanting2:smelting_excluded` for datapacks. (2) **Beheading needs a player kill**, like vanilla's skull rule, so a mob
+holding a Beheading weapon never drops heads. (3) **Vampirism counts direct melee hits only** (not a thrown trident), and
+the heal is based on the health the target actually lost, so overkill doesn't count. (4) **Vision is for players only.**
+**Why:** owner's calls. Every recipe means no ore list and nothing to maintain (DESIGN §9 "no hard-coded ore list").
+**Rejected:** an ore-only input tag; every recipe minus logs; any kill with the weapon (Beheading); full damage
+including overkill; thrown tridents (Vampirism); Vision on all living entities.
+**Affects:** TODO Phase 10b
+
+## 2026-10-09 — Beheading leaves out the ender dragon (owner)
+**Context:** `javap`: `EnderDragon.reallyHurt` sets health 1 and starts the DYING phase, and `tickDeath` removes it
+200 ticks later. `dropAllDeathLoot` is never called, so no loot-table or `MODIFY_DROPS` hook fires for it.
+**Choice (owner):** Beheading covers zombie, skeleton, wither skeleton, creeper and piglin, plus players behind
+`beheading.player_heads`. No dragon.
+**Why:** it would need its own mixin, and the dragon's killing blow is almost always an arrow or a bed, which a melee-only
+enchantment never counts. Dragon heads still come from End ships.
+**Rejected:** a mixin that remembers the Beheading hit that started the death animation.
+**Affects:** TODO Phase 10b, DESIGN §9
