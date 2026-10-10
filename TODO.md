@@ -1336,11 +1336,131 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       GameTest each. Plan and stages below. (Vision moved to 10b, owner 2026-10-09.)
 - [x] 10b Custom effect types (E): Vampirism, TrueShot Aura, Smelting, Beheading, Vision. Plan and stages below.
 - [ ] 10c Mixin/network (M): Quick Strike, Magnetic, Ender Link, Keep on Death, Double Jump,
-      Flight, Area Mining, Replant, Tiller, Last Stand, Deflect, Shield Bash.
+      Lava Walking, Snow Walker, Flight, Speed, Area Mining, Replant, Tiller, Last Stand, Deflect, Shield Bash,
+      Steadfast, Spiked, Bulwark, Riposte, Steady Stance (Spiked and Bulwark are E-route; built here with the shields),
+      Calm Gaze, Clarity, Phantom Ward, Sustenance (helmet), Endurance (leggings).
       Each gets its own written sub-plan here first, covering edge cases from §9 and dupe tests.
+      Every stage that adds an enchantment or changes a price updates docs/ENCHANTMENTS.md (status, cost).
+      Lava Walking, Snow Walker (owner, 2026-10-10): boots, max level 1, priced 10 (10f). Sneak to sink for both;
+      mobs wearing the boots get the effect. Standing on lava still burns (vanilla's lava contact: set on fire +
+      lava damage, so Fire Resistance is what makes it safe). Snow Walker is the leather-boots effect on any boots,
+      freeze immunity included. Water Walking dropped (owner: Frost Walker already covers water).
+      Speed (owner, 2026-10-10): elytra, +10% flight speed per level, costs 6 per level (its stage adds
+      `PricingTable` row `Pricing(0, 6, LEVEL_DIFFERENCE, 0, 10)`; JUnit Speed V = 30, II → V = 18). Max 5, and it
+      scales firework-rocket boosts as well as gliding (owner).
+      Shields (owner, 2026-10-10): Steadfast (III, axe-disable −33%/level), Spiked (V), Bulwark (III), Riposte (V,
+      +3%/level on the next melee hit after a block), Steady Stance (I, priced 10). DESIGN §9 rows. Spiked's damage
+      and Bulwark's cooldown are numbers for their sub-plan. Quick Guard, Parry, Arrow Catcher not picked.
+      Helmet and leggings (owner, 2026-10-10; DESIGN §9 rows): Sustenance 4%/level, Endurance 5%/level (sprint only).
+      Hard Hat, Leaping, Shadow Step not picked. Each stage writes its enchantment's `.desc` lang line (10h's
+      completeness test fails otherwise).
+- [ ] 10f Prices (owner, 2026-10-10; DESIGN §5): every single-level non-curse enchantment except Mending costs
+      10 XP levels, and Frost Walker costs 2 per level. One commit:
+      - `cost/PricingTable.BUILT_IN`: `minecraft:frost_walker` → `Pricing(0, 2, LEVEL_DIFFERENCE, 0, 10)`. JUnit:
+        Frost Walker V = 10, III → V = 4.
+      - `cost/PricingTable.BUILT_IN`: a `Pricing(10, 0, LEVEL_DIFFERENCE, 0, 10)` row for `minecraft:aqua_affinity`,
+        `silk_touch`, `flame`, `infinity`, `channeling`, `multishot`, and `enchanting2:smelting`, `true_shot_aura`,
+        `vision`. Each 10c single-level enchantment (Magnetic, Ender Link, Keep on Death,
+        Double Jump, Area Mining, Replant, Lava Walking, Snow Walker, Steady Stance, Calm Gaze, Phantom Ward, Step
+        Assist, and any later level-1 one) adds its
+        row in its own stage (owner: all of them, built or not).
+      - JUnit: `PricingTable.builtIn()` gives 10 for each row and a file override still wins; `CostModel` with
+        Silk Touch alone = 10, Silk Touch + Eff V = 15, Mending + Silk Touch = 14; Mending and curses unchanged.
+      - Existing tests that price these at 1 (table, anvil, grindstone GameTests) move to 10. Each is updated, never
+        deleted.
+      - A single-level enchantment whose max is raised by `max_level_override` costs 10 for any level
+        (`cost_per_level 0`). The admin sets `cost_per_level` to change that.
+- [ ] 10g Applicability and vanilla extensions (owner, 2026-10-10; DESIGN §4, §6). Three stages below, one commit
+      each: axes and crossbow widening, Silk Touch spawners, infinite buckets.
+- [ ] 10h Enchantment descriptions on Ctrl (owner, 2026-10-10; DESIGN §6 "Enchantment descriptions in tooltips").
+      Client-only, one commit:
+      - `en_us.json`: an `enchantment.<ns>.<path>.desc` line for all 43 vanilla enchantments and the 16 built ones,
+        from docs/ENCHANTMENTS.md with this mod's numbers.
+      - Client: Fabric `ItemTooltipCallback`; under each visible enchantment line (item and stored enchantments) add
+        its description while Ctrl is down, else the hint line. Check how 1.21.11 reads modifier keys first (the
+        input API changed in 1.21.9). Off when the Enchantment Descriptions mod is loaded (confirm its mod ID).
+      - `client.json5` `tooltips.enchantment_descriptions`, `tooltips.show_hint` (both true) + "Display" toggles.
+      - JUnit: line builder (key derivation, missing key, hidden enchantment, Ctrl off). JUnit lang-completeness test
+        over the vanilla + `enchanting2:` enchantment IDs. Client GameTest screenshot with Ctrl held on a Sharpness
+        V book and a Vision helmet.
+- [ ] 10i Data-only armor additions (D, owner 2026-10-10): Step Assist (`step_height`), Anchored
+      (`knockback_resistance`), Sure Footing (`movement_efficiency`), the 10a pattern: JSON + lang (+ `.desc`) + tags
+      + GameTest each, Step Assist's 10-price row. Sure Footing's per-level amount is measured first (soul sand, honey,
+      powder snow) and written here before the JSON.
+- [ ] 10j Configurability (owner, 2026-10-10; DESIGN §1 principle, §8 "Raising max levels"). Two commits:
+      - 10jA Ceilings (server, no GUI): a `LevelCeilings` table (MC-free) of hard ceilings (clamp + WARN, today's
+        `MaxLevels.SAFE_MAX` moves in) and soft-ceiling notes (lang keys). Check each candidate before it goes in:
+        arithmetic in this file or a GameTest (Piercing at 128 and 255, Swiftness and Speed at high levels against
+        moved-too-quickly, Thorns VII always triggering, Protection past the 20 cap, Fortune 255 on one block for
+        tick time). JUnit: every `minecraft:` and `enchanting2:` ID has a row (no ceiling / soft / hard), so a new
+        enchantment can't skip it; an override above a hard ceiling clamps; 255 is accepted for a no-ceiling row.
+        GameTest: Efficiency 100 applies at the anvil, costs 100 and mines instantly.
+      - 10jB Config screen: the "Enchantments" category gets, per enchantment, max level (1 to its hard ceiling or
+        255, "default (N)" reset), `base_cost` and `cost_per_level`, with the ceiling note as the field's description
+        and "applies on restart" beside max level. Writes `enchantments.json5` through `saveWithBackup`. Read-only on a
+        remote server like the rest. Client GameTest screenshot of an expanded entry.
+      - From here on, each stage that adds an option or enchantment also adds its screen entry and its ceiling row
+        (the JUnit above fails otherwise).
 - [ ] 10e Curses (§5a): Fragility, Weight, Greed, Fumbling (D); Hunger (M). Curse tag +
-      `discount_percent` data; table shows curses as optional picks with a negative cost line
+      `discount_percent` data; table shows curses as optional picks with a negative cost line.
+      Max level 5 for all five (owner, 2026-10-10). Open (owner, before 10e): does each level scale the effect and
+      the discount, and by how much (§5a's numbers are one fixed level today)?
 - [ ] 10d Balance pass: every candidate moves from REVIEW to INCLUDE/DEFER/REMOVE
+
+### Phase 10g — Applicability and vanilla extensions (three stages, one commit each)
+**Goal:** the owner's 2026-10-10 additions to vanilla enchantments work, each with a GameTest that fails if it breaks.
+**Not doing:** Sweeping Edge or Lunge on axes (sword/spear mechanics), Mending on non-durable items or on modded
+durables missing from `#enchantable/durability` (owner: no), milk/powder snow/fish buckets, trial spawners, iron-ingot
+bucket repair. Vanilla tags stay untouched except the buckets joining `#enchantable/durability` (10gC, on purpose).
+**Answered (owner, 2026-10-10):** spawner option on by default and the spawner keeps its mob; buckets reuse Infinity
+and get durability (256 uses, the last use destroys it); only water and lava buckets take enchantments, never the
+empty bucket; an Infinity lava bucket is never fuel; the table offers it on buckets; Sweeping Edge stays swords-only;
+no Mending on untagged modded durables.
+Durability enchantments on a bucket need Infinity on it (owner, 2026-10-10).
+
+### Stage 10gA — Axes and crossbow → commit
+- [ ] 10gA.1 Tags `enchanting2:enchantable/{knockback,looting,fire_aspect,flame,infinity}` = the vanilla tag + new
+      items (axes; crossbow; Infinity also gets the two buckets in 10gC, not here) and `bow_or_crossbow` for TrueShot.
+- [ ] 10gA.2 `MaxLevelHook`-style MODIFY step swaps `supported_items` and `primary_items` to those tags, by ID. A
+      datapack that already replaced the definition keeps its own (log at INFO, don't fight it). TrueShot's JSON
+      points at `bow_or_crossbow`.
+- [ ] 10gA.3 GameTests: Knockback/Looting/Fire Aspect apply to an iron axe at the anvil and are offered at the table;
+      a Fire Aspect axe sets the target on fire. A Flame crossbow arrow ignites; an Infinity crossbow keeps its arrow
+      and still uses a firework rocket; a TrueShot crossbow arrow has no gravity, all three with Multishot. Power and
+      Punch still refuse a crossbow (the shared tag untouched). A shovel takes Reach, XP Boost and refuses
+      Sharpness/Vampirism. Mending applies to every item in `#enchantable/durability`.
+- [ ] 10gA.4 docs/ENCHANTMENTS.md: drop the ‡ on these rows.
+
+### Stage 10gB — Silk Touch spawners → commit
+- [ ] 10gB.1 `common.json5` `silk_touch.collect_spawners` (bool, default true), `SilkTouchSection` + config
+      screen toggle in "Enchantment effects", following `SmeltingSection`.
+- [ ] 10gB.2 Drop: on a Silk Touch break of a `minecraft:spawner` with the option on, drop the spawner item with its
+      spawn data and our stamp component; no XP. Off → vanilla (no drop, XP).
+- [ ] 10gB.3 Place: a spawner item with our stamp restores its spawn data for a non-op (vanilla's
+      `OP_ONLY_CUSTOM_DATA` gate stays for every other item). Fortune hard-excluded like ancient debris.
+- [ ] 10gB.4 GameTests: on → a zombie spawner drops, a survival player places it, it spawns zombies; off → nothing
+      drops; a hand-made `block_entity_data` spawner without the stamp still places empty for a non-op (the guard
+      test); Fortune V + `FORTUNE_MULTIPLIES_SILK` still gives exactly one; no XP orbs on a silk break.
+- [ ] 10gB.5 docs/ENCHANTMENTS.md + DESIGN §6: drop the ‡.
+
+### Stage 10gC — Infinite buckets → commit
+- [ ] 10gC.1 Infinity's tag adds `minecraft:water_bucket`, `minecraft:lava_bucket` (and the `enchantable` component
+      if the owner wants table offers).
+- [ ] 10gC.2 Durability: `DefaultItemComponentEvents.MODIFY` gives both buckets `max_damage` (256 unless the owner
+      says otherwise); both join `#minecraft:enchantable/durability` (Unbreaking, Mending, Vanishing, Keep on Death,
+      Fragility). `EnchantRules`: on a bucket, those need Infinity on the item or in the same book.
+- [ ] 10gC.3 Mixins: `BucketItem.getEmptySuccessItem` returns the same stack, damaged by 1 (Unbreaking applies), for
+      an Infinity bucket; the bucket dispense behaviour and `CauldronInteraction`'s empty-bucket path do the same; at
+      0 it breaks like a tool (gone, break sound); furnace fuel refuses an Infinity lava bucket; crafting refuses an
+      Infinity bucket as an ingredient. The table offers enchantments on water and lava buckets (add the `enchantable`
+      component if the table gates on it), never on the empty bucket.
+- [ ] 10gC.4 GameTests: ten placements from one water and one lava bucket (still one enchanted full bucket each, 10
+      damage); a dispenser and a cauldron keep it and damage it; the 256th use destroys it; the table offers Infinity
+      on a water bucket and nothing on an empty bucket; Unbreaking
+      V skips uses over a seeded run; Mending repairs it from XP; Mending alone is refused on a plain bucket (the
+      guard test); a furnace won't take the lava one; a plain bucket still empties and is never damaged (no side
+      effect on plain buckets); Nether evaporation leaves the bucket full and damages it.
+- [ ] 10gC.5 docs/ENCHANTMENTS.md + DESIGN §6: drop the ‡.
 
 ### Phase 10b — Custom effect types (three stages, one commit each)
 **Goal:** the five E-route enchantments exist as `enchanting2:` data entries whose behaviour is driven by our own effect

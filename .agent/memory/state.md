@@ -4,7 +4,7 @@
 > cheap to read at the start of every session. History belongs in `decisions.md` and
 > `gotchas.md`; this file only answers "where am I right now?".
 
-**Last updated:** 2026-10-09
+**Last updated:** 2026-10-10
 **Branch:** main (commit straight to main and push; no CI; see decisions.md)
 
 ## Where we are
@@ -32,8 +32,13 @@ Phases 1–9 and 10a done (TODO.md has each stage's notes; owner `runClient` che
 ## What's next
 1. Phase 10b done (2026-10-09): Vampirism, Beheading, Smelting, TrueShot Aura, Vision on our effect components
    (`effect/*`), `beheading` + `smelting` config sections, config screen "Enchantment effects" category.
-   Next: 10c (M route: Quick Strike, Magnetic, Ender Link, Keep on Death, Double Jump, Flight, Area Mining, Replant,
-   Tiller, Last Stand, Deflect, Shield Bash). Each needs its own written sub-plan in TODO.md first (owner questions
+   Next: 10f (single-level enchantments cost 10, Frost Walker 2/level; owner 2026-10-10, small), then 10g (axes and
+   crossbow widening, Silk Touch spawners, infinite buckets; one open question in TODO 10g), then 10h (Ctrl tooltip
+   descriptions), 10i (Step Assist, Anchored, Sure Footing; data-only), 10j (max levels to 255 with ceilings, max
+   level + cost in the config screen), then 10c (M route:
+   Quick Strike, Magnetic, Ender Link, Keep on Death, Double Jump, Lava Walking, Snow Walker, Flight, Speed, Area Mining,
+   Replant, Tiller, Last Stand, Deflect, Shield Bash, Steadfast, Spiked, Bulwark, Riposte, Steady Stance, Calm Gaze,
+   Clarity, Phantom Ward, Sustenance, Endurance). Each needs its own written sub-plan in TODO.md first (owner questions
    first: edge cases from DESIGN §9).
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
    ~1,000,000) + 6D: panel look, config screen "Display" toggle, and a vanilla server keeping the vanilla anvil screen +
@@ -49,9 +54,13 @@ Phases 1–9 and 10a done (TODO.md has each stage's notes; owner `runClient` che
    bamboo blocks and leaves aren't in them.
 
 ## Open questions / blockers
-- None. Owner (2026-10-06): a lowered max level never touches existing items (decisions.md).
+- Owner (2026-10-06): a lowered max level never touches existing items (decisions.md).
 
 ## Do not forget
+- `docs/ENCHANTMENTS.md` is the owner's quick reference (by armor/item type). Update it with every new enchantment,
+  max level or price change.
+- Owner principle (DESIGN §1): every option goes in the config screen too, and every enchantment needs a `.desc` lang
+  line (10h) and a level-ceiling row (10j).
 - Plugin ID is `net.fabricmc.fabric-loom-remap` for 1.21.11. 1.21.11 Mojang names use `Identifier`, not `ResourceLocation`.
 - Never kill java by name. The dev server uses 25566; the owner's other instance may be on 25565.
 - 1.21.x enchantments are data-driven: use `EnchantmentEvents.MODIFY`, not override JSON. MODIFY runs

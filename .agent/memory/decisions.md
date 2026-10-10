@@ -816,3 +816,108 @@ reusing `minecraft:charged_creeper/root` (a datapack retuning charged creepers w
 a non-persistent TrueShot timer (vanilla saves `NoGravity`, so a reload would float the arrow forever).
 **Affects:** src/main/java/com/wulfnet/enchanting2/effect/*, mixin/LivingEntityMixin, mixin/AbstractArrowMixin,
 fortune/FortuneDrops, config/BeheadingSection, config/SmeltingSection
+
+## 2026-10-10 — Single-level enchantments cost 10; Water Walking and Lava Walking added (owner)
+**Context:** the default price is 1 XP level per enchantment level, so Silk Touch or Infinity cost 1, less than
+Efficiency II.
+**Choice (owner):** every single-level non-curse enchantment except Mending costs 10 XP levels: vanilla Aqua Affinity,
+Silk Touch, Flame, Infinity, Channeling, Multishot; ours Smelting, TrueShot Aura, Vision; and the planned level-1 ones.
+Two new boots enchantments, Water Walking and Lava Walking, max level 1, cost 10, route M (Phase 10c).
+**Why:** a single level is the whole enchantment, so pricing it as one level undervalued it.
+**How (agent):** `PricingTable.BUILT_IN` rows (`base_cost 10`, `cost_per_level 0`), like Mending's. Data, not a
+"max level is 1" branch in `CostModel` (DESIGN §5: special cases are rows). The agent included the planned 10c level-1
+enchantments (Magnetic, Ender Link, Keep on Death, Double Jump, Area Mining, Replant) because the owner said "all".
+**Rejected:** a max-level-1 rule in code (would also price third-party enchantments and would change when an override
+raises a max).
+**Affects:** docs/DESIGN.md §5/§9, TODO Phase 10c/10f, src/main/java/com/wulfnet/enchanting2/cost/PricingTable.java (10f)
+
+## 2026-10-10 — Fluid/snow walking boots: owner answers
+**Context:** open questions on Water Walking and Lava Walking (DESIGN §9).
+**Choice (owner):** sneak to sink on both; standing on lava still burns; mobs wearing the boots get the effect; every
+single-level enchantment, built or not, costs 10 (confirms the agent's reading of "all"). New: Snow Walker (boots,
+walk on powder snow instead of sinking). Agent assumptions, not yet confirmed: Snow Walker max level 1 (so priced 10);
+"burns" = vanilla's lava contact (fire + lava damage), not just catching fire.
+**Why:** owner's call.
+**Rejected:** never sinking on lava (owner chose sneak to sink anyway).
+**Affects:** docs/DESIGN.md §5/§9, TODO 10c/10f
+
+## 2026-10-10 — Water Walking dropped; Frost Walker 2 per level; Snow Walker blocks freezing (owner)
+**Context:** Water Walking overlapped Frost Walker (both cross water; Frost Walker would freeze the surface under a
+Water Walker). Snow Walker's freezing behaviour was open.
+**Choice (owner):** drop Water Walking. Frost Walker costs 2 XP levels per level (`PricingTable` row, `cost_per_level
+2`). Snow Walker is exactly the leather-boots effect on any boots, freeze immunity included.
+**Why:** Frost Walker already covers water; Frost Walker going to V made it cheap at 1 per level.
+**Rejected:** keeping Water Walking exclusive with Frost Walker; Snow Walker without freeze immunity.
+**Affects:** docs/DESIGN.md §5/§9, TODO 10c/10f
+
+## 2026-10-10 — Snow Walker level 1, lava burn confirmed, new curses to level 5 (owner)
+**Context:** two agent assumptions from the earlier entry, and the 10e curses' max levels.
+**Choice (owner):** Snow Walker max level 1 (priced 10). Standing on lava with Lava Walking still burns (vanilla lava
+contact). Fragility, Weight, Greed, Fumbling and Hunger go to max level 5; Binding and Vanishing stay at 1.
+**Open:** per-level scaling of each new curse's effect and `discount_percent` (ask before 10e).
+**Affects:** docs/DESIGN.md §5a/§9, docs/ENCHANTMENTS.md, TODO 10e
+
+## 2026-10-10 — Elytra Speed, axe/crossbow widening, Silk Touch spawners, infinite buckets (owner)
+**Context:** owner request: elytra Speed, more applicability for axes, shovels and the crossbow, Mending everywhere,
+a spawner option for Silk Touch, infinite water and lava buckets, and shield ideas.
+**Choice (owner):** Speed on elytra, +10% per level, 6 XP levels per level (10c). Axes take the melee weapon
+enchantments and Reach/Magnetic/Ender Link; shovels the same minus weapons. Crossbow takes Infinity, Flame,
+TrueShot Aura. Mending on every enchantable item. `silk_touch.collect_spawners` toggle. Infinite water and lava
+buckets. All in Phase 10g except Speed.
+**How (agent):** widen per enchantment with our own `enchanting2:enchantable/<id>` tags swapped in at MODIFY, never by
+editing the shared vanilla tags (`#enchantable/bow` also drives Power/Punch; `#enchantable/melee_weapon` drives
+Sharpness's primary items). Shovels and our melee enchantments on axes needed nothing: already true in data.
+**Agent assumptions, not yet confirmed:** Speed max 5; Sweeping Edge stays off axes (`Player` sweeps only
+`#minecraft:swords`); Mending already fits every vanilla durable item and is not put on non-durable ones (it would do
+nothing); spawner option default off, spawner keeps its mob (vanilla copies spawner data only for ops,
+`BlockEntityType.OP_ONLY_CUSTOM_DATA`, so placement needs a stamp-gated hook); infinite buckets = vanilla Infinity on
+the two buckets, anvil + book only, an Infinity lava bucket is never fuel. Shield ideas are candidates only
+(DESIGN §9).
+**Rejected:** editing vanilla `#enchantable/*` tags (silently widens other enchantments); letting any
+`block_entity_data` spawner place for non-ops (any player could make any spawner); Infinity lava bucket as fuel
+(burns forever, or comes back a plain bucket).
+**Affects:** docs/DESIGN.md §4/§5/§6/§9, docs/ENCHANTMENTS.md, TODO 10c/10g
+
+## 2026-10-10 — Owner answers: Speed, shields, spawners, durable Infinity buckets
+**Context:** open questions from the previous entry, plus shield candidates.
+**Choice (owner):** Speed max 5 and it scales firework-rocket boosts as well as gliding. Shields: Steadfast,
+Spiked, Bulwark, Riposte (+3% per level, not the proposed 10%), Steady Stance (10c). Quick Guard, Parry, Arrow
+Catcher not picked. `silk_touch.collect_spawners` on by default. Buckets reuse Infinity and get durability so Mending,
+Unbreaking etc. are useful. No Mending on modded durables missing from `#enchantable/durability`.
+**How (agent):** the buckets get `max_damage` and join vanilla `#enchantable/durability` (the one deliberate vanilla
+tag edit: every enchantment keyed on durability should apply). Agent proposals, not yet confirmed: 256 uses for both,
+fixed (not config, since each side draws the bar from its own component); the last use leaves a plain empty bucket;
+durability enchantments on a bucket need Infinity, because a plain bucket empties into a new item and would lose them;
+a collected spawner keeps its mob.
+**Rejected:** a config value for bucket uses (client/server mismatch shows a wrong bar); letting Mending onto a plain
+bucket (lost on first use, wasted levels).
+**Affects:** docs/DESIGN.md §4/§5/§6/§9, docs/ENCHANTMENTS.md, TODO 10c/10f/10g
+
+## 2026-10-10 — Ctrl tooltip descriptions, helmet/leggings picks, bucket answers (owner)
+**Context:** owner answers to the open questions, plus a new client feature.
+**Choice (owner):** holding Ctrl over an item shows each enchantment's description (Phase 10h). Helmet: Calm Gaze,
+Clarity, Phantom Ward, Sustenance (4% per level). Leggings: Step Assist, Anchored, Endurance (5% per level, sprint),
+Sure Footing. Not picked: Hard Hat, Leaping, Shadow Step. Buckets: 256 uses; the last use destroys it like any tool;
+only water and lava buckets take enchantments, never the empty bucket; never fuel; the table offers it. A collected
+spawner keeps its mob. Sweeping Edge stays swords-only.
+**How (agent):** descriptions are lang keys `enchantment.<ns>.<path>.desc` (the Enchantment Descriptions mod's
+convention, so third-party ones that ship that key show too), guarded by a lang-completeness test so every later
+enchantment stage must write one; off when that mod is loaded so lines don't double. D-route leggings (Step Assist,
+Anchored, Sure Footing) get their own small Phase 10i instead of waiting for 10c.
+**Still open:** Mending/Unbreaking on a water or lava bucket without Infinity. The owner's answer ("a plain bucket
+can't be enchanted") reads as the empty bucket; the agent keeps the Infinity-first rule until confirmed. The "Hold
+Ctrl" hint line.
+**Affects:** docs/DESIGN.md §4/§5/§6/§9, docs/ENCHANTMENTS.md, TODO 10c/10f/10g/10h/10i
+
+## 2026-10-10 — Highly configurable: max levels to 255 with ceilings, all in the config screen (owner)
+**Context:** owner: users must be able to enable/disable enchantments and raise caps past the max where feasible,
+with a note (Efficiency 100), all through the Mod Menu screen. Also: durability enchantments on a bucket need
+Infinity; keep the "Hold Ctrl" hint.
+**Choice (owner):** the above, as a DESIGN §1 principle and Phase 10j.
+**How (agent):** three groups per enchantment: no ceiling, soft ceiling (accepted, the screen notes where more stops
+helping), hard ceiling (clamped + WARN, the existing `SAFE_MAX` mechanism, extended only after a check). 255 is the
+upper bound because `EnchantmentOverrides.MAX_MAX_LEVEL` already matches vanilla's stored-level limit. A JUnit
+requires a ceiling row for every ID so a new enchantment can't skip it. Weights and `treasure` stay file-only.
+**Rejected:** clamping soft ceilings (owner wants high levels allowed with a note); a GUI max level that applies
+without a restart (MODIFY only runs at startup, gotchas.md 2026-10-07).
+**Affects:** docs/DESIGN.md §1/§8/§10, docs/ENCHANTMENTS.md, TODO 10j

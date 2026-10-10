@@ -25,6 +25,10 @@ how 1.21.x enchantments actually work.
 - Costs are additive, transparent, configurable, and shown before the player commits.
 - Vanilla enchantments are kept under their vanilla IDs. They are modified, never duplicated.
 - The server is authoritative. A client can never override gameplay config.
+- **Highly configurable** (owner, 2026-10-10). Every enchantment, ours and vanilla, can be enabled or disabled,
+  have its max level raised or lowered (§8, up to 255 where it still works, with a note where more stops helping),
+  and be priced. Every gameplay option, global or per enchantment, is editable in the in-game config screen (Mod Menu
+  + YACL) as well as the file. A new option isn't done until it's in the screen.
 
 ### Terminology (enforced in code and config names)
 - **XP level** / **experience level**: the player-facing number. A cost of 17 deducts 17 levels.
@@ -231,6 +235,33 @@ vanilla IDs below; an enchantment a datapack adds to a vanilla exclusive-set tag
 - Unknown and third-party enchantments on an item are preserved through every operation.
 - New enchantments declare `supported_items` and `exclusive_set` explicitly.
 
+### Widened applicability (owner, 2026-10-10; Phase 10g)
+Rule 2 still holds: these are owner decisions about what an item takes, not a way to enable a combo.
+
+| Enchantment | Vanilla fits | v1 adds | Notes |
+|---|---|---|---|
+| Knockback, Looting | swords, spears (`#enchantable/melee_weapon`) | axes | |
+| Fire Aspect | swords, spears, mace | axes | |
+| Flame | bow | crossbow | arrows only; a firework rocket isn't lit |
+| Infinity | bow | crossbow; water bucket, lava bucket (§6 "Infinite buckets") | on a crossbow, arrows only (vanilla's `ammo_use` matches `minecraft:arrow`), so rockets are still used up |
+| TrueShot Aura (ours) | bow | crossbow | arrows only; Multishot's three arrows each get it |
+
+- Axes already take Sharpness, Smite and Bane (vanilla `#enchantable/sharp_weapon`, `#enchantable/weapon`) and every
+  `enchanting2:` melee enchantment (our `melee` tag is `#enchantable/weapon` + trident). **Not Sweeping Edge**: the
+  sweep attack is hard-coded to `#minecraft:swords` (`Player`), so it would do nothing on an axe (owner,
+  2026-10-10: swords only). Not Lunge (a spear mechanic).
+- Shovels already take Reach (`tool_or_melee`), XP Boost, and the planned Magnetic and Ender Link (`tool_or_weapon`),
+  and no weapon enchantment. Nothing to change; a GameTest pins it.
+- **Mending** already fits every vanilla item with durability (`#enchantable/durability`: armor, elytra, shield, every
+  tool and weapon, bow, crossbow, trident, mace, spears, flint and steel, shears, brush, fishing rod, both on-a-stick
+  items), and the water and lava buckets join it once they have durability (§6 "Infinite buckets"). The other
+  enchantable items (compass, heads, carved pumpkin) have no durability, so Mending would do nothing on them and is
+  not added. A modded durable item that a mod didn't put in that tag doesn't take it (owner, 2026-10-10: no).
+- **How:** an `enchanting2:enchantable/<id>` item tag per widened vanilla enchantment (vanilla tag + the new items), put
+  into that enchantment's `supported_items` and `primary_items` in `EnchantmentEvents.MODIFY` (the `MaxLevelHook`
+  pattern), so the shared vanilla tags (`#enchantable/bow` also drives Power and Punch) are never edited. TrueShot Aura
+  is ours, so its JSON points at a new `bow_or_crossbow` tag.
+
 ---
 
 ## 5. Cost model
@@ -263,9 +294,27 @@ lapis_cost   = min(enchant_cost, 64)   (enchanting table only)
 
   So **order doesn't matter**. The finished item costs the same however it was built, and
   Mending can't be dodged by applying it first.
+- **Frost Walker costs 2 per level** (owner, 2026-10-10): `cost_per_level 2`, so Frost Walker V
+  = 10 and an upgrade pays 2 per added level (III → V = 4).
+- **Single-level enchantments cost 10** (owner, 2026-10-10): data rows like Mending's,
+  `base_cost 10`, `cost_per_level 0`. Covered: Aqua Affinity, Silk Touch, Flame, Infinity,
+  Channeling, Multishot (vanilla); Smelting, TrueShot Aura, Vision (built); Lava Walking, Snow
+  Walker, Magnetic, Ender Link, Keep on Death, Double Jump, Area Mining, Replant, Steady Stance, Calm Gaze,
+  Phantom Ward, Step Assist, and any later
+  single-level one (planned, §9; owner: every level-1 enchantment, built or not).
+  Not Mending (its own row above) and not curses (their line is 0, §5a). The rows are by ID, so
+  a third-party single-level enchantment keeps the default 1. They still count as 1 "other
+  level" for Mending's surcharge. Everything priced "as adding" follows: the table charges 10
+  lapis, Extract costs 10, and Cleanse's undiscounted item cost includes the 10.
+- **Speed (elytra) costs 6 per level** (owner, 2026-10-10): `cost_per_level 6`, so Speed V = 30
+  and an upgrade pays 6 per added level (II → V = 18). It counts as its level for Mending's
+  surcharge like any other enchantment. The row lands with Speed's 10c stage.
 
 | Operation | Cost |
 |---|---|
+| Silk Touch / Infinity / Vision alone | 10 |
+| Silk Touch + Eff V | 10 + 5 = 15 |
+| Mending + Silk Touch | 2 + 10 + 2 = 14 |
 | Mending alone | 2 |
 | Mending + Eff I / II / III / IV / V | 5 / 8 / 11 / 14 / 17 |
 | Eff V first (5), then Mending (2 + 10) | 5 + 12 = 17 |
@@ -313,6 +362,9 @@ buys a cheaper enchant.
 | Greed | 15% | tools, weapons | −50% XP from kills and mining; multiplies with XP Boost | D (`mob_/block_experience`) |
 | Fumbling | 15% | tools | −30% block break speed | D (attribute) |
 | Hunger | 15% | armor, held items | +50% hunger drain | M (exhaustion mixin) |
+
+The five new curses go to max level 5 (owner, 2026-10-10). Binding and Vanishing stay at 1. Open: whether the
+effect and `discount_percent` scale per level, or the table above is level I (TODO 10e).
 
 Example: Mending + Efficiency V (17) + Curse of Weight → `ceil(17 × 0.85)` = 15. Cleansing it
 later costs `max(30, ceil(0.15 × 17))` = 30.
@@ -496,6 +548,80 @@ never gets the Fortune bonus. The design is ported from the mcMMO-Singleplayer
   Marks through piston push and pull, sand falls, endermen, generators and golems
   (`PlacedBlocksGameTest`). A natural block → multiplied. An unreadable chunk → no bonus.
 
+### Silk Touch and spawners (owner, 2026-10-10; Phase 10g)
+`common.json5` → `silk_touch.collect_spawners` (config screen toggle). Off: vanilla, a spawner never drops. On: a
+Silk Touch tool drops the spawner as an item.
+- **Default on** (owner, 2026-10-10). An admin who wants vanilla's spawner economy turns it off.
+- **The spawner keeps its mob** (owner, 2026-10-10). The item carries the block entity's spawn data, and placing it restores it.
+  Vanilla only copies a spawner's block-entity data for an operator (`BlockEntityType.OP_ONLY_CUSTOM_DATA` includes
+  `MOB_SPAWNER`, checked in `BlockItem`), so without our hook a survival player would place an empty spawner. The hook
+  lets the data through only for a spawner item our drop stamped, never for arbitrary item data (a hand-edited
+  `block_entity_data` spawner stays op-only, or any player could place a spawner of any mob).
+- **No XP** when silk-touched (vanilla gives 15–43 XP for breaking one; like ores, Silk Touch forfeits it).
+- **Mob spawners only.** A trial spawner still drops nothing (its loot and ominous state don't survive an item).
+- Fortune never multiplies a spawner (hard-excluded in code like ancient debris, whatever the tags or
+  `FORTUNE_MULTIPLIES_SILK` say). Smelting does nothing (no recipe). Area Mining's extra blocks never include one.
+- Off or on, the setting changes only new breaks; a spawner item already dropped stays an item.
+
+### Infinite buckets (owner, 2026-10-10; Phase 10g)
+Vanilla **Infinity** also fits the water bucket and the lava bucket (§4), costing 10 like every single-level
+enchantment (§5). Reusing Infinity rather than a new enchantment is the owner's call (2026-10-10).
+- **Effect:** emptying an Infinity bucket places the fluid and the bucket stays full, enchanted, same item, minus
+  one durability. It never becomes an empty bucket, so it can't scoop.
+- **Durability** (owner, 2026-10-10: so Mending and the rest are useful on it). The water and lava buckets get a
+  `max_damage` component (Fabric `DefaultItemComponentEvents.MODIFY`; they already stack to 1) and join
+  `#minecraft:enchantable/durability`, so Unbreaking, Mending and Curse of Vanishing fit them, and so do our Keep on
+  Death and Fragility. This is the one place we add to a vanilla tag: every enchantment keyed on that tag should apply.
+  - **256 uses** for both buckets (owner, 2026-10-10), a fixed number (not config: the bar is drawn from the item's
+    component on each side, and a server/client mismatch would show the wrong bar). Every placement costs 1, whatever
+    the path; Unbreaking can skip it as on a tool.
+  - **The last use destroys it**, like any tool breaking (owner, 2026-10-10).
+  - **Only a water bucket or a lava bucket takes enchantments**, never the empty bucket (owner, 2026-10-10).
+  - **Durability enchantments need Infinity on the bucket** (owner, 2026-10-10). A water bucket without
+    Infinity turns into a new empty bucket the first time it's poured, so Mending or Unbreaking on it would be lost
+    with the levels paid. `EnchantRules` refuses them without Infinity, at the anvil and in the table's pool; a book
+    with Infinity and Mending together applies in one go.
+  - Un-enchanted buckets carry the component too but never take damage, and a bucket that scoops is always undamaged.
+  - Two damaged Infinity buckets combine at the anvil like any damaged tool. No iron-ingot repair.
+- **Every emptying path** keeps it: a player placing it (`BucketItem.getEmptySuccessItem`), a dispenser, and a
+  cauldron (filling a cauldron returns the bucket full). Water in the Nether evaporates as normal and the bucket stays
+  full.
+- **Getting it on a bucket:** the anvil with a book, and the enchanting table (owner, 2026-10-10). Vanilla buckets
+  have no `enchantable` component; if our table gates on `ItemStack.isEnchantable()` (check `TableCalculator` and
+  `EnchantmentMenuMixin`), the water and lava buckets get one, set in the same component event as `max_damage`.
+- **Lava is an infinite fuel source.** Place, scoop with a plain bucket, burn: that already works with any lava
+  source, so an Infinity lava bucket only makes it portable. The bucket itself must not be furnace fuel, or it would
+  burn and come back as a plain empty bucket (lost enchantment) or, if kept, burn forever. An Infinity lava bucket
+  isn't accepted as fuel (owner, 2026-10-10: not to be abused as fuel).
+- **Crafting:** a recipe that takes a water or lava bucket (none in vanilla, datapacks may add some) refuses an
+  Infinity bucket, so it's never consumed into a plain bucket.
+- Milk, powder snow and fish buckets aren't covered unless the owner adds them (milk would be an infinite cure for
+  every effect).
+- Tests: place water and lava ten times from one bucket (still one enchanted full bucket, 10 durability used), a
+  dispenser and a cauldron keep it and use durability, the last use destroys it, Unbreaking skips some uses, Mending
+  repairs it from XP, Mending alone is refused on a water bucket without Infinity, an empty bucket takes nothing, the
+  table offers Infinity on a water bucket, a furnace refuses it, an un-enchanted bucket still empties and is never
+  damaged.
+
+### Enchantment descriptions in tooltips (owner, 2026-10-10; Phase 10h)
+Holding Ctrl while hovering an item shows what each of its enchantments does, under that enchantment's line.
+Client-only (no packet, no server rule).
+- **Where:** every item tooltip with enchantments, and enchanted books (`stored_enchantments`), in any screen.
+  Enchantments hidden by the item's `tooltip_display` stay hidden, description included.
+- **Text:** lang key `enchantment.<namespace>.<path>.desc`, one grey line per enchantment, wrapped to the tooltip's
+  width. We write one for every vanilla enchantment and every one of ours (taken from docs/ENCHANTMENTS.md "What it
+  does", with this mod's numbers, e.g. Thorns V = 75%). A third-party enchantment shows its own `.desc` if its lang
+  has one (the same key convention as the Enchantment Descriptions mod), otherwise nothing.
+- **Hint** (owner, 2026-10-10): without Ctrl, an enchanted item shows one dark-grey line "Hold Ctrl for
+  enchantment descriptions". macOS uses vanilla's control check, which reads Cmd there.
+- **Config:** `client.json5` `tooltips.enchantment_descriptions` (default on) and `tooltips.show_hint` (default on),
+  in the config screen's "Display" category.
+- **Another mod doing the same:** if the Enchantment Descriptions mod is loaded, ours stays off so lines aren't
+  doubled (check its mod ID when building).
+- Tests: JUnit for the line builder (key per ID, missing key → no line, hidden → no line, Ctrl off → hint only); a
+  lang-completeness test that fails when any `minecraft:` or `enchanting2:` enchantment lacks a `.desc` key, so every
+  later enchantment stage has to write its description; a client GameTest screenshot with Ctrl held.
+
 ### Books
 Can hold any enabled enchantment, mixed. Applicability is checked when the book is applied.
 Tooltip shows cost and applicable item categories.
@@ -558,6 +684,43 @@ reach 5 only because a GameTest proved it (Stage 4D). Every row can be overridde
 clamped to the last working level, with a WARN: Lure 5, Quick Charge 4, Riptide 7 (VIII can trip moved-too-quickly
 when launched along a fall). A datapack-set max is not clamped. Arithmetic in TODO.md 4D.1.
 
+### Raising max levels past the default (owner, 2026-10-10; Phase 10j)
+Any enchantment's max level can be set from 1 to 255 (vanilla's hard limit for a stored level), in
+`enchantments.json5` or the config screen. Efficiency 100 is allowed: it just mines instantly long before 100. Each
+enchantment falls in one of three groups, shown in the config screen next to its max-level field:
+- **No ceiling:** higher keeps adding (Sharpness, Power, Efficiency, Unbreaking, Fortune, Looting, Knockback...).
+  A note says where it stops mattering in practice, e.g. "instant mining on most blocks from about X".
+- **Soft ceiling (allowed, with a note):** levels past a point do nothing more. The field still accepts them and
+  the note says so. Agent list, each number checked by arithmetic or a GameTest in Phase 10j before it goes in the
+  screen:
+
+  | Enchantment | Stops adding at | Why |
+  |---|---|---|
+  | Protection family, Feather Falling | the 20-point total | vanilla caps all enchantment protection at 20 (80%) |
+  | Depth Strider | 3 | `water_movement_efficiency` is capped at full |
+  | Swift Sneak | 5 | sneaking is capped at walking speed |
+  | Thorns | 7 | 15% per level, so VII always triggers |
+  | Critical Strike, Quick Strike | 20 | 5% per level reaches 100% |
+  | Vampirism | 25 | 4% per level heals all the health lost |
+  | Beheading | 50 | 2% per level reaches 100% |
+  | Sustenance | 25 | 4% per level, no hunger drain at all |
+  | Endurance | 20 | 5% per level, sprinting costs no hunger |
+  | Anchored | 10 | knockback resistance is capped at 100% |
+  | Steadfast, Clarity, Deflect | 3 | III is already never / immune / 100% |
+  | Reach, Health, Step Assist | the attribute's max (verify: interaction range 64, max health 1024, step height 10) | attribute clamps |
+  | Single-level enchantments (Silk Touch, Infinity, Mending, Vision...) | 1 | extra levels do nothing, unless the stage finds one that scales |
+
+- **Hard ceiling (clamped, WARN, the field won't go higher):** a level that breaks the mechanic. Today Lure 5,
+  Quick Charge 4, Riptide 7 (above). Phase 10j checks candidates and adds any that break: Piercing (the arrow's
+  pierce level may be a byte), Swiftness and Speed (the server's moved-too-quickly check), Fortune and Looting at
+  very high levels (hundreds of item entities from one block or kill; a performance note, not a clamp, unless a
+  GameTest shows a problem).
+- A raised max costs what the pricing row says at that level (Efficiency 100 at 1/level = 100 XP levels; Speed
+  at 6/level). A single-level enchantment raised past 1 keeps its flat 10 (§5).
+- Changing a max level needs a restart (gotchas.md: `/reload` doesn't re-run `MODIFY`). The screen says "applies on
+  restart" next to the field. Lowering a max never touches existing items (owner, 2026-10-06).
+- The table, loot and trades roll up to the new max as for any max (§6 "Loot and trading").
+
 ---
 
 ## 9. New enchantments (all REVIEW)
@@ -576,12 +739,15 @@ when launched along a fall). A datapack-set max is not clamped. Arithmetic in TO
 | Attack Speed | 5 | melee | `attack_speed` attribute | D | |
 | Critical Strike | 5 | all weapons | 5%/level chance of +50% damage (max 25%) | D | `damage` + `random_chance` |
 | Quick Strike | 5 | melee | 5%/level chance of a second hit (max 25%) | M | i-frames, effect/crit duplication, Vampirism, durability, PvP |
-| TrueShot Aura | 1 | bows | arrows ignore gravity for 5 s, then fall normally (owner, 2026-10-09) | E | despawn as normal arrows; the countdown survives a save |
+| TrueShot Aura | 1 | bow, crossbow (crossbow: owner, 2026-10-10, Phase 10g) | arrows ignore gravity for 5 s, then fall normally (owner, 2026-10-09) | E | despawn as normal arrows; the countdown survives a save |
 | Toughness | 5 | armor | `armor_toughness` attribute | D | |
 | Health | 5 | armor | `max_health` attribute | D | health clamping on unequip |
 | Swiftness | 5 | boots | `movement_speed` attribute | D | conflicts with Soul Speed? |
 | Double Jump | 1 | boots | one extra air jump; resets on ground | M | client input packet; water/lava/ladder/creative/vehicle; server validation |
+| Lava Walking | 1 | boots | stand and walk on the surface of lava; sneak to sink; standing on lava still burns, as touching lava does; mobs too (owner, 2026-10-10) | M | `canStandOnFluid`-style hook on both sides (the client moves the player); the box sits just above the lava, so vanilla's in-lava check misses it and the burn is applied explicitly; falling in from height lands on the surface |
+| Snow Walker | 1 | boots | exactly the leather-boots effect on any boots: walk on powder snow instead of sinking, sneak to sink, and no freezing; mobs too (owner, 2026-10-10) | M | mixins on `PowderSnowBlock.canEntityWalkOnPowderSnow` and the freeze check (`canFreeze`, vanilla's `#freeze_immune_wearables`) |
 | Flight | 5 | elytra | powered flight without fireworks | M | activation, durability, speed, takeoff, anti-cheat |
+| Speed | 5 | elytra | +10% elytra flight speed per level (V = +50%); costs 6 per level; scales both gliding and firework-rocket boosts (owner, 2026-10-10) | M | glide physics run on the client for players (`LivingEntity.updateFallFlyingMovement`), so the hook runs on both sides; the rocket boost is applied in `FireworkRocketEntity`'s tick, also client-side for the player; server's fall-flying moved-too-quickly allowance (GameTest at V with a rocket along a dive, like Riptide's); stacks with Flight |
 | Smelting | 1 | pickaxe, shovel, axe, hoe | smelts every drop with a smelting recipe (logs → charcoal), after Fortune; grants the recipe's XP (owner, 2026-10-09) | E | Silk Touch wins by default (§4); no ore list, `enchanting2:smelting_excluded` item tag for datapacks |
 | Magnetic | 1 | tools, weapons | drops go straight into the inventory; overflow drops normally | M | ownership, pickup events, dupes |
 | Reach | 3 | tools, weapons | `block_/entity_interaction_range` attributes | D | vanilla server already validates against attributes |
@@ -595,6 +761,19 @@ when launched along a fall). A datapack-set max is not clamped. Arithmetic in TO
 | Last Stand | 3 | chestplate | once per cooldown, a lethal hit leaves you at 1 HP with brief absorption; cooldown 10 / 8 / 6 min | M | a Totem of Undying fires first; HUD cooldown indicator; works in PvP (configurable) |
 | Deflect | 3 | shield | blocked projectiles reflect at the shooter; chance 33 / 66 / 100% | M | reflected projectile ownership; no infinite ping-pong between two shields |
 | Shield Bash | 3 | shield | attacking while blocking knocks the target back and briefly stuns | M | cooldown; balance vs. Knockback |
+| Steadfast | 3 | shield | an axe disables the shield for less time: −33% per level, III = never (vanilla 5 s) (owner, 2026-10-10) | M | `blocks_attacks.disable_cooldown_scale` per stack (`BlocksAttacks.disable`); PvP axe play |
+| Spiked | 5 | shield | a melee attacker whose hit your raised shield blocks takes damage, Thorns for shields (owner, 2026-10-10) | E | numbers in its sub-plan (agent start: 1 damage per level on every blocked melee hit); melee only, never projectiles; no extra shield durability |
+| Bulwark | 3 | shield | a blocked hit gives brief absorption, 1 heart per level, refreshed not stacked (owner, 2026-10-10) | E | absorption cap; a cooldown so being hit on purpose can't farm it |
+| Riposte | 5 | shield | after a block, your next melee hit within 2 s deals +3% per level (V = +15%) (owner, 2026-10-10) | M | per-player timer, used up by the hit; stacks with Critical Strike and Quick Strike |
+| Steady Stance | 1 | shield | no movement slowdown while blocking; priced 10 (§5) (owner, 2026-10-10) | M | the slowdown is applied client-side to the player's input; PvP balance |
+| Calm Gaze | 1 | helmet | endermen don't get angry when you look at them, the carved-pumpkin effect (owner, 2026-10-10) | M | the enderman stare check reads `#minecraft:gaze_disguise_equipment`; add an enchantment check beside it |
+| Clarity | 3 | helmet | Blindness, Darkness and Nausea last 33% shorter per level, III = immune (owner, 2026-10-10) | M | effect-applied hook; the Warden's Darkness pulse; only these three effects |
+| Phantom Ward | 1 | helmet | phantoms don't target you, even with insomnia (owner, 2026-10-10) | M | phantom target selection; still attacked if you hit one |
+| Sustenance | 5 | helmet | 4% less hunger drain per level, V = 20% (owner, 2026-10-10) | M | exhaustion hook, every source; multiplies with Endurance and the Hunger curse (10e) |
+| Step Assist | 1 | leggings | step up full blocks without jumping (owner, 2026-10-10) | D | `step_height` attribute +0.4 (0.6 → 1.0) |
+| Anchored | 5 | leggings | 10% knockback resistance per level (owner, 2026-10-10) | D | `knockback_resistance` attribute; with netherite armor it reaches the 100% clamp |
+| Endurance | 5 | leggings | sprinting costs 5% less hunger per level, V = 25% (owner, 2026-10-10) | M | exhaustion hook, sprint only |
+| Sure Footing | 3 | leggings | less slowdown on soul sand, honey and powder snow (owner, 2026-10-10) | D | `movement_efficiency` attribute (Soul Speed's); per-level amount and which blocks read it, in its sub-plan |
 | Cushion | 3 | elytra, chestplate | reduces wall-collision damage | D | `damage_protection` on `fly_into_wall` |
 | Beheading | 5 | melee | 2% × level to drop the victim's head on a player's direct melee kill, on top of vanilla's wither skull roll (owner, 2026-10-09) | E | zombie, skeleton, wither skeleton, creeper, piglin (loot table `enchanting2:beheading/heads`); no ender dragon (it never rolls death loot); player heads behind `beheading.player_heads` (default off) |
 
@@ -609,6 +788,12 @@ Boost's fraction rounds up at random, because vanilla truncates (5 × 1.15 → 5
 Config: `beheading.player_heads` (off) and `smelting.silk_priority` (`silk_touch`), in the config screen's
 "Enchantment effects" category.
 
+**Shield ideas not picked** (owner, 2026-10-10): Quick Guard (blocks sooner after raising), Parry (a well-timed
+block stuns), Arrow Catcher (blocked arrows go to your inventory). Kept here, not planned.
+
+**Helmet and leggings ideas not picked** (owner, 2026-10-10): Hard Hat (less falling-block damage), Leaping (back
+on the deferred list), Shadow Step (mobs notice a sneaking player later). Kept here, not planned.
+
 **Deferred (not in v1, kept for later):** Vein Miner, Leaping, Cleansing, Executioner,
 Seeking, Shockwave.
 
@@ -619,9 +804,9 @@ Seeking, Shockwave.
 - Vanilla-client compatibility. **The mod is required on both client and server** because
   the new table screen and Double Jump need client code.
 - Changing Mending repair efficiency.
-- In-GUI editing of every per-enchantment field. The GUI covers globals plus
-  enable/cost/max level, and the rest is file-only. (So far: enable and the table/loot/trade
-  flags, Phase 9. Cost and max level are still file-only.)
+- In-GUI editing of the per-enchantment weights (`loot_weight`, `trade_weight`) and `treasure`. They stay
+  file-only. Everything else is in the screen: enable and the table/loot/trade flags (Phase 9), max level and
+  cost (Phase 10j; owner, 2026-10-10), and every global section.
 
 ---
 
