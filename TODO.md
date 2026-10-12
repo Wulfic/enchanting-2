@@ -1375,7 +1375,7 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
         (`cost_per_level 0`). The admin sets `cost_per_level` to change that.
 - [x] 10g Applicability and vanilla extensions (owner, 2026-10-10; DESIGN §4, §6). Three stages below, one commit
       each: axes and crossbow widening, Silk Touch spawners, infinite buckets.
-- [ ] 10h Enchantment descriptions on Ctrl (owner, 2026-10-10; DESIGN §6 "Enchantment descriptions in tooltips").
+- [x] 10h Enchantment descriptions on Ctrl (owner, 2026-10-10; DESIGN §6 "Enchantment descriptions in tooltips").
       Client-only, one commit:
       - `en_us.json`: an `enchantment.<ns>.<path>.desc` line for all 43 vanilla enchantments and the 16 built ones,
         from docs/ENCHANTMENTS.md with this mod's numbers.
@@ -1386,6 +1386,22 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       - JUnit: line builder (key derivation, missing key, hidden enchantment, Ctrl off). JUnit lang-completeness test
         over the vanilla + `enchanting2:` enchantment IDs. Client GameTest screenshot with Ctrl held on a Sharpness
         V book and a Vision helmet.
+      How (2026-10-12, javap 1.21.11): `Minecraft.hasControlDown()` still exists (no new input API needed);
+      `Language.getInstance().has(key)` for a missing key; Fabric `ItemTooltipCallback.getTooltip(stack, context,
+      flag, lines)`. Vanilla writes each enchantment as `Enchantment.getFullname(holder, level)`, so a description goes
+      right after the line equal to that (a hidden enchantment has no line, so gets nothing).
+      - `tooltip/DescriptionPlan` (main, MC-free): ids in tooltip order + "has key" + Ctrl + the two settings → which
+        ids get a description and whether one hint line goes after the last enchantment line. Hint only when at least
+        one shown enchantment has a description.
+      - `client/EnchantmentDescriptions` (client): the callback, reads item and stored enchantments, inserts dark-gray
+        indented lines. Off when `enchdesc` (Darkhax's Enchantment Descriptions) is loaded.
+      - 62 `.desc` lines: 43 vanilla + 19 ours (Step Assist, Anchored, Sure Footing already have one).
+      - JUnit: `DescriptionPlanTest`; `EnchantmentDescriptionLangTest` over `VanillaEnchantments.ids()` + every
+        `data/enchanting2/enchantment/*.json`; `ClientConfig` round trip. Client GameTest: Ctrl held → a Sharpness V
+        book's and a Vision helmet's tooltips have their description; released → the hint.
+      ✅ 2026-10-12. Descriptions wrap at 200 GUI px (Silk Touch's is ~95 characters; the client GameTest checks it
+      wraps). Mod ID `enchdesc` from Darkhax's docs (its config file name), not from a jar: owner, confirm with a real
+      jar if you run it. Mutation: unregistering the hook fails the client GameTest.
 - [x] 10i Data-only armor additions (D, owner 2026-10-10): Step Assist (`step_height`), Anchored
       (`knockback_resistance`), Sure Footing (`movement_efficiency`), the 10a pattern: JSON + lang (+ `.desc`) + tags
       + GameTest each, Step Assist's 10-price row. One commit:

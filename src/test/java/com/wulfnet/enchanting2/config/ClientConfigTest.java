@@ -35,11 +35,29 @@ class ClientConfigTest {
 	@Test
 	void bothValuesRoundTripWithZeroIssues() throws SyntaxError {
 		for (boolean show : new boolean[] {true, false}) {
-			ClientConfig config = new ClientConfig(show);
+			ClientConfig config = ClientConfig.DEFAULTS.withShowAnvilPreviewPanel(show);
 			var parsed = parse(ConfigFiles.render(config, ClientConfig.CODEC));
 			assertEquals(config, parsed.config());
 			assertEquals(List.of(), parsed.issues());
 		}
+	}
+
+	/** Phase 10h: both tooltip toggles default on and every combination reads back, independent of the anvil one. */
+	@Test
+	void tooltipTogglesDefaultOnAndRoundTrip() throws SyntaxError {
+		assertTrue(ClientConfig.DEFAULTS.enchantmentDescriptions());
+		assertTrue(ClientConfig.DEFAULTS.showDescriptionHint());
+		for (boolean descriptions : new boolean[] {true, false}) {
+			for (boolean hint : new boolean[] {true, false}) {
+				ClientConfig config = ClientConfig.DEFAULTS.withShowAnvilPreviewPanel(false).withTooltips(descriptions, hint);
+				var parsed = parse(ConfigFiles.render(config, ClientConfig.CODEC));
+				assertEquals(config, parsed.config());
+				assertEquals(List.of(), parsed.issues());
+			}
+		}
+		var old = parse("{ schema_version: 1, anvil: { show_preview_panel: false } }");
+		assertEquals(ClientConfig.DEFAULTS.withShowAnvilPreviewPanel(false), old.config(), "a 6D file keeps the defaults");
+		assertEquals(List.of(), old.issues());
 	}
 
 	@Test
@@ -68,7 +86,7 @@ class ClientConfigTest {
 	void unreadableFileIsNeverOverwrittenByTheToggle() throws IOException {
 		Files.writeString(file(), "{ not json5", StandardCharsets.UTF_8);
 		assertEquals(ConfigFiles.SaveOutcome.REFUSED_UNREADABLE,
-				ConfigFiles.saveWithBackup(file(), ClientConfig.CODEC, new ClientConfig(false)));
+				ConfigFiles.saveWithBackup(file(), ClientConfig.CODEC, ClientConfig.DEFAULTS.withShowAnvilPreviewPanel(false)));
 		assertEquals("{ not json5", Files.readString(file(), StandardCharsets.UTF_8));
 		assertFalse(Files.exists(file().resolveSibling(ClientConfig.FILE_NAME + ".bak")));
 	}

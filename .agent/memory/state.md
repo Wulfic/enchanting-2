@@ -8,7 +8,7 @@
 **Branch:** main (commit straight to main and push; no CI; see decisions.md)
 
 ## Where we are
-Phases 1–9, 10a, 10b, 10f, 10g, 10i and 10k done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
+Phases 1–9, 10a, 10b, 10f, 10g, 10h, 10i and 10k done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
 - 3: `ExperienceCurve`, no level cap, exact XP points, counters saturate. 4: `MaxLevels` via `MODIFY` (restart to
   apply), `ConflictFamily` + `allow_together`, `EnchantRules`, Lure/Riptide 5 with safe caps.
 - 5: `cost/` (`CostModel`, `PricingTable`, curse discount, `cleanseCost`, `extractCost`).
@@ -37,10 +37,12 @@ Phases 1–9, 10a, 10b, 10f, 10g, 10i and 10k done (TODO.md has each stage's not
   `BucketDispenseBehaviorMixin` (`$4`), fuel/ingredient guards, `EnchantRules` bucket gate + `APPLY_ORDER`.
 - 10i (2026-10-12): Step Assist, Anchored (hits only), Sure Footing (level / 3, soul sand + honey; powder snow → 10c).
   `everySingleLevelEnchantmentCostsTen` guards the flat-10 rows registry-wide.
-- Tests: 318 JUnit + 253 GameTests (`./gradlew build`) + 4 client GameTests (`./gradlew runClientGameTest`).
+- 10h (2026-10-12): Ctrl descriptions (`tooltip/DescriptionPlan`, `client/EnchantmentDescriptions`), `client.json5`
+  `tooltips.*`, 62 `.desc` lines guarded by `EnchantmentDescriptionLangTest` (new enchantments must add one).
+- Tests: 326 JUnit + 253 GameTests (`./gradlew build`) + 5 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Next: 10h (Ctrl tooltip descriptions), 10j (max levels to 255 with ceilings,
+1. Next: 10j (max levels to 255 with ceilings,
    max level + cost in the config screen), then 10c (M route, see TODO; each needs its own written sub-plan with owner
    questions first: edge cases from DESIGN §9), 10e (curses; scaling answered 2026-10-12).
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
@@ -53,7 +55,8 @@ Phases 1–9, 10a, 10b, 10f, 10g, 10i and 10k done (TODO.md has each stage's not
    (no flicker, gone when taken off), a TrueShot arrow's flight, the "Enchantment effects" config category + 10gB:
    the "Silk Touch collects spawners" toggle, a collected spawner's tooltip (vanilla's "Spawns: Zombie" line) + 10gC:
    an Infinity bucket's durability bar, pouring by hand feels right (no flicker to an empty bucket) + 10i: Step Assist
-   up a block, Sure Footing III on soul sand feels like normal ground.
+   up a block, Sure Footing III on soul sand feels like normal ground + 10h: description wording, the two "Display"
+   toggles, and with Enchantment Descriptions installed that only one set of lines shows (confirms `enchdesc`).
 
 ## Open questions / blockers
 - Owner (2026-10-06): a lowered max level never touches existing items (decisions.md).

@@ -633,8 +633,11 @@ Client-only (no packet, no server rule).
   enchantment descriptions". macOS uses vanilla's control check, which reads Cmd there.
 - **Config:** `client.json5` `tooltips.enchantment_descriptions` (default on) and `tooltips.show_hint` (default on),
   in the config screen's "Display" category.
-- **Another mod doing the same:** if the Enchantment Descriptions mod is loaded, ours stays off so lines aren't
-  doubled (check its mod ID when building).
+- **Another mod doing the same:** if the Enchantment Descriptions mod (`enchdesc`, the name of its config file in
+  Darkhax's docs) is loaded, ours stays off so lines aren't doubled.
+- **Built (10h):** `tooltip/DescriptionPlan` decides (MC-free), `client/EnchantmentDescriptions` places lines after the
+  line equal to `Enchantment.getFullname`, wrapped at 200 GUI pixels. Ctrl is `Minecraft.hasControlDown()` (still
+  there in 1.21.11).
 - Tests: JUnit for the line builder (key per ID, missing key → no line, hidden → no line, Ctrl off → hint only); a
   lang-completeness test that fails when any `minecraft:` or `enchanting2:` enchantment lacks a `.desc` key, so every
   later enchantment stage has to write its description; a client GameTest screenshot with Ctrl held.
