@@ -120,6 +120,11 @@ class ConfigLangKeysTest {
 			assertTrue(lang.containsKey(key), key);
 			assertTrue(lang.containsKey(key + ".desc"), key + ".desc");
 		}
+		for (EnchantmentNumbersDraft.Field field : EnchantmentNumbersDraft.Field.values()) {
+			String key = "enchanting2.config.enchantments." + field.key();
+			assertTrue(lang.containsKey(key), key);
+			assertTrue(lang.containsKey(key + ".desc"), key + ".desc");
+		}
 	}
 
 	/** Both files share the mode texts, so none may name common.json5 itself; the screen passes the file name. */

@@ -10,14 +10,18 @@ import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.config.ConfigView;
 import com.wulfnet.enchanting2.config.CostsSection;
 import com.wulfnet.enchanting2.config.CursesSection;
+import com.wulfnet.enchanting2.config.EnchantmentNumbersDraft;
 import com.wulfnet.enchanting2.config.EnchantmentOverrides;
 import com.wulfnet.enchanting2.config.ExperienceSection;
 import com.wulfnet.enchanting2.config.FortuneSection;
 import com.wulfnet.enchanting2.config.SilkTouchSection;
 import com.wulfnet.enchanting2.config.SmeltingSection;
 import com.wulfnet.enchanting2.config.TableSection;
+import com.wulfnet.enchanting2.cost.PricingTable;
 import com.wulfnet.enchanting2.effect.SmeltingSilkPriority;
 import com.wulfnet.enchanting2.enchantment.ConflictFamily;
+import com.wulfnet.enchanting2.enchantment.DefaultMaxLevels;
+import com.wulfnet.enchanting2.enchantment.LevelCeilings;
 import com.wulfnet.enchanting2.fortune.SilkFortuneMode;
 import dev.isxander.yacl3.api.ConfigCategory;
 import dev.isxander.yacl3.api.LabelOption;
@@ -28,7 +32,9 @@ import dev.isxander.yacl3.api.YetAnotherConfigLib;
 import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import dev.isxander.yacl3.api.controller.IntegerFieldControllerBuilder;
 import dev.isxander.yacl3.api.controller.TickBoxControllerBuilder;
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -40,13 +46,18 @@ import net.minecraft.network.chat.Component;
  * The YACL screen. Only {@link ModMenuIntegration} references this class, and only after checking YACL is loaded.
  * Ranges come from the section records so the screen and the file loader agree.
  */
-final class ConfigScreen {
+public final class ConfigScreen {
 	private static final String KEY = "enchanting2.config.";
 
 	private ConfigScreen() {
 	}
 
 	static Screen create(Screen parent) {
+		return build().generateScreen(parent);
+	}
+
+	/** The screen's options, for {@link #create} and for the client GameTest to inspect. */
+	public static YetAnotherConfigLib build() {
 		ConfigView<CommonConfig> view = ConfigEditing.currentView();
 		CommonConfig original = view.values().orElse(CommonConfig.defaults());
 		Draft draft = new Draft(original);
@@ -219,6 +230,8 @@ final class ConfigScreen {
 		EnchantmentOverrides enchantmentsOriginal = enchantmentsView.values().orElse(EnchantmentOverrides.defaults());
 		Map<String, Component> names = ConfigEditing.enchantmentNames();
 		EnchantmentFlagsDraft flags = new EnchantmentFlagsDraft(enchantmentsOriginal, names.keySet());
+		EnchantmentNumbersDraft numbers = new EnchantmentNumbersDraft(enchantmentsOriginal, flags.ids(),
+				ConfigScreen::defaultNumber);
 		boolean enchantmentsEditable = enchantmentsView.editable();
 		ConfigCategory.Builder enchantments = ConfigCategory.createBuilder()
 				.name(Component.translatable(KEY + "category.enchantments"))
@@ -238,6 +251,9 @@ final class ConfigScreen {
 							.controller(TickBoxControllerBuilder::create)
 							.available(enchantmentsEditable)
 							.build());
+				}
+				for (EnchantmentNumbersDraft.Field field : EnchantmentNumbersDraft.Field.values()) {
+					group.option(numberOption(id, field, numbers, enchantmentsEditable));
 				}
 				enchantments.group(group.build());
 			}
@@ -260,15 +276,45 @@ final class ConfigScreen {
 					if (editable && !draft.toConfig().equals(original)) {
 						ConfigEditing.save(draft.toConfig());
 					}
-					EnchantmentOverrides edited = flags.apply();
+					EnchantmentOverrides edited = numbers.apply(flags.apply());
 					if (enchantmentsEditable && !edited.equals(enchantmentsOriginal)) {
 						ConfigEditing.saveEnchantments(edited);
 					}
 					ClientSettings.save(ClientSettings.get().withShowAnvilPreviewPanel(showPanel[0])
 							.withTooltips(descriptions[0], hint[0]));
 				})
-				.build()
-				.generateScreen(parent);
+				.build();
+	}
+
+	/** DESIGN §8 (Phase 10jB): max level up to the hard ceiling, with the ceiling's note; the two cost fields. */
+	private static Option<Integer> numberOption(String id, EnchantmentNumbersDraft.Field field,
+			EnchantmentNumbersDraft numbers, boolean editable) {
+		String key = "enchantments." + field.key();
+		int max = field == EnchantmentNumbersDraft.Field.MAX_LEVEL
+				? LevelCeilings.hardMax(id).orElse(field.max()) : field.max();
+		List<Component> description = new ArrayList<>();
+		if (field == EnchantmentNumbersDraft.Field.MAX_LEVEL) {
+			LevelCeilings.of(id).filter(LevelCeilings.Ceiling::note)
+					.ifPresent(c -> description.add(Component.translatable(LevelCeilings.noteKey(id))));
+		}
+		description.add(Component.translatable(KEY + key + ".desc", numbers.defaultValue(id, field)));
+		return Option.<Integer>createBuilder()
+				.name(Component.translatable(KEY + key))
+				.description(OptionDescription.of(description.toArray(Component[]::new)))
+				.binding(Math.min(numbers.defaultValue(id, field), max), () -> numbers.get(id, field),
+						v -> numbers.set(id, field, v))
+				.controller(option -> IntegerFieldControllerBuilder.create(option).range(field.min(), max))
+				.available(editable)
+				.build();
+	}
+
+	/** The built-in value a number field resets to. */
+	private static int defaultNumber(String id, EnchantmentNumbersDraft.Field field) {
+		return switch (field) {
+			case MAX_LEVEL -> DefaultMaxLevels.of(id).orElseGet(() -> ConfigEditing.registryMaxLevel(id).orElse(1));
+			case BASE_COST -> PricingTable.builtIn().get(id).baseCost();
+			case COST_PER_LEVEL -> PricingTable.builtIn().get(id).costPerLevel();
+		};
 	}
 
 	/** The file name fills the {@code %s} in the mode text, so one text serves both files. */

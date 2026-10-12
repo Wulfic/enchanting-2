@@ -1005,3 +1005,16 @@ single-level: +2 arrows per level (255 = 511 arrows a shot).
 flat 10 at any level. Swiftness needs no cap (255 sprinting ≈ 4 b/t, far under the 10 b/t check).
 **Rejected:** a soft note for the launches (a typo'd level would rubber-band players); a Multishot cap.
 **Affects:** TODO 10jA, `LevelCeilings`, DESIGN §8
+
+## 2026-10-12 — The config screen's "default" max comes from the shipped JSON, not the registry (Phase 10jB)
+**Context:** each max-level field needs the value its reset goes back to. In a world the registry already holds the
+override (MODIFY applied it at startup), and on the title screen there is no registry.
+**Choice:** `DefaultMaxLevels` reads `/data/<ns>/enchantment/<path>.json` off the classpath (vanilla's from the game jar,
+ours from the mod) and runs `MaxLevels.resolve` without an override. Another mod's enchantment falls back to the hosted
+registry's max (which may include its override), else 1. `EnchantmentNumbersDraft` leaves untouched fields as the
+file had them, clears an override set back to the default, and drops an entry left empty.
+**Rejected:** the registry max (shows the override as the default, so "reset" would do nothing); a hard-coded vanilla
+table (drifts on a version bump; the JSON can't).
+**Not done:** a screenshot with a group expanded (YACL fixes `collapsed` at build); the client GameTest inspects the built
+options (range, default, note) instead.
+**Affects:** `enchantment/DefaultMaxLevels`, `config/EnchantmentNumbersDraft`, `client/ConfigScreen`

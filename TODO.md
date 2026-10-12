@@ -1419,7 +1419,7 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       ✅ 2026-10-12. Also a registry-wide GameTest: every `minecraft:`/`enchanting2:` single-level non-curse
       enchantment except Mending prices 10, so 10c's single-level ones can't skip their row. Mutation run (denominator 4,
       Anchored base 0.2, no Step Assist row) fails 3 GameTests + 1 JUnit.
-- [ ] 10j Configurability (owner, 2026-10-10; DESIGN §1 principle, §8 "Raising max levels"). Two commits:
+- [x] 10j Configurability (owner, 2026-10-10; DESIGN §1 principle, §8 "Raising max levels"). Two commits:
       - 10jA Ceilings (server, no GUI): a `LevelCeilings` table (MC-free) of hard ceilings (clamp + WARN, today's
         `MaxLevels.SAFE_MAX` moves in) and soft-ceiling notes (lang keys). Check each candidate before it goes in:
         arithmetic in this file or a GameTest (Piercing at 128 and 255, Swiftness and Speed at high levels against
@@ -1463,6 +1463,23 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       ✅ 10jA 2026-10-12. Corrections found by the GameTests (gotchas.md): Aqua Affinity scales (soft 25, submerged
       mining speed max 20), Efficiency is capped (soft 32, mining efficiency max 1024; stone instant from VI, obsidian
       never). Mutation run (six ceilings off by one) fails 6 GameTests + 2 JUnit.
+      **10jB plan (2026-10-12):**
+      - `config/EnchantmentNumbersDraft` (MC-free, beside `EnchantmentFlagsDraft`): max level, base cost, cost per
+        level per ID; each shows `override.orElse(default)`. `apply(base)`: a field left at what the file gave is
+        untouched; moved back to its default → the override is cleared ("default (N)" reset); else set. An entry left
+        with nothing is dropped. Applied after the flags draft, so both edit one `enchantments.json5`.
+      - Defaults: max = `MaxLevels.resolve(id, the JSON max_level, none)` from `enchantment/DefaultMaxLevels`, which
+        reads `/data/<ns>/enchantment/<path>.json` off the classpath (vanilla's from the game jar, ours from the mod);
+        another mod's falls back to the registry's max in a world. Costs = `PricingTable.builtIn().get(id)`.
+      - Screen: three integer fields per group: max level 1..(hard ceiling or 255) with the ceiling note + "applies
+        on restart" as its description; base cost and cost per level 0..10000. Read-only like the flags on a remote
+        server. `ConfigScreen.build(parent)` returns the YACL object so the client test can inspect it.
+      - JUnit: draft (untouched, reset clears, set, entry dropped, flags kept), `DefaultMaxLevels` (Sharpness 5, Piercing
+        5, Lure 5, Vision 1, unknown empty). Client GameTest: Piercing's max field is 1..127 default 5 with its note;
+        Sharpness 1..255; a screenshot of the category with Piercing's group expanded.
+      ✅ 10jB 2026-10-12. No expanded-group screenshot (YACL fixes `collapsed` at build); the client GameTest checks the
+      built options instead (Piercing 1..127 default 5 with its note, Sharpness 1..255, Vision base cost 10). Mutation:
+      dropping the ceiling from the range fails it.
 - [ ] 10e Curses (§5a): Fragility, Weight, Greed, Fumbling (D); Hunger (M). Curse tag +
       `discount_percent` data; table shows curses as optional picks with a negative cost line.
       Max level 5 for all five (owner, 2026-10-10). Per level (owner, 2026-10-12): the effect scales linearly (§5a's

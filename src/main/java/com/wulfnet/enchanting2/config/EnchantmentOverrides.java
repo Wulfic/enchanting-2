@@ -75,6 +75,11 @@ public record EnchantmentOverrides(Map<String, Entry> entries) {
 					discountPercent, value);
 		}
 
+		/** This entry with the three fields the config screen edits replaced and every other field kept. */
+		public Entry withNumbers(OptionalInt maxLevel, OptionalInt base, OptionalInt perLevel) {
+			return new Entry(maxLevel, base, perLevel, upgradeMode, otherLevelsSurcharge, discountPercent, acquisition);
+		}
+
 		/** An entry with only acquisition settings. */
 		public Entry(AcquisitionSettings acquisition) {
 			this(OptionalInt.empty(), OptionalInt.empty(), OptionalInt.empty(), Optional.empty(), OptionalInt.empty(),

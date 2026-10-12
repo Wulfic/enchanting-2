@@ -8,7 +8,7 @@
 **Branch:** main (commit straight to main and push; no CI; see decisions.md)
 
 ## Where we are
-Phases 1–9, 10a, 10b, 10f, 10g, 10h, 10i and 10k done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
+Phases 1–9, 10a, 10b, 10f, 10g, 10h, 10i, 10j and 10k done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
 - 3: `ExperienceCurve`, no level cap, exact XP points, counters saturate. 4: `MaxLevels` via `MODIFY` (restart to
   apply), `ConflictFamily` + `allow_together`, `EnchantRules`, Lure/Riptide 5 with safe caps.
 - 5: `cost/` (`CostModel`, `PricingTable`, curse discount, `cleanseCost`, `extractCost`).
@@ -41,12 +41,14 @@ Phases 1–9, 10a, 10b, 10f, 10g, 10h, 10i and 10k done (TODO.md has each stage'
   `tooltips.*`, 62 `.desc` lines guarded by `EnchantmentDescriptionLangTest` (new enchantments must add one).
 - 10jA (2026-10-12): `enchantment/LevelCeilings` (every vanilla + own ID: none/soft/hard + note), replaces
   `MaxLevels.SAFE_MAX`; hard: Lure 5, Riptide 7, Quick Charge 4, Piercing 127, Lunge 13, Wind Burst 14.
-- Tests: 332 JUnit + 261 GameTests (`./gradlew build`) + 5 client GameTests (`./gradlew runClientGameTest`).
+- 10jB (2026-10-12): max level / base cost / cost per level per enchantment in the config screen
+  (`EnchantmentNumbersDraft`, defaults from `DefaultMaxLevels` + `PricingTable`); `ConfigScreen.build()` is public.
+- Tests: 339 JUnit + 261 GameTests (`./gradlew build`) + 5 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Next: 10jB (config screen: per-enchantment max level, base_cost, cost_per_level with ceiling notes),
-   max level + cost in the config screen), then 10c (M route, see TODO; each needs its own written sub-plan with owner
-   questions first: edge cases from DESIGN §9), 10e (curses; scaling answered 2026-10-12).
+1. Next: 10c (M route, see TODO; each enchantment needs its own written sub-plan with owner questions first: edge
+   cases from DESIGN §9; each adds a `LevelCeilings` row, a `.desc` line, a screen entry comes free), 10e (curses;
+   scaling answered 2026-10-12), 10d balance pass.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
    ~1,000,000) + 6D: panel look, config screen "Display" toggle, and a vanilla server keeping the vanilla anvil screen +
    6bC: grindstone panel look, and a vanilla server keeping the vanilla grindstone + 7D: table panel and window look
@@ -58,7 +60,8 @@ Phases 1–9, 10a, 10b, 10f, 10g, 10h, 10i and 10k done (TODO.md has each stage'
    the "Silk Touch collects spawners" toggle, a collected spawner's tooltip (vanilla's "Spawns: Zombie" line) + 10gC:
    an Infinity bucket's durability bar, pouring by hand feels right (no flicker to an empty bucket) + 10i: Step Assist
    up a block, Sure Footing III on soul sand feels like normal ground + 10h: description wording, the two "Display"
-   toggles, and with Enchantment Descriptions installed that only one set of lines shows (confirms `enchdesc`).
+   toggles, and with Enchantment Descriptions installed that only one set of lines shows (confirms `enchdesc`) +
+   10j: an enchantment's max level / cost fields and their notes, a raised max after a restart (Efficiency 10).
 
 ## Open questions / blockers
 - Owner (2026-10-06): a lowered max level never touches existing items (decisions.md).

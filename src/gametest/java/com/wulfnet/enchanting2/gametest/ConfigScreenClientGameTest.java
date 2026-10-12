@@ -4,16 +4,22 @@ import com.wulfnet.enchanting2.acquisition.AcquisitionRules;
 import com.wulfnet.enchanting2.acquisition.EnchantmentFlagsDraft;
 import com.wulfnet.enchanting2.acquisition.Source;
 import com.wulfnet.enchanting2.client.ConfigEditing;
+import com.wulfnet.enchanting2.client.ConfigScreen;
 import com.wulfnet.enchanting2.client.ModMenuIntegration;
 import com.wulfnet.enchanting2.config.ConfigView.Mode;
 import com.wulfnet.enchanting2.config.EnchantmentOverrides;
 import com.wulfnet.enchanting2.config.ServerConfigs;
 import com.wulfnet.enchanting2.enchantment.ModEnchantments;
+import dev.isxander.yacl3.api.ConfigCategory;
+import dev.isxander.yacl3.api.Option;
+import dev.isxander.yacl3.api.YetAnotherConfigLib;
+import dev.isxander.yacl3.gui.controllers.string.number.IntegerFieldController;
 import java.util.Set;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.resources.language.I18n;
 
 /**
  * Stage 9C on the real client: the config screen (with its Enchantments category) builds on the title screen, where
@@ -47,6 +53,7 @@ public class ConfigScreenClientGameTest implements FabricClientGameTest {
 				check(mode == Mode.EDIT_HOSTED, "the host edits enchantments.json5: " + mode);
 			});
 			openAndClose(context, "config-screen-hosted");
+			context.runOnClient(client -> checkNumberFields());
 
 			EnchantmentOverrides before = world.getServer().computeOnServer(ServerConfigs::enchantments);
 			// Flip whatever the run dir's file says, so a file left over from an earlier run can't hide a failure.
@@ -78,6 +85,40 @@ public class ConfigScreenClientGameTest implements FabricClientGameTest {
 		context.takeScreenshot(screenshot);
 		context.runOnClient(client -> client.screen.onClose());
 		context.waitTick();
+	}
+
+	/**
+	 * Phase 10jB: each enchantment's group has max level, base cost and cost per level. Piercing's max field stops at
+	 * its hard ceiling (127), defaults to DESIGN §8's 5 and shows the ceiling note; Sharpness goes to 255; Vision's
+	 * base cost defaults to the flat 10.
+	 */
+	private static void checkNumberFields() {
+		YetAnotherConfigLib config = ConfigScreen.build();
+		ConfigCategory enchantments = config.categories().stream()
+				.filter(c -> c.name().getString().equals(I18n.get("enchanting2.config.category.enchantments")))
+				.findFirst().orElseThrow(() -> new AssertionError("no Enchantments category"));
+		Option<?> piercing = option(enchantments, "enchantment.minecraft.piercing", "max_level_override");
+		check(piercing.controller() instanceof IntegerFieldController ints && ints.max() == 127 && ints.min() == 1,
+				"Piercing's max field range: " + piercing.controller());
+		check(Integer.valueOf(5).equals(piercing.binding().defaultValue()),
+				"Piercing's max default: " + piercing.binding().defaultValue());
+		String note = I18n.get("enchanting2.ceiling.minecraft.piercing");
+		check(piercing.description().text().getString().contains(note), "Piercing's max field lacks its ceiling note");
+		Option<?> sharpness = option(enchantments, "enchantment.minecraft.sharpness", "max_level_override");
+		check(sharpness.controller() instanceof IntegerFieldController ints && ints.max() == 255,
+				"Sharpness's max field range: " + sharpness.controller());
+		Option<?> vision = option(enchantments, "enchantment.enchanting2.vision", "base_cost");
+		check(Integer.valueOf(10).equals(vision.binding().defaultValue()),
+				"Vision's base cost default: " + vision.binding().defaultValue());
+	}
+
+	private static Option<?> option(ConfigCategory category, String enchantmentKey, String field) {
+		String group = I18n.get(enchantmentKey);
+		String name = I18n.get("enchanting2.config.enchantments." + field);
+		return category.groups().stream().filter(g -> g.name().getString().equals(group)).findFirst()
+				.orElseThrow(() -> new AssertionError("no group " + group))
+				.options().stream().filter(o -> o.name().getString().equals(name)).findFirst()
+				.orElseThrow(() -> new AssertionError("no " + field + " field in " + group));
 	}
 
 	private static void check(boolean condition, String what) {

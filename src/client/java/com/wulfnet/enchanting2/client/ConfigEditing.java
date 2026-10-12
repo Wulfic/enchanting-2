@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.OptionalInt;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.server.IntegratedServer;
@@ -95,6 +96,17 @@ public final class ConfigEditing {
 			ModEnchantments.knownWithoutRegistry().forEach(id -> names.put(id, fallbackName(id)));
 		}
 		return names;
+	}
+
+	/** The hosted registry's max level for {@code id}, or empty on the title screen or a remote server. */
+	public static OptionalInt registryMaxLevel(String id) {
+		IntegratedServer server = Minecraft.getInstance().getSingleplayerServer();
+		if (server == null) {
+			return OptionalInt.empty();
+		}
+		return server.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).listElements()
+				.filter(e -> e.getRegisteredName().equals(id)).findFirst()
+				.map(e -> OptionalInt.of(e.value().getMaxLevel())).orElse(OptionalInt.empty());
 	}
 
 	/** Vanilla's translation key for an enchantment, showing the ID when no language file has it. */
