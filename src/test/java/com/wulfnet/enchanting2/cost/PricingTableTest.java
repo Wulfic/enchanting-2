@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.wulfnet.enchanting2.config.EnchantmentOverrides;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -30,6 +31,30 @@ class PricingTableTest {
 		assertEquals(2, p.baseCost());
 		assertEquals(0, p.costPerLevel());
 		assertEquals(2, p.otherLevelsSurcharge());
+	}
+
+	/** Owner 2026-10-10 (DESIGN §5): every single-level non-curse enchantment except Mending costs a flat 10. */
+	@Test
+	void singleLevelEnchantmentsCostTen() {
+		for (String id : List.of("minecraft:aqua_affinity", "minecraft:silk_touch", "minecraft:flame",
+				"minecraft:infinity", "minecraft:channeling", "minecraft:multishot", "enchanting2:smelting",
+				"enchanting2:true_shot_aura", "enchanting2:vision")) {
+			assertEquals(new Pricing(10, 0, UpgradeMode.LEVEL_DIFFERENCE, 0, 10), PricingTable.builtIn().get(id), id);
+		}
+	}
+
+	@Test
+	void frostWalkerCostsTwoPerLevel() {
+		assertEquals(new Pricing(0, 2, UpgradeMode.LEVEL_DIFFERENCE, 0, 10),
+				PricingTable.builtIn().get("minecraft:frost_walker"));
+	}
+
+	@Test
+	void fileOverrideStillBeatsASingleLevelRow() {
+		String id = "minecraft:silk_touch";
+		assertEquals(new Pricing(3, 1, UpgradeMode.LEVEL_DIFFERENCE, 0, 10),
+				with(id, new EnchantmentOverrides.Entry(NONE, OptionalInt.of(3), OptionalInt.of(1), Optional.empty(),
+						NONE, NONE)).get(id));
 	}
 
 	@Test

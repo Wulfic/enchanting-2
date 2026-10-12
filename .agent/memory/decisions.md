@@ -921,3 +921,15 @@ requires a ceiling row for every ID so a new enchantment can't skip it. Weights 
 **Rejected:** clamping soft ceilings (owner wants high levels allowed with a note); a GUI max level that applies
 without a restart (MODIFY only runs at startup, gotchas.md 2026-10-07).
 **Affects:** docs/DESIGN.md §1/§8/§10, docs/ENCHANTMENTS.md, TODO 10j
+
+## 2026-10-12 — Curse levels, table row order, Fortune tag additions (owner)
+**Context:** open owner items from state.md (10e curse scaling, panel order, Fortune default tags).
+**Choice (owner):** the five new curses (10e) scale both effect and discount per level: discount 15% at I, +5% per
+level (V = 35%), still capped by `curses.max_discount_percent`; the effect scales linearly with level (DESIGN §5a's
+table is level I). The table panel sorts rows by translated name, so `enchanting2:` and `minecraft:` rows interleave.
+Fortune default tags gain soil blocks (grass block, podzol, coarse dirt, rooted dirt, mycelium → shovels), bamboo
+(`minecraft:bamboo`, the plant → axes) and `#minecraft:leaves` (→ hoes, vanilla's mineable tool for leaves).
+**Why:** a +5%/level discount keeps one curse from hitting the 45% cap alone (15%×level would cap at III and make
+IV–V pure downside); interleaving reads better than a namespace split.
+**Rejected:** discount = 15% × level (caps at III); fixed discount (nobody would pick above I); keeping ID order.
+**Affects:** docs/DESIGN.md §5a/§6/§7, TODO 10e/10k, `fortune_multiplies/*.json`, `TablePanelView`

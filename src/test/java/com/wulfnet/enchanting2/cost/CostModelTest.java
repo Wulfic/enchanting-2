@@ -60,6 +60,45 @@ class CostModelTest {
 		}
 	}
 
+	// --- 10f single-level and Frost Walker prices (owner, 2026-10-10) ---
+
+	static final String SILK_TOUCH = "minecraft:silk_touch";
+	static final String FROST_WALKER = "minecraft:frost_walker";
+
+	@Test
+	void silkTouchAloneCostsTen() {
+		assertEquals(10, cost(Map.of(), Map.of(SILK_TOUCH, 1)));
+	}
+
+	@Test
+	void silkTouchWithEfficiencyFive() {
+		assertEquals(15, cost(Map.of(), Map.of(SILK_TOUCH, 1, EFFICIENCY, 5)));
+	}
+
+	/** Mending's surcharge counts levels, not price: 2 + 2 × 1 + 10. */
+	@Test
+	void mendingWithSilkTouch() {
+		assertEquals(14, cost(Map.of(), Map.of(MENDING, 1, SILK_TOUCH, 1)));
+	}
+
+	/** A max raised by {@code max_level_override} keeps the flat 10 until the admin sets {@code cost_per_level}. */
+	@Test
+	void raisedSingleLevelEnchantmentStillCostsTen() {
+		assertEquals(10, cost(Map.of(), Map.of(SILK_TOUCH, 3)));
+		assertEquals(0, cost(Map.of(SILK_TOUCH, 1), Map.of(SILK_TOUCH, 3)));
+	}
+
+	@Test
+	void extractingSilkTouchCostsTen() {
+		assertEquals(10, CostModel.extractCost(SILK_TOUCH, 1, PricingTable.builtIn(), IS_CURSE));
+	}
+
+	@Test
+	void frostWalkerTwoPerLevel() {
+		assertEquals(10, cost(Map.of(), Map.of(FROST_WALKER, 5)));
+		assertEquals(4, cost(Map.of(FROST_WALKER, 3), Map.of(FROST_WALKER, 5)));
+	}
+
 	@Test
 	void efficiencyFiveThenMending() {
 		int first = cost(Map.of(), Map.of(EFFICIENCY, 5));

@@ -22,7 +22,7 @@ whenever an enchantment, a max level or a price changes.**
 - **6/lvl**: Speed (elytra) only (V = 30; owner, 2026-10-10).
 - **Mending**: 2, plus 2 for every level of every other non-curse enchantment on the item.
 - **Curses**: 0, and each one takes a percentage off the item's enchant cost (DESIGN §5a).
-- **†**: the price is decided but not in the code yet (Phase 10f). Until then the game still charges 1/lvl.
+- **†**: a planned enchantment's price, decided now; its stage adds the price row when it is built (10f set the rest).
 
 Unknown or third-party enchantments use the default 1/lvl unless `enchantments.json5` says otherwise.
 
@@ -41,8 +41,8 @@ change needs a restart. See DESIGN §8.
 | Enchantment | Max | Cost | Fits | What it does | Status |
 |---|---|---|---|---|---|
 | Respiration | 5 | 1/lvl | helmets | longer underwater breathing | Vanilla |
-| Aqua Affinity | 1 | 10 † | helmets | normal mining speed underwater | Vanilla |
-| Vision | 1 | 10 † | helmets | Night Vision while worn (players only), no flicker, removed when taken off | Built |
+| Aqua Affinity | 1 | 10 | helmets | normal mining speed underwater | Vanilla |
+| Vision | 1 | 10 | helmets | Night Vision while worn (players only), no flicker, removed when taken off | Built |
 | Calm Gaze | 1 | 10 † | helmets | endermen don't get angry when you look at them (like wearing a carved pumpkin) | Planned |
 | Clarity | 3 | 1/lvl | helmets | Blindness, Darkness and Nausea last 33% shorter per level (III = immune) | Planned |
 | Phantom Ward | 1 | 10 † | helmets | phantoms don't target you, even when you haven't slept | Planned |
@@ -68,7 +68,7 @@ change needs a restart. See DESIGN §8.
 |---|---|---|---|---|---|
 | Feather Falling | 5 | 1/lvl | boots | less fall damage | Vanilla |
 | Depth Strider | 3 | 1/lvl | boots | faster underwater movement (full effect at III, so it stays at 3) | Vanilla |
-| Frost Walker | 5 | 2/lvl † | boots | freezes water under you as you walk; no magma or campfire damage | Vanilla |
+| Frost Walker | 5 | 2/lvl | boots | freezes water under you as you walk; no magma or campfire damage | Vanilla |
 | Soul Speed | 5 | 1/lvl | boots | faster on soul sand and soul soil | Vanilla |
 | Swiftness | 5 | 1/lvl | boots | more movement speed | Built |
 | Double Jump | 1 | 10 † | boots | one extra jump in the air, reset on landing | Planned |
@@ -149,7 +149,7 @@ The damage enchantments (Sharpness, Smite, Bane, Impaling, Density, Breach) can 
 | Impaling | 5 | 1/lvl | trident | more damage to water mobs | Vanilla |
 | Loyalty | 5 | 1/lvl | trident | returns after a throw | Vanilla |
 | Riptide | 5 | 1/lvl | trident | launches you in water or rain | Vanilla |
-| Channeling | 1 | 10 † | trident | summons lightning in a thunderstorm | Vanilla |
+| Channeling | 1 | 10 | trident | summons lightning in a thunderstorm | Vanilla |
 
 Riptide, Loyalty and Channeling can share a trident in this mod: Riptide launches in water or rain, otherwise it
 throws normally.
@@ -185,16 +185,16 @@ throws normally.
 |---|---|---|---|---|---|
 | Quick Charge | 4 | 1/lvl | crossbow | faster reload (V would be zero charge time, so it stops at 4) | Vanilla |
 | Piercing | 5 | 1/lvl | crossbow | arrows pass through more targets | Vanilla |
-| Multishot | 1 | 10 † | crossbow | fires three arrows | Vanilla |
+| Multishot | 1 | 10 | crossbow | fires three arrows | Vanilla |
 
 Multishot and Piercing can share a crossbow in this mod.
 
 ### Bow or crossbow
 | Enchantment | Max | Cost | Fits | What it does | Status |
 |---|---|---|---|---|---|
-| Flame | 1 | 10 † | bow, crossbow ‡ | arrows set targets on fire (not firework rockets) | Vanilla |
-| Infinity | 1 | 10 † | bow, crossbow ‡, water bucket ‡, lava bucket ‡ | bow/crossbow: one arrow in the inventory is never used up (rockets still are); bucket: never empties (see below) | Vanilla |
-| TrueShot Aura | 1 | 10 † | bow, crossbow ‡ | arrows ignore gravity for 5 s, then fall normally | Built |
+| Flame | 1 | 10 | bow, crossbow ‡ | arrows set targets on fire (not firework rockets) | Vanilla |
+| Infinity | 1 | 10 | bow, crossbow ‡, water bucket ‡, lava bucket ‡ | bow/crossbow: one arrow in the inventory is never used up (rockets still are); bucket: never empties (see below) | Vanilla |
+| TrueShot Aura | 1 | 10 | bow, crossbow ‡ | arrows ignore gravity for 5 s, then fall normally | Built |
 
 Infinity and Mending can share a bow or crossbow in this mod.
 
@@ -207,8 +207,8 @@ Infinity and Mending can share a bow or crossbow in this mod.
 |---|---|---|---|---|---|
 | Efficiency | 5 | 1/lvl | pickaxes, shovels, axes, hoes, shears | faster mining | Vanilla |
 | Fortune | 5 | 1/lvl | pickaxes, shovels, axes, hoes | more block drops; only natural blocks, never placed ones | Vanilla |
-| Silk Touch | 1 | 10 † | pickaxes, shovels, axes, hoes | blocks drop themselves; mob spawners too (keeping their mob, no XP) if `silk_touch.collect_spawners` is on (default on ‡) | Vanilla |
-| Smelting | 1 | 10 † | pickaxes, shovels, axes, hoes | drops come out smelted, after Fortune, with furnace XP; Silk Touch wins by default | Built |
+| Silk Touch | 1 | 10 | pickaxes, shovels, axes, hoes | blocks drop themselves; mob spawners too (keeping their mob, no XP) if `silk_touch.collect_spawners` is on (default on ‡) | Vanilla |
+| Smelting | 1 | 10 | pickaxes, shovels, axes, hoes | drops come out smelted, after Fortune, with furnace XP; Silk Touch wins by default | Built |
 | Area Mining | 1 | 10 † | pickaxes, shovels | breaks 3×3 on the face you hit; sneak to break one block | Planned |
 
 Silk Touch and Fortune can share a tool in this mod. By default Fortune never multiplies a Silk Touch drop.

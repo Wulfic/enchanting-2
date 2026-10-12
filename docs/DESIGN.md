@@ -363,8 +363,9 @@ buys a cheaper enchant.
 | Fumbling | 15% | tools | −30% block break speed | D (attribute) |
 | Hunger | 15% | armor, held items | +50% hunger drain | M (exhaustion mixin) |
 
-The five new curses go to max level 5 (owner, 2026-10-10). Binding and Vanishing stay at 1. Open: whether the
-effect and `discount_percent` scale per level, or the table above is level I (TODO 10e).
+The five new curses go to max level 5 (owner, 2026-10-10). Binding and Vanishing stay at 1. The table above is
+level I (owner, 2026-10-12): the effect scales linearly with level and the discount is 15% at I, +5% per level
+(V = 35%), still capped by `curses.max_discount_percent`.
 
 Example: Mending + Efficiency V (17) + Curse of Weight → `ceil(17 × 0.85)` = 15. Cleansing it
 later costs `max(30, ceil(0.15 × 17))` = 30.

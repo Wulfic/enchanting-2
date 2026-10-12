@@ -1354,8 +1354,9 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       Helmet and leggings (owner, 2026-10-10; DESIGN §9 rows): Sustenance 4%/level, Endurance 5%/level (sprint only).
       Hard Hat, Leaping, Shadow Step not picked. Each stage writes its enchantment's `.desc` lang line (10h's
       completeness test fails otherwise).
-- [ ] 10f Prices (owner, 2026-10-10; DESIGN §5): every single-level non-curse enchantment except Mending costs
-      10 XP levels, and Frost Walker costs 2 per level. One commit:
+- [x] 10f Prices (owner, 2026-10-10; DESIGN §5): every single-level non-curse enchantment except Mending costs
+      10 XP levels, and Frost Walker costs 2 per level. One commit:  ✅ 2026-10-12 (no GameTest asserted a price of 1
+      for these, so none moved; JUnit fails 8 cases with `BUILT_IN` reverted)
       - `cost/PricingTable.BUILT_IN`: `minecraft:frost_walker` → `Pricing(0, 2, LEVEL_DIFFERENCE, 0, 10)`. JUnit:
         Frost Walker V = 10, III → V = 4.
       - `cost/PricingTable.BUILT_IN`: a `Pricing(10, 0, LEVEL_DIFFERENCE, 0, 10)` row for `minecraft:aqua_affinity`,
@@ -1403,8 +1404,15 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
         (the JUnit above fails otherwise).
 - [ ] 10e Curses (§5a): Fragility, Weight, Greed, Fumbling (D); Hunger (M). Curse tag +
       `discount_percent` data; table shows curses as optional picks with a negative cost line.
-      Max level 5 for all five (owner, 2026-10-10). Open (owner, before 10e): does each level scale the effect and
-      the discount, and by how much (§5a's numbers are one fixed level today)?
+      Max level 5 for all five (owner, 2026-10-10). Per level (owner, 2026-10-12): the effect scales linearly (§5a's
+      table is level I) and the discount is 15% at I, +5% per level (V = 35%), still capped by
+      `curses.max_discount_percent`.
+- [ ] 10k Owner tweaks (owner, 2026-10-12). One commit:
+      - Fortune default tags: shovels + `grass_block`, `podzol`, `coarse_dirt`, `rooted_dirt`, `mycelium`; axes +
+        `minecraft:bamboo`; hoes + `#minecraft:leaves`. GameTest: a natural grass block under Fortune V gives more
+        than one dirt over a seeded run, a placed one exactly one; natural leaves with a Fortune hoe multiply.
+        DESIGN §6 table + docs/ENCHANTMENTS.md Fortune row.
+      - Table panel rows sorted by translated name (client, `TablePanelView`), JUnit on the sort, DESIGN §7.
 - [ ] 10d Balance pass: every candidate moves from REVIEW to INCLUDE/DEFER/REMOVE
 
 ### Phase 10g — Applicability and vanilla extensions (three stages, one commit each)

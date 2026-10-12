@@ -4,11 +4,11 @@
 > cheap to read at the start of every session. History belongs in `decisions.md` and
 > `gotchas.md`; this file only answers "where am I right now?".
 
-**Last updated:** 2026-10-10
+**Last updated:** 2026-10-12
 **Branch:** main (commit straight to main and push; no CI; see decisions.md)
 
 ## Where we are
-Phases 1–9 and 10a done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
+Phases 1–9, 10a, 10b and 10f done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
 - 3: `ExperienceCurve`, no level cap, exact XP points, counters saturate. 4: `MaxLevels` via `MODIFY` (restart to
   apply), `ConflictFamily` + `allow_together`, `EnchantRules`, Lure/Riptide 5 with safe caps.
 - 5: `cost/` (`CostModel`, `PricingTable`, curse discount, `cleanseCost`, `extractCost`).
@@ -27,19 +27,15 @@ Phases 1–9 and 10a done (TODO.md has each stage's notes; owner `runClient` che
   (`AcquisitionRules`, `WeightedPick`, registry stamp + holder-owner lookup, TRADE scope), mixins on `selectEnchantment`,
   `enchant_randomly`, librarian books, villager `getOffer`s; table pool filter + treasure override; config screen
   "Enchantments" category (`ConfigView<T>`, `EnchantmentFlagsDraft`, `VanillaEnchantments`).
-- Tests: 301 JUnit + 216 GameTests (`./gradlew build`) + 4 client GameTests (`./gradlew runClientGameTest`).
+- 10f (2026-10-12): `PricingTable.BUILT_IN` single-level rows (flat 10) and Frost Walker 2/level.
+- Tests: 310 JUnit + 216 GameTests (`./gradlew build`) + 4 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Phase 10b done (2026-10-09): Vampirism, Beheading, Smelting, TrueShot Aura, Vision on our effect components
-   (`effect/*`), `beheading` + `smelting` config sections, config screen "Enchantment effects" category.
-   Next: 10f (single-level enchantments cost 10, Frost Walker 2/level; owner 2026-10-10, small), then 10g (axes and
-   crossbow widening, Silk Touch spawners, infinite buckets; one open question in TODO 10g), then 10h (Ctrl tooltip
-   descriptions), 10i (Step Assist, Anchored, Sure Footing; data-only), 10j (max levels to 255 with ceilings, max
-   level + cost in the config screen), then 10c (M route:
-   Quick Strike, Magnetic, Ender Link, Keep on Death, Double Jump, Lava Walking, Snow Walker, Flight, Speed, Area Mining,
-   Replant, Tiller, Last Stand, Deflect, Shield Bash, Steadfast, Spiked, Bulwark, Riposte, Steady Stance, Calm Gaze,
-   Clarity, Phantom Ward, Sustenance, Endurance). Each needs its own written sub-plan in TODO.md first (owner questions
-   first: edge cases from DESIGN §9).
+1. Next: 10k (owner tweaks 2026-10-12: Fortune soil/bamboo/leaves tags, table rows sorted by name; small), then
+   10g (axes and crossbow widening, Silk Touch spawners, infinite buckets; all owner questions answered), 10h (Ctrl
+   tooltip descriptions), 10i (Step Assist, Anchored, Sure Footing; data-only), 10j (max levels to 255 with ceilings,
+   max level + cost in the config screen), then 10c (M route, see TODO; each needs its own written sub-plan with owner
+   questions first: edge cases from DESIGN §9), 10e (curses; scaling answered 2026-10-12).
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
    ~1,000,000) + 6D: panel look, config screen "Display" toggle, and a vanilla server keeping the vanilla anvil screen +
    6bC: grindstone panel look, and a vanilla server keeping the vanilla grindstone + 7D: table panel and window look
@@ -48,10 +44,6 @@ Phases 1–9 and 10a done (TODO.md has each stage's notes; owner `runClient` che
    axe on a tree; place a log and mine it) + 9C: the config screen's "Enchantments" category (tick boxes, names,
    the remote "kept on the server" label) + 10a: new names in tooltips, a Health V set's hearts + 10b: the five new names, a Vision helmet at night
    (no flicker, gone when taken off), a TrueShot arrow's flight, the "Enchantment effects" config category.
-3. Owner, optional: the table panel lists rows in ID order, so all `enchanting2:` rows come before `minecraft:` ones.
-   Sorting by translated name would interleave them (a client-side change to the panel's order).
-4. Owner, optional: the Fortune default tags are DESIGN §6's draft list. Grass, podzol, coarse/rooted dirt, mycelium,
-   bamboo blocks and leaves aren't in them.
 
 ## Open questions / blockers
 - Owner (2026-10-06): a lowered max level never touches existing items (decisions.md).

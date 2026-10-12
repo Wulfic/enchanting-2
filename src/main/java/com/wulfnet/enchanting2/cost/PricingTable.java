@@ -16,11 +16,28 @@ public final class PricingTable {
 	public static final Pricing DEFAULT = new Pricing(0, 1, UpgradeMode.LEVEL_DIFFERENCE, 0, 10);
 
 	/**
-	 * Mending is per-level 0: the §5 table has "Mending alone = 2" and "Mending + Eff I = 5", so its whole own price is
-	 * the base 2, and the rest is the surcharge of 2 per other level.
+	 * Every single-level non-curse enchantment except Mending: a flat 10 (owner, 2026-10-10). Per-level 0, so a max
+	 * raised by {@code max_level_override} still costs 10 for any level until the admin sets {@code cost_per_level}.
 	 */
-	static final Map<String, Pricing> BUILT_IN = Map.of(
-			"minecraft:mending", new Pricing(2, 0, UpgradeMode.LEVEL_DIFFERENCE, 2, 10));
+	static final Pricing SINGLE_LEVEL = new Pricing(10, 0, UpgradeMode.LEVEL_DIFFERENCE, 0, 10);
+
+	/**
+	 * Mending is per-level 0: the §5 table has "Mending alone = 2" and "Mending + Eff I = 5", so its whole own price is
+	 * the base 2, and the rest is the surcharge of 2 per other level. Each later single-level enchantment (10c, 10i)
+	 * adds its {@link #SINGLE_LEVEL} row in its own stage.
+	 */
+	static final Map<String, Pricing> BUILT_IN = Map.ofEntries(
+			Map.entry("minecraft:mending", new Pricing(2, 0, UpgradeMode.LEVEL_DIFFERENCE, 2, 10)),
+			Map.entry("minecraft:frost_walker", new Pricing(0, 2, UpgradeMode.LEVEL_DIFFERENCE, 0, 10)),
+			Map.entry("minecraft:aqua_affinity", SINGLE_LEVEL),
+			Map.entry("minecraft:silk_touch", SINGLE_LEVEL),
+			Map.entry("minecraft:flame", SINGLE_LEVEL),
+			Map.entry("minecraft:infinity", SINGLE_LEVEL),
+			Map.entry("minecraft:channeling", SINGLE_LEVEL),
+			Map.entry("minecraft:multishot", SINGLE_LEVEL),
+			Map.entry("enchanting2:smelting", SINGLE_LEVEL),
+			Map.entry("enchanting2:true_shot_aura", SINGLE_LEVEL),
+			Map.entry("enchanting2:vision", SINGLE_LEVEL));
 
 	private final EnchantmentOverrides overrides;
 
