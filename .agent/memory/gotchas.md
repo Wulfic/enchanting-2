@@ -379,3 +379,17 @@ must keep its own-table guard, or the nested roll re-enters it (mutation run sho
 A test that builds an arrow with the bow sees no Flame and no TrueShot.
 **Fix:** call `arrow.applyOnProjectileSpawned(level, bow)` after constructing it, as the shoot path does.
 **Affects:** src/gametest/java/com/wulfnet/enchanting2/gametest/EffectEnchantmentsGameTest.java
+
+## 2026-10-12 — 1.21.11 crossbows load in `onUseTick`, not `releaseUsing`
+**Symptom:** a GameTest calling `CrossbowItem.releaseUsing(stack, level, player, 0)` never charged the crossbow.
+**Cause:** loading (`tryLoadProjectiles`) moved to `onUseTick`: it loads once `(useDuration - remaining) /
+chargeDuration >= 1`. `releaseUsing` only reports whether it's charged.
+**Fix:** `onUseTick(level, player, crossbow, 0)` (0 ticks left = fully drawn), then `use(...)` to fire.
+**Affects:** `ItemWideningGameTest`, any crossbow test
+
+## 2026-10-12 — A GameTest mock player starts at world (0, 0, 0), not in the test structure
+**Symptom:** a crossbow fired by `makeMockServerPlayerInLevel()` spawned no arrow near the player's block position
+inside the test; diagnostics showed the player at `(0.0, 0.0, 0.0)`.
+**Cause:** the mock is added to the level without being placed in the structure.
+**Fix:** `player.setPos(helper.absoluteVec(...))` before anything that spawns entities from the player's position.
+**Affects:** GameTests that spawn projectiles or drops from a mock player

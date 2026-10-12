@@ -25,6 +25,7 @@
 		"MinecraftServerMixin",
 		"PistonBaseBlockMixin",
 		"PlayerMixin",
+		"RegistryDataLoaderMixin",
 		"ServerPlayerAccessor",
 		"ServerPlayerGameModeMixin",
 		"ServerPlayerMixin",

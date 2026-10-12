@@ -29,10 +29,12 @@ Phases 1–9, 10a, 10b and 10f done (TODO.md has each stage's notes; owner `runC
   "Enchantments" category (`ConfigView<T>`, `EnchantmentFlagsDraft`, `VanillaEnchantments`).
 - 10f (2026-10-12): `PricingTable.BUILT_IN` single-level rows (flat 10) and Frost Walker 2/level.
 - 10k (2026-10-12): Fortune soil/bamboo/leaves tags; table panel rows by translated name (`TablePanelView.sortedByName`).
-- Tests: 313 JUnit + 220 GameTests (`./gradlew build`) + 4 client GameTests (`./gradlew runClientGameTest`).
+- 10gA (2026-10-12): `ItemWidening` + `ItemWideningHook` + `RegistryDataLoaderMixin` (lent item lookup); axes take
+  Knockback/Looting/Fire Aspect, crossbows Flame/Infinity/TrueShot.
+- Tests: 317 JUnit + 228 GameTests (`./gradlew build`) + 4 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Next: 10g (axes and crossbow widening, Silk Touch spawners, infinite buckets; all owner questions answered), 10h (Ctrl
+1. Next: 10gB (Silk Touch spawners), 10gC (infinite buckets; all owner questions answered), 10h (Ctrl
    tooltip descriptions), 10i (Step Assist, Anchored, Sure Footing; data-only), 10j (max levels to 255 with ceilings,
    max level + cost in the config screen), then 10c (M route, see TODO; each needs its own written sub-plan with owner
    questions first: edge cases from DESIGN §9), 10e (curses; scaling answered 2026-10-12).

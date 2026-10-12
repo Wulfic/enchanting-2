@@ -505,7 +505,10 @@ public class EffectEnchantmentsGameTest {
 		}
 		Enchantment trueShot = get(helper, ModEnchantments.TRUE_SHOT_AURA).value();
 		helper.assertTrue(trueShot.isSupportedItem(new ItemStack(Items.BOW)), Component.literal("TrueShot on a bow"));
-		for (Item item : List.of(Items.CROSSBOW, Items.TRIDENT, Items.DIAMOND_SWORD)) {
+		// Crossbows too since Phase 10gA (owner, 2026-10-10).
+		helper.assertTrue(trueShot.isSupportedItem(new ItemStack(Items.CROSSBOW)),
+				Component.literal("TrueShot on a crossbow"));
+		for (Item item : List.of(Items.TRIDENT, Items.DIAMOND_SWORD)) {
 			helper.assertFalse(trueShot.isSupportedItem(new ItemStack(item)),
 					Component.literal("TrueShot should not go on " + item));
 		}

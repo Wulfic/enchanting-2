@@ -25,6 +25,6 @@
   "slots": [
     "mainhand"
   ],
-  "supported_items": "#minecraft:enchantable/bow",
+  "supported_items": "#enchanting2:enchantable/bow_or_crossbow",
   "weight": 1
 }

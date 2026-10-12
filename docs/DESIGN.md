@@ -260,7 +260,11 @@ Rule 2 still holds: these are owner decisions about what an item takes, not a wa
 - **How:** an `enchanting2:enchantable/<id>` item tag per widened vanilla enchantment (vanilla tag + the new items), put
   into that enchantment's `supported_items` and `primary_items` in `EnchantmentEvents.MODIFY` (the `MaxLevelHook`
   pattern), so the shared vanilla tags (`#enchantable/bow` also drives Power and Punch) are never edited. TrueShot Aura
-  is ours, so its JSON points at a new `bow_or_crossbow` tag.
+  is ours, so its JSON points at a new `bow_or_crossbow` tag. Built in 10gA (`ItemWidening`, `ItemWideningHook`):
+  `primary_items` is replaced only where vanilla has one (Fire Aspect → `fire_aspect_primary`, melee weapons + axes);
+  elsewhere it's absent and follows `supported_items`. `MODIFY` has no registry lookup, so `RegistryDataLoaderMixin`
+  lends the hook the item lookup the JSON was parsed with. A definition whose items aren't vanilla's tags (a datapack
+  or mod changed them) is left alone and logged at INFO.
 
 ---
 

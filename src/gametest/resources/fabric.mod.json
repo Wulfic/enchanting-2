@@ -11,6 +11,7 @@
 			"com.wulfnet.enchanting2.gametest.ConfigWiringGameTest",
 			"com.wulfnet.enchanting2.gametest.ExperienceGameTest",
 			"com.wulfnet.enchanting2.gametest.EnchantRulesGameTest",
+			"com.wulfnet.enchanting2.gametest.ItemWideningGameTest",
 			"com.wulfnet.enchanting2.gametest.MechanicLimitsGameTest",
 			"com.wulfnet.enchanting2.gametest.AnvilGameTest",
 			"com.wulfnet.enchanting2.gametest.AnvilPreviewGameTest",

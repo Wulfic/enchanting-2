@@ -933,3 +933,19 @@ Fortune default tags gain soil blocks (grass block, podzol, coarse dirt, rooted 
 IV–V pure downside); interleaving reads better than a namespace split.
 **Rejected:** discount = 15% × level (caps at III); fixed discount (nobody would pick above I); keeping ID order.
 **Affects:** docs/DESIGN.md §5a/§6/§7, TODO 10e/10k, `fortune_multiplies/*.json`, `TablePanelView`
+
+## 2026-10-12 — Widening vanilla `supported_items` through a lent item lookup (Phase 10gA)
+**Context:** 10gA points Knockback, Looting, Fire Aspect, Flame and Infinity at our item tags. `EnchantmentEvents.MODIFY`
+(item-api 11.6.0) gets no registry lookup, and `BuiltInRegistries.ITEM`'s tag sets are pending (unbound) while dynamic
+registries load.
+**Choice:** `RegistryDataLoaderMixin` wraps `loadElementFromResource` (`@WrapMethod`, enchantment registry only) and
+lends `ops.getter(Registries.ITEM)` to `ItemWideningHook` through a ThreadLocal, cleared in `finally`. The hook builds
+the tag set from that getter, the same pending-tag lookup vanilla's own JSON parse uses. It swaps only when the loaded
+items are still vanilla's tags (`ItemWidening.decide`), else INFO and keep theirs.
+**Why:** keeps the 2026-10-06 "no override JSON" rule and never edits shared vanilla tags (`#enchantable/bow` also
+drives Power and Punch).
+**Rejected:** `BuiltInRegistries.ITEM.get(tag)` (unbound during load; stale set on a second world load); override
+JSON (clobbers datapacks, decisions 2026-10-06); adding axes to vanilla `#enchantable/melee_weapon` (would also give
+axes every other melee_weapon enchantment); Fabric `ALLOW_ENCHANTING` (doesn't change what the registry syncs, so the
+table, loot and other mods would still see bow-only).
+**Affects:** `enchantment/ItemWidening*.java`, `mixin/RegistryDataLoaderMixin.java`, `tags/item/enchantable/*`

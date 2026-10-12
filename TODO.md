@@ -1427,10 +1427,10 @@ empty bucket; an Infinity lava bucket is never fuel; the table offers it on buck
 no Mending on untagged modded durables.
 Durability enchantments on a bucket need Infinity on it (owner, 2026-10-10).
 
-### Stage 10gA — Axes and crossbow → commit
-- [ ] 10gA.1 Tags `enchanting2:enchantable/{knockback,looting,fire_aspect,flame,infinity}` = the vanilla tag + new
+### Stage 10gA — Axes and crossbow → commit  ✅ 2026-10-12
+- [x] 10gA.1 Tags `enchanting2:enchantable/{knockback,looting,fire_aspect,flame,infinity}` = the vanilla tag + new
       items (axes; crossbow; Infinity also gets the two buckets in 10gC, not here) and `bow_or_crossbow` for TrueShot.
-- [ ] 10gA.2 `MaxLevelHook`-style MODIFY step swaps `supported_items` and `primary_items` to those tags, by ID. A
+- [x] 10gA.2 `MaxLevelHook`-style MODIFY step swaps `supported_items` and `primary_items` to those tags, by ID. A
       datapack that already replaced the definition keeps its own (log at INFO, don't fight it). TrueShot's JSON
       points at `bow_or_crossbow`.
       How (2026-10-12): MODIFY gets no registry lookup (item-api 11.6.0), and `BuiltInRegistries.ITEM`'s tag sets
@@ -1440,13 +1440,15 @@ Durability enchantments on a bucket need Infinity on it (owner, 2026-10-10).
       `getter.getOrThrow(TagKey)`, the same pending-tag lookup vanilla's JSON parse uses. "Datapack replaced it" =
       the current set isn't `HolderSet.Named` with the vanilla tag key (`enchantable/melee_weapon` for Knockback and
       Looting, `enchantable/fire_aspect` + primary `melee_weapon` for Fire Aspect, `enchantable/bow` for Flame and
-      Infinity). No getter in the ThreadLocal (an injected entry) → leave it, WARN once.
-- [ ] 10gA.3 GameTests: Knockback/Looting/Fire Aspect apply to an iron axe at the anvil and are offered at the table;
+      Infinity). No getter in the ThreadLocal (an injected entry) → leave it, WARN.
+      Done: Fire Aspect's `primary_items` → `fire_aspect_primary` (melee weapons + axes); the others have none, so
+      theirs follows `supported_items`. Mutation: unregistering the hook fails the anvil, table and crossbow tests.
+- [x] 10gA.3 GameTests: Knockback/Looting/Fire Aspect apply to an iron axe at the anvil and are offered at the table;
       a Fire Aspect axe sets the target on fire. A Flame crossbow arrow ignites; an Infinity crossbow keeps its arrow
       and still uses a firework rocket; a TrueShot crossbow arrow has no gravity, all three with Multishot. Power and
       Punch still refuse a crossbow (the shared tag untouched). A shovel takes Reach, XP Boost and refuses
       Sharpness/Vampirism. Mending applies to every item in `#enchantable/durability`.
-- [ ] 10gA.4 docs/ENCHANTMENTS.md: drop the ‡ on these rows.
+- [x] 10gA.4 docs/ENCHANTMENTS.md: drop the ‡ on these rows.
 
 ### Stage 10gB — Silk Touch spawners → commit
 - [ ] 10gB.1 `common.json5` `silk_touch.collect_spawners` (bool, default true), `SilkTouchSection` + config

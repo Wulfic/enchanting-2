@@ -128,9 +128,9 @@ Cushion (chestplate table above) also fits elytra.
 | Sharpness | 5 | 1/lvl | swords, spears, axes | more damage | Vanilla |
 | Smite | 5 | 1/lvl | swords, spears, axes, mace | more damage to undead | Vanilla |
 | Bane of Arthropods | 5 | 1/lvl | swords, spears, axes, mace | more damage to arthropods, plus Slowness | Vanilla |
-| Knockback | 5 | 1/lvl | swords, spears, axes ‡ | more knockback | Vanilla |
-| Fire Aspect | 5 | 1/lvl | swords, spears, mace, axes ‡ | sets the target on fire | Vanilla |
-| Looting | 5 | 1/lvl | swords, spears, axes ‡ | more mob drops | Vanilla |
+| Knockback | 5 | 1/lvl | swords, spears, axes | more knockback | Vanilla |
+| Fire Aspect | 5 | 1/lvl | swords, spears, mace, axes | sets the target on fire | Vanilla |
+| Looting | 5 | 1/lvl | swords, spears, axes | more mob drops | Vanilla |
 | Sweeping Edge | 5 | 1/lvl | swords | more sweep-attack damage (only swords sweep, so not axes) | Vanilla |
 | Lunge | 5 | 1/lvl | spears | lunge forward on a piercing attack (costs hunger) | Vanilla |
 
@@ -192,9 +192,9 @@ Multishot and Piercing can share a crossbow in this mod.
 ### Bow or crossbow
 | Enchantment | Max | Cost | Fits | What it does | Status |
 |---|---|---|---|---|---|
-| Flame | 1 | 10 | bow, crossbow ‡ | arrows set targets on fire (not firework rockets) | Vanilla |
-| Infinity | 1 | 10 | bow, crossbow ‡, water bucket ‡, lava bucket ‡ | bow/crossbow: one arrow in the inventory is never used up (rockets still are); bucket: never empties (see below) | Vanilla |
-| TrueShot Aura | 1 | 10 | bow, crossbow ‡ | arrows ignore gravity for 5 s, then fall normally | Built |
+| Flame | 1 | 10 | bow, crossbow | arrows set targets on fire (not firework rockets) | Vanilla |
+| Infinity | 1 | 10 | bow, crossbow, water bucket ‡, lava bucket ‡ | bow/crossbow: one arrow in the inventory is never used up (rockets still are); bucket: never empties (see below) | Vanilla |
+| TrueShot Aura | 1 | 10 | bow, crossbow | arrows ignore gravity for 5 s, then fall normally | Built |
 
 Infinity and Mending can share a bow or crossbow in this mod.
 
@@ -222,7 +222,7 @@ Silk Touch and Fortune can share a tool in this mod. By default Fortune never mu
 ### What an axe and a shovel take
 - **Axe:** every mining-tool enchantment above (Efficiency, Fortune, Silk Touch, Smelting), Reach, XP Boost,
   Magnetic, Ender Link, Unbreaking, Mending, and the melee weapon enchantments: Sharpness, Smite, Bane of Arthropods,
-  Knockback ‡, Fire Aspect ‡, Looting ‡, and all of ours under "Any melee weapon" and "Melee or ranged". Not Sweeping
+  Knockback, Fire Aspect, Looting, and all of ours under "Any melee weapon" and "Melee or ranged". Not Sweeping
   Edge or Lunge (sword and spear mechanics), and not Area Mining (pickaxes and shovels only).
 - **Shovel:** Efficiency, Fortune, Silk Touch, Smelting, Area Mining, Reach, XP Boost, Magnetic, Ender Link,
   Unbreaking, Mending. No weapon enchantments.

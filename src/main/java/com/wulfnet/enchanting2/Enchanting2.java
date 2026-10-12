@@ -5,6 +5,7 @@ import com.wulfnet.enchanting2.config.ServerConfigs;
 import com.wulfnet.enchanting2.effect.HeadDrops;
 import com.wulfnet.enchanting2.effect.ModEffects;
 import com.wulfnet.enchanting2.effect.NightVisionTicker;
+import com.wulfnet.enchanting2.enchantment.ItemWideningHook;
 import com.wulfnet.enchanting2.enchantment.MaxLevelHook;
 import com.wulfnet.enchanting2.fortune.FortuneDrops;
 import com.wulfnet.enchanting2.fortune.PlacedBlocks;
@@ -24,6 +25,7 @@ public final class Enchanting2 implements ModInitializer {
 		ServerNetworking.registerServer();
 		ServerConfigs.register();
 		MaxLevelHook.register();
+		ItemWideningHook.register();
 		PlacedBlocks.register();
 		FortuneDrops.register();
 		Acquisition.register();
