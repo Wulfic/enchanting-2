@@ -393,3 +393,20 @@ inside the test; diagnostics showed the player at `(0.0, 0.0, 0.0)`.
 **Cause:** the mock is added to the level without being placed in the structure.
 **Fix:** `player.setPos(helper.absoluteVec(...))` before anything that spawns entities from the player's position.
 **Affects:** GameTests that spawn projectiles or drops from a mock player
+
+## 2026-10-12 — Spawner XP bypasses Silk Touch's `block_experience`
+**Trap:** Silk Touch's JSON sets `block_experience` to 0, so "silk breaks give no XP" looks free. It isn't for spawners:
+`SpawnerBlock.spawnAfterBreak` (javap, 1.21.11) calls `popExperience(level, pos, 15 + nextInt(15) + nextInt(15))`
+directly, never through `EnchantmentHelper.processBlockExperience`.
+**Fix:** `SpawnerBlockMixin` `@WrapWithCondition` on that `popExperience` call, same condition as the drop. A mutation
+run (condition forced true) gave 36 XP and failed the silk-break test.
+**Affects:** src/main/java/com/wulfnet/enchanting2/mixin/SpawnerBlockMixin.java
+
+## 2026-10-12 — Rolling a loot table in a test also runs our live `MODIFY_DROPS` listener
+**Symptom:** a GameTest that rolled the spawner table, then called `CollectedSpawners.addDrop(..., false)` for the
+"option off" case, still got one spawner; with `true` it got two.
+**Cause:** Fabric fires `MODIFY_DROPS` inside `LootTable.getRandomItems`, so the live listener (server config, option
+on) had already added a drop before the test's own call.
+**Fix:** for a table vanilla leaves empty, start the test from an empty list. For one with real drops, only test a
+mode the live config doesn't already apply (the Fortune tests roll under SILK_WINS, then apply FORTUNE_MULTIPLIES_SILK).
+**Affects:** src/gametest/java/com/wulfnet/enchanting2/gametest/SpawnerGameTest.java

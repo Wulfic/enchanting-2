@@ -42,7 +42,7 @@ class ConfigParseTest {
 	void nonDefaultValuesRoundTrip() throws SyntaxError {
 		var custom = new CommonConfig(new ExperienceSection(false, 0, 1), AllowTogetherSection.DEFAULTS,
 				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
-				FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS);
+				FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS);
 		assertEquals(custom, common(ConfigFiles.render(custom, CommonConfig.CODEC)).config());
 	}
 
@@ -53,14 +53,14 @@ class ConfigParseTest {
 			allowed.remove(off);
 			var custom = new CommonConfig(ExperienceSection.DEFAULTS, new AllowTogetherSection(allowed),
 					CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
-					FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS);
+					FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS);
 			var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 			assertEquals(custom, parsed.config(), off.key());
 			assertEquals(List.of(), parsed.issues());
 		}
 		var none = new CommonConfig(ExperienceSection.DEFAULTS, new AllowTogetherSection(Set.of()),
 				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
-				FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS);
+				FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS);
 		assertEquals(none, common(ConfigFiles.render(none, CommonConfig.CODEC)).config());
 	}
 
@@ -298,7 +298,7 @@ class ConfigParseTest {
 	void strictRenderIsCommentFreeAndRoundTrips() throws SyntaxError {
 		var config = new CommonConfig(new ExperienceSection(false, 12, 345), AllowTogetherSection.DEFAULTS,
 				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
-				FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS);
+				FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS);
 		String json = ConfigFiles.renderStrict(config, CommonConfig.CODEC);
 		assertFalse(json.contains("//") || json.contains("/*"), json);
 		assertFalse(json.contains("\n"), json);
@@ -345,7 +345,7 @@ class ConfigParseTest {
 				new CostsSection(0, 3, 5, 0, false), new CursesSection(95, 0),
 				new AnvilSection(InvalidBookMode.STRIP_INVALID), new TableSection(false),
 				new FortuneSection(SilkFortuneMode.FORTUNE_MULTIPLIES_SILK), BeheadingSection.DEFAULTS,
-				SmeltingSection.DEFAULTS);
+				SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS);
 		var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 		assertEquals(custom, parsed.config());
 		assertEquals(List.of(), parsed.issues());
@@ -399,7 +399,7 @@ class ConfigParseTest {
 		for (InvalidBookMode mode : InvalidBookMode.values()) {
 			var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
 					CostsSection.DEFAULTS, CursesSection.DEFAULTS, new AnvilSection(mode), TableSection.DEFAULTS,
-					FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS);
+					FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS);
 			var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 			assertEquals(custom, parsed.config(), mode.name());
 			assertEquals(List.of(), parsed.issues(), mode.name());
@@ -452,7 +452,7 @@ class ConfigParseTest {
 		for (SilkFortuneMode mode : SilkFortuneMode.values()) {
 			var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
 					CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
-					new FortuneSection(mode), BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS);
+					new FortuneSection(mode), BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS);
 			var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 			assertEquals(custom, parsed.config(), mode.name());
 			assertEquals(List.of(), parsed.issues(), mode.name());
@@ -483,7 +483,8 @@ class ConfigParseTest {
 			for (boolean playerHeads : new boolean[] { false, true }) {
 				var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
 						CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
-						FortuneSection.DEFAULTS, new BeheadingSection(playerHeads), new SmeltingSection(priority));
+						FortuneSection.DEFAULTS, new BeheadingSection(playerHeads), new SmeltingSection(priority),
+						SilkTouchSection.DEFAULTS);
 				var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 				assertEquals(custom, parsed.config(), priority + " " + playerHeads);
 				assertEquals(List.of(), parsed.issues(), priority + " " + playerHeads);
@@ -501,6 +502,26 @@ class ConfigParseTest {
 		var missing = common("{ schema_version: 1, experience: { enabled: true } }");
 		assertEquals(BeheadingSection.DEFAULTS, missing.config().beheading());
 		assertEquals(SmeltingSection.DEFAULTS, missing.config().smelting());
+		assertEquals(List.of(), missing.issues());
+	}
+
+	@Test
+	void silkTouchCollectsSpawnersByDefaultAndIsRead() throws SyntaxError {
+		assertTrue(CommonConfig.defaults().silkTouch().collectSpawners(), "owner, 2026-10-10: on by default");
+		for (boolean collect : new boolean[] { false, true }) {
+			var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
+					CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
+					FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS,
+					new SilkTouchSection(collect));
+			var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
+			assertEquals(custom, parsed.config(), "collect_spawners " + collect);
+			assertEquals(List.of(), parsed.issues(), "collect_spawners " + collect);
+		}
+		var bad = common("{ schema_version: 1, silk_touch: { collect_spawners: \"yes\" } }");
+		assertEquals(SilkTouchSection.DEFAULTS, bad.config().silkTouch());
+		assertEquals(List.of("silk_touch.collect_spawners"), keys(bad.issues()));
+		var missing = common("{ schema_version: 1, experience: { enabled: true } }");
+		assertEquals(SilkTouchSection.DEFAULTS, missing.config().silkTouch());
 		assertEquals(List.of(), missing.issues());
 	}
 

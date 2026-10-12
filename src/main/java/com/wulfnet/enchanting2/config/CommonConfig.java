@@ -9,7 +9,7 @@ import java.util.Objects;
  */
 public record CommonConfig(ExperienceSection experience, AllowTogetherSection allowTogether, CostsSection costs,
 		CursesSection curses, AnvilSection anvil, TableSection table, FortuneSection fortune, BeheadingSection beheading,
-		SmeltingSection smelting) {
+		SmeltingSection smelting, SilkTouchSection silkTouch) {
 	public static final String FILE_NAME = "common.json5";
 	public static final int SCHEMA_VERSION = 1;
 
@@ -35,7 +35,8 @@ public record CommonConfig(ExperienceSection experience, AllowTogetherSection al
 					AllowTogetherSection.read(root.section("allow_together")), CostsSection.read(root.section("costs")),
 					CursesSection.read(root.section("curses")), AnvilSection.read(root.section("anvil")),
 					TableSection.read(root.section("table")), FortuneSection.read(root.section("fortune")),
-					BeheadingSection.read(root.section("beheading")), SmeltingSection.read(root.section("smelting")));
+					BeheadingSection.read(root.section("beheading")), SmeltingSection.read(root.section("smelting")),
+					SilkTouchSection.read(root.section("silk_touch")));
 		}
 
 		@Override
@@ -50,6 +51,7 @@ public record CommonConfig(ExperienceSection experience, AllowTogetherSection al
 			root.put("fortune", value.fortune.write(), "Fortune and Silk Touch on mining tools.");
 			root.put("beheading", value.beheading.write(), "The Beheading enchantment.");
 			root.put("smelting", value.smelting.write(), "The Smelting enchantment.");
+			root.put("silk_touch", value.silkTouch.write(), "Silk Touch on mob spawners.");
 		}
 	};
 
@@ -63,11 +65,12 @@ public record CommonConfig(ExperienceSection experience, AllowTogetherSection al
 		Objects.requireNonNull(fortune, "fortune");
 		Objects.requireNonNull(beheading, "beheading");
 		Objects.requireNonNull(smelting, "smelting");
+		Objects.requireNonNull(silkTouch, "silkTouch");
 	}
 
 	public static CommonConfig defaults() {
 		return new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS, CostsSection.DEFAULTS,
 				CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS, FortuneSection.DEFAULTS,
-				BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS);
+				BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS);
 	}
 }

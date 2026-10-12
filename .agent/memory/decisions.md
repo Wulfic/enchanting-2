@@ -949,3 +949,19 @@ JSON (clobbers datapacks, decisions 2026-10-06); adding axes to vanilla `#enchan
 axes every other melee_weapon enchantment); Fabric `ALLOW_ENCHANTING` (doesn't change what the registry syncs, so the
 table, loot and other mods would still see bow-only).
 **Affects:** `enchantment/ItemWidening*.java`, `mixin/RegistryDataLoaderMixin.java`, `tags/item/enchantable/*`
+
+## 2026-10-12 — A silk-touched spawner carries its mob type only (owner, Phase 10gB)
+**Context:** 10gB said the spawner item keeps "its spawn data". Spawn data is arbitrary entity NBT (gear, names,
+command-block minecarts), which is why vanilla's `OP_ONLY_CUSTOM_DATA` gate exists. An item component is forgeable by a
+creative non-op (the client sends whole stacks in creative). `javap` (1.21.11): `SpawnEggItem.useOn` sets any spawner's
+mob with `Spawner.setEntityId` for any player, no op check, only the `spawnerBlocksEnabled` gamerule.
+**Choice (owner):** the item carries the mob type only, written as a minimal `block_entity_data`
+(`SpawnData.entity.id`, so vanilla's tooltip and op placement still work) plus our unit stamp component. A non-op
+placing a stamped spawner gets `setEntityId(type)`, the spawn-egg path, and only for a type that has a spawn egg
+(primed TNT, minecarts, lightning don't; the creative-only Wither and Ender Dragon eggs do, so those pass, which a
+spawn egg already allows). Everything else in the data is ignored.
+**Why:** a forged item then grants exactly what a spawn egg already grants, so no secret or signing is needed.
+**Rejected:** full NBT behind a per-world HMAC stamp (more code, items don't travel between worlds); full NBT behind a
+plain stamp (a creative non-op could forge arbitrary entity NBT).
+**Cost:** a map-maker's custom spawner (custom gear, timings, ranges) becomes a plain spawner of its mob.
+**Affects:** TODO 10gB, docs/DESIGN.md §6 "Silk Touch and spawners"

@@ -22,7 +22,7 @@ public final class FortuneRule {
 	public enum Decision {
 		MULTIPLY,
 		NO_FORTUNE,
-		/** Hard-excluded whatever the tags say (ancient debris). */
+		/** Hard-excluded whatever the tags say (ancient debris, mob spawners). */
 		EXCLUDED,
 		/** Not in the tool's {@code fortune_multiplies} tag (nor, under {@code FORTUNE_MULTIPLIES_SILK}, the silk tag). */
 		NOT_TAGGED,
@@ -37,7 +37,7 @@ public final class FortuneRule {
 	 * @param hasSilk         Silk Touch on the tool
 	 * @param tagged          the block is in a {@code fortune_multiplies/<kind>} tag of one of the tool's kinds
 	 * @param silkTagged      the block is in {@code fortune_multiplies_silk}
-	 * @param excluded        hard-excluded (ancient debris)
+	 * @param excluded        hard-excluded (ancient debris, mob spawners)
 	 * @param origin          the position's origin, asked after the tag checks
 	 * @param silkChangedDrop whether a Silk-free roll drops different items, asked last and only under {@code SILK_WINS}
 	 */

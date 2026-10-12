@@ -30,6 +30,7 @@
 		"ServerPlayerGameModeMixin",
 		"ServerPlayerMixin",
 		"SnowGolemMixin",
+		"SpawnerBlockMixin",
 		"TridentItemMixin",
 		"VillagerTradeScopeMixin"
 	],

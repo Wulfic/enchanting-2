@@ -558,12 +558,18 @@ never gets the Fortune bonus. The design is ported from the mcMMO-Singleplayer
 `common.json5` → `silk_touch.collect_spawners` (config screen toggle). Off: vanilla, a spawner never drops. On: a
 Silk Touch tool drops the spawner as an item.
 - **Default on** (owner, 2026-10-10). An admin who wants vanilla's spawner economy turns it off.
-- **The spawner keeps its mob** (owner, 2026-10-10). The item carries the block entity's spawn data, and placing it restores it.
-  Vanilla only copies a spawner's block-entity data for an operator (`BlockEntityType.OP_ONLY_CUSTOM_DATA` includes
-  `MOB_SPAWNER`, checked in `BlockItem`), so without our hook a survival player would place an empty spawner. The hook
-  lets the data through only for a spawner item our drop stamped, never for arbitrary item data (a hand-edited
-  `block_entity_data` spawner stays op-only, or any player could place a spawner of any mob).
-- **No XP** when silk-touched (vanilla gives 15–43 XP for breaking one; like ores, Silk Touch forfeits it).
+- **The spawner keeps its mob type, and only that** (owner, 2026-10-10 and 2026-10-12). The item carries a minimal
+  `block_entity_data` (`SpawnData.entity.id`) plus our `enchanting2:collected_spawner` stamp. Vanilla only copies a
+  spawner's block-entity data for an operator (`onlyOpCanSetNbt`, checked in `BlockItem.updateCustomBlockEntityTag`),
+  so for anyone else a stamped item gets its mob back through `setEntityId`, the path a spawn egg uses (which any
+  player may do), and only for a type that has a spawn egg. Other fields are ignored, and an unstamped item stays
+  op-only. A forged stamp therefore grants nothing a spawn egg doesn't. Cost: a map-maker's custom spawner (gear,
+  timings, ranges) comes back as a plain spawner of its mob.
+- **No XP** when silk-touched (vanilla gives 15–43 XP for breaking one; like ores, Silk Touch forfeits it). Vanilla pops
+  that XP straight from `SpawnerBlock.spawnAfterBreak`, outside Silk Touch's `block_experience` effect, so a mixin
+  skips it on the same condition as the drop.
+- Vanilla's own break rules hold: a pickaxe (the spawner's correct tool), survival, no drop in creative.
+- An empty spawner (no mob) drops a plain spawner item.
 - **Mob spawners only.** A trial spawner still drops nothing (its loot and ominous state don't survive an item).
 - Fortune never multiplies a spawner (hard-excluded in code like ancient debris, whatever the tags or
   `FORTUNE_MULTIPLIES_SILK` say). Smelting does nothing (no recipe). Area Mining's extra blocks never include one.

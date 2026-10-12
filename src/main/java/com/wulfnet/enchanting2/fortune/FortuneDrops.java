@@ -4,6 +4,7 @@ import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.config.ServerConfigs;
 import com.wulfnet.enchanting2.effect.SmeltingDrops;
+import com.wulfnet.enchanting2.spawner.CollectedSpawners;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -47,6 +48,8 @@ public final class FortuneDrops {
 		LootTableEvents.MODIFY_DROPS.register((table, context, drops) -> {
 			if (!REROLLING.get()) {
 				CommonConfig config = ServerConfigs.get(context.getLevel().getServer());
+				// Before Fortune, so the hard exclusion below is what keeps a collected spawner single.
+				CollectedSpawners.addDrop(table, context, drops, config.silkTouch().collectSpawners());
 				apply(table, context, drops, config.fortune().silkFortuneMode());
 				// Smelting after Fortune (owner, 2026-10-09), and here rather than in its own listener so it never
 				// sees the re-roll: smelted re-roll drops would always read as "Silk Touch changed the drop".
@@ -76,7 +79,7 @@ public final class FortuneDrops {
 			}
 			boolean hasSilk = EnchantmentHelper.getItemEnchantmentLevel(enchantment(level, Enchantments.SILK_TOUCH), tool) > 0;
 			FortuneRule.Decision decision = FortuneRule.decide(fortune, hasSilk, mode,
-					FortuneTags.multipliesFor(tool, state), state.is(FortuneTags.SILK), state.is(Blocks.ANCIENT_DEBRIS),
+					FortuneTags.multipliesFor(tool, state), state.is(FortuneTags.SILK), excluded(state),
 					() -> PlacedBlocks.origin(level, pos), () -> silkChangedDrop(table.value(), context, state, tool, drops));
 			if (decision != FortuneRule.Decision.MULTIPLY) {
 				Enchanting2.LOGGER.debug("Fortune {} on {} at {}: no bonus ({})", fortune, state, pos, decision);
@@ -91,6 +94,11 @@ public final class FortuneDrops {
 			Enchanting2.LOGGER.error("Fortune bonus failed for {} at {} in {}; the drops are left as vanilla made them",
 					state, pos, level.dimension().identifier(), e);
 		}
+	}
+
+	/** Never multiplied whatever the tags say: ancient debris (DESIGN §6) and mob spawners (Silk Touch collects one). */
+	public static boolean excluded(BlockState state) {
+		return state.is(Blocks.ANCIENT_DEBRIS) || state.is(Blocks.SPAWNER);
 	}
 
 	/** Every stack times {@code multiplier}, split at the item's max stack size. */

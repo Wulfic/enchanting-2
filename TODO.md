@@ -1450,17 +1450,29 @@ Durability enchantments on a bucket need Infinity on it (owner, 2026-10-10).
       Sharpness/Vampirism. Mending applies to every item in `#enchantable/durability`.
 - [x] 10gA.4 docs/ENCHANTMENTS.md: drop the ‡ on these rows.
 
-### Stage 10gB — Silk Touch spawners → commit
-- [ ] 10gB.1 `common.json5` `silk_touch.collect_spawners` (bool, default true), `SilkTouchSection` + config
+### Stage 10gB — Silk Touch spawners → commit  ✅ 2026-10-12
+- [x] 10gB.1 `common.json5` `silk_touch.collect_spawners` (bool, default true), `SilkTouchSection` + config
       screen toggle in "Enchantment effects", following `SmeltingSection`.
-- [ ] 10gB.2 Drop: on a Silk Touch break of a `minecraft:spawner` with the option on, drop the spawner item with its
-      spawn data and our stamp component; no XP. Off → vanilla (no drop, XP).
-- [ ] 10gB.3 Place: a spawner item with our stamp restores its spawn data for a non-op (vanilla's
-      `OP_ONLY_CUSTOM_DATA` gate stays for every other item). Fortune hard-excluded like ancient debris.
-- [ ] 10gB.4 GameTests: on → a zombie spawner drops, a survival player places it, it spawns zombies; off → nothing
-      drops; a hand-made `block_entity_data` spawner without the stamp still places empty for a non-op (the guard
-      test); Fortune V + `FORTUNE_MULTIPLIES_SILK` still gives exactly one; no XP orbs on a silk break.
-- [ ] 10gB.5 docs/ENCHANTMENTS.md + DESIGN §6: drop the ‡.
+- [x] 10gB.2 Drop: on a Silk Touch break of a `minecraft:spawner` with the option on, drop the spawner item carrying
+      its **mob type only** (owner, 2026-10-12, decisions.md): a minimal `block_entity_data`
+      (`SpawnData.entity.id`, so vanilla's tooltip and op placement work) + our unit stamp component
+      `enchanting2:collected_spawner`. Added in `FortuneDrops`' `MODIFY_DROPS` listener before Fortune, on the
+      spawner's own (empty) loot table, so vanilla's correct-tool and creative rules already apply. No XP:
+      `SpawnerBlock.spawnAfterBreak` pops 15–43 XP directly, outside `block_experience` (javap 1.21.11), so Silk
+      Touch's XP-zero effect never reaches it; a mixin turns its `dropExperience` off on the same condition.
+      Off → vanilla (no drop, XP).
+- [x] 10gB.3 Place: `BlockItem.updateCustomBlockEntityTag` (static) RETURN: refused by the op gate + stamped + the
+      block entity is a spawner → `setEntityId(type)`, the spawn-egg path, only if the type has a spawn egg
+      (`SpawnEggItem.byId`). Everything else in the data is ignored; ops keep vanilla's copy. Fortune hard-excluded
+      like ancient debris (`FortuneRule`'s excluded flag covers both).
+- [x] 10gB.4 GameTests: on → a silk-touched zombie spawner drops one stamped item and no XP orbs; a survival non-op
+      places it and its spawn data is zombie; option off (`apply` with the flag given, never the live config) → no
+      drop; no Silk → no drop + XP; a hand-made `block_entity_data` creeper spawner without the stamp places empty for
+      a non-op, and a stamped wither one places empty too (the guard tests); Fortune V + `FORTUNE_MULTIPLIES_SILK`
+      still gives exactly one. JUnit: `SilkTouchSection` read/write/default, lang keys.
+      Done: mutation runs (no spawner in the Fortune exclusion; XP condition forced true; no spawn-egg check; no
+      restore) each fail their test. Mock players are non-ops (the placement test asserts it).
+- [x] 10gB.5 docs/ENCHANTMENTS.md + DESIGN §6: drop the ‡.
 
 ### Stage 10gC — Infinite buckets → commit
 - [ ] 10gC.1 Infinity's tag adds `minecraft:water_bucket`, `minecraft:lava_bucket` (and the `enchantable` component

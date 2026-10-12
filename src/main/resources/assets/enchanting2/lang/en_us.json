@@ -82,6 +82,8 @@
 	"enchanting2.config.smelting.silk_priority.desc": "A tool with both. Silk Touch: nothing is smelted, the block drops as itself. Smelting: the silk-touched drop is smelted (an iron ore block becomes an iron ingot).",
 	"enchanting2.config.smelting.silk_priority.silk_touch": "Silk Touch",
 	"enchanting2.config.smelting.silk_priority.smelting": "Smelting",
+	"enchanting2.config.silk_touch.collect_spawners": "Silk Touch collects spawners",
+	"enchanting2.config.silk_touch.collect_spawners.desc": "On: a Silk Touch pickaxe drops a mob spawner as an item that keeps its mob, and the break gives no XP. Off: spawners never drop, as in vanilla. Only changes new breaks.",
 	"enchanting2.config.category.enchantments": "Enchantments",
 	"enchanting2.config.enchantments.enabled": "Enabled",
 	"enchanting2.config.enchantments.enabled.desc": "Off: never offered at the table, never in loot, never sold by villagers. Items that already have it keep it, and it keeps working. Overrides the three below.",

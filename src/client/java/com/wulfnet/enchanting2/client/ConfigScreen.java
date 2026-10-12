@@ -13,6 +13,7 @@ import com.wulfnet.enchanting2.config.CursesSection;
 import com.wulfnet.enchanting2.config.EnchantmentOverrides;
 import com.wulfnet.enchanting2.config.ExperienceSection;
 import com.wulfnet.enchanting2.config.FortuneSection;
+import com.wulfnet.enchanting2.config.SilkTouchSection;
 import com.wulfnet.enchanting2.config.SmeltingSection;
 import com.wulfnet.enchanting2.config.TableSection;
 import com.wulfnet.enchanting2.effect.SmeltingSilkPriority;
@@ -188,6 +189,14 @@ final class ConfigScreen {
 									KEY + "smelting.silk_priority." + priority.name().toLowerCase(Locale.ROOT))))
 					.available(editable)
 					.build());
+			effects.option(Option.<Boolean>createBuilder()
+					.name(Component.translatable(KEY + "silk_touch.collect_spawners"))
+					.description(description("silk_touch.collect_spawners"))
+					.binding(SilkTouchSection.DEFAULTS.collectSpawners(), () -> draft.collectSpawners,
+							v -> draft.collectSpawners = v)
+					.controller(TickBoxControllerBuilder::create)
+					.available(editable)
+					.build());
 		}
 
 		ConfigView<EnchantmentOverrides> enchantmentsView = ConfigEditing.currentEnchantmentsView();
@@ -283,6 +292,7 @@ final class ConfigScreen {
 		SilkFortuneMode silkFortuneMode;
 		boolean playerHeads;
 		SmeltingSilkPriority smeltingSilkPriority;
+		boolean collectSpawners;
 
 		Draft(CommonConfig from) {
 			enabled = from.experience().enabled();
@@ -301,6 +311,7 @@ final class ConfigScreen {
 			silkFortuneMode = from.fortune().silkFortuneMode();
 			playerHeads = from.beheading().playerHeads();
 			smeltingSilkPriority = from.smelting().silkPriority();
+			collectSpawners = from.silkTouch().collectSpawners();
 		}
 
 		void setAllowed(ConflictFamily family, boolean value) {
@@ -318,7 +329,8 @@ final class ConfigScreen {
 							creativeFree),
 					new CursesSection(maxDiscountPercent, removalMinCost), new AnvilSection(invalidBookMode),
 					new TableSection(treasureRequiresFullPower), new FortuneSection(silkFortuneMode),
-					new BeheadingSection(playerHeads), new SmeltingSection(smeltingSilkPriority));
+					new BeheadingSection(playerHeads), new SmeltingSection(smeltingSilkPriority),
+					new SilkTouchSection(collectSpawners));
 		}
 	}
 }

@@ -53,9 +53,10 @@ class ConfigLangKeysTest {
 		Map<String, JsonObject> sections = Map.of("costs", CostsSection.DEFAULTS.write(),
 				"curses", CursesSection.DEFAULTS.write(), "anvil", AnvilSection.DEFAULTS.write(), "table",
 				TableSection.DEFAULTS.write(), "fortune", FortuneSection.DEFAULTS.write(), "beheading",
-				BeheadingSection.DEFAULTS.write(), "smelting", SmeltingSection.DEFAULTS.write());
-		// Beheading and Smelting share one "Enchantment effects" category on the screen.
-		Set<String> sharedCategory = Set.of("beheading", "smelting");
+				BeheadingSection.DEFAULTS.write(), "smelting", SmeltingSection.DEFAULTS.write(), "silk_touch",
+				SilkTouchSection.DEFAULTS.write());
+		// Beheading, Smelting and Silk Touch share one "Enchantment effects" category on the screen.
+		Set<String> sharedCategory = Set.of("beheading", "smelting", "silk_touch");
 		assertTrue(lang.containsKey("enchanting2.config.category.effects"));
 		sections.forEach((section, written) -> {
 			if (!sharedCategory.contains(section)) {

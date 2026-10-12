@@ -31,10 +31,12 @@ Phases 1–9, 10a, 10b and 10f done (TODO.md has each stage's notes; owner `runC
 - 10k (2026-10-12): Fortune soil/bamboo/leaves tags; table panel rows by translated name (`TablePanelView.sortedByName`).
 - 10gA (2026-10-12): `ItemWidening` + `ItemWideningHook` + `RegistryDataLoaderMixin` (lent item lookup); axes take
   Knockback/Looting/Fire Aspect, crossbows Flame/Infinity/TrueShot.
-- Tests: 317 JUnit + 228 GameTests (`./gradlew build`) + 4 client GameTests (`./gradlew runClientGameTest`).
+- 10gB (2026-10-12): `silk_touch.collect_spawners` (`SilkTouchSection`), `spawner/CollectedSpawners` (mob type only +
+  `enchanting2:collected_spawner` stamp, owner), `SpawnerBlockMixin` (no XP), `BlockItemMixin` restore after the op gate.
+- Tests: 318 JUnit + 236 GameTests (`./gradlew build`) + 4 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Next: 10gB (Silk Touch spawners), 10gC (infinite buckets; all owner questions answered), 10h (Ctrl
+1. Next: 10gC (infinite buckets; all owner questions answered), 10h (Ctrl
    tooltip descriptions), 10i (Step Assist, Anchored, Sure Footing; data-only), 10j (max levels to 255 with ceilings,
    max level + cost in the config screen), then 10c (M route, see TODO; each needs its own written sub-plan with owner
    questions first: edge cases from DESIGN §9), 10e (curses; scaling answered 2026-10-12).
@@ -45,7 +47,8 @@ Phases 1–9, 10a, 10b and 10f done (TODO.md has each stage's notes; owner `runC
    vanilla table + 8: the config screen's "Fortune" category and its warning tooltip, and a quick feel check (Fortune V
    axe on a tree; place a log and mine it) + 9C: the config screen's "Enchantments" category (tick boxes, names,
    the remote "kept on the server" label) + 10a: new names in tooltips, a Health V set's hearts + 10b: the five new names, a Vision helmet at night
-   (no flicker, gone when taken off), a TrueShot arrow's flight, the "Enchantment effects" config category.
+   (no flicker, gone when taken off), a TrueShot arrow's flight, the "Enchantment effects" config category + 10gB:
+   the "Silk Touch collects spawners" toggle, a collected spawner's tooltip (vanilla's "Spawns: Zombie" line).
 
 ## Open questions / blockers
 - Owner (2026-10-06): a lowered max level never touches existing items (decisions.md).
