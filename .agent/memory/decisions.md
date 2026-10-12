@@ -994,3 +994,14 @@ and honey), as `fraction` level / 3 so III is exactly 1. Powder snow is added in
 **Rejected:** 25% or 20% per level (agent proposals, owner picked the full removal at III); dropping powder snow;
 explosion knockback resistance on Anchored (Blast Protection's job).
 **Affects:** docs/DESIGN.md §8 ceilings / §9 rows, TODO 10i/10c, `sure_footing.json`, `anchored.json`
+
+## 2026-10-12 — 10j ceilings: Piercing 127, Lunge and Wind Burst capped like Riptide, Multishot a note (owner)
+**Context:** 10jA checks each ceiling candidate. Found (javap 1.21.11): `AbstractArrow` stores the pierce level as a
+byte (`(byte) getPiercingCount`), so Piercing 128 wraps negative and stops piercing. Lunge (`apply_impulse` 0.458 ×
+level) and Wind Burst (`explode` knockback 1.5 + 0.35/level) launch the player like Riptide. Multishot isn't really
+single-level: +2 arrows per level (255 = 511 arrows a shot).
+**Choice (owner):** Piercing hard 127; Lunge and Wind Burst hard caps from the Riptide no-velocity-credit bound
+(TODO 4D.1), proven in `MechanicLimitsGameTest`; Multishot no ceiling with a note (arrows per level, lag), still
+flat 10 at any level. Swiftness needs no cap (255 sprinting ≈ 4 b/t, far under the 10 b/t check).
+**Rejected:** a soft note for the launches (a typo'd level would rubber-band players); a Multishot cap.
+**Affects:** TODO 10jA, `LevelCeilings`, DESIGN §8

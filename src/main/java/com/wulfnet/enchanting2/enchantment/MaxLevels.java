@@ -14,7 +14,7 @@ public final class MaxLevels {
 	public enum Why {
 		/** {@code max_level_override} in {@code enchantments.json5}. */
 		OVERRIDE,
-		/** {@code max_level_override} above {@link #SAFE_MAX}, lowered to it (owner, 2026-10-07). */
+		/** {@code max_level_override} above its {@link LevelCeilings} hard ceiling, lowered to it (owner, 2026-10-07). */
 		OVERRIDE_CLAMPED,
 		/** The §8 v1 column. */
 		TABLE,
@@ -56,30 +56,20 @@ public final class MaxLevels {
 			Map.entry("minecraft:riptide", new Row(3, 5)),
 			Map.entry("minecraft:quick_charge", new Row(3, 4)));
 
-	/**
-	 * The highest level that still works, for the enchantments with a known break point (TODO 4D.1 has the
-	 * arithmetic): Lure VI never gets a bite, Riptide VIII can trip the server's moved-too-quickly check, and Quick
-	 * Charge V has zero charge time. Only an override is clamped; a datapack that changes the max may also have
-	 * changed the effect.
-	 */
-	public static final Map<String, Integer> SAFE_MAX = Map.of(
-			"minecraft:lure", 5,
-			"minecraft:riptide", 7,
-			"minecraft:quick_charge", 4);
-
 	private MaxLevels() {
 	}
 
 	/**
 	 * The max level an enchantment should have. An override always wins, except that it is clamped to
-	 * {@link #SAFE_MAX}. A table row applies only when the loaded max is still vanilla's, so a datapack that already
+	 * its {@link LevelCeilings} hard ceiling (only an override: a datapack that changes the max may also have changed the
+	 * effect). A table row applies only when the loaded max is still vanilla's, so a datapack that already
 	 * changed it isn't silently undone.
 	 */
 	public static Resolution resolve(String id, int loadedMax, OptionalInt override) {
 		if (override.isPresent()) {
-			Integer cap = SAFE_MAX.get(id);
-			if (cap != null && override.getAsInt() > cap) {
-				return new Resolution(cap, Why.OVERRIDE_CLAMPED);
+			OptionalInt cap = LevelCeilings.hardMax(id);
+			if (cap.isPresent() && override.getAsInt() > cap.getAsInt()) {
+				return new Resolution(cap.getAsInt(), Why.OVERRIDE_CLAMPED);
 			}
 			return new Resolution(override.getAsInt(), Why.OVERRIDE);
 		}

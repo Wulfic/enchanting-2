@@ -112,7 +112,7 @@ class MaxLevelsTest {
 
 	@Test
 	void everyV1MaxIsWithinItsSafeMax() {
-		MaxLevels.SAFE_MAX.forEach((id, cap) -> {
+		LevelCeilings.hardCeilings().forEach((id, cap) -> {
 			Resolution r = MaxLevels.resolve(id, DESIGN_8.get(id)[0], OptionalInt.empty());
 			assertTrue(r.max() <= cap, id + " v1 max " + r.max() + " is above its safe max " + cap);
 		});

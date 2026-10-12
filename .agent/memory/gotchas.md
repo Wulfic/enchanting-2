@@ -419,3 +419,15 @@ Java code can't name an anonymous class.
 **Fix:** `@ModifyArg` on the argument you want to change (with `@Local(argsOnly = true)` for the rest), which has no
 receiver parameter. Same applies to `@Redirect`.
 **Affects:** src/main/java/com/wulfnet/enchanting2/mixin/BucketDispenseBehaviorMixin.java
+
+## 2026-10-12 — Two "obvious" ceiling rows were wrong: Aqua Affinity scales, Efficiency is capped
+**Symptom:** DESIGN §8's draft table had Aqua Affinity as "single-level, extra levels do nothing" and Efficiency as
+"no ceiling, Efficiency 100 mines instantly". `LevelCeilingsGameTest` failed both.
+**Cause:** Aqua Affinity is `submerged_mining_speed` × (1 + 4 × level) (vanilla JSON, linear), capped at 20, so it keeps
+adding to XXV. Efficiency adds level² + 1 to `mining_efficiency`, capped at 1024, so it stops at XXXII, and obsidian
+(hardness 50) needs 1500 destroy speed: never instant. A mock player also starts in the air, which divides mining
+speed by 5 (`setOnGround(true)` before `getDestroyProgress`).
+**Fix:** soft 25 and soft 32 rows. The GameTest now scans every soft-1 row's encoded effects for a level-based value
+(with Multishot, Thorns and Aqua Affinity as positive controls), and reads attribute maxima from `RangedAttribute`.
+**Lesson:** a ceiling from memory is a guess; read the enchantment JSON and the attribute's max first.
+**Affects:** `enchantment/LevelCeilings`, `LevelCeilingsGameTest`

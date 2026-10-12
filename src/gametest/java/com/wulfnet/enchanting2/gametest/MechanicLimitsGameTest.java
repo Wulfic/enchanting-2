@@ -1,6 +1,6 @@
 package com.wulfnet.enchanting2.gametest;
 
-import com.wulfnet.enchanting2.enchantment.MaxLevels;
+import com.wulfnet.enchanting2.enchantment.LevelCeilings;
 import com.wulfnet.enchanting2.gametest.mixin.EntityInvoker;
 import com.wulfnet.enchanting2.gametest.mixin.FishingHookAccessor;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -24,14 +24,14 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * DESIGN §8's conditional rows and {@link MaxLevels#SAFE_MAX}, against the live game code (arithmetic in TODO.md 4D.1).
+ * DESIGN §8's conditional rows and the {@link LevelCeilings} hard ceilings, against the live game code (arithmetic in TODO.md 4D.1).
  * Each cap is tested against cap + 1: the cap must work and the next level must break. Levels above the registry max
  * are put on items directly, which vanilla's effect code accepts.
  */
 public class MechanicLimitsGameTest {
-	private static final int LURE_CAP = MaxLevels.SAFE_MAX.get("minecraft:lure");
-	private static final int QUICK_CHARGE_CAP = MaxLevels.SAFE_MAX.get("minecraft:quick_charge");
-	private static final int RIPTIDE_CAP = MaxLevels.SAFE_MAX.get("minecraft:riptide");
+	private static final int LURE_CAP = LevelCeilings.hardMax("minecraft:lure").getAsInt();
+	private static final int QUICK_CHARGE_CAP = LevelCeilings.hardMax("minecraft:quick_charge").getAsInt();
+	private static final int RIPTIDE_CAP = LevelCeilings.hardMax("minecraft:riptide").getAsInt();
 	/** A player's fall speed limit: gravity × 0.98 drag per tick, solved for the fixed point. */
 	private static final double DRAG = 0.98;
 	/** {@code handleMovePlayer} rejects a single move packet when {@code dist² − serverVelocity² > 100}. */

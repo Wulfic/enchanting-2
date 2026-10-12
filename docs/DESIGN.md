@@ -708,33 +708,30 @@ when launched along a fall). A datapack-set max is not clamped. Arithmetic in TO
 Any enchantment's max level can be set from 1 to 255 (vanilla's hard limit for a stored level), in
 `enchantments.json5` or the config screen. Efficiency 100 is allowed: it just mines instantly long before 100. Each
 enchantment falls in one of three groups, shown in the config screen next to its max-level field:
-- **No ceiling:** higher keeps adding (Sharpness, Power, Efficiency, Unbreaking, Fortune, Looting, Knockback...).
-  A note says where it stops mattering in practice, e.g. "instant mining on most blocks from about X".
+- **No ceiling:** higher keeps adding (Sharpness, Power, Unbreaking, Fortune, Looting, Knockback, Multishot...).
+  A note says where it stops mattering in practice, e.g. Fortune and Looting dropping hundreds of items, or Multishot
+  firing 2 × level + 1 arrows (owner, 2026-10-12: no cap).
 - **Soft ceiling (allowed, with a note):** levels past a point do nothing more. The field still accepts them and
-  the note says so. Agent list, each number checked by arithmetic or a GameTest in Phase 10j before it goes in the
-  screen:
+  the note says so. Built in 10jA (`LevelCeilings`), each number checked by arithmetic (TODO 10jA) or
+  `LevelCeilingsGameTest`:
 
   | Enchantment | Stops adding at | Why |
   |---|---|---|
-  | Protection family, Feather Falling | the 20-point total | vanilla caps all enchantment protection at 20 (80%) |
-  | Depth Strider | 3 | `water_movement_efficiency` is capped at full |
-  | Swift Sneak | 5 | sneaking is capped at walking speed |
-  | Thorns | 7 | 15% per level, so VII always triggers |
-  | Critical Strike, Quick Strike | 20 | 5% per level reaches 100% |
-  | Vampirism | 25 | 4% per level heals all the health lost |
-  | Beheading | 50 | 2% per level reaches 100% |
-  | Sustenance | 25 | 4% per level, no hunger drain at all |
-  | Endurance | 20 | 5% per level, sprinting costs no hunger |
-  | Anchored | 10 | knockback resistance is capped at 100% |
-  | Steadfast, Clarity, Deflect, Sure Footing | 3 | III is already never / immune / 100% / no slowdown |
-  | Reach, Health, Step Assist | the attribute's max (verify: interaction range 64, max health 1024, step height 10) | attribute clamps |
-  | Single-level enchantments (Silk Touch, Infinity, Mending, Vision...) | 1 | extra levels do nothing, unless the stage finds one that scales |
+  | Protection / Fire, Blast, Projectile Protection / Feather Falling / Cushion | 20 / 10 / 7 / 5 | vanilla caps all enchantment protection at 20 points; 1, 2, 3, 4 points per level per piece |
+  | Thorns, Breach | 7 | 15% per level reaches 100% |
+  | Depth Strider, Sure Footing | 3 | the efficiency attributes cap at 1 |
+  | Swift Sneak | 5 | sneaking speed caps at 1 (walking) |
+  | Frost Walker | 14 | the freezing radius is clamped at 16 |
+  | Efficiency | 32 | mining efficiency caps at 1024 (level² + 1); stone is instant from VI, obsidian never |
+  | Aqua Affinity | 25 | submerged mining speed caps at 20; past I you mine faster underwater than on land (found in 10jA: it scales) |
+  | Critical Strike, Vampirism, Beheading, Anchored | 20, 25, 50, 10 | the chance or share reaches 100% |
+  | Reach, Toughness | 122, 40 | interaction range caps at 64, armor toughness at 20 |
+  | Single-level ones whose effect doesn't scale (Silk Touch, Infinity, Mending, Vision...) | 1 | extra levels do nothing (a GameTest checks their effects have no level-based value) |
 
-- **Hard ceiling (clamped, WARN, the field won't go higher):** a level that breaks the mechanic. Today Lure 5,
-  Quick Charge 4, Riptide 7 (above). Phase 10j checks candidates and adds any that break: Piercing (the arrow's
-  pierce level may be a byte), Swiftness and Speed (the server's moved-too-quickly check), Fortune and Looting at
-  very high levels (hundreds of item entities from one block or kill; a performance note, not a clamp, unless a
-  GameTest shows a problem).
+- **Hard ceiling (clamped, WARN, the field won't go higher):** a level that breaks the mechanic: Lure 5, Quick
+  Charge 4, Riptide 7 (4D); Piercing 127 (an arrow's pierce level is a byte, 128 wraps negative); Lunge 13 and Wind
+  Burst 14 (owner, 2026-10-12: Riptide's moved-too-quickly rule). Swiftness needs none (255 sprinting ≈ 4 blocks a
+  tick, far under the check's 10).
 - A raised max costs what the pricing row says at that level (Efficiency 100 at 1/level = 100 XP levels; Speed
   at 6/level). A single-level enchantment raised past 1 keeps its flat 10 (§5).
 - Changing a max level needs a restart (gotchas.md: `/reload` doesn't re-run `MODIFY`). The screen says "applies on

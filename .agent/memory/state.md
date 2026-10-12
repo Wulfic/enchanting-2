@@ -39,10 +39,12 @@ Phases 1–9, 10a, 10b, 10f, 10g, 10h, 10i and 10k done (TODO.md has each stage'
   `everySingleLevelEnchantmentCostsTen` guards the flat-10 rows registry-wide.
 - 10h (2026-10-12): Ctrl descriptions (`tooltip/DescriptionPlan`, `client/EnchantmentDescriptions`), `client.json5`
   `tooltips.*`, 62 `.desc` lines guarded by `EnchantmentDescriptionLangTest` (new enchantments must add one).
-- Tests: 326 JUnit + 253 GameTests (`./gradlew build`) + 5 client GameTests (`./gradlew runClientGameTest`).
+- 10jA (2026-10-12): `enchantment/LevelCeilings` (every vanilla + own ID: none/soft/hard + note), replaces
+  `MaxLevels.SAFE_MAX`; hard: Lure 5, Riptide 7, Quick Charge 4, Piercing 127, Lunge 13, Wind Burst 14.
+- Tests: 332 JUnit + 261 GameTests (`./gradlew build`) + 5 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Next: 10j (max levels to 255 with ceilings,
+1. Next: 10jB (config screen: per-enchantment max level, base_cost, cost_per_level with ceiling notes),
    max level + cost in the config screen), then 10c (M route, see TODO; each needs its own written sub-plan with owner
    questions first: edge cases from DESIGN §9), 10e (curses; scaling answered 2026-10-12).
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level

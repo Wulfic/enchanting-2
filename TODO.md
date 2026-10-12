@@ -1433,6 +1433,36 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
         remote server like the rest. Client GameTest screenshot of an expanded entry.
       - From here on, each stage that adds an option or enchantment also adds its screen entry and its ceiling row
         (the JUnit above fails otherwise).
+      **10jA findings and table (2026-10-12; javap 1.21.11 + vanilla JSON; owner answers in decisions.md):**
+      - Hard (clamp + WARN): Lure 5, Riptide 7, Quick Charge 4 (4D); **Piercing 127** (`AbstractArrow` stores
+        `(byte) getPiercingCount`, 128 wraps to −128 = no piercing); **Lunge 13** (push 0.458/level) and **Wind Burst 14**
+        (launch 1.5 + 0.35(L−1) from IV) by Riptide's rule: last level with (push + 3.92 terminal fall)² ≤ 100
+        (0.458×13 = 5.95 ✓, ×14 = 6.41 ✗; WB XIV 6.05 ✓, XV 6.40 ✗). 1.21.11's post-impulse grace skips only "moved
+        wrongly", not "moved too quickly".
+      - Soft (note, field still accepts): Protection 20, Fire/Blast/Projectile Protection 10, Feather Falling 7, Cushion 5
+        (1/2/2/2/3/4 points per level per piece vs vanilla's 20-point cap); Thorns 7 (15%); Breach 7 (15%); Depth Strider
+        3 and Sure Footing 3 (efficiency attributes max 1); Swift Sneak 5 (0.3 + 0.15L ≥ 1); Frost Walker 14 (radius
+        clamped at 16 = 3 + 13); Anchored 10; Critical Strike 20; Vampirism 25; Beheading 50; Reach 122 (both ranges
+        max 64: entity 3 + 0.5L); Toughness 40 (armor toughness max 20, 0.5/level per piece); single-level ones whose
+        effect doesn't scale: Aqua Affinity, Silk Touch, Flame, Infinity, Channeling, Mending, Binding, Vanishing,
+        Smelting, TrueShot Aura, Vision, Step Assist (1).
+      - None (note where useful): Efficiency (instant mining long before 100), Fortune and Looting (one stack per 64
+        items; hundreds per break or kill can lag), Multishot (owner: no ceiling; 2L + 1 arrows a shot), Health (max
+        health caps at 1024), everything else.
+      - Swiftness needs no cap: 255 while sprinting ≈ 4 b/t, far under the 10 b/t check. Speed is 10c's.
+      - Code: `enchantment/LevelCeilings` (MC-free: kind, level, note key) replaces `MaxLevels.SAFE_MAX`;
+        `MaxLevels.resolve` clamps to it and to 255. Notes in en_us `enchanting2.ceiling.<ns>.<path>`.
+      - JUnit: every vanilla (`VanillaEnchantments.ids()`) and shipped `enchanting2:` ID has a row; every soft/hard row
+        has a note; an override above a hard ceiling clamps; 255 accepted for a no-ceiling row; 256 clamps to 255.
+      - GameTests: Piercing 127 vs 128 arrow pierce level; Lunge and Wind Burst pushes measured from the registry effect
+        on a mock player, bound holds at the cap and fails at cap + 1; attribute maxima (reach 64, toughness 20,
+        knockback resistance 1, the two efficiencies 1, sneaking speed 1); Frost Walker radius 16 at XIV and XV;
+        every soft-1 row's effects contain no level-scaling value (would catch a Multishot-style miss); Efficiency C
+        mines obsidian instantly; a level-100 enchantment (`e2test:high_level`, max 255, GameTest datapack) applies at
+        the anvil and costs 100. (Raising Efficiency's own max needs a startup config the GameTest run can't have.)
+      ✅ 10jA 2026-10-12. Corrections found by the GameTests (gotchas.md): Aqua Affinity scales (soft 25, submerged
+      mining speed max 20), Efficiency is capped (soft 32, mining efficiency max 1024; stone instant from VI, obsidian
+      never). Mutation run (six ceilings off by one) fails 6 GameTests + 2 JUnit.
 - [ ] 10e Curses (§5a): Fragility, Weight, Greed, Fumbling (D); Hunger (M). Curse tag +
       `discount_percent` data; table shows curses as optional picks with a negative cost line.
       Max level 5 for all five (owner, 2026-10-10). Per level (owner, 2026-10-12): the effect scales linearly (§5a's
