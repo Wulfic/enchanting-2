@@ -965,3 +965,20 @@ spawn egg already allows). Everything else in the data is ignored.
 plain stamp (a creative non-op could forge arbitrary entity NBT).
 **Cost:** a map-maker's custom spawner (custom gear, timings, ranges) becomes a plain spawner of its mob.
 **Affects:** TODO 10gB, docs/DESIGN.md §6 "Silk Touch and spawners"
+
+## 2026-10-12 — Infinite buckets: one remainder hook, no `enchantable` component, grindstone allowed (Phase 10gC)
+**Context:** DESIGN §6 named `BucketItem.getEmptySuccessItem`, a dispenser hook and a cauldron hook, and maybe an
+`enchantable` component for the table.
+**Choice:** `ItemUtilsMixin` swaps the remainder of `createFilledResult(held, player, remainder)` (3-arg) when the held
+stack is an Infinity bucket, the remainder an empty bucket and the player not creative; both the hand
+(`BucketItem.use`) and the cauldron (`CauldronInteraction.emptyBucket`) go through it. The dispenser's `$4`
+gets the same answer through `@ModifyArg` on `consumeWithRemainder`. Every path calls `InfiniteBuckets.afterUse`
+(a copy after `hurtAndBreak(1)`). No `enchantable` component (our table never calls `isEnchantable`; GameTest shows
+Infinity offered). Owner: the grindstone may extract Infinity and leave the rest on a plain bucket.
+**Why:** one hook on the shared call covers two paths and any mod that empties a bucket the same way; a copy is needed
+because vanilla consumes the held stack before returning the remainder.
+**Rejected:** a mixin on `CauldronInteraction.emptyBucket` (a static interface method); `getEmptySuccessItem` (creative
+already returns the stack there, and the cauldron doesn't call it); a `@WrapOperation` on the dispenser call (its
+receiver must be typed as the anonymous `$4`); a grindstone rule against extracting Infinity (owner: visible choice).
+**Affects:** `bucket/InfiniteBuckets`, `mixin/{ItemUtils,BucketDispenseBehavior,FuelValues,Ingredient}Mixin`,
+`EnchantRules` (bucket gate, `APPLY_ORDER`), `AnvilCalculator.inApplyOrder`

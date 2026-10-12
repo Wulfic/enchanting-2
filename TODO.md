@@ -1371,7 +1371,7 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
         deleted.
       - A single-level enchantment whose max is raised by `max_level_override` costs 10 for any level
         (`cost_per_level 0`). The admin sets `cost_per_level` to change that.
-- [ ] 10g Applicability and vanilla extensions (owner, 2026-10-10; DESIGN §4, §6). Three stages below, one commit
+- [x] 10g Applicability and vanilla extensions (owner, 2026-10-10; DESIGN §4, §6). Three stages below, one commit
       each: axes and crossbow widening, Silk Touch spawners, infinite buckets.
 - [ ] 10h Enchantment descriptions on Ctrl (owner, 2026-10-10; DESIGN §6 "Enchantment descriptions in tooltips").
       Client-only, one commit:
@@ -1474,24 +1474,35 @@ Durability enchantments on a bucket need Infinity on it (owner, 2026-10-10).
       restore) each fail their test. Mock players are non-ops (the placement test asserts it).
 - [x] 10gB.5 docs/ENCHANTMENTS.md + DESIGN §6: drop the ‡.
 
-### Stage 10gC — Infinite buckets → commit
-- [ ] 10gC.1 Infinity's tag adds `minecraft:water_bucket`, `minecraft:lava_bucket` (and the `enchantable` component
-      if the owner wants table offers).
-- [ ] 10gC.2 Durability: `DefaultItemComponentEvents.MODIFY` gives both buckets `max_damage` (256 unless the owner
-      says otherwise); both join `#minecraft:enchantable/durability` (Unbreaking, Mending, Vanishing, Keep on Death,
-      Fragility). `EnchantRules`: on a bucket, those need Infinity on the item or in the same book.
-- [ ] 10gC.3 Mixins: `BucketItem.getEmptySuccessItem` returns the same stack, damaged by 1 (Unbreaking applies), for
-      an Infinity bucket; the bucket dispense behaviour and `CauldronInteraction`'s empty-bucket path do the same; at
-      0 it breaks like a tool (gone, break sound); furnace fuel refuses an Infinity lava bucket; crafting refuses an
-      Infinity bucket as an ingredient. The table offers enchantments on water and lava buckets (add the `enchantable`
-      component if the table gates on it), never on the empty bucket.
-- [ ] 10gC.4 GameTests: ten placements from one water and one lava bucket (still one enchanted full bucket each, 10
-      damage); a dispenser and a cauldron keep it and damage it; the 256th use destroys it; the table offers Infinity
-      on a water bucket and nothing on an empty bucket; Unbreaking
-      V skips uses over a seeded run; Mending repairs it from XP; Mending alone is refused on a plain bucket (the
-      guard test); a furnace won't take the lava one; a plain bucket still empties and is never damaged (no side
-      effect on plain buckets); Nether evaporation leaves the bucket full and damages it.
-- [ ] 10gC.5 docs/ENCHANTMENTS.md + DESIGN §6: drop the ‡.
+### Stage 10gC — Infinite buckets → commit  ✅ 2026-10-12
+How (2026-10-12, javap 1.21.11): all three emptying paths end in `new ItemStack(Items.BUCKET)`: hand
+(`BucketItem.getEmptySuccessItem`, static, returns the stack itself for creative), dispenser (`DispenseItemBehavior$4`
+→ `consumeWithRemainder(source, stack, BUCKET)`), cauldron (`CauldronInteraction.emptyBucket` →
+`ItemUtils.createFilledResult(held, player, BUCKET)`). Each gets the same answer from `bucket/InfiniteBuckets.afterUse`:
+a copy of the bucket after `hurtAndBreak(1)` (Unbreaking applies; at 0 it's empty, with the break sound), so vanilla's
+own consume-then-return-the-remainder logic hands it back. Nether evaporation goes through the same hand/dispenser path.
+Owner (2026-10-12): the grindstone may extract Infinity and leave Mending on a plain bucket (visible choice, no rule).
+- [x] 10gC.1 Tags: `enchanting2:enchantable/infinity` + `minecraft:water_bucket`, `minecraft:lava_bucket`;
+      `minecraft:enchantable/durability` + both (our one vanilla tag addition, `replace: false`).
+- [x] 10gC.2 Durability: `DefaultItemComponentEvents.MODIFY` gives both buckets `max_damage` 256 + `damage` 0.
+      `EnchantRules.check`: on a water or lava bucket, anything but Infinity is `NOT_APPLICABLE` while `existing`
+      lacks Infinity (so the table's pool and the anvil both refuse it). The anvil applies a book's Infinity first
+      (`EnchantRules.APPLY_ORDER`), so Infinity + Mending in one book goes on in one go. An `enchantable` component
+      only if the table GameTest shows the table needs one (our table never calls `isEnchantable`).
+- [x] 10gC.3 Mixins: `BucketItemMixin` (hand, not for creative), `DispenseItemBehaviorBucketMixin` (`$4`, checked with
+      javap), `CauldronInteractionMixin` (`emptyBucket`), `FuelValuesMixin` (`isFuel` false, `burnDuration` 0 for an
+      Infinity bucket), `IngredientMixin` (`test` false for an Infinity bucket).
+- [x] 10gC.4 GameTests: ten placements from one water and one lava bucket by a survival player (still one enchanted
+      full bucket each, 10 damage); a dispenser and a cauldron keep it and damage it; at 1 durability left the next use
+      destroys it; the table offers Infinity on a water bucket and nothing on an empty bucket; Unbreaking III skips uses
+      over a seeded run; Mending repairs it from XP; Mending alone is refused on a plain bucket at the anvil (the guard
+      test) and an Infinity + Mending book applies; a furnace won't take the lava one as fuel; an ingredient refuses it;
+      a plain bucket still empties into an empty bucket and is never damaged; Nether evaporation leaves the bucket full
+      and damages it.
+- [x] 10gC.5 docs/ENCHANTMENTS.md + DESIGN §6: drop the ‡.
+      Done: no `enchantable` component needed (the table offers Infinity without it). Mutation runs (no hand/cauldron
+      remainder, no dispenser remainder, no fuel or ingredient guard, no bucket gate, ID-only apply order) each fail
+      their tests (11 in all).
 
 ### Phase 10b — Custom effect types (three stages, one commit each)
 **Goal:** the five E-route enchantments exist as `enchanting2:` data entries whose behaviour is driven by our own effect

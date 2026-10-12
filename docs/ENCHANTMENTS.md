@@ -13,7 +13,6 @@ whenever an enchantment, a max level or a price changes.**
 - **Vanilla**: a Minecraft 1.21.11 enchantment, kept under its vanilla ID (max levels per DESIGN §8)
 - **Built**: ours, in the mod now (Phase 10a/10b)
 - **Planned**: ours, not built yet (Phase 10c, 10i, or 10e for curses)
-- **‡**: an item or option the owner added (2026-10-10, DESIGN §4/§6) that isn't in the code yet (Phase 10g).
 
 **Cost** is in XP levels, for adding the enchantment at the table or anvil (DESIGN §5):
 - **1/lvl**: the default, 1 level per enchantment level (V = 5). An upgrade pays only the added levels.
@@ -193,7 +192,7 @@ Multishot and Piercing can share a crossbow in this mod.
 | Enchantment | Max | Cost | Fits | What it does | Status |
 |---|---|---|---|---|---|
 | Flame | 1 | 10 | bow, crossbow | arrows set targets on fire (not firework rockets) | Vanilla |
-| Infinity | 1 | 10 | bow, crossbow, water bucket ‡, lava bucket ‡ | bow/crossbow: one arrow in the inventory is never used up (rockets still are); bucket: never empties (see below) | Vanilla |
+| Infinity | 1 | 10 | bow, crossbow, water bucket, lava bucket | bow/crossbow: one arrow in the inventory is never used up (rockets still are); bucket: never empties (see below) | Vanilla |
 | TrueShot Aura | 1 | 10 | bow, crossbow | arrows ignore gravity for 5 s, then fall normally | Built |
 
 Infinity and Mending can share a bow or crossbow in this mod.
@@ -256,12 +255,12 @@ Silk Touch and Fortune can share a tool in this mod. By default Fortune never mu
 
 "Anything with durability" means armor, elytra, shield, swords, axes, pickaxes, shovels, hoes, spears, the mace, bow,
 crossbow, trident, flint and steel, shears, brush, fishing rod and the two on-a-stick items: every vanilla item that
-takes enchantments and has durability, so Mending already fits all of them. The water and lava buckets join them ‡
+takes enchantments and has durability, so Mending already fits all of them. The water and lava buckets join them
 (256 uses; see below). The other enchantable items (compass, heads, carved pumpkin) have no durability,
 so Mending would do nothing there.
 
 ### Infinite buckets
-Infinity ‡ on a water or lava bucket (table, or anvil + book; owner, 2026-10-10, DESIGN §6): placing the fluid leaves
+Infinity on a water or lava bucket (table, or anvil + book; owner, 2026-10-10, DESIGN §6): placing the fluid leaves
 the bucket full, by hand, from a dispenser, or into a cauldron. Each placement uses 1 durability (256 uses), so
 Unbreaking and Mending are worth putting on it; they need Infinity on the bucket first. The last use destroys it like
 any tool. Only a water or lava bucket takes enchantments, never the empty bucket. It can't scoop, isn't furnace fuel,
@@ -290,6 +289,6 @@ decided yet, so the numbers above are for one level.
 
 ---
 
-**Totals:** 43 vanilla (2 of them curses), 16 built, 25 planned in 10c, 3 planned in 10i, 5 planned curses in 10e. Phase 10g widens
-Knockback, Fire Aspect, Looting, Flame, Infinity and TrueShot Aura, gives water and lava buckets durability, and adds
-the Silk Touch spawner option.
+**Totals:** 43 vanilla (2 of them curses), 16 built, 25 planned in 10c, 3 planned in 10i, 5 planned curses in 10e. Phase 10g
+widened Knockback, Fire Aspect, Looting, Flame, Infinity and TrueShot Aura, gave water and lava buckets durability, and
+added the Silk Touch spawner option.

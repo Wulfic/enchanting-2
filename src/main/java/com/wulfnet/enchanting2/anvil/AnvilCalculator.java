@@ -89,7 +89,7 @@ public final class AnvilCalculator {
 			ItemEnchantments.Mutable kept = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
 			boolean applied = false;
 			boolean refused = false;
-			for (Object2IntMap.Entry<Holder<Enchantment>> e : sortedById(EnchantmentHelper.getEnchantmentsForCrafting(right))) {
+			for (Object2IntMap.Entry<Holder<Enchantment>> e : inApplyOrder(EnchantmentHelper.getEnchantmentsForCrafting(right))) {
 				Holder<Enchantment> enchantment = e.getKey();
 				int level = e.getIntValue();
 				EnchantRules.Result check = EnchantRules.check(left, enchantment, level, after, config.allowTogether());
@@ -190,10 +190,10 @@ public final class AnvilCalculator {
 		return false;
 	}
 
-	/** Book and sacrifice entries are checked in ID order, so the outcome never depends on component order. */
-	private static List<Object2IntMap.Entry<Holder<Enchantment>>> sortedById(ItemEnchantments enchantments) {
+	/** Book and sacrifice entries in {@link EnchantRules#APPLY_ORDER}, so the outcome never depends on component order. */
+	private static List<Object2IntMap.Entry<Holder<Enchantment>>> inApplyOrder(ItemEnchantments enchantments) {
 		List<Object2IntMap.Entry<Holder<Enchantment>>> sorted = new ArrayList<>(enchantments.entrySet());
-		sorted.sort(Comparator.comparing(e -> idOf(e.getKey())));
+		sorted.sort(Comparator.comparing(Object2IntMap.Entry::getKey, EnchantRules.APPLY_ORDER));
 		return sorted;
 	}
 

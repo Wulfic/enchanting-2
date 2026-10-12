@@ -1,6 +1,8 @@
 {
   "values": [
     "#minecraft:enchantable/bow",
-    "#minecraft:enchantable/crossbow"
+    "#minecraft:enchantable/crossbow",
+    "minecraft:water_bucket",
+    "minecraft:lava_bucket"
   ]
 }

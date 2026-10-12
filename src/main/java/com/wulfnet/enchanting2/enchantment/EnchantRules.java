@@ -1,5 +1,6 @@
 package com.wulfnet.enchanting2.enchantment;
 
+import com.wulfnet.enchanting2.bucket.InfiniteBuckets;
 import com.wulfnet.enchanting2.config.AllowTogetherSection;
 import java.util.Comparator;
 import java.util.Objects;
@@ -9,6 +10,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 
 /**
@@ -27,7 +29,11 @@ public final class EnchantRules {
 		INVALID_LEVEL,
 		/** Requested level above the registry max (DESIGN §8 plus {@code max_level_override}). */
 		ABOVE_MAX,
-		/** Not in the enchantment's {@code supported_items}, after other mods' {@code ALLOW_ENCHANTING} listeners. */
+		/**
+		 * Not in the enchantment's {@code supported_items}, after other mods' {@code ALLOW_ENCHANTING} listeners. Also
+		 * anything but Infinity on a water or lava bucket that doesn't hold Infinity yet (DESIGN §6, owner 2026-10-10:
+		 * a plain bucket empties into a new item and would lose it).
+		 */
 		NOT_APPLICABLE,
 		/** The item already has this enchantment at the requested level or higher; adding it would change nothing. */
 		ALREADY_AT_LEVEL,
@@ -53,6 +59,14 @@ public final class EnchantRules {
 		}
 	}
 
+	/**
+	 * The order a multi-entry source (a book, an item at the anvil) is applied in: Infinity first, so a bucket can take
+	 * Infinity and what needs it from one book; then by ID, for a stable entry list.
+	 */
+	public static final Comparator<Holder<Enchantment>> APPLY_ORDER = Comparator
+			.<Holder<Enchantment>, Boolean>comparing(holder -> !holder.is(Enchantments.INFINITY))
+			.thenComparing(EnchantRules::idOf);
+
 	private EnchantRules() {
 	}
 
@@ -71,6 +85,10 @@ public final class EnchantRules {
 			return verdict(Verdict.ABOVE_MAX, current);
 		}
 		if (!isBook(target) && !target.canBeEnchantedWith(enchantment, EnchantingContext.ACCEPTABLE)) {
+			return verdict(Verdict.NOT_APPLICABLE, current);
+		}
+		if (InfiniteBuckets.isBucket(target) && !enchantment.is(Enchantments.INFINITY)
+				&& !InfiniteBuckets.hasInfinity(existing)) {
 			return verdict(Verdict.NOT_APPLICABLE, current);
 		}
 		if (current >= level) {

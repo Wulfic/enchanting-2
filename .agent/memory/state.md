@@ -8,7 +8,7 @@
 **Branch:** main (commit straight to main and push; no CI; see decisions.md)
 
 ## Where we are
-Phases 1–9, 10a, 10b and 10f done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
+Phases 1–9, 10a, 10b, 10f, 10g and 10k done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
 - 3: `ExperienceCurve`, no level cap, exact XP points, counters saturate. 4: `MaxLevels` via `MODIFY` (restart to
   apply), `ConflictFamily` + `allow_together`, `EnchantRules`, Lure/Riptide 5 with safe caps.
 - 5: `cost/` (`CostModel`, `PricingTable`, curse discount, `cleanseCost`, `extractCost`).
@@ -33,11 +33,13 @@ Phases 1–9, 10a, 10b and 10f done (TODO.md has each stage's notes; owner `runC
   Knockback/Looting/Fire Aspect, crossbows Flame/Infinity/TrueShot.
 - 10gB (2026-10-12): `silk_touch.collect_spawners` (`SilkTouchSection`), `spawner/CollectedSpawners` (mob type only +
   `enchanting2:collected_spawner` stamp, owner), `SpawnerBlockMixin` (no XP), `BlockItemMixin` restore after the op gate.
-- Tests: 318 JUnit + 236 GameTests (`./gradlew build`) + 4 client GameTests (`./gradlew runClientGameTest`).
+- 10gC (2026-10-12): `bucket/InfiniteBuckets` (256 uses, `afterUse`), `ItemUtilsMixin` (hand + cauldron),
+  `BucketDispenseBehaviorMixin` (`$4`), fuel/ingredient guards, `EnchantRules` bucket gate + `APPLY_ORDER`.
+- Tests: 318 JUnit + 249 GameTests (`./gradlew build`) + 4 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Next: 10gC (infinite buckets; all owner questions answered), 10h (Ctrl
-   tooltip descriptions), 10i (Step Assist, Anchored, Sure Footing; data-only), 10j (max levels to 255 with ceilings,
+1. Next: 10i (Step Assist, Anchored, Sure Footing; data-only), 10h (Ctrl tooltip descriptions), 10j (max levels to
+   255 with ceilings,
    max level + cost in the config screen), then 10c (M route, see TODO; each needs its own written sub-plan with owner
    questions first: edge cases from DESIGN §9), 10e (curses; scaling answered 2026-10-12).
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
@@ -48,7 +50,8 @@ Phases 1–9, 10a, 10b and 10f done (TODO.md has each stage's notes; owner `runC
    axe on a tree; place a log and mine it) + 9C: the config screen's "Enchantments" category (tick boxes, names,
    the remote "kept on the server" label) + 10a: new names in tooltips, a Health V set's hearts + 10b: the five new names, a Vision helmet at night
    (no flicker, gone when taken off), a TrueShot arrow's flight, the "Enchantment effects" config category + 10gB:
-   the "Silk Touch collects spawners" toggle, a collected spawner's tooltip (vanilla's "Spawns: Zombie" line).
+   the "Silk Touch collects spawners" toggle, a collected spawner's tooltip (vanilla's "Spawns: Zombie" line) + 10gC:
+   an Infinity bucket's durability bar, pouring by hand feels right (no flicker to an empty bucket).
 
 ## Open questions / blockers
 - Owner (2026-10-06): a lowered max level never touches existing items (decisions.md).

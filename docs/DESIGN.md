@@ -595,12 +595,17 @@ enchantment (§5). Reusing Infinity rather than a new enchantment is the owner's
     with Infinity and Mending together applies in one go.
   - Un-enchanted buckets carry the component too but never take damage, and a bucket that scoops is always undamaged.
   - Two damaged Infinity buckets combine at the anvil like any damaged tool. No iron-ingot repair.
-- **Every emptying path** keeps it: a player placing it (`BucketItem.getEmptySuccessItem`), a dispenser, and a
-  cauldron (filling a cauldron returns the bucket full). Water in the Nether evaporates as normal and the bucket stays
-  full.
-- **Getting it on a bucket:** the anvil with a book, and the enchanting table (owner, 2026-10-10). Vanilla buckets
-  have no `enchantable` component; if our table gates on `ItemStack.isEnchantable()` (check `TableCalculator` and
-  `EnchantmentMenuMixin`), the water and lava buckets get one, set in the same component event as `max_damage`.
+- **Every emptying path** keeps it: a player placing it, a dispenser, and a cauldron (filling a cauldron returns the
+  bucket full). Water in the Nether evaporates as normal and the bucket stays full. Built (10gC): the hand and the
+  cauldron both get their remainder from `ItemUtils.createFilledResult(held, player, new bucket)`, so one hook
+  (`ItemUtilsMixin`) swaps that remainder for the spent bucket; the dispenser's `DispenseItemBehavior$4` gets the same
+  through `consumeWithRemainder`. Creative is untouched (vanilla keeps the held bucket there).
+- **Getting it on a bucket:** the anvil with a book, and the enchanting table (owner, 2026-10-10). Our table never
+  asks `ItemStack.isEnchantable()`, so the buckets need no `enchantable` component: Infinity's tag is enough (built
+  10gC, GameTest). A plain bucket is offered Infinity only; Unbreaking and the rest appear once Infinity is on it.
+  At the anvil a book's Infinity is applied before its other entries (`EnchantRules.APPLY_ORDER`).
+- **The grindstone may take Infinity off** a bucket that keeps Mending or Unbreaking (owner, 2026-10-12): the panel
+  shows what stays, and the plain bucket then loses the rest on its first pour. No rule against it.
 - **Lava is an infinite fuel source.** Place, scoop with a plain bucket, burn: that already works with any lava
   source, so an Infinity lava bucket only makes it portable. The bucket itself must not be furnace fuel, or it would
   burn and come back as a plain empty bucket (lost enchantment) or, if kept, burn forever. An Infinity lava bucket

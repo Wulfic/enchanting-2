@@ -410,3 +410,12 @@ on) had already added a drop before the test's own call.
 **Fix:** for a table vanilla leaves empty, start the test from an empty list. For one with real drops, only test a
 mode the live config doesn't already apply (the Fortune tests roll under SILK_WINS, then apply FORTUNE_MULTIPLIES_SILK).
 **Affects:** src/gametest/java/com/wulfnet/enchanting2/gametest/SpawnerGameTest.java
+
+## 2026-10-12 — `@WrapOperation` can't target a call inside an anonymous class
+**Symptom:** Mixin apply failed for `DispenseItemBehavior$4`: "invalid signature. Found unexpected argument type
+DefaultDispenseItemBehavior at index 0, expected DispenseItemBehavior$4."
+**Cause:** a `@WrapOperation` handler's first parameter is the call's receiver, typed exactly as the owner class, and
+Java code can't name an anonymous class.
+**Fix:** `@ModifyArg` on the argument you want to change (with `@Local(argsOnly = true)` for the rest), which has no
+receiver parameter. Same applies to `@Redirect`.
+**Affects:** src/main/java/com/wulfnet/enchanting2/mixin/BucketDispenseBehaviorMixin.java
