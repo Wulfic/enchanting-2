@@ -278,18 +278,19 @@ grindstone (Cleanse) costs at least 30 levels. See DESIGN §5a.
 |---|---|---|---|---|---|
 | Curse of Binding | 1 | 10% | anything worn (armor, elytra, heads, carved pumpkin) | can't be taken off until death or it breaks | Vanilla |
 | Curse of Vanishing | 1 | 10% | durables, compass, heads, carved pumpkin | destroyed on death | Vanilla |
-| Fragility | 5 | 15% +5%/lvl | durables | 2× durability loss at I, +0.5× per level (V = 4×) | Planned (10e) |
+| Curse of Fragility | 5 | 15% +5%/lvl | durables | 2× durability loss at I, +0.5× per level (V = 4×) | Built |
 | Weight | 5 | 15% +5%/lvl | armor | −10% movement speed per level per piece; pieces add, at most −50% in total | Planned (10e) |
-| Greed | 5 | 15% +5%/lvl | tools, weapons | −10% XP from kills and mining per level (V = −50%) | Planned (10e) |
-| Fumbling | 5 | 15% +5%/lvl | mining tools | −15% block break speed per level (V = −75%) | Planned (10e) |
+| Curse of Greed | 5 | 15% +5%/lvl | tools, weapons | −10% XP from kills and mining per level (V = −50%); multiplies with XP Boost | Built |
+| Curse of Fumbling | 5 | 15% +5%/lvl | mining tools | −15% block break speed per level (V = −75%) | Built |
 | Hunger | 5 | 15% +5%/lvl | armor | +10% hunger drain per level per piece (V = +50%; four pieces at V = +200%) | Planned (10e) |
 
 The five new curses go to level 5 (owner, 2026-10-10). Their discount is 15% at I and 5% more per level (V = 35%),
-so one curse alone never reaches the 45% cap. Cleansing one repays its discount at the level it has. Effect numbers
+so one curse alone never reaches the 45% cap. Like vanilla's curses, ours come from loot, librarian trades and the
+table (as a discount), never from mob gear. Cleansing one repays its discount at the level it has. Effect numbers
 per level: owner, 2026-10-12. Both discount numbers can be changed per curse in the config screen.
 
 ---
 
-**Totals:** 43 vanilla (2 of them curses), 19 built, 25 planned in 10c, 5 planned curses in 10e. Phase 10g
+**Totals:** 43 vanilla (2 of them curses), 22 built (3 of them curses), 25 planned in 10c, 2 planned curses in 10e. Phase 10g
 widened Knockback, Fire Aspect, Looting, Flame, Infinity and TrueShot Aura, gave water and lava buckets durability, and
 added the Silk Touch spawner option.

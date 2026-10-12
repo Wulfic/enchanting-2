@@ -28,6 +28,7 @@ import org.spongepowered.asm.mixin.injection.At;
  *
  * <p>Phase 10a: mob and block experience after {@code mob_experience} / {@code block_experience} effects (XP Boost)
  * round at random instead of truncating, so the average is the multiplied value ({@link StochasticRounding}).
+ * Phase 10e: durability damage after {@code item_damage} effects too (Fragility II's ×2.5 would truncate to ×2).
  */
 @Mixin(EnchantmentHelper.class)
 abstract class EnchantmentHelperMixin {
@@ -55,15 +56,17 @@ abstract class EnchantmentHelperMixin {
 		return original.call(random, list, sourceWeight);
 	}
 
-	@WrapOperation(method = {"processMobExperience", "processBlockExperience"}, at = @At(value = "INVOKE",
-			target = "Lorg/apache/commons/lang3/mutable/MutableFloat;intValue()I"), require = 2)
-	private static int enchanting2$roundExperience(MutableFloat experience, Operation<Integer> original,
+	@WrapOperation(method = {"processMobExperience", "processBlockExperience", "processDurabilityChange"},
+			at = @At(value = "INVOKE", target = "Lorg/apache/commons/lang3/mutable/MutableFloat;intValue()I"),
+			require = 3)
+	private static int enchanting2$roundAtRandom(MutableFloat amount, Operation<Integer> original,
 			@Local(argsOnly = true) ServerLevel level) {
-		float value = experience.floatValue();
+		float value = amount.floatValue();
 		if (!Float.isFinite(value)) {
 			// Only a broken effect from another mod or datapack gets here: keep vanilla's truncation.
-			int vanilla = original.call(experience);
-			Enchanting2.LOGGER.warn("Experience after enchantment effects is {}; using vanilla's {}", value, vanilla);
+			int vanilla = original.call(amount);
+			Enchanting2.LOGGER.warn("Experience or durability damage after enchantment effects is {}; using vanilla's {}",
+					value, vanilla);
 			return vanilla;
 		}
 		return StochasticRounding.round(value, () -> level.getRandom().nextDouble());

@@ -45,11 +45,13 @@ Phases 1–9, 10a, 10b, 10f, 10g, 10h, 10i, 10j and 10k done (TODO.md has each s
   (`EnchantmentNumbersDraft`, defaults from `DefaultMaxLevels` + `PricingTable`); `ConfigScreen.build()` is public.
 - 10eA (2026-10-12): `Pricing.discountAt(level)`, `discount_per_level` key, curse discount fields on the screen
   (`DefaultCurses` off the title screen).
-- Tests: 348 JUnit + 261 GameTests (`./gradlew build`) + 5 client GameTests (`./gradlew runClientGameTest`).
+- 10eB (2026-10-12): Fragility, Greed, Fumbling as data, `ModEnchantments.CURSES`, curse tags like vanilla's,
+  durability damage rounds at random (`EnchantmentHelperMixin`).
+- Tests: 348 JUnit + 265 GameTests (`./gradlew build`) + 5 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-0. NOW: 10e curses: 10eA done (per-level discount, screen fields); next 10eB (Fragility, Greed, Fumbling). Plan in TODO
-   "Phase 10e"; owner answers in decisions.md "10e curse scaling".
+0. NOW: 10e curses: 10eA, 10eB done; next 10eC (Weight, Hunger: components + mixins + `weight_max_slowdown_percent`).
+   Plan in TODO "Phase 10e"; owner answers in decisions.md "10e curse scaling".
 1. Then: 10c (M route, see TODO; each enchantment needs its own written sub-plan with owner questions first: edge
    cases from DESIGN §9; each adds a `LevelCeilings` row, a `.desc` line, a screen entry comes free), 10e (curses;
    scaling answered 2026-10-12), 10d balance pass.

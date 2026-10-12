@@ -4,6 +4,9 @@
     "minecraft:mending",
     "minecraft:frost_walker",
     "minecraft:binding_curse",
-    "minecraft:vanishing_curse"
+    "minecraft:vanishing_curse",
+    "enchanting2:fragility",
+    "enchanting2:greed",
+    "enchanting2:fumbling"
   ]
 }

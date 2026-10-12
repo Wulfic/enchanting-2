@@ -1,0 +1,34 @@
+{
+  "anvil_cost": 8,
+  "description": {
+    "translate": "enchantment.enchanting2.fumbling"
+  },
+  "effects": {
+    "minecraft:attributes": [
+      {
+        "amount": {
+          "type": "minecraft:linear",
+          "base": -0.15,
+          "per_level_above_first": -0.15
+        },
+        "attribute": "minecraft:block_break_speed",
+        "id": "enchanting2:enchantment.fumbling",
+        "operation": "add_multiplied_total"
+      }
+    ]
+  },
+  "max_cost": {
+    "base": 60,
+    "per_level_above_first": 10
+  },
+  "max_level": 5,
+  "min_cost": {
+    "base": 10,
+    "per_level_above_first": 10
+  },
+  "slots": [
+    "mainhand"
+  ],
+  "supported_items": "#minecraft:enchantable/mining",
+  "weight": 1
+}

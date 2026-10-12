@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import blue.endless.jankson.Jankson;
 import blue.endless.jankson.JsonObject;
+import com.wulfnet.enchanting2.enchantment.ModEnchantments;
 import com.wulfnet.enchanting2.enchantment.VanillaEnchantments;
 import java.io.InputStream;
 import java.net.URL;
@@ -45,7 +46,7 @@ class EnchantmentDescriptionLangTest {
 	void everyVanillaAndOwnEnchantmentHasADescription() throws Exception {
 		JsonObject lang = lang();
 		Set<String> own = ownIds();
-		assertEquals(19, own.size(), "our shipped enchantments: " + own);
+		assertEquals(ModEnchantments.ids(), own, "our shipped enchantments (the JSON files) vs ModEnchantments");
 		assertEquals(43, VanillaEnchantments.ids().size());
 		List<String> missing = Stream.concat(VanillaEnchantments.ids().stream(), own.stream())
 				.map(DescriptionPlan::key).filter(key -> !lang.containsKey(key)).sorted().toList();

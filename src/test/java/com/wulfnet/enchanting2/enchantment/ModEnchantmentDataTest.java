@@ -14,6 +14,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
@@ -78,15 +79,27 @@ class ModEnchantmentDataTest {
 		}
 	}
 
-	/** {@code non_treasure} feeds every vanilla source (owner 2026-10-09: everywhere); {@code tooltip_order} groups them. */
+	/**
+	 * {@code non_treasure} feeds every vanilla source (owner 2026-10-09: everywhere); {@code tooltip_order} groups them.
+	 * Curses (Phase 10e) are tagged like vanilla's Binding and Vanishing instead, and the table offers them.
+	 */
 	@Test
 	void everyEnchantmentIsInEverySourceAndTheTooltipOrder() throws Exception {
 		Set<String> nonTreasure = tagValues("/data/minecraft/tags/enchantment/non_treasure.json");
 		Set<String> tooltipOrder = tagValues("/data/minecraft/tags/enchantment/tooltip_order.json");
+		Set<String> curses = ModEnchantments.CURSES.stream().map(key -> key.identifier().toString())
+				.collect(Collectors.toSet());
 		for (String name : names()) {
-			assertTrue(nonTreasure.contains("enchanting2:" + name), name + " is not in #minecraft:non_treasure");
-			assertTrue(tooltipOrder.contains("enchanting2:" + name), name + " is not in #minecraft:tooltip_order");
+			String id = "enchanting2:" + name;
+			assertTrue(tooltipOrder.contains(id), name + " is not in #minecraft:tooltip_order");
+			assertEquals(!curses.contains(id), nonTreasure.contains(id),
+					name + ": #minecraft:non_treasure membership (curses are treasure)");
 		}
+		for (String tag : List.of("curse", "treasure", "on_random_loot", "tradeable")) {
+			assertEquals(curses, tagValues("/data/minecraft/tags/enchantment/" + tag + ".json"), "#minecraft:" + tag);
+		}
+		assertTrue(tagValues("/data/enchanting2/tags/enchantment/offered_at_table.json").containsAll(curses),
+				"the table offers every curse");
 	}
 
 	/** DESIGN §4: conflicts default to "allow together", so none of ours declares an exclusive set. */

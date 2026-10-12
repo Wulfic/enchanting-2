@@ -24,6 +24,7 @@
 			"com.wulfnet.enchanting2.gametest.FortuneDropsGameTest",
 			"com.wulfnet.enchanting2.gametest.AcquisitionGameTest",
 			"com.wulfnet.enchanting2.gametest.NewEnchantmentsGameTest",
+			"com.wulfnet.enchanting2.gametest.CursesGameTest",
 			"com.wulfnet.enchanting2.gametest.EffectEnchantmentsGameTest",
 			"com.wulfnet.enchanting2.gametest.SpawnerGameTest",
 			"com.wulfnet.enchanting2.gametest.InfiniteBucketGameTest",

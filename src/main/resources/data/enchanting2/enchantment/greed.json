@@ -1,0 +1,46 @@
+{
+  "anvil_cost": 8,
+  "description": {
+    "translate": "enchantment.enchanting2.greed"
+  },
+  "effects": {
+    "minecraft:block_experience": [
+      {
+        "effect": {
+          "type": "minecraft:multiply",
+          "factor": {
+            "type": "minecraft:linear",
+            "base": 0.9,
+            "per_level_above_first": -0.1
+          }
+        }
+      }
+    ],
+    "minecraft:mob_experience": [
+      {
+        "effect": {
+          "type": "minecraft:multiply",
+          "factor": {
+            "type": "minecraft:linear",
+            "base": 0.9,
+            "per_level_above_first": -0.1
+          }
+        }
+      }
+    ]
+  },
+  "max_cost": {
+    "base": 60,
+    "per_level_above_first": 10
+  },
+  "max_level": 5,
+  "min_cost": {
+    "base": 10,
+    "per_level_above_first": 10
+  },
+  "slots": [
+    "mainhand"
+  ],
+  "supported_items": "#enchanting2:enchantable/tool_or_weapon",
+  "weight": 1
+}

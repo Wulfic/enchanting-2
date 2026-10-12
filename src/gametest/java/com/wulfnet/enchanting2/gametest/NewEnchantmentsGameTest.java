@@ -78,7 +78,10 @@ public class NewEnchantmentsGameTest {
 			Map.entry(ModEnchantments.VISION, 1),
 			Map.entry(ModEnchantments.STEP_ASSIST, 1),
 			Map.entry(ModEnchantments.ANCHORED, 5),
-			Map.entry(ModEnchantments.SURE_FOOTING, 3));
+			Map.entry(ModEnchantments.SURE_FOOTING, 3),
+			Map.entry(ModEnchantments.FRAGILITY, 5),
+			Map.entry(ModEnchantments.GREED, 5),
+			Map.entry(ModEnchantments.FUMBLING, 5));
 
 	/** The vanilla source tags (owner 2026-10-09: everywhere), plus our table pool. */
 	private static final List<TagKey<Enchantment>> SOURCES = List.of(EnchantmentTags.NON_TREASURE,
@@ -161,6 +164,9 @@ public class NewEnchantmentsGameTest {
 		List<Holder<Enchantment>> pool = TablePool.members(registry(helper),
 				new AcquisitionRules(EnchantmentOverrides.defaults()));
 		for (ResourceKey<Enchantment> key : ModEnchantments.KEYS) {
+			if (ModEnchantments.CURSES.contains(key)) {
+				continue; // tagged like vanilla curses: CursesGameTest
+			}
 			Holder<Enchantment> holder = get(helper, key);
 			for (TagKey<Enchantment> source : SOURCES) {
 				helper.assertTrue(holder.is(source),

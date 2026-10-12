@@ -1525,7 +1525,7 @@ and recomputed on the next equipment change, so removing the mod leaves nothing 
   fields on every entry fails the client GameTest. Gotcha: `I18n.get` runs `String.format`, so a name with "(%)" comes
   back as a format error; the client test matches names through `Component.translatable(...).getString()`.
 
-### Stage 10eB — Fragility, Greed, Fumbling (data) → commit
+### Stage 10eB — Fragility, Greed, Fumbling (data) → commit  ✅ 2026-10-12
 - `fragility.json`: `minecraft:item_damage` multiply, linear 2.0 / +0.5; `#minecraft:enchantable/durability`; slot any.
   `EnchantmentHelperMixin` rounds `processDurabilityChange` at random too (×2.5 on 1 damage would truncate to 2). A whole
   value draws no roll, so Unbreaking alone keeps vanilla's sequence.
@@ -1537,10 +1537,14 @@ and recomputed on the next equipment change, so removing the mod leaves nothing 
 - All: max 5, weight 1, vanilla curse costs (min 25, max 50). Tags like Binding/Vanishing: `#minecraft:curse`,
   `treasure`, `on_random_loot`, `tradeable`, `tooltip_order` (after ours), and `enchanting2:offered_at_table`. Lang
   name ("Curse of Fragility") + `.desc`.
-- `LevelCeilings`: Greed hard 10 (factor 0 at X, negative after); Fumbling soft 6 (VII = −105%, can't mine; the
-  attribute floors at 0); Fragility none.
+- `LevelCeilings`: Greed soft 10 (factor 0 at X); Fumbling soft 7 (VII = −105%, can't mine; the attribute floors at
+  0); Fragility none.
 - GameTests: each registered at max V, a curse, offered at the table; Fragility II averages 2.5 damage per use over a
   seeded run (fails with truncation), V gives 4; Greed III on a 10-XP kill gives 7; Fumbling II block break speed 0.7.
+- ✅ 2026-10-12: 348 JUnit + 265 GameTests (`CursesGameTest`). Changed from the plan: Greed is soft 10, not hard (vanilla
+  awards nothing for a negative amount, and X already gives 0, tested); Fumbling soft 7, not 6 (VII is −105%, floored
+  at 0, tested). `ModEnchantments.CURSES` splits the source-tag checks (JUnit + GameTest); the lang test compares
+  against `ModEnchantments.ids()` instead of a pinned 19. Mutation: no durability rounding fails Fragility II (mean 2.0).
 
 ### Stage 10eC — Weight, Hunger (code) + docs → commit
 - Effect components: `enchanting2:movement_penalty` and `enchanting2:exhaustion` (both `LevelBasedValue`), summed over
