@@ -2,7 +2,11 @@ package com.wulfnet.enchanting2.gametest;
 
 import com.wulfnet.enchanting2.acquisition.AcquisitionRules;
 import com.wulfnet.enchanting2.config.EnchantmentOverrides;
+import com.wulfnet.enchanting2.cost.Pricing;
+import com.wulfnet.enchanting2.cost.PricingTable;
+import com.wulfnet.enchanting2.cost.UpgradeMode;
 import com.wulfnet.enchanting2.enchantment.ModEnchantments;
+import com.wulfnet.enchanting2.gametest.mixin.EntityInvoker;
 import com.wulfnet.enchanting2.table.TablePool;
 import java.util.HashSet;
 import java.util.List;
@@ -40,6 +44,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.phys.Vec3;
@@ -69,7 +75,10 @@ public class NewEnchantmentsGameTest {
 			Map.entry(ModEnchantments.BEHEADING, 5),
 			Map.entry(ModEnchantments.SMELTING, 1),
 			Map.entry(ModEnchantments.TRUE_SHOT_AURA, 1),
-			Map.entry(ModEnchantments.VISION, 1));
+			Map.entry(ModEnchantments.VISION, 1),
+			Map.entry(ModEnchantments.STEP_ASSIST, 1),
+			Map.entry(ModEnchantments.ANCHORED, 5),
+			Map.entry(ModEnchantments.SURE_FOOTING, 3));
 
 	/** The vanilla source tags (owner 2026-10-09: everywhere), plus our table pool. */
 	private static final List<TagKey<Enchantment>> SOURCES = List.of(EnchantmentTags.NON_TREASURE,
@@ -201,7 +210,13 @@ public class NewEnchantmentsGameTest {
 				new Case(ModEnchantments.SWIFTNESS, Items.IRON_HELMET, false),
 				new Case(ModEnchantments.CUSHION, Items.ELYTRA, true),
 				new Case(ModEnchantments.CUSHION, Items.NETHERITE_CHESTPLATE, true),
-				new Case(ModEnchantments.CUSHION, Items.NETHERITE_LEGGINGS, false));
+				new Case(ModEnchantments.CUSHION, Items.NETHERITE_LEGGINGS, false),
+				new Case(ModEnchantments.STEP_ASSIST, Items.LEATHER_LEGGINGS, true),
+				new Case(ModEnchantments.STEP_ASSIST, Items.IRON_BOOTS, false),
+				new Case(ModEnchantments.ANCHORED, Items.NETHERITE_LEGGINGS, true),
+				new Case(ModEnchantments.ANCHORED, Items.NETHERITE_CHESTPLATE, false),
+				new Case(ModEnchantments.SURE_FOOTING, Items.DIAMOND_LEGGINGS, true),
+				new Case(ModEnchantments.SURE_FOOTING, Items.DIAMOND_BOOTS, false));
 		for (Case c : cases) {
 			boolean actual = get(helper, c.key()).value().isSupportedItem(new ItemStack(c.item()));
 			helper.assertValueEqual(c.supported(), actual,
@@ -390,6 +405,69 @@ public class NewEnchantmentsGameTest {
 		assertClose(helper, base * 1.25, withEnchantment(player,
 				enchanted(helper, Items.DIAMOND_BOOTS, ModEnchantments.SWIFTNESS, 5), EquipmentSlot.FEET,
 				Attributes.MOVEMENT_SPEED), "Swiftness V");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void stepAssistRaisesStepHeightToAFullBlock(GameTestHelper helper) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		assertClose(helper, 0.6, player.getAttributeValue(Attributes.STEP_HEIGHT), "a player's base step height");
+		assertClose(helper, 1.0, withEnchantment(player,
+				enchanted(helper, Items.DIAMOND_LEGGINGS, ModEnchantments.STEP_ASSIST, 1), EquipmentSlot.LEGS,
+				Attributes.STEP_HEIGHT), "Step Assist");
+		helper.succeed();
+	}
+
+	/** Owner, 2026-10-12: hits only, so explosion knockback resistance is untouched. */
+	@GameTest
+	public void anchoredAddsTenPercentKnockbackResistancePerLevel(GameTestHelper helper) {
+		ServerPlayer one = helper.makeMockServerPlayerInLevel();
+		assertClose(helper, 0.1, withEnchantment(one, enchanted(helper, Items.IRON_LEGGINGS, ModEnchantments.ANCHORED, 1),
+				EquipmentSlot.LEGS, Attributes.KNOCKBACK_RESISTANCE), "Anchored I");
+		ServerPlayer five = helper.makeMockServerPlayerInLevel();
+		assertClose(helper, 0.5, withEnchantment(five, enchanted(helper, Items.IRON_LEGGINGS, ModEnchantments.ANCHORED, 5),
+				EquipmentSlot.LEGS, Attributes.KNOCKBACK_RESISTANCE), "Anchored V");
+		assertClose(helper, 0.0, five.getAttributeValue(Attributes.EXPLOSION_KNOCKBACK_RESISTANCE),
+				"Anchored V explosion knockback resistance");
+		helper.succeed();
+	}
+
+	/** A player standing on soul sand: vanilla's factor is 0.4, and each Sure Footing level takes a third of the gap. */
+	private static float soulSandFactor(GameTestHelper helper, int sureFooting) {
+		BlockPos floor = new BlockPos(1, 1, 1);
+		helper.setBlock(floor, Blocks.SOUL_SAND);
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		player.setPos(helper.absoluteVec(Vec3.atBottomCenterOf(floor.above())));
+		if (sureFooting > 0) {
+			withEnchantment(player, enchanted(helper, Items.DIAMOND_LEGGINGS, ModEnchantments.SURE_FOOTING, sureFooting),
+					EquipmentSlot.LEGS, Attributes.MOVEMENT_EFFICIENCY);
+		}
+		return ((EntityInvoker) player).e2test$getBlockSpeedFactor();
+	}
+
+	@GameTest
+	public void sureFootingTakesAThirdOfTheSoulSandSlowdownPerLevel(GameTestHelper helper) {
+		assertClose(helper, 0.4, soulSandFactor(helper, 0), "soul sand without Sure Footing");
+		assertClose(helper, 0.6, soulSandFactor(helper, 1), "soul sand with Sure Footing I");
+		assertClose(helper, 0.8, soulSandFactor(helper, 2), "soul sand with Sure Footing II");
+		assertClose(helper, 1.0, soulSandFactor(helper, 3), "soul sand with Sure Footing III");
+		helper.succeed();
+	}
+
+	/**
+	 * Owner, 2026-10-10 (DESIGN §5): every single-level enchantment that isn't a curse or Mending has a flat-10 row. Runs
+	 * over the whole registry, so a later single-level enchantment can't skip its row. Vanilla's and ours only: a
+	 * third-party one (the GameTest datapack ships one) keeps the default price.
+	 */
+	@GameTest
+	public void everySingleLevelEnchantmentCostsTen(GameTestHelper helper) {
+		Pricing ten = new Pricing(10, 0, UpgradeMode.LEVEL_DIFFERENCE, 0, 10);
+		registry(helper).listElements()
+				.filter(holder -> Set.of("minecraft", "enchanting2").contains(holder.key().identifier().getNamespace()))
+				.filter(holder -> holder.value().getMaxLevel() == 1 && !holder.is(EnchantmentTags.CURSE)
+						&& !holder.is(Enchantments.MENDING))
+				.forEach(holder -> helper.assertValueEqual(ten, PricingTable.builtIn().get(holder.getRegisteredName()),
+						Component.literal("price of " + holder.getRegisteredName())));
 		helper.succeed();
 	}
 

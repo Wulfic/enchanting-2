@@ -982,3 +982,15 @@ already returns the stack there, and the cauldron doesn't call it); a `@WrapOper
 receiver must be typed as the anonymous `$4`); a grindstone rule against extracting Infinity (owner: visible choice).
 **Affects:** `bucket/InfiniteBuckets`, `mixin/{ItemUtils,BucketDispenseBehavior,FuelValues,Ingredient}Mixin`,
 `EnchantRules` (bucket gate, `APPLY_ORDER`), `AnvilCalculator.inApplyOrder`
+
+## 2026-10-12 — Sure Footing 1/3 per level on soul sand and honey, powder snow later; Anchored hits only (owner, 10i)
+**Context:** 10i left Sure Footing's per-level amount and blocks to be measured. `javap` (1.21.11):
+`movement_efficiency` is read only by `LivingEntity.getBlockSpeedFactor` (`lerp(efficiency, factor, 1)`), so it covers
+soul sand and honey (factor 0.4) and never powder snow (`PowderSnowBlock` → `makeStuckInBlock`). Vanilla also has a
+separate `explosion_knockback_resistance`.
+**Choice (owner):** Sure Footing removes a third of the slowdown per level (I 60%, II 80%, III 100% speed on soul sand
+and honey), as `fraction` level / 3 so III is exactly 1. Powder snow is added in 10c with a mixin. Anchored is
+`knockback_resistance` only (hits), not explosions.
+**Rejected:** 25% or 20% per level (agent proposals, owner picked the full removal at III); dropping powder snow;
+explosion knockback resistance on Anchored (Blast Protection's job).
+**Affects:** docs/DESIGN.md §8 ceilings / §9 rows, TODO 10i/10c, `sure_footing.json`, `anchored.json`

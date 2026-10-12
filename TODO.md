@@ -1354,6 +1354,8 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       Helmet and leggings (owner, 2026-10-10; DESIGN §9 rows): Sustenance 4%/level, Endurance 5%/level (sprint only).
       Hard Hat, Leaping, Shadow Step not picked. Each stage writes its enchantment's `.desc` lang line (10h's
       completeness test fails otherwise).
+      Sure Footing on powder snow (owner, 2026-10-12): 10i ships soul sand and honey; a mixin here scales powder snow's
+      stuck slowdown by the same level / 3.
 - [x] 10f Prices (owner, 2026-10-10; DESIGN §5): every single-level non-curse enchantment except Mending costs
       10 XP levels, and Frost Walker costs 2 per level. One commit:  ✅ 2026-10-12 (no GameTest asserted a price of 1
       for these, so none moved; JUnit fails 8 cases with `BUILT_IN` reverted)
@@ -1384,10 +1386,23 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       - JUnit: line builder (key derivation, missing key, hidden enchantment, Ctrl off). JUnit lang-completeness test
         over the vanilla + `enchanting2:` enchantment IDs. Client GameTest screenshot with Ctrl held on a Sharpness
         V book and a Vision helmet.
-- [ ] 10i Data-only armor additions (D, owner 2026-10-10): Step Assist (`step_height`), Anchored
+- [x] 10i Data-only armor additions (D, owner 2026-10-10): Step Assist (`step_height`), Anchored
       (`knockback_resistance`), Sure Footing (`movement_efficiency`), the 10a pattern: JSON + lang (+ `.desc`) + tags
-      + GameTest each, Step Assist's 10-price row. Sure Footing's per-level amount is measured first (soul sand, honey,
-      powder snow) and written here before the JSON.
+      + GameTest each, Step Assist's 10-price row. One commit:
+      - Measured (javap, 2026-10-12): `movement_efficiency` is read only by `LivingEntity.getBlockSpeedFactor`
+        (`lerp(eff, factor, 1)`): soul sand and honey (0.4), never powder snow (`makeStuckInBlock`). Owner
+        (2026-10-12): 1/3 per level (`fraction` level / 3: I 0.6, II 0.8, III 1.0 speed); powder snow → 10c.
+      - Owner (2026-10-12): Anchored = `knockback_resistance` only, 0.1/level (V = 0.5), not explosions.
+      - `step_assist.json` (+0.4 `step_height`, I), `anchored.json`, `sure_footing.json`: slot `legs`,
+        `#minecraft:enchantable/leg_armor`, weight 2, costs like Toughness/Vision. `ModEnchantments` keys,
+        `non_treasure` + `tooltip_order` tags, lang name + `.desc`, `PricingTable` `step_assist` SINGLE_LEVEL row.
+      - GameTests (`NewEnchantmentsGameTest`): registered at max (I, V, III), every source, supported on leggings only;
+        step height 1.0 with Step Assist; knockback resistance 0.1 and 0.5; a player on soul sand gets block speed
+        factor 0.6 / 1.0 at Sure Footing I / III (0.4 without). JUnit: Step Assist prices 10.
+      - docs/ENCHANTMENTS.md rows → Built, DESIGN §9 rows.
+      ✅ 2026-10-12. Also a registry-wide GameTest: every `minecraft:`/`enchanting2:` single-level non-curse
+      enchantment except Mending prices 10, so 10c's single-level ones can't skip their row. Mutation run (denominator 4,
+      Anchored base 0.2, no Step Assist row) fails 3 GameTests + 1 JUnit.
 - [ ] 10j Configurability (owner, 2026-10-10; DESIGN §1 principle, §8 "Raising max levels"). Two commits:
       - 10jA Ceilings (server, no GUI): a `LevelCeilings` table (MC-free) of hard ceilings (clamp + WARN, today's
         `MaxLevels.SAFE_MAX` moves in) and soft-ceiling notes (lang keys). Check each candidate before it goes in:

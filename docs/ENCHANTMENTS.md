@@ -57,10 +57,10 @@ change needs a restart. See DESIGN §8.
 | Enchantment | Max | Cost | Fits | What it does | Status |
 |---|---|---|---|---|---|
 | Swift Sneak | 5 | 1/lvl | leggings | faster sneaking (capped at walking speed) | Vanilla |
-| Step Assist | 1 | 10 † | leggings | step up full blocks without jumping | Planned (10i) |
-| Anchored | 5 | 1/lvl | leggings | 10% knockback resistance per level | Planned (10i) |
+| Step Assist | 1 | 10 | leggings | step up full blocks without jumping | Built |
+| Anchored | 5 | 1/lvl | leggings | 10% knockback resistance per level against hits (not explosions) | Built |
 | Endurance | 5 | 1/lvl | leggings | sprinting costs 5% less hunger per level (V = 25%) | Planned |
-| Sure Footing | 3 | 1/lvl | leggings | less slowdown on soul sand, honey and powder snow | Planned (10i) |
+| Sure Footing | 3 | 1/lvl | leggings | a third less slowdown per level on soul sand and honey (III = none); powder snow comes in 10c | Built (powder snow planned) |
 
 ### Boots
 | Enchantment | Max | Cost | Fits | What it does | Status |
@@ -289,6 +289,6 @@ decided yet, so the numbers above are for one level.
 
 ---
 
-**Totals:** 43 vanilla (2 of them curses), 16 built, 25 planned in 10c, 3 planned in 10i, 5 planned curses in 10e. Phase 10g
+**Totals:** 43 vanilla (2 of them curses), 19 built, 25 planned in 10c, 5 planned curses in 10e. Phase 10g
 widened Knockback, Fire Aspect, Looting, Flame, Infinity and TrueShot Aura, gave water and lava buckets durability, and
 added the Silk Touch spawner option.

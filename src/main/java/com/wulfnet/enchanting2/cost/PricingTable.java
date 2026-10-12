@@ -37,7 +37,8 @@ public final class PricingTable {
 			Map.entry("minecraft:multishot", SINGLE_LEVEL),
 			Map.entry("enchanting2:smelting", SINGLE_LEVEL),
 			Map.entry("enchanting2:true_shot_aura", SINGLE_LEVEL),
-			Map.entry("enchanting2:vision", SINGLE_LEVEL));
+			Map.entry("enchanting2:vision", SINGLE_LEVEL),
+			Map.entry("enchanting2:step_assist", SINGLE_LEVEL));
 
 	private final EnchantmentOverrides overrides;
 

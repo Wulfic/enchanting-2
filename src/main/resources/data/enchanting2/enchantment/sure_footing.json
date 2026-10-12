@@ -1,0 +1,38 @@
+{
+  "anvil_cost": 4,
+  "description": {
+    "translate": "enchantment.enchanting2.sure_footing"
+  },
+  "effects": {
+    "minecraft:attributes": [
+      {
+        "amount": {
+          "type": "minecraft:fraction",
+          "numerator": {
+            "type": "minecraft:linear",
+            "base": 1.0,
+            "per_level_above_first": 1.0
+          },
+          "denominator": 3.0
+        },
+        "attribute": "minecraft:movement_efficiency",
+        "id": "enchanting2:enchantment.sure_footing",
+        "operation": "add_value"
+      }
+    ]
+  },
+  "max_cost": {
+    "base": 25,
+    "per_level_above_first": 8
+  },
+  "max_level": 3,
+  "min_cost": {
+    "base": 5,
+    "per_level_above_first": 8
+  },
+  "slots": [
+    "legs"
+  ],
+  "supported_items": "#minecraft:enchantable/leg_armor",
+  "weight": 2
+}

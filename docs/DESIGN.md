@@ -723,7 +723,7 @@ enchantment falls in one of three groups, shown in the config screen next to its
   | Sustenance | 25 | 4% per level, no hunger drain at all |
   | Endurance | 20 | 5% per level, sprinting costs no hunger |
   | Anchored | 10 | knockback resistance is capped at 100% |
-  | Steadfast, Clarity, Deflect | 3 | III is already never / immune / 100% |
+  | Steadfast, Clarity, Deflect, Sure Footing | 3 | III is already never / immune / 100% / no slowdown |
   | Reach, Health, Step Assist | the attribute's max (verify: interaction range 64, max health 1024, step height 10) | attribute clamps |
   | Single-level enchantments (Silk Touch, Infinity, Mending, Vision...) | 1 | extra levels do nothing, unless the stage finds one that scales |
 
@@ -788,9 +788,9 @@ enchantment falls in one of three groups, shown in the config screen next to its
 | Phantom Ward | 1 | helmet | phantoms don't target you, even with insomnia (owner, 2026-10-10) | M | phantom target selection; still attacked if you hit one |
 | Sustenance | 5 | helmet | 4% less hunger drain per level, V = 20% (owner, 2026-10-10) | M | exhaustion hook, every source; multiplies with Endurance and the Hunger curse (10e) |
 | Step Assist | 1 | leggings | step up full blocks without jumping (owner, 2026-10-10) | D | `step_height` attribute +0.4 (0.6 → 1.0) |
-| Anchored | 5 | leggings | 10% knockback resistance per level (owner, 2026-10-10) | D | `knockback_resistance` attribute; with netherite armor it reaches the 100% clamp |
+| Anchored | 5 | leggings | 10% knockback resistance per level, hits only (owner, 2026-10-10 and 2026-10-12) | D | `knockback_resistance` attribute (melee and projectiles), not `explosion_knockback_resistance` (Blast Protection's job); with netherite armor it reaches the 100% clamp |
 | Endurance | 5 | leggings | sprinting costs 5% less hunger per level, V = 25% (owner, 2026-10-10) | M | exhaustion hook, sprint only |
-| Sure Footing | 3 | leggings | less slowdown on soul sand, honey and powder snow (owner, 2026-10-10) | D | `movement_efficiency` attribute (Soul Speed's); per-level amount and which blocks read it, in its sub-plan |
+| Sure Footing | 3 | leggings | a third of the slowdown on soul sand and honey gone per level, III = none (owner, 2026-10-12); powder snow in 10c (owner, 2026-10-12) | D (+M for powder snow) | `movement_efficiency` attribute (Soul Speed's), `fraction` level / 3. It's read only by `LivingEntity.getBlockSpeedFactor` (javap 1.21.11), so it covers blocks with a speed factor (soul sand, honey 0.4) and never powder snow, which slows through `makeStuckInBlock` |
 | Cushion | 3 | elytra, chestplate | reduces wall-collision damage | D | `damage_protection` on `fly_into_wall` |
 | Beheading | 5 | melee | 2% × level to drop the victim's head on a player's direct melee kill, on top of vanilla's wither skull roll (owner, 2026-10-09) | E | zombie, skeleton, wither skeleton, creeper, piglin (loot table `enchanting2:beheading/heads`); no ender dragon (it never rolls death loot); player heads behind `beheading.player_heads` (default off) |
 

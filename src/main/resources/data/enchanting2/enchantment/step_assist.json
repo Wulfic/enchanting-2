@@ -1,0 +1,30 @@
+{
+  "anvil_cost": 4,
+  "description": {
+    "translate": "enchantment.enchanting2.step_assist"
+  },
+  "effects": {
+    "minecraft:attributes": [
+      {
+        "amount": 0.4,
+        "attribute": "minecraft:step_height",
+        "id": "enchanting2:enchantment.step_assist",
+        "operation": "add_value"
+      }
+    ]
+  },
+  "max_cost": {
+    "base": 65,
+    "per_level_above_first": 0
+  },
+  "max_level": 1,
+  "min_cost": {
+    "base": 15,
+    "per_level_above_first": 0
+  },
+  "slots": [
+    "legs"
+  ],
+  "supported_items": "#minecraft:enchantable/leg_armor",
+  "weight": 2
+}
