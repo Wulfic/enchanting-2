@@ -121,6 +121,8 @@ public final class LevelCeilings {
 		t.put("enchanting2:fragility", NONE);
 		t.put("enchanting2:greed", soft(10));
 		t.put("enchanting2:fumbling", soft(7));
+		t.put("enchanting2:weight", NONE_NOTED);
+		t.put("enchanting2:hunger", NONE);
 		TABLE = Map.copyOf(t);
 	}
 

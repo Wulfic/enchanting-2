@@ -2,9 +2,11 @@ package com.wulfnet.enchanting2.mixin;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import com.wulfnet.enchanting2.config.ExperienceSection;
+import com.wulfnet.enchanting2.curse.CurseEffects;
 import com.wulfnet.enchanting2.experience.ExperienceCurve;
 import com.wulfnet.enchanting2.experience.ExperienceCurve.Position;
 import com.wulfnet.enchanting2.experience.PlayerExperience;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -12,6 +14,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -111,5 +114,12 @@ abstract class PlayerMixin {
 	@Unique
 	private static int saturatedAdd(int a, int b) {
 		return (int) Math.clamp((long) a + b, Integer.MIN_VALUE, Integer.MAX_VALUE);
+	}
+
+	/** Phase 10e, Curse of Hunger: every exhaustion source goes through here, scaled by the armor's Hunger. */
+	@ModifyVariable(method = "causeFoodExhaustion", at = @At("HEAD"), argsOnly = true)
+	private float enchanting2$hunger(float amount) {
+		Player self = (Player) (Object) this;
+		return self.level() instanceof ServerLevel ? CurseEffects.scaleExhaustion(self, amount) : amount;
 	}
 }

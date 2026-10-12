@@ -170,7 +170,11 @@ public final class ConfigScreen {
 							CursesSection.MIN_DISCOUNT_PERCENT, CursesSection.MAX_DISCOUNT_PERCENT, editable))
 					.option(intOption("curses.removal_min_cost", k.removalMinCost(), () -> draft.removalMinCost,
 							v -> draft.removalMinCost = v, CursesSection.MIN_REMOVAL_COST,
-							CursesSection.MAX_REMOVAL_COST, editable));
+							CursesSection.MAX_REMOVAL_COST, editable))
+					.option(intOption("curses.weight_max_slowdown_percent", k.weightMaxSlowdownPercent(),
+							() -> draft.weightMaxSlowdownPercent, v -> draft.weightMaxSlowdownPercent = v,
+							CursesSection.MIN_WEIGHT_SLOWDOWN_PERCENT, CursesSection.MAX_WEIGHT_SLOWDOWN_PERCENT,
+							editable));
 			anvil.option(Option.<InvalidBookMode>createBuilder()
 					.name(Component.translatable(KEY + "anvil.invalid_book_mode"))
 					.description(description("anvil.invalid_book_mode"))
@@ -358,6 +362,7 @@ public final class ConfigScreen {
 		boolean creativeFree;
 		int maxDiscountPercent;
 		int removalMinCost;
+		int weightMaxSlowdownPercent;
 		InvalidBookMode invalidBookMode;
 		boolean treasureRequiresFullPower;
 		SilkFortuneMode silkFortuneMode;
@@ -377,6 +382,7 @@ public final class ConfigScreen {
 			creativeFree = from.costs().creativeFree();
 			maxDiscountPercent = from.curses().maxDiscountPercent();
 			removalMinCost = from.curses().removalMinCost();
+			weightMaxSlowdownPercent = from.curses().weightMaxSlowdownPercent();
 			invalidBookMode = from.anvil().invalidBookMode();
 			treasureRequiresFullPower = from.table().treasureRequiresFullPower();
 			silkFortuneMode = from.fortune().silkFortuneMode();
@@ -398,7 +404,8 @@ public final class ConfigScreen {
 					new AllowTogetherSection(allowed),
 					new CostsSection(renameCost, repairCostPerMaterial, repairCombineCost, maximumOperationCost,
 							creativeFree),
-					new CursesSection(maxDiscountPercent, removalMinCost), new AnvilSection(invalidBookMode),
+					new CursesSection(maxDiscountPercent, removalMinCost, weightMaxSlowdownPercent),
+					new AnvilSection(invalidBookMode),
 					new TableSection(treasureRequiresFullPower), new FortuneSection(silkFortuneMode),
 					new BeheadingSection(playerHeads), new SmeltingSection(smeltingSilkPriority),
 					new SilkTouchSection(collectSpawners));

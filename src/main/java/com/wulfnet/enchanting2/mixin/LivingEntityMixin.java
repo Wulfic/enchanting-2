@@ -3,10 +3,14 @@ package com.wulfnet.enchanting2.mixin;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.wulfnet.enchanting2.Enchanting2;
+import com.wulfnet.enchanting2.curse.CurseEffects;
 import com.wulfnet.enchanting2.effect.Lifesteal;
+import java.util.Map;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.ValueInput;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -47,6 +51,15 @@ abstract class LivingEntityMixin {
 					self.getStringUUID(), restored, self.getHealth(), self.getMaxHealth());
 			self.setHealth(restored);
 		}
+	}
+
+	/**
+	 * Phase 10e, Curse of Weight: vanilla calls this (server only) when any equipment slot changed, so Weight's one
+	 * summed and capped modifier is recomputed exactly when the worn pieces change, and on the first tick after a load.
+	 */
+	@Inject(method = "handleEquipmentChanges", at = @At("TAIL"))
+	private void enchanting2$weight(Map<EquipmentSlot, ItemStack> changes, CallbackInfo ci) {
+		CurseEffects.updateWeight((LivingEntity) (Object) this);
 	}
 
 	/**

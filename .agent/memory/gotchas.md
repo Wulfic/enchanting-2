@@ -439,3 +439,11 @@ screen itself (a `Component.translatable`) shows it fine.
 **Fix:** compare against `Component.translatable(key).getString()`. In en_us.json a name with no args uses a single
 "%" like "Maximum curse discount (%)"; "%%" is only for strings that take arguments.
 **Affects:** src/gametest/.../ConfigScreenClientGameTest.java
+
+## 2026-10-12 — A GameTest sequence reports its last failing step, not its first
+**Trap:** with Weight's hook disabled, `weightSlows...` reported "Weight III + III, capped ... on tick 3" although the
+earlier "Weight I" step (tick 2) also saw no modifier. A failed `thenExecute` (`executeWithoutFail` →
+`GameTestInfo.fail`) doesn't stop the later steps, and a later failure's message replaces the first one.
+**Fix:** none needed: the test still fails. When a mutation run reports a later step than expected, instrument the
+earlier ones (a temporary `System.out` shows as `[STDOUT]` in the log) before concluding the earlier assert passed.
+**Affects:** any `helper.startSequence()` GameTest

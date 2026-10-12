@@ -25,6 +25,11 @@ public final class ModEffects {
 	public static final DataComponentType<Unit> SMELT_DROPS = register("smelt_drops", Unit.CODEC);
 	/** Night Vision while worn, for players (Vision). */
 	public static final DataComponentType<Unit> NIGHT_VISION = register("night_vision", Unit.CODEC);
+	/** Fraction of movement speed taken per worn piece, summed and capped by config (Curse of Weight, Phase 10e). */
+	public static final DataComponentType<LevelBasedValue> MOVEMENT_PENALTY = register("movement_penalty",
+			LevelBasedValue.CODEC);
+	/** Extra hunger exhaustion as a fraction, summed over worn pieces, uncapped (Curse of Hunger, Phase 10e). */
+	public static final DataComponentType<LevelBasedValue> EXHAUSTION = register("exhaustion", LevelBasedValue.CODEC);
 	/** Entity effect for {@code minecraft:projectile_spawned}: the arrow ignores gravity for a while (TrueShot Aura). */
 	public static final MapCodec<SuspendGravity> SUSPEND_GRAVITY = Registry.register(
 			BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE,
@@ -35,9 +40,9 @@ public final class ModEffects {
 
 	/** Loads the class, which registers the fields above. Call once from mod init. */
 	public static void register() {
-		Enchanting2.LOGGER.debug("Registered effect components {}, {}, {}, {} and entity effect {}", key(LIFESTEAL),
-				key(HEAD_DROP_CHANCE), key(SMELT_DROPS), key(NIGHT_VISION),
-				BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE.getKey(SUSPEND_GRAVITY));
+		Enchanting2.LOGGER.debug("Registered effect components {}, {}, {}, {}, {}, {} and entity effect {}",
+				key(LIFESTEAL), key(HEAD_DROP_CHANCE), key(SMELT_DROPS), key(NIGHT_VISION), key(MOVEMENT_PENALTY),
+				key(EXHAUSTION), BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE.getKey(SUSPEND_GRAVITY));
 		SuspendGravity.register();
 	}
 

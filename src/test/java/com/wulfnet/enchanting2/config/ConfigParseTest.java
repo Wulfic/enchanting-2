@@ -337,12 +337,13 @@ class ConfigParseTest {
 		var curses = CommonConfig.defaults().curses();
 		assertEquals(45, curses.maxDiscountPercent());
 		assertEquals(30, curses.removalMinCost());
+		assertEquals(50, curses.weightMaxSlowdownPercent());
 	}
 
 	@Test
 	void costsAndCursesRoundTrip() throws SyntaxError {
 		var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
-				new CostsSection(0, 3, 5, 0, false), new CursesSection(95, 0),
+				new CostsSection(0, 3, 5, 0, false), new CursesSection(95, 0, 100),
 				new AnvilSection(InvalidBookMode.STRIP_INVALID), new TableSection(false),
 				new FortuneSection(SilkFortuneMode.FORTUNE_MULTIPLIES_SILK), BeheadingSection.DEFAULTS,
 				SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS);
@@ -358,7 +359,7 @@ class ConfigParseTest {
 				{ schema_version: 1,
 				  costs: { rename_cost: -1, repair_cost_per_material: 4, repair_combine_cost: "2",
 				           maximum_operation_cost: -2, creative_free: 1, rename: 3 },
-				  curses: { max_discount_percent: 96, removal_min_cost: 12 } }""");
+				  curses: { max_discount_percent: 96, removal_min_cost: 12, weight_max_slowdown_percent: 101 } }""");
 		var costs = parsed.config().costs();
 		assertEquals(CostsSection.DEFAULTS.renameCost(), costs.renameCost());
 		assertEquals(4, costs.repairCostPerMaterial());
@@ -368,8 +369,10 @@ class ConfigParseTest {
 		var curses = parsed.config().curses();
 		assertEquals(CursesSection.DEFAULTS.maxDiscountPercent(), curses.maxDiscountPercent());
 		assertEquals(12, curses.removalMinCost());
+		assertEquals(CursesSection.DEFAULTS.weightMaxSlowdownPercent(), curses.weightMaxSlowdownPercent());
 		assertEquals(Set.of("costs.rename_cost", "costs.repair_combine_cost", "costs.maximum_operation_cost",
-				"costs.creative_free", "costs.rename", "curses.max_discount_percent"),
+				"costs.creative_free", "costs.rename", "curses.max_discount_percent",
+				"curses.weight_max_slowdown_percent"),
 				Set.copyOf(keys(parsed.issues())));
 	}
 
@@ -387,6 +390,8 @@ class ConfigParseTest {
 		assertThrows(IllegalArgumentException.class, () -> new CostsSection(1, 1, 2, -2, true));
 		assertThrows(IllegalArgumentException.class, () -> new CursesSection(96, 30));
 		assertThrows(IllegalArgumentException.class, () -> new CursesSection(45, -1));
+		assertThrows(IllegalArgumentException.class, () -> new CursesSection(45, 30, 101));
+		assertThrows(IllegalArgumentException.class, () -> new CursesSection(45, 30, -1));
 	}
 
 	@Test

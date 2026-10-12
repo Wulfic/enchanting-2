@@ -2,7 +2,9 @@ package com.wulfnet.enchanting2.gametest;
 
 import com.wulfnet.enchanting2.acquisition.AcquisitionRules;
 import com.wulfnet.enchanting2.config.EnchantmentOverrides;
+import com.wulfnet.enchanting2.curse.CurseEffects;
 import com.wulfnet.enchanting2.enchantment.ModEnchantments;
+import com.wulfnet.enchanting2.gametest.mixin.FoodDataAccessor;
 import com.wulfnet.enchanting2.table.TablePool;
 import java.util.List;
 import java.util.function.IntSupplier;
@@ -19,8 +21,11 @@ import net.minecraft.tags.EnchantmentTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.pig.Pig;
+import net.minecraft.world.entity.monster.zombie.Zombie;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -29,7 +34,8 @@ import net.minecraft.world.item.enchantment.EnchantmentHelper;
 
 /**
  * Phase 10e: our curses against the live registry (owner's numbers, decisions.md "10e curse scaling"). Each effect test
- * fails if its JSON loses or changes the effect; Fragility II also fails if durability damage truncates again.
+ * fails if its JSON loses or changes the effect; Fragility II also fails if durability damage truncates again, and
+ * Weight and Hunger fail if their hook ({@code LivingEntityMixin}, {@code PlayerMixin}) is gone.
  */
 public class CursesGameTest {
 	private static final double EPSILON = 1.0E-6;
@@ -127,6 +133,93 @@ public class CursesGameTest {
 		double actual = player.getAttributeValue(Attributes.BLOCK_BREAK_SPEED);
 		helper.assertTrue(Math.abs(expected - actual) < EPSILON, Component.literal(
 				"block break speed with Fumbling " + level + ": expected " + expected + ", got " + actual));
+	}
+
+	/**
+	 * −10% speed per level per worn piece, summed into one modifier capped at 50% (owner, 2026-10-12), set by the real
+	 * equipment-change hook on a ticking zombie: I alone, III + III capped, held in a hand ignored, back after a
+	 * reload, gone when the armor comes off.
+	 */
+	@GameTest
+	public void weightSlowsTenPercentPerLevelPerPieceCappedAtHalf(GameTestHelper helper) {
+		Zombie zombie = helper.spawn(EntityType.ZOMBIE, new BlockPos(1, 1, 1));
+		zombie.setNoAi(true);
+		for (EquipmentSlot slot : EquipmentSlot.values()) {
+			zombie.setItemSlot(slot, ItemStack.EMPTY);
+		}
+		Zombie[] loaded = new Zombie[1];
+		helper.startSequence()
+				.thenIdle(1)
+				.thenExecute(() -> {
+					assertWeight(helper, zombie, 0.0, "no armor");
+					zombie.setItemSlot(EquipmentSlot.CHEST,
+							enchanted(helper, Items.IRON_CHESTPLATE, ModEnchantments.WEIGHT, 1));
+					zombie.setItemSlot(EquipmentSlot.MAINHAND,
+							enchanted(helper, Items.IRON_LEGGINGS, ModEnchantments.WEIGHT, 5));
+				})
+				.thenIdle(1)
+				.thenExecute(() -> {
+					assertWeight(helper, zombie, -0.1, "Weight I on one piece (Weight V held doesn't count)");
+					zombie.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+					zombie.setItemSlot(EquipmentSlot.CHEST,
+							enchanted(helper, Items.IRON_CHESTPLATE, ModEnchantments.WEIGHT, 3));
+					zombie.setItemSlot(EquipmentSlot.LEGS,
+							enchanted(helper, Items.IRON_LEGGINGS, ModEnchantments.WEIGHT, 3));
+				})
+				.thenIdle(1)
+				.thenExecute(() -> {
+					assertWeight(helper, zombie, -0.5, "Weight III + III, capped");
+					loaded[0] = NewEnchantmentsGameTest.reload(helper, zombie);
+				})
+				.thenIdle(1)
+				.thenExecute(() -> {
+					assertWeight(helper, loaded[0], -0.5, "after a save and load");
+					loaded[0].setItemSlot(EquipmentSlot.CHEST, ItemStack.EMPTY);
+					loaded[0].setItemSlot(EquipmentSlot.LEGS, ItemStack.EMPTY);
+				})
+				.thenIdle(1)
+				.thenExecute(() -> assertWeight(helper, loaded[0], 0.0, "armor taken off"))
+				.thenSucceed();
+	}
+
+	/** 0 means no modifier at all, not a zero one. */
+	private static void assertWeight(GameTestHelper helper, LivingEntity entity, double expected, String what) {
+		AttributeModifier modifier = entity.getAttribute(Attributes.MOVEMENT_SPEED)
+				.getModifier(CurseEffects.WEIGHT_MODIFIER);
+		double actual = modifier == null ? 0.0 : modifier.amount();
+		helper.assertTrue(Math.abs(expected - actual) < EPSILON && (expected != 0.0 || modifier == null),
+				Component.literal("Weight modifier, " + what + ": expected " + expected + ", got " + modifier));
+		if (modifier != null) {
+			helper.assertValueEqual(AttributeModifier.Operation.ADD_MULTIPLIED_BASE, modifier.operation(),
+					Component.literal("Weight modifier operation"));
+		}
+	}
+
+	/** +10% exhaustion per level per worn piece, uncapped (owner): four pieces at V = ×3; held items don't count. */
+	@GameTest
+	public void hungerAddsTenPercentExhaustionPerLevelPerPiece(GameTestHelper helper) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		player.getAbilities().invulnerable = false; // invulnerable players get no exhaustion at all
+		assertExhaustion(helper, player, 1.0F, "no curse");
+		player.setItemSlot(EquipmentSlot.HEAD, enchanted(helper, Items.IRON_HELMET, ModEnchantments.HUNGER, 1));
+		assertExhaustion(helper, player, 1.1F, "Hunger I on one piece");
+		player.setItemSlot(EquipmentSlot.MAINHAND, enchanted(helper, Items.IRON_HELMET, ModEnchantments.HUNGER, 5));
+		assertExhaustion(helper, player, 1.1F, "Hunger V held in a hand");
+		player.setItemSlot(EquipmentSlot.HEAD, enchanted(helper, Items.IRON_HELMET, ModEnchantments.HUNGER, 5));
+		player.setItemSlot(EquipmentSlot.CHEST, enchanted(helper, Items.IRON_CHESTPLATE, ModEnchantments.HUNGER, 5));
+		player.setItemSlot(EquipmentSlot.LEGS, enchanted(helper, Items.IRON_LEGGINGS, ModEnchantments.HUNGER, 5));
+		player.setItemSlot(EquipmentSlot.FEET, enchanted(helper, Items.IRON_BOOTS, ModEnchantments.HUNGER, 5));
+		assertExhaustion(helper, player, 3.0F, "Hunger V on four pieces");
+		helper.succeed();
+	}
+
+	private static void assertExhaustion(GameTestHelper helper, ServerPlayer player, float expected, String what) {
+		FoodDataAccessor food = (FoodDataAccessor) player.getFoodData();
+		food.e2test$setExhaustionLevel(0.0F);
+		player.causeFoodExhaustion(1.0F);
+		float actual = food.e2test$getExhaustionLevel();
+		helper.assertTrue(Math.abs(expected - actual) < 1.0E-5F,
+				Component.literal("exhaustion from 1.0, " + what + ": expected " + expected + ", got " + actual));
 	}
 
 	private static void assertMean(GameTestHelper helper, IntSupplier amount, int min, int max, double mean,

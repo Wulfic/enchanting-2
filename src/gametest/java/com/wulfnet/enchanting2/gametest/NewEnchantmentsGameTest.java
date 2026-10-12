@@ -81,7 +81,9 @@ public class NewEnchantmentsGameTest {
 			Map.entry(ModEnchantments.SURE_FOOTING, 3),
 			Map.entry(ModEnchantments.FRAGILITY, 5),
 			Map.entry(ModEnchantments.GREED, 5),
-			Map.entry(ModEnchantments.FUMBLING, 5));
+			Map.entry(ModEnchantments.FUMBLING, 5),
+			Map.entry(ModEnchantments.WEIGHT, 5),
+			Map.entry(ModEnchantments.HUNGER, 5));
 
 	/** The vanilla source tags (owner 2026-10-09: everywhere), plus our table pool. */
 	private static final List<TagKey<Enchantment>> SOURCES = List.of(EnchantmentTags.NON_TREASURE,
@@ -507,7 +509,7 @@ public class NewEnchantmentsGameTest {
 	}
 
 	/** Saves {@code zombie}, removes it, and loads the save into a new zombie, as a chunk unload and reload does. */
-	private static Zombie reload(GameTestHelper helper, Zombie zombie) {
+	static Zombie reload(GameTestHelper helper, Zombie zombie) {
 		ServerLevel level = helper.getLevel();
 		TagValueOutput output = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, level.registryAccess());
 		zombie.saveWithoutId(output);

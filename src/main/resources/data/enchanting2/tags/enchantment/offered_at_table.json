@@ -7,6 +7,8 @@
     "minecraft:vanishing_curse",
     "enchanting2:fragility",
     "enchanting2:greed",
-    "enchanting2:fumbling"
+    "enchanting2:fumbling",
+    "enchanting2:weight",
+    "enchanting2:hunger"
   ]
 }

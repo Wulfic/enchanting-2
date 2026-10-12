@@ -39,18 +39,20 @@ public final class ModEnchantments {
 	public static final ResourceKey<Enchantment> FRAGILITY = key("fragility");
 	public static final ResourceKey<Enchantment> GREED = key("greed");
 	public static final ResourceKey<Enchantment> FUMBLING = key("fumbling");
+	public static final ResourceKey<Enchantment> WEIGHT = key("weight");
+	public static final ResourceKey<Enchantment> HUNGER = key("hunger");
 
 	public static final List<ResourceKey<Enchantment>> KEYS = List.of(
 			WITHERING, POISONING, FREEZING, ATTACK_SPEED, CRITICAL_STRIKE, REACH, XP_BOOST, TOUGHNESS, HEALTH,
 			SWIFTNESS, CUSHION, VAMPIRISM, BEHEADING, SMELTING, TRUE_SHOT_AURA, VISION, STEP_ASSIST, ANCHORED,
-			SURE_FOOTING, FRAGILITY, GREED, FUMBLING);
+			SURE_FOOTING, FRAGILITY, GREED, FUMBLING, WEIGHT, HUNGER);
 
 	/**
 	 * Our curses (DESIGN §5a, Phase 10e), a subset of {@link #KEYS}. They're tagged like vanilla's Binding and
 	 * Vanishing ({@code #curse}, {@code #treasure}, {@code #on_random_loot}, {@code #tradeable}) instead of
 	 * {@code #non_treasure}, and the table offers them as a discount.
 	 */
-	public static final List<ResourceKey<Enchantment>> CURSES = List.of(FRAGILITY, GREED, FUMBLING);
+	public static final List<ResourceKey<Enchantment>> CURSES = List.of(FRAGILITY, GREED, FUMBLING, WEIGHT, HUNGER);
 
 	private ModEnchantments() {
 	}

@@ -8,7 +8,7 @@
 **Branch:** main (commit straight to main and push; no CI; see decisions.md)
 
 ## Where we are
-Phases 1–9, 10a, 10b, 10f, 10g, 10h, 10i, 10j and 10k done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
+Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j and 10k done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
 - 3: `ExperienceCurve`, no level cap, exact XP points, counters saturate. 4: `MaxLevels` via `MODIFY` (restart to
   apply), `ConflictFamily` + `allow_together`, `EnchantRules`, Lure/Riptide 5 with safe caps.
 - 5: `cost/` (`CostModel`, `PricingTable`, curse discount, `cleanseCost`, `extractCost`).
@@ -47,14 +47,14 @@ Phases 1–9, 10a, 10b, 10f, 10g, 10h, 10i, 10j and 10k done (TODO.md has each s
   (`DefaultCurses` off the title screen).
 - 10eB (2026-10-12): Fragility, Greed, Fumbling as data, `ModEnchantments.CURSES`, curse tags like vanilla's,
   durability damage rounds at random (`EnchantmentHelperMixin`).
-- Tests: 348 JUnit + 265 GameTests (`./gradlew build`) + 5 client GameTests (`./gradlew runClientGameTest`).
+- 10eC (2026-10-12): Weight (`movement_penalty` component, one capped modifier set at `handleEquipmentChanges`,
+  `curses.weight_max_slowdown_percent` 50) and Hunger (`exhaustion` component, `causeFoodExhaustion`), `curse/*`.
+- Tests: 352 JUnit + 267 GameTests (`./gradlew build`) + 5 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-0. NOW: 10e curses: 10eA, 10eB done; next 10eC (Weight, Hunger: components + mixins + `weight_max_slowdown_percent`).
-   Plan in TODO "Phase 10e"; owner answers in decisions.md "10e curse scaling".
-1. Then: 10c (M route, see TODO; each enchantment needs its own written sub-plan with owner questions first: edge
-   cases from DESIGN §9; each adds a `LevelCeilings` row, a `.desc` line, a screen entry comes free), 10e (curses;
-   scaling answered 2026-10-12), 10d balance pass.
+1. Next: 10c (M route, see TODO; each enchantment needs its own written sub-plan with owner questions first: edge
+   cases from DESIGN §9; each adds a `LevelCeilings` row, a `.desc` line, a screen entry comes free), then 10d
+   balance pass.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
    ~1,000,000) + 6D: panel look, config screen "Display" toggle, and a vanilla server keeping the vanilla anvil screen +
    6bC: grindstone panel look, and a vanilla server keeping the vanilla grindstone + 7D: table panel and window look
@@ -67,7 +67,9 @@ Phases 1–9, 10a, 10b, 10f, 10g, 10h, 10i, 10j and 10k done (TODO.md has each s
    an Infinity bucket's durability bar, pouring by hand feels right (no flicker to an empty bucket) + 10i: Step Assist
    up a block, Sure Footing III on soul sand feels like normal ground + 10h: description wording, the two "Display"
    toggles, and with Enchantment Descriptions installed that only one set of lines shows (confirms `enchdesc`) +
-   10j: an enchantment's max level / cost fields and their notes, a raised max after a restart (Efficiency 10).
+   10j: an enchantment's max level / cost fields and their notes, a raised max after a restart (Efficiency 10) +
+   10e: the five curse names in red with their Ctrl descriptions, a Weight set's walking feel (I vs V, the 50% cap),
+   a curse's two discount fields and the Weight cap field, a curse picked at the table showing its discount line.
 
 ## Open questions / blockers
 - Owner (2026-10-06): a lowered max level never touches existing items (decisions.md).

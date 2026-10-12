@@ -1480,7 +1480,7 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       ✅ 10jB 2026-10-12. No expanded-group screenshot (YACL fixes `collapsed` at build); the client GameTest checks the
       built options instead (Piercing 1..127 default 5 with its note, Sharpness 1..255, Vision base cost 10). Mutation:
       dropping the ceiling from the range fails it.
-- [ ] 10e Curses (§5a): Fragility, Weight, Greed, Fumbling (D); Hunger (M). Curse tag +
+- [x] 10e Curses (§5a): Fragility, Weight, Greed, Fumbling (D); Hunger (M). Curse tag +
       `discount_percent` data; table shows curses as optional picks with a negative cost line.
       Max level 5 for all five (owner, 2026-10-10). Per level (owner, 2026-10-12): the effect scales linearly (§5a's
       table is level I) and the discount is 15% at I, +5% per level (V = 35%), still capped by
@@ -1546,7 +1546,7 @@ and recomputed on the next equipment change, so removing the mod leaves nothing 
   at 0, tested). `ModEnchantments.CURSES` splits the source-tag checks (JUnit + GameTest); the lang test compares
   against `ModEnchantments.ids()` instead of a pinned 19. Mutation: no durability rounding fails Fragility II (mean 2.0).
 
-### Stage 10eC — Weight, Hunger (code) + docs → commit
+### Stage 10eC — Weight, Hunger (code) + docs → commit  ✅ 2026-10-12
 - Effect components: `enchanting2:movement_penalty` and `enchanting2:exhaustion` (both `LevelBasedValue`), summed over
   equipped items whose slot matches (`runIterationOnEquipment`).
 - Weight: `weight.json` (`#minecraft:enchantable/armor`, slots armor, penalty linear 0.1 / 0.1). `LivingEntityMixin`
@@ -1561,6 +1561,10 @@ and recomputed on the next equipment change, so removing the mod leaves nothing 
   a zombie wearing Weight is slowed; Hunger V on four pieces → exhaustion ×3.0; no curse → unchanged.
 - docs/ENCHANTMENTS.md curse rows → Built with the per-level numbers; DESIGN §5a table and per-level text.
 - Owner `runClient`: the curse names in red, a Weight set's walking feel, the new screen fields.
+- ✅ 2026-10-12: 352 JUnit + 267 GameTests + client GameTests green. Weight is tested on a ticking zombie (the real
+  `handleEquipmentChanges` hook): I alone −0.1, Weight V held ignored, III + III capped at −0.5, back after a save and
+  load, gone with the armor off. Hunger on a mock player (`FoodDataAccessor`, invulnerable off): I 1.1, held ignored,
+  four at V 3.0. Mutation: both hooks off fails both tests. Weight's cap applies at the next gear change, not live.
 
 ### Phase 10g — Applicability and vanilla extensions (three stages, one commit each)
 **Goal:** the owner's 2026-10-10 additions to vanilla enchantments work, each with a GameTest that fails if it breaks.

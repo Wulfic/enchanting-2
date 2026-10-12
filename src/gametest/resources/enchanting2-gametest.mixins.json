@@ -5,6 +5,7 @@
 	"mixins": [
 		"EntityInvoker",
 		"ExperienceOrbAccessor",
+		"FoodDataAccessor",
 		"FishingHookAccessor",
 		"MobAccessor"
 	],
