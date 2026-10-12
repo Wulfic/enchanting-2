@@ -532,6 +532,7 @@ class ConfigParseTest {
 				  "minecraft:efficiency": { base_cost: 3, cost_per_level: 2, upgrade_cost_mode: "result_level" },
 				  "minecraft:mending": { other_levels_surcharge: 0 },
 				  "minecraft:binding_curse": { discount_percent: 100 },
+				  "enchanting2:greed": { discount_per_level: 7 },
 				  "minecraft:unbreaking": { upgrade_cost_mode: "fixed" },
 				  "minecraft:fortune": { upgrade_cost_mode: "free" },
 				  "minecraft:looting": { upgrade_cost_mode: "level_difference" } } }""",
@@ -544,6 +545,8 @@ class ConfigParseTest {
 		assertEquals(OptionalInt.empty(), efficiency.otherLevelsSurcharge());
 		assertEquals(OptionalInt.of(0), entries.get("minecraft:mending").otherLevelsSurcharge());
 		assertEquals(OptionalInt.of(100), entries.get("minecraft:binding_curse").discountPercent());
+		assertEquals(OptionalInt.empty(), entries.get("minecraft:binding_curse").discountPerLevel());
+		assertEquals(OptionalInt.of(7), entries.get("enchanting2:greed").discountPerLevel());
 		assertEquals(Optional.of(UpgradeMode.FIXED), entries.get("minecraft:unbreaking").upgradeMode());
 		assertEquals(Optional.of(UpgradeMode.FREE), entries.get("minecraft:fortune").upgradeMode());
 		assertEquals(Optional.of(UpgradeMode.LEVEL_DIFFERENCE), entries.get("minecraft:looting").upgradeMode());
@@ -555,7 +558,8 @@ class ConfigParseTest {
 		var parsed = ConfigFiles.parse("""
 				{ schema_version: 1, overrides: {
 				  "minecraft:efficiency": { base_cost: -1, cost_per_level: 10001, upgrade_cost_mode: "RESULT_LEVEL",
-				                            other_levels_surcharge: 101, discount_percent: 101 },
+				                            other_levels_surcharge: 101, discount_percent: 101,
+				                            discount_per_level: -1 },
 				  "minecraft:unbreaking": { upgrade_cost_mode: 2, cost_per_level: 4 } } }""",
 				EnchantmentOverrides.CODEC);
 		var efficiency = parsed.config().entries().get("minecraft:efficiency");
@@ -566,7 +570,8 @@ class ConfigParseTest {
 		assertEquals(Set.of("overrides.minecraft:efficiency.base_cost", "overrides.minecraft:efficiency.cost_per_level",
 				"overrides.minecraft:efficiency.upgrade_cost_mode",
 				"overrides.minecraft:efficiency.other_levels_surcharge",
-				"overrides.minecraft:efficiency.discount_percent", "overrides.minecraft:unbreaking.upgrade_cost_mode"),
+				"overrides.minecraft:efficiency.discount_percent", "overrides.minecraft:efficiency.discount_per_level",
+				"overrides.minecraft:unbreaking.upgrade_cost_mode"),
 				Set.copyOf(keys(parsed.issues())));
 		assertTrue(parsed.issues().stream().filter(i -> i.key().endsWith("upgrade_cost_mode"))
 				.allMatch(i -> i.reason().contains("level_difference")), "the issue lists the accepted spellings");
@@ -578,7 +583,10 @@ class ConfigParseTest {
 				"minecraft:efficiency", new EnchantmentOverrides.Entry(OptionalInt.of(4), OptionalInt.of(0),
 						OptionalInt.of(10_000), Optional.of(UpgradeMode.FIXED), OptionalInt.of(100), OptionalInt.of(0)),
 				"minecraft:vanishing_curse", new EnchantmentOverrides.Entry(OptionalInt.empty(), OptionalInt.empty(),
-						OptionalInt.empty(), Optional.empty(), OptionalInt.empty(), OptionalInt.of(25))));
+						OptionalInt.empty(), Optional.empty(), OptionalInt.empty(), OptionalInt.of(25)),
+				"enchanting2:weight", new EnchantmentOverrides.Entry(OptionalInt.empty(), OptionalInt.empty(),
+						OptionalInt.empty(), Optional.empty(), OptionalInt.empty(), OptionalInt.empty(),
+						OptionalInt.of(100), AcquisitionSettings.NONE)));
 		var parsed = ConfigFiles.parse(ConfigFiles.render(overrides, EnchantmentOverrides.CODEC),
 				EnchantmentOverrides.CODEC);
 		assertEquals(overrides, parsed.config());
@@ -596,6 +604,8 @@ class ConfigParseTest {
 				Optional.empty(), OptionalInt.of(101), none));
 		assertThrows(IllegalArgumentException.class, () -> new EnchantmentOverrides.Entry(none, none, none,
 				Optional.empty(), none, OptionalInt.of(101)));
+		assertThrows(IllegalArgumentException.class, () -> new EnchantmentOverrides.Entry(none, none, none,
+				Optional.empty(), none, none, OptionalInt.of(101), AcquisitionSettings.NONE));
 	}
 
 	@Test

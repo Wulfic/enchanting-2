@@ -43,10 +43,14 @@ Phases 1–9, 10a, 10b, 10f, 10g, 10h, 10i, 10j and 10k done (TODO.md has each s
   `MaxLevels.SAFE_MAX`; hard: Lure 5, Riptide 7, Quick Charge 4, Piercing 127, Lunge 13, Wind Burst 14.
 - 10jB (2026-10-12): max level / base cost / cost per level per enchantment in the config screen
   (`EnchantmentNumbersDraft`, defaults from `DefaultMaxLevels` + `PricingTable`); `ConfigScreen.build()` is public.
-- Tests: 339 JUnit + 261 GameTests (`./gradlew build`) + 5 client GameTests (`./gradlew runClientGameTest`).
+- 10eA (2026-10-12): `Pricing.discountAt(level)`, `discount_per_level` key, curse discount fields on the screen
+  (`DefaultCurses` off the title screen).
+- Tests: 348 JUnit + 261 GameTests (`./gradlew build`) + 5 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Next: 10c (M route, see TODO; each enchantment needs its own written sub-plan with owner questions first: edge
+0. NOW: 10e curses: 10eA done (per-level discount, screen fields); next 10eB (Fragility, Greed, Fumbling). Plan in TODO
+   "Phase 10e"; owner answers in decisions.md "10e curse scaling".
+1. Then: 10c (M route, see TODO; each enchantment needs its own written sub-plan with owner questions first: edge
    cases from DESIGN §9; each adds a `LevelCeilings` row, a `.desc` line, a screen entry comes free), 10e (curses;
    scaling answered 2026-10-12), 10d balance pass.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level

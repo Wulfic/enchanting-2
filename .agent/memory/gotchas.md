@@ -431,3 +431,11 @@ speed by 5 (`setOnGround(true)` before `getDestroyProgress`).
 (with Multishot, Thorns and Aqua Affinity as positive controls), and reads attribute maxima from `RangedAttribute`.
 **Lesson:** a ceiling from memory is a guess; read the enchantment JSON and the attribute's max first.
 **Affects:** `enchantment/LevelCeilings`, `LevelCeilingsGameTest`
+
+## 2026-10-12 — `I18n.get` formats, so a lang string with a bare "%" comes back as "Format error"
+**Trap:** the client GameTest matched YACL option names with `I18n.get(key)`. `I18n.get` runs `String.format` on the
+string, so a name like "Discount at level I (%)" (no args) returns "Format error: ..." and never matches, while the
+screen itself (a `Component.translatable`) shows it fine.
+**Fix:** compare against `Component.translatable(key).getString()`. In en_us.json a name with no args uses a single
+"%" like "Maximum curse discount (%)"; "%%" is only for strings that take arguments.
+**Affects:** src/gametest/.../ConfigScreenClientGameTest.java

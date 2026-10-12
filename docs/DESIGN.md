@@ -361,15 +361,16 @@ buys a cheaper enchant.
 |---|---|---|---|---|
 | Binding (vanilla) | 10% | wearables | can't remove until death or break | vanilla |
 | Vanishing (vanilla) | 10% | any | destroyed on death | vanilla |
-| Fragility | 15% | durables | ×2 durability loss | D (`item_damage`) |
-| Weight | 15% | armor | −10% movement speed per piece | D (attribute) |
-| Greed | 15% | tools, weapons | −50% XP from kills and mining; multiplies with XP Boost | D (`mob_/block_experience`) |
-| Fumbling | 15% | tools | −30% block break speed | D (attribute) |
-| Hunger | 15% | armor, held items | +50% hunger drain | M (exhaustion mixin) |
+| Fragility | 15% +5%/lvl | durables | ×2 durability loss at I, +0.5 per level (V ×4) | D (`item_damage`) |
+| Weight | 15% +5%/lvl | armor | −10% movement speed per level per piece; pieces add, total capped at 50% (`curses.weight_max_slowdown_percent`) | E (component + equipment hook) |
+| Greed | 15% +5%/lvl | tools, weapons | −10% XP from kills and mining per level (V −50%); multiplies with XP Boost | D (`mob_/block_experience`) |
+| Fumbling | 15% +5%/lvl | mining tools | −15% block break speed per level (V −75%) | D (attribute) |
+| Hunger | 15% +5%/lvl | armor | +10% hunger drain per level per piece (V +50%); pieces add, no cap | E (component + exhaustion mixin) |
 
-The five new curses go to max level 5 (owner, 2026-10-10). Binding and Vanishing stay at 1. The table above is
-level I (owner, 2026-10-12): the effect scales linearly with level and the discount is 15% at I, +5% per level
-(V = 35%), still capped by `curses.max_discount_percent`.
+The five new curses go to max level 5 (owner, 2026-10-10). Binding and Vanishing stay at 1. The discount is 15% at
+I, +5% per level (V = 35%), still capped by `curses.max_discount_percent`, and a curse's Cleanse repays its discount
+at the level it has (`discount_percent` + `discount_per_level` × (level − 1)). Effect numbers per level are the
+owner's of 2026-10-12 (decisions.md "10e curse scaling").
 
 Example: Mending + Efficiency V (17) + Curse of Weight → `ceil(17 × 0.85)` = 15. Cleansing it
 later costs `max(30, ceil(0.15 × 17))` = 30.

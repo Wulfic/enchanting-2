@@ -1018,3 +1018,16 @@ table (drifts on a version bump; the JSON can't).
 **Not done:** a screenshot with a group expanded (YACL fixes `collapsed` at build); the client GameTest inspects the built
 options (range, default, note) instead.
 **Affects:** `enchantment/DefaultMaxLevels`, `config/EnchantmentNumbersDraft`, `client/ConfigScreen`
+
+## 2026-10-12 — 10e curse scaling per curse, not "linear from level I" (owner)
+**Context:** the 2026-10-12 entry said each new curse's effect scales linearly from DESIGN §5a's level-I value. Agent
+check before 10e: linear breaks three of them (Greed −50%/level is −100% at II; Fumbling −30%/level can't mine at IV;
+Weight −10%/level per piece is −200% with four pieces at V).
+**Choice (owner):** Greed −10% XP per level (I 10% … V 50%). Fumbling −15% block break speed per level (I 15% … V 75%).
+Weight −10% movement speed per level per armor piece, pieces add, the total capped at −50%. Fragility ×2 durability
+loss at I, +0.5 per level (V ×4). Hunger +10% exhaustion per level (V +50%), armor only (not held items), pieces
+add with no cap (four pieces at V = +200%). Discount unchanged (15% at I, +5%/level).
+**Rejected:** Greed −50% at I then −10%/level, and Fumbling −30% then −10%/level (owner chose milder level I);
+max level 1 for either; Weight multiplying per piece or adding uncapped; Fragility ×(1 + level); Hunger +50%/level,
+on held items, or capped / highest-piece-only.
+**Affects:** docs/DESIGN.md §5a, TODO 10e, the five curse JSONs

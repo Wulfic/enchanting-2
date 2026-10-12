@@ -1485,6 +1485,9 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       Max level 5 for all five (owner, 2026-10-10). Per level (owner, 2026-10-12): the effect scales linearly (§5a's
       table is level I) and the discount is 15% at I, +5% per level (V = 35%), still capped by
       `curses.max_discount_percent`.
+      Per curse (owner, 2026-10-12, replaces "linear" above; decisions.md "10e curse scaling"): Greed −10% XP/level;
+      Fumbling −15% break speed/level; Weight −10% speed/level per piece, pieces add, total capped at 50%; Fragility ×2
+      at I +0.5/level (V ×4); Hunger +10% exhaustion/level, armor only, pieces add uncapped. Plan and stages below.
 - [x] 10k Owner tweaks (owner, 2026-10-12). One commit:  ✅ 2026-10-12 (the three Fortune GameTests fail with the tags
       reverted; the table client GameTest now checks the drawn order interleaves)
       - Fortune default tags: shovels + `grass_block`, `podzol`, `coarse_dirt`, `rooted_dirt`, `mycelium`; axes +
@@ -1493,6 +1496,67 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
         DESIGN §6 table + docs/ENCHANTMENTS.md Fortune row.
       - Table panel rows sorted by translated name (client, `TablePanelView`), JUnit on the sort, DESIGN §7.
 - [ ] 10d Balance pass: every candidate moves from REVIEW to INCLUDE/DEFER/REMOVE
+
+### Phase 10e — Curses (three stages, one commit each)
+**Goal:** five new curses, each with a GameTest that fails if its effect breaks, and a per-level curse discount.
+**Not doing:** Hunger on held items (owner: armor only); changing Binding/Vanishing (stay level 1, 10%); curses on
+mob spawn gear (vanilla's `on_mob_spawn_equipment` has none); a cap on Hunger (owner); the table selling curse levels
+past its power tier (curses keep the generic `ceil(max × tier / 5)`; only treasure gating skips them, as today).
+**Rollback:** each stage is one commit; `git revert <sha>`. No world data is written: Weight's modifier is transient
+and recomputed on the next equipment change, so removing the mod leaves nothing behind.
+
+### Stage 10eA — Per-level discount → commit  ✅ 2026-10-12
+- `cost/Pricing` + `discountPerLevel` (0..100); `discountAt(level)` = `min(100, percent + perLevel × (level − 1))`. A
+  5-arg constructor keeps every existing row (per-level 0).
+- `config/EnchantmentOverrides.Entry` + `discount_per_level` (0..100), read and written like `discount_percent`.
+  `PricingTable.get` merges it.
+- `CostModel.price` sums `discountAt(level)` over the result's curses; `cleanseCost` repays the removed curse's
+  `discountAt(its level on the item)`.
+- `PricingTable.BUILT_IN`: `CURSE_15` row `Pricing(0, 1, LEVEL_DIFFERENCE, 0, 15, 5)` for the five new IDs (a row for
+  an enchantment not yet in the registry is never read).
+- Config screen: curse entries get two more fields (discount at level I, per level), through
+  `EnchantmentNumbersDraft` (`Field.DISCOUNT_PERCENT`, `DISCOUNT_PER_LEVEL`). Curse = `#minecraft:curse` from the world's
+  registry, else every `data/minecraft/tags/enchantment/curse.json` on the classpath (`enchantment/DefaultCurses`).
+- JUnit: `discountAt` (I 15, V 35, clamp 100); a curse at V alone on Eff V (5) → `ceil(5 × 0.65)` = 4; two curses at V
+  hit the 45 cap; Cleanse of a curse at III repays 25%; a file `discount_per_level` wins; config round trip; draft
+  fields; `DefaultCurses` has Binding and Vanishing.
+- ✅ 2026-10-12: 348 JUnit + 261 GameTests + client GameTests green. The client GameTest checks Binding's group has both
+  discount fields (default 10) and Sharpness's has none. Mutations: flat percent in `CostModel` fails 3 JUnit; discount
+  fields on every entry fails the client GameTest. Gotcha: `I18n.get` runs `String.format`, so a name with "(%)" comes
+  back as a format error; the client test matches names through `Component.translatable(...).getString()`.
+
+### Stage 10eB — Fragility, Greed, Fumbling (data) → commit
+- `fragility.json`: `minecraft:item_damage` multiply, linear 2.0 / +0.5; `#minecraft:enchantable/durability`; slot any.
+  `EnchantmentHelperMixin` rounds `processDurabilityChange` at random too (×2.5 on 1 damage would truncate to 2). A whole
+  value draws no roll, so Unbreaking alone keeps vanilla's sequence.
+- `greed.json`: `mob_experience` + `block_experience` multiply, linear 0.9 / −0.1;
+  `#enchanting2:enchantable/tool_or_weapon` (XP Boost's); mainhand. Rounded by the existing mixin; multiplies with XP
+  Boost.
+- `fumbling.json`: `minecraft:block_break_speed` `add_multiplied_total`, linear −0.15 / −0.15;
+  `#minecraft:enchantable/mining`; mainhand.
+- All: max 5, weight 1, vanilla curse costs (min 25, max 50). Tags like Binding/Vanishing: `#minecraft:curse`,
+  `treasure`, `on_random_loot`, `tradeable`, `tooltip_order` (after ours), and `enchanting2:offered_at_table`. Lang
+  name ("Curse of Fragility") + `.desc`.
+- `LevelCeilings`: Greed hard 10 (factor 0 at X, negative after); Fumbling soft 6 (VII = −105%, can't mine; the
+  attribute floors at 0); Fragility none.
+- GameTests: each registered at max V, a curse, offered at the table; Fragility II averages 2.5 damage per use over a
+  seeded run (fails with truncation), V gives 4; Greed III on a 10-XP kill gives 7; Fumbling II block break speed 0.7.
+
+### Stage 10eC — Weight, Hunger (code) + docs → commit
+- Effect components: `enchanting2:movement_penalty` and `enchanting2:exhaustion` (both `LevelBasedValue`), summed over
+  equipped items whose slot matches (`runIterationOnEquipment`).
+- Weight: `weight.json` (`#minecraft:enchantable/armor`, slots armor, penalty linear 0.1 / 0.1). `LivingEntityMixin`
+  at `handleEquipmentChanges` TAIL (server only, runs only when gear changes): one transient `movement_speed` modifier
+  `enchanting2:curse.weight`, `add_multiplied_base`, `−min(sum, curses.weight_max_slowdown_percent / 100)`; removed at
+  0. New `CursesSection` key `weight_max_slowdown_percent` (default 50, 0..100) + config screen field.
+- Hunger: `hunger.json` (`#minecraft:enchantable/armor`, slots armor, exhaustion linear 0.1 / 0.1). `PlayerMixin`
+  scales `causeFoodExhaustion`'s amount by `1 + sum`.
+- MC-free `curse/CurseMath` (penalty cap, exhaustion factor) with JUnit.
+- `LevelCeilings`: Weight none (the total stops at the cap); Hunger none.
+- GameTests: Weight I on one piece → speed ×0.9; III + III → ×0.5 (capped, not 0.4); taking a piece off restores it;
+  a zombie wearing Weight is slowed; Hunger V on four pieces → exhaustion ×3.0; no curse → unchanged.
+- docs/ENCHANTMENTS.md curse rows → Built with the per-level numbers; DESIGN §5a table and per-level text.
+- Owner `runClient`: the curse names in red, a Weight set's walking feel, the new screen fields.
 
 ### Phase 10g — Applicability and vanilla extensions (three stages, one commit each)
 **Goal:** the owner's 2026-10-10 additions to vanilla enchantments work, each with a GameTest that fails if it breaks.

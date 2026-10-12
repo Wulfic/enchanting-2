@@ -42,9 +42,9 @@ public final class CostModel {
 		long enchantCost = enchantLines(request.before(), request.after(), pricing, isCurse, lines);
 
 		int rawPercent = 0;
-		for (String id : request.after().keySet()) {
-			if (isCurse.test(id)) {
-				rawPercent += pricing.get(id).discountPercent();
+		for (Map.Entry<String, Integer> e : request.after().entrySet()) {
+			if (isCurse.test(e.getKey())) {
+				rawPercent += pricing.get(e.getKey()).discountAt(e.getValue());
 			}
 		}
 		int percent = Math.min(rawPercent, curses.maxDiscountPercent());
@@ -80,8 +80,9 @@ public final class CostModel {
 
 	/**
 	 * DESIGN §5a Cleanse: XP levels to remove {@code curseId} from an item holding {@code current}. The player repays the
-	 * removed curse's own percent (owner, 2026-10-07) of the undiscounted cost of the item's non-curse enchantments, and
-	 * at least {@code removal_min_cost}. Creative is the caller's call ({@code creative_free}), as with Extract.
+	 * removed curse's own percent at its level (owner, 2026-10-07; per level, Phase 10e) of the undiscounted cost of the
+	 * item's non-curse enchantments, and at least {@code removal_min_cost}. Creative is the caller's call
+	 * ({@code creative_free}), as with Extract.
 	 */
 	public static int cleanseCost(Map<String, Integer> current, String curseId, PricingTable pricing,
 			Predicate<String> isCurse, CursesSection curses) {
@@ -100,7 +101,7 @@ public final class CostModel {
 		});
 		CostRequest build = CostRequest.anvil(Map.of(), enchantments); // validates the levels
 		long buildCost = enchantLines(build.before(), build.after(), pricing, isCurse, new ArrayList<>());
-		long repaid = ceilPercent(buildCost, pricing.get(curseId).discountPercent());
+		long repaid = ceilPercent(buildCost, pricing.get(curseId).discountAt(current.get(curseId)));
 		return CostBreakdown.saturate(Math.max(curses.removalMinCost(), repaid));
 	}
 

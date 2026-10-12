@@ -252,8 +252,11 @@ public final class ConfigScreen {
 							.available(enchantmentsEditable)
 							.build());
 				}
+				boolean curse = ConfigEditing.isCurse(id);
 				for (EnchantmentNumbersDraft.Field field : EnchantmentNumbersDraft.Field.values()) {
-					group.option(numberOption(id, field, numbers, enchantmentsEditable));
+					if (!field.cursesOnly() || curse) {
+						group.option(numberOption(id, field, numbers, enchantmentsEditable));
+					}
 				}
 				enchantments.group(group.build());
 			}
@@ -286,7 +289,10 @@ public final class ConfigScreen {
 				.build();
 	}
 
-	/** DESIGN §8 (Phase 10jB): max level up to the hard ceiling, with the ceiling's note; the two cost fields. */
+	/**
+	 * DESIGN §8 (Phase 10jB): max level up to the hard ceiling, with the ceiling's note; the two cost fields; a curse's
+	 * two discount fields (§5a, Phase 10e).
+	 */
 	private static Option<Integer> numberOption(String id, EnchantmentNumbersDraft.Field field,
 			EnchantmentNumbersDraft numbers, boolean editable) {
 		String key = "enchantments." + field.key();
@@ -314,6 +320,8 @@ public final class ConfigScreen {
 			case MAX_LEVEL -> DefaultMaxLevels.of(id).orElseGet(() -> ConfigEditing.registryMaxLevel(id).orElse(1));
 			case BASE_COST -> PricingTable.builtIn().get(id).baseCost();
 			case COST_PER_LEVEL -> PricingTable.builtIn().get(id).costPerLevel();
+			case DISCOUNT_PERCENT -> PricingTable.builtIn().get(id).discountPercent();
+			case DISCOUNT_PER_LEVEL -> PricingTable.builtIn().get(id).discountPerLevel();
 		};
 	}
 

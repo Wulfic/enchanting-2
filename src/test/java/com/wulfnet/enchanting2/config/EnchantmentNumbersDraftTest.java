@@ -6,23 +6,29 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.wulfnet.enchanting2.acquisition.EnchantmentFlagsDraft;
 import com.wulfnet.enchanting2.config.EnchantmentNumbersDraft.Field;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.junit.jupiter.api.Test;
 
-/** Phase 10jB: the screen's max level and cost fields, written back without disturbing anything else. */
+/**
+ * Phase 10jB: the screen's max level and cost fields, written back without disturbing anything else. Phase 10e: a
+ * curse's two discount fields, the same way.
+ */
 class EnchantmentNumbersDraftTest {
 	private static final String SHARPNESS = "minecraft:sharpness";
 	private static final String PIERCING = "minecraft:piercing";
 
-	/** Max level 5, base cost 0, cost per level 1 for everything. */
+	/** Max level 5, base cost 0, cost per level 1, discount 15% + 5% per level for everything. */
 	private static int defaults(String id, Field field) {
 		return switch (field) {
 			case MAX_LEVEL -> 5;
 			case BASE_COST -> 0;
 			case COST_PER_LEVEL -> 1;
+			case DISCOUNT_PERCENT -> 15;
+			case DISCOUNT_PER_LEVEL -> 5;
 		};
 	}
 
@@ -79,6 +85,27 @@ class EnchantmentNumbersDraftTest {
 		assertEquals(OptionalInt.empty(), after.maxLevelOverride(), "reset to the default");
 		assertEquals(OptionalInt.of(4), after.otherLevelsSurcharge(), "a key the screen doesn't edit");
 		assertEquals(Optional.of(false), after.acquisition().trade(), "the flags draft's change");
+	}
+
+	@Test
+	void discountFieldsAreWrittenResetAndCurseOnly() {
+		EnchantmentNumbersDraft draft = draft(EnchantmentOverrides.defaults());
+		assertEquals(15, draft.get(PIERCING, Field.DISCOUNT_PERCENT));
+		draft.set(PIERCING, Field.DISCOUNT_PERCENT, 20);
+		draft.set(PIERCING, Field.DISCOUNT_PER_LEVEL, 0);
+		EnchantmentOverrides written = draft.apply(EnchantmentOverrides.defaults());
+		assertEquals(OptionalInt.of(20), written.entries().get(PIERCING).discountPercent());
+		assertEquals(OptionalInt.of(0), written.entries().get(PIERCING).discountPerLevel());
+		assertEquals(OptionalInt.empty(), written.entries().get(PIERCING).maxLevelOverride());
+
+		EnchantmentNumbersDraft reset = draft(written);
+		reset.set(PIERCING, Field.DISCOUNT_PERCENT, 15);
+		reset.set(PIERCING, Field.DISCOUNT_PER_LEVEL, 5);
+		assertFalse(reset.apply(written).entries().containsKey(PIERCING), "both back at the default");
+
+		assertEquals(List.of(Field.DISCOUNT_PERCENT, Field.DISCOUNT_PER_LEVEL),
+				Arrays.stream(Field.values()).filter(Field::cursesOnly).toList());
+		assertThrows(IllegalArgumentException.class, () -> draft.set(PIERCING, Field.DISCOUNT_PER_LEVEL, 101));
 	}
 
 	@Test

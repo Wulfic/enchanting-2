@@ -8,6 +8,7 @@ import com.wulfnet.enchanting2.config.ConfigView;
 import com.wulfnet.enchanting2.config.ConfigView.Connection;
 import com.wulfnet.enchanting2.config.EnchantmentOverrides;
 import com.wulfnet.enchanting2.config.ServerConfigs;
+import com.wulfnet.enchanting2.enchantment.DefaultCurses;
 import com.wulfnet.enchanting2.enchantment.ModEnchantments;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -19,6 +20,7 @@ import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.tags.EnchantmentTags;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,6 +109,20 @@ public final class ConfigEditing {
 		return server.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).listElements()
 				.filter(e -> e.getRegisteredName().equals(id)).findFirst()
 				.map(e -> OptionalInt.of(e.value().getMaxLevel())).orElse(OptionalInt.empty());
+	}
+
+	/**
+	 * Whether {@code id} is in {@code #minecraft:curse}: the hosted world's tag (datapacks included), else the shipped
+	 * tag files ({@link DefaultCurses}) on the title screen or a remote server.
+	 */
+	public static boolean isCurse(String id) {
+		IntegratedServer server = Minecraft.getInstance().getSingleplayerServer();
+		if (server == null) {
+			return DefaultCurses.contains(id);
+		}
+		return server.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).listElements()
+				.filter(e -> e.getRegisteredName().equals(id)).findFirst()
+				.map(e -> e.is(EnchantmentTags.CURSE)).orElseGet(() -> DefaultCurses.contains(id));
 	}
 
 	/** Vanilla's translation key for an enchantment, showing the ID when no language file has it. */

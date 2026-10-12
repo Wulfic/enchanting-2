@@ -9,17 +9,21 @@ import java.util.TreeMap;
 import java.util.function.ToIntBiFunction;
 
 /**
- * The config screen's working copy of the three numbers per enchantment (DESIGN §8, Phase 10jB): max level, base cost,
- * cost per level. Each field shows the file's value, or the built-in default when the file has none. {@link #apply}
- * leaves a field the screen didn't change exactly as the file had it, clears the override when the field is put back
- * to its default (the "default (N)" reset), and writes the value otherwise. Every other key is kept, and an entry left
- * with nothing in it is dropped.
+ * The config screen's working copy of the numbers per enchantment (DESIGN §8, Phase 10jB): max level, base cost,
+ * cost per level, and for curses the discount at level I and per level above (DESIGN §5a, Phase 10e). Each field shows
+ * the file's value, or the built-in default when the file has none. {@link #apply} leaves a field the screen didn't
+ * change exactly as the file had it, clears the override when the field is put back to its default (the "default (N)"
+ * reset), and writes the value otherwise. Every other key is kept, and an entry left with nothing in it is dropped.
  */
 public final class EnchantmentNumbersDraft {
 	public enum Field {
 		MAX_LEVEL("max_level_override", EnchantmentOverrides.MIN_MAX_LEVEL, EnchantmentOverrides.MAX_MAX_LEVEL),
 		BASE_COST("base_cost", EnchantmentOverrides.MIN_COST, EnchantmentOverrides.MAX_COST),
-		COST_PER_LEVEL("cost_per_level", EnchantmentOverrides.MIN_COST, EnchantmentOverrides.MAX_COST);
+		COST_PER_LEVEL("cost_per_level", EnchantmentOverrides.MIN_COST, EnchantmentOverrides.MAX_COST),
+		DISCOUNT_PERCENT("discount_percent", EnchantmentOverrides.MIN_DISCOUNT_PERCENT,
+				EnchantmentOverrides.MAX_DISCOUNT_PERCENT),
+		DISCOUNT_PER_LEVEL("discount_per_level", EnchantmentOverrides.MIN_DISCOUNT_PERCENT,
+				EnchantmentOverrides.MAX_DISCOUNT_PERCENT);
 
 		private final String key;
 		private final int min;
@@ -44,11 +48,18 @@ public final class EnchantmentNumbersDraft {
 			return max;
 		}
 
+		/** Only read for curses, so the screen shows it only on a curse's entry. */
+		public boolean cursesOnly() {
+			return this == DISCOUNT_PERCENT || this == DISCOUNT_PER_LEVEL;
+		}
+
 		OptionalInt read(EnchantmentOverrides.Entry entry) {
 			return switch (this) {
 				case MAX_LEVEL -> entry.maxLevelOverride();
 				case BASE_COST -> entry.baseCost();
 				case COST_PER_LEVEL -> entry.costPerLevel();
+				case DISCOUNT_PERCENT -> entry.discountPercent();
+				case DISCOUNT_PER_LEVEL -> entry.discountPerLevel();
 			};
 		}
 	}
@@ -119,7 +130,9 @@ public final class EnchantmentNumbersDraft {
 					next[field.ordinal()] = OptionalInt.of(value);
 				}
 			}
-			EnchantmentOverrides.Entry after = before.withNumbers(next[0], next[1], next[2]);
+			EnchantmentOverrides.Entry after = before.withNumbers(next[Field.MAX_LEVEL.ordinal()],
+					next[Field.BASE_COST.ordinal()], next[Field.COST_PER_LEVEL.ordinal()],
+					next[Field.DISCOUNT_PERCENT.ordinal()], next[Field.DISCOUNT_PER_LEVEL.ordinal()]);
 			if (after.equals(before)) {
 				return;
 			}

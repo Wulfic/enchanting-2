@@ -20,6 +20,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.language.I18n;
+import net.minecraft.network.chat.Component;
 
 /**
  * Stage 9C on the real client: the config screen (with its Enchantments category) builds on the title screen, where
@@ -110,11 +111,29 @@ public class ConfigScreenClientGameTest implements FabricClientGameTest {
 		Option<?> vision = option(enchantments, "enchantment.enchanting2.vision", "base_cost");
 		check(Integer.valueOf(10).equals(vision.binding().defaultValue()),
 				"Vision's base cost default: " + vision.binding().defaultValue());
+
+		// Phase 10e: only a curse's group has the two discount fields; Binding's default to its flat 10%.
+		Option<?> binding = option(enchantments, "enchantment.minecraft.binding_curse", "discount_percent");
+		check(Integer.valueOf(10).equals(binding.binding().defaultValue()),
+				"Binding's discount default: " + binding.binding().defaultValue());
+		option(enchantments, "enchantment.minecraft.binding_curse", "discount_per_level");
+		check(!hasOption(enchantments, "enchantment.minecraft.sharpness", "discount_percent"),
+				"Sharpness has a curse discount field");
+	}
+
+	private static boolean hasOption(ConfigCategory category, String enchantmentKey, String field) {
+		try {
+			option(category, enchantmentKey, field);
+			return true;
+		} catch (AssertionError missing) {
+			return false;
+		}
 	}
 
 	private static Option<?> option(ConfigCategory category, String enchantmentKey, String field) {
 		String group = I18n.get(enchantmentKey);
-		String name = I18n.get("enchanting2.config.enchantments." + field);
+		// Component, not I18n: I18n.get runs String.format, which turns a name like "Discount (%)" into a format error.
+		String name = Component.translatable("enchanting2.config.enchantments." + field).getString();
 		return category.groups().stream().filter(g -> g.name().getString().equals(group)).findFirst()
 				.orElseThrow(() -> new AssertionError("no group " + group))
 				.options().stream().filter(o -> o.name().getString().equals(name)).findFirst()
