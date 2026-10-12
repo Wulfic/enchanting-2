@@ -10,12 +10,16 @@ import com.wulfnet.enchanting2.screen.PanelText.Zone;
 import com.wulfnet.enchanting2.table.TableOutcome.Invalid;
 import com.wulfnet.enchanting2.table.TableOutcome.Status;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+import java.util.function.Function;
 
 /**
  * What the enchanting table's panel says about the server's preview (DESIGN §6, decisions.md 2026-10-07 "Enchanting
@@ -91,6 +95,25 @@ public final class TablePanelView {
 			return Ready.INSUFFICIENT_LAPIS;
 		}
 		return Ready.READY;
+	}
+
+	/**
+	 * The rows in the order the panel lists them: by translated name (owner, 2026-10-12), so {@code enchanting2:} and
+	 * {@code minecraft:} rows interleave. Ties fall back to the ID, so the order never depends on the server's.
+	 *
+	 * @param nameOf the name the player sees for an ID
+	 * @param names  compares names, e.g. a {@code Collator} for the selected language
+	 */
+	public static List<TableRow> sortedByName(List<TableRow> rows, Function<String, String> nameOf,
+			Comparator<? super String> names) {
+		Objects.requireNonNull(nameOf, "nameOf");
+		Objects.requireNonNull(names, "names");
+		Map<String, String> name = new HashMap<>();
+		for (TableRow row : rows) {
+			name.put(row.id(), nameOf.apply(row.id()));
+		}
+		return rows.stream().sorted(Comparator.<TableRow, String>comparing(r -> name.get(r.id()), names)
+				.thenComparing(TableRow::id)).toList();
 	}
 
 	/** The scrolling part: every row, a reason line under each one that can't be picked as it stands. */

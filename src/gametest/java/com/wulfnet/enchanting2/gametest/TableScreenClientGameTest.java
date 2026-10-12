@@ -296,9 +296,17 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 
 		int max = screen(context, TableScreenAccess::enchanting2$maxScroll);
 		check(max > 0, "a book's whole list doesn't fit, so it scrolls");
-		List<TableRow> rows = context.computeOnClient(client -> TablePreviewState
-				.forContainer(client.player.containerMenu.containerId).map(TablePreviewPayload::rows).orElseThrow());
-		String last = rows.getLast().id();
+		// Owner, 2026-10-12: rows are drawn by translated name, not in the server's ID order, so the namespaces mix.
+		List<String> drawn = screen(context, TableScreenAccess::enchanting2$rowIds);
+		List<String> served = context.computeOnClient(client -> TablePreviewState
+				.forContainer(client.player.containerMenu.containerId).map(TablePreviewPayload::rows).orElseThrow())
+				.stream().map(TableRow::id).toList();
+		check(drawn.size() == served.size() && drawn.containsAll(served), "every served row is drawn: " + drawn);
+		int lastMod = drawn.stream().filter(id -> id.startsWith("enchanting2:")).mapToInt(drawn::indexOf).max()
+				.orElseThrow();
+		check(drawn.stream().filter(id -> id.startsWith("minecraft:")).anyMatch(id -> drawn.indexOf(id) < lastMod),
+				"mod and vanilla rows interleave by name: " + drawn);
+		String last = drawn.getLast();
 		scrollToTop(context);
 		check(screen(context, access -> access.enchanting2$rowY(last)).isEmpty(), "the last row starts out of view");
 		for (int i = 0; i < max && screen(context, TableScreenAccess::enchanting2$scrollOffset) < max; i++) {

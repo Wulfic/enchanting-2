@@ -1407,7 +1407,8 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       Max level 5 for all five (owner, 2026-10-10). Per level (owner, 2026-10-12): the effect scales linearly (§5a's
       table is level I) and the discount is 15% at I, +5% per level (V = 35%), still capped by
       `curses.max_discount_percent`.
-- [ ] 10k Owner tweaks (owner, 2026-10-12). One commit:
+- [x] 10k Owner tweaks (owner, 2026-10-12). One commit:  ✅ 2026-10-12 (the three Fortune GameTests fail with the tags
+      reverted; the table client GameTest now checks the drawn order interleaves)
       - Fortune default tags: shovels + `grass_block`, `podzol`, `coarse_dirt`, `rooted_dirt`, `mycelium`; axes +
         `minecraft:bamboo`; hoes + `#minecraft:leaves`. GameTest: a natural grass block under Fortune V gives more
         than one dirt over a seeded run, a placed one exactly one; natural leaves with a Fortune hoe multiply.
@@ -1432,6 +1433,14 @@ Durability enchantments on a bucket need Infinity on it (owner, 2026-10-10).
 - [ ] 10gA.2 `MaxLevelHook`-style MODIFY step swaps `supported_items` and `primary_items` to those tags, by ID. A
       datapack that already replaced the definition keeps its own (log at INFO, don't fight it). TrueShot's JSON
       points at `bow_or_crossbow`.
+      How (2026-10-12): MODIFY gets no registry lookup (item-api 11.6.0), and `BuiltInRegistries.ITEM`'s tag sets
+      aren't bound yet at that point (tags are pending during the dynamic-registry load). Fabric fires MODIFY inside
+      `RegistryDataLoader.loadElementFromResource(registry, decoder, RegistryOps ops, ...)`, so a HEAD/RETURN mixin
+      there holds `ops.getter(Registries.ITEM)` in a ThreadLocal for the call, and the swap builds
+      `getter.getOrThrow(TagKey)`, the same pending-tag lookup vanilla's JSON parse uses. "Datapack replaced it" =
+      the current set isn't `HolderSet.Named` with the vanilla tag key (`enchantable/melee_weapon` for Knockback and
+      Looting, `enchantable/fire_aspect` + primary `melee_weapon` for Fire Aspect, `enchantable/bow` for Flame and
+      Infinity). No getter in the ThreadLocal (an injected entry) → leave it, WARN once.
 - [ ] 10gA.3 GameTests: Knockback/Looting/Fire Aspect apply to an iron axe at the anvil and are offered at the table;
       a Fire Aspect axe sets the target on fire. A Flame crossbow arrow ignites; an Infinity crossbow keeps its arrow
       and still uses a firework rocket; a TrueShot crossbow arrow has no gravity, all three with Multishot. Power and

@@ -17,7 +17,10 @@ import com.wulfnet.enchanting2.table.TableOutcome.Invalid;
 import com.wulfnet.enchanting2.table.TableOutcome.Status;
 import com.wulfnet.enchanting2.table.TablePanelView.Item;
 import com.wulfnet.enchanting2.table.TablePanelView.Ready;
+import java.text.Collator;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -40,6 +43,39 @@ class TablePanelViewTest {
 		return new CostBreakdown(List.of(new CostBreakdown.Line(Kind.ENCHANT, EFFICIENCY, 0, 5, 5),
 				new CostBreakdown.Line(Kind.ENCHANT, MENDING, 0, 1, 2),
 				new CostBreakdown.Line(Kind.SURCHARGE, MENDING, 0, 5, 10)), 17, 17, 17, free, tooExpensive);
+	}
+
+	// --- order (owner, 2026-10-12) ---
+
+	@Test
+	void rowsSortByTranslatedNameSoNamespacesInterleave() {
+		Map<String, String> names = Map.of("enchanting2:vampirism", "Vampirism", EFFICIENCY, "Efficiency",
+				"enchanting2:attack_speed", "Attack Speed", SILK, "Silk Touch", MENDING, "Mending");
+		List<TableRow> serverOrder = List.of(row("enchanting2:attack_speed", 0, 5, 5, 0, TableRow.Status.OK),
+				row("enchanting2:vampirism", 0, 5, 5, 0, TableRow.Status.OK),
+				row(EFFICIENCY, 0, 5, 5, 0, TableRow.Status.OK), row(MENDING, 0, 1, 1, 0, TableRow.Status.OK),
+				row(SILK, 0, 1, 1, 0, TableRow.Status.OK));
+		List<String> sorted = TablePanelView.sortedByName(serverOrder, names::get, Collator.getInstance(Locale.ROOT))
+				.stream().map(TableRow::id).toList();
+		assertEquals(List.of("enchanting2:attack_speed", EFFICIENCY, MENDING, SILK, "enchanting2:vampirism"), sorted);
+	}
+
+	/** Unknown names fall back to the ID on the client, so two rows can share one; the ID breaks the tie. */
+	@Test
+	void sameNameTiesBreakByIdWhateverTheServerOrder() {
+		List<TableRow> rows = List.of(row(SILK, 0, 1, 1, 0, TableRow.Status.OK),
+				row(FORTUNE, 0, 5, 5, 0, TableRow.Status.OK));
+		List<String> sorted = TablePanelView.sortedByName(rows, id -> "Same", String::compareTo).stream()
+				.map(TableRow::id).toList();
+		assertEquals(List.of(FORTUNE, SILK), sorted);
+	}
+
+	@Test
+	void sortingLeavesTheServerListAlone() {
+		List<TableRow> rows = new ArrayList<>(List.of(row(SILK, 0, 1, 1, 0, TableRow.Status.OK),
+				row(EFFICIENCY, 0, 5, 5, 0, TableRow.Status.OK)));
+		TablePanelView.sortedByName(rows, id -> id, String::compareTo);
+		assertEquals(SILK, rows.getFirst().id());
 	}
 
 	// --- body ---

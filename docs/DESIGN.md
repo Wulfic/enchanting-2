@@ -435,7 +435,8 @@ Readable and not random. The vanilla three-random-offers screen is replaced by o
 - **Screen** (only when the server runs Enchanting 2; on a vanilla server the screen is vanilla):
   the vanilla window stays (slots, book). Its first two offer rows show the XP levels and lapis
   (green if affordable, red if not) or why there is no price, and the third is the Enchant
-  button. The list is a scrollable side panel (160 wide) placed like the grindstone's. A row
+  button. The list is a scrollable side panel (160 wide) placed like the grindstone's, rows sorted
+  by translated name so mod and vanilla enchantments interleave (owner, 2026-10-12). A row
   click picks at the highest level the table sells, or unpicks; `<` / `>` step the level. Rows
   that can't be picked say why ("Needs 8 bookshelves", "Conflicts with Fortune", "Already at
   maximum level"). The footer shows the Mending surcharge, the curse discount, the totals and
@@ -507,9 +508,9 @@ never gets the Fortune bonus. The design is ported from the mcMMO-Singleplayer
 
   | Tool | Default tag |
   |---|---|
-  | Axe | `#minecraft:logs` (logs and stems), mushroom blocks and stems |
-  | Shovel | dirt, sand, red sand, gravel, clay, soul sand/soil, mud, snow block |
-  | Hoe | moss block, nether/warped wart block, shroomlight (vanilla crops keep vanilla Fortune) |
+  | Axe | `#minecraft:logs` (logs and stems), mushroom blocks and stems, bamboo (owner, 2026-10-12) |
+  | Shovel | dirt, sand, red sand, gravel, clay, soul sand/soil, mud, snow block; grass block, podzol, coarse dirt, rooted dirt, mycelium (owner, 2026-10-12) |
+  | Hoe | moss block, nether/warped wart block, shroomlight, `#minecraft:leaves` (owner, 2026-10-12; on top of vanilla's sapling/stick odds) (vanilla crops keep vanilla Fortune) |
   | Pickaxe | empty: vanilla only. **Ancient debris is hard-excluded in code** whatever the tags say (multiplying it breaks the netherite economy) |
 
 - **Silk Touch + Fortune** (§4): `SILK_WINS` (default) still multiplies a tagged block

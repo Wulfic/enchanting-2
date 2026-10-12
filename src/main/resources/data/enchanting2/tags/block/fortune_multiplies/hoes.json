@@ -3,6 +3,7 @@
     "minecraft:moss_block",
     "minecraft:nether_wart_block",
     "minecraft:warped_wart_block",
-    "minecraft:shroomlight"
+    "minecraft:shroomlight",
+    "#minecraft:leaves"
   ]
 }

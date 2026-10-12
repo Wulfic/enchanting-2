@@ -10,6 +10,8 @@ import com.wulfnet.enchanting2.client.TableScreenAccess;
 import com.wulfnet.enchanting2.config.CostsSection;
 import com.wulfnet.enchanting2.cost.CostBreakdown;
 import com.wulfnet.enchanting2.network.TablePreviewPayload;
+import com.wulfnet.enchanting2.screen.PanelText.Arg;
+import com.wulfnet.enchanting2.screen.PanelText.Msg;
 import com.wulfnet.enchanting2.screen.PanelText.Row;
 import com.wulfnet.enchanting2.screen.PanelText.Zone;
 import com.wulfnet.enchanting2.screen.SidePanelLayout;
@@ -20,8 +22,10 @@ import com.wulfnet.enchanting2.table.TablePanelView.Item;
 import com.wulfnet.enchanting2.table.TablePanelView.Ready;
 import com.wulfnet.enchanting2.table.TableRow;
 import com.wulfnet.enchanting2.table.TableSelection;
+import java.text.Collator;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalInt;
 import net.minecraft.client.Minecraft;
@@ -98,6 +102,13 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 	/** The item the panel's scroll position belongs to; a different one scrolls back to the top. */
 	@Unique
 	private ItemStack enchanting2$scrolledFor = ItemStack.EMPTY;
+	/** {@link #enchanting2$sorted}'s cache: the payload list and language it last sorted. */
+	@Unique
+	private @Nullable List<TableRow> enchanting2$sortedFrom;
+	@Unique
+	private String enchanting2$sortedLanguage = "";
+	@Unique
+	private List<TableRow> enchanting2$sortedRows = List.of();
 
 	private EnchantmentScreenMixin() {
 		super(null, null, null);
@@ -161,7 +172,7 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 		}
 		Optional<TablePreviewPayload> preview = TablePreviewState.forContainer(menu.containerId);
 		Status status = preview.map(TablePreviewPayload::status).orElse(Status.NONE);
-		List<TableRow> rows = preview.map(TablePreviewPayload::rows).orElse(List.of());
+		List<TableRow> rows = enchanting2$sorted(panel, preview.map(TablePreviewPayload::rows).orElse(List.of()), target);
 		Optional<CostBreakdown> cost = preview.flatMap(TablePreviewPayload::cost);
 		int playerLevel = enchanting2$playerLevel();
 		int lapis = menu.getGoldCount();
@@ -181,6 +192,23 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 						i.stepper())).toList(),
 				footer, target, layout.panelX(), topPos, layout.panelWidth(), height - topPos - SidePanelLayout.MARGIN,
 				mouseX, mouseY);
+	}
+
+	/**
+	 * The server's rows by translated name, re-sorted only when a new preview arrives or the language changes (the
+	 * payload's list is replaced, never mutated, so identity is enough).
+	 */
+	@Unique
+	private List<TableRow> enchanting2$sorted(SidePanel panel, List<TableRow> rows, ItemStack target) {
+		String language = Minecraft.getInstance().getLanguageManager().getSelected();
+		if (rows != enchanting2$sortedFrom || !language.equals(enchanting2$sortedLanguage)) {
+			Collator collator = Collator.getInstance(Locale.forLanguageTag(language.replace('_', '-')));
+			enchanting2$sortedRows = TablePanelView.sortedByName(rows, id -> panel.text(
+					Msg.of(TablePanelView.KEY + "row.name", new Arg.Ench(id)), target).getString(), collator);
+			enchanting2$sortedFrom = rows;
+			enchanting2$sortedLanguage = language;
+		}
+		return enchanting2$sortedRows;
 	}
 
 	/** The price in the first two offer rows (or why there's none), and the Enchant button in the third. */
@@ -376,6 +404,11 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 	@Override
 	public List<String> enchanting2$windowText() {
 		return enchanting2$windowText;
+	}
+
+	@Override
+	public List<String> enchanting2$rowIds() {
+		return enchanting2$items.stream().flatMap(item -> item.enchantment().stream()).toList();
 	}
 
 	@Override

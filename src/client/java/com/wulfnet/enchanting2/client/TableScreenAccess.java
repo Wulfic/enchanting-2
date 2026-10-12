@@ -20,6 +20,9 @@ public interface TableScreenAccess {
 	/** The lines drawn in the window where vanilla's three offers were, the Enchant button's label last. */
 	List<String> enchanting2$windowText();
 
+	/** The enchantment IDs of the panel's rows in the order last drawn, scrolled-away rows included. */
+	List<String> enchanting2$rowIds();
+
 	/** Screen Y of the row for {@code id}, as last drawn; empty when it's scrolled away or not listed. */
 	OptionalInt enchanting2$rowY(String id);
 

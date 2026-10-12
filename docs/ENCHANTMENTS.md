@@ -206,7 +206,7 @@ Infinity and Mending can share a bow or crossbow in this mod.
 | Enchantment | Max | Cost | Fits | What it does | Status |
 |---|---|---|---|---|---|
 | Efficiency | 5 | 1/lvl | pickaxes, shovels, axes, hoes, shears | faster mining | Vanilla |
-| Fortune | 5 | 1/lvl | pickaxes, shovels, axes, hoes | more block drops; only natural blocks, never placed ones | Vanilla |
+| Fortune | 5 | 1/lvl | pickaxes, shovels, axes, hoes | more block drops; only natural blocks, never placed ones (shovels: dirt, grass, podzol, sand, gravel, clay...; axes: logs, mushroom blocks, bamboo; hoes: moss, wart blocks, leaves) | Vanilla |
 | Silk Touch | 1 | 10 | pickaxes, shovels, axes, hoes | blocks drop themselves; mob spawners too (keeping their mob, no XP) if `silk_touch.collect_spawners` is on (default on ‡) | Vanilla |
 | Smelting | 1 | 10 | pickaxes, shovels, axes, hoes | drops come out smelted, after Fortune, with furnace XP; Silk Touch wins by default | Built |
 | Area Mining | 1 | 10 † | pickaxes, shovels | breaks 3×3 on the face you hit; sneak to break one block | Planned |

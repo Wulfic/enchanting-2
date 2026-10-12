@@ -49,6 +49,7 @@ import net.minecraft.world.phys.Vec3;
  */
 public class FortuneDropsGameTest {
 	private static final int ROLLS = 20;
+	private static final int LEAF_ROLLS = 100;
 	private static final BlockPos POS = new BlockPos(1, 1, 1);
 
 	private static Holder<Enchantment> get(GameTestHelper helper, ResourceKey<Enchantment> key) {
@@ -168,6 +169,65 @@ public class FortuneDropsGameTest {
 		assertMultiplied(helper, rolls(helper, Blocks.CLAY.defaultBlockState(),
 				tool(helper, Items.IRON_SHOVEL, Enchantments.FORTUNE), Items.CLAY_BALL), 4, "natural clay");
 		helper.succeed();
+	}
+
+	/** Owner, 2026-10-12: soil blocks joined the shovels tag. Grass, podzol and mycelium drop dirt; the rest themselves. */
+	@GameTest
+	public void naturalSoilMultipliesWithAFortuneShovel(GameTestHelper helper) {
+		ItemStack shovel = tool(helper, Items.IRON_SHOVEL, Enchantments.FORTUNE);
+		assertMultiplied(helper, rolls(helper, Blocks.GRASS_BLOCK.defaultBlockState(), shovel, Items.DIRT), 1, "grass");
+		assertMultiplied(helper, rolls(helper, Blocks.PODZOL.defaultBlockState(), shovel, Items.DIRT), 1, "podzol");
+		assertMultiplied(helper, rolls(helper, Blocks.MYCELIUM.defaultBlockState(), shovel, Items.DIRT), 1, "mycelium");
+		assertMultiplied(helper, rolls(helper, Blocks.COARSE_DIRT.defaultBlockState(), shovel, Items.COARSE_DIRT), 1,
+				"coarse dirt");
+		assertMultiplied(helper, rolls(helper, Blocks.ROOTED_DIRT.defaultBlockState(), shovel, Items.ROOTED_DIRT), 1,
+				"rooted dirt");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void placedGrassNeverMultiplies(GameTestHelper helper) {
+		markPos(helper);
+		assertSingle(helper, rolls(helper, Blocks.GRASS_BLOCK.defaultBlockState(),
+				tool(helper, Items.IRON_SHOVEL, Enchantments.FORTUNE), Items.DIRT), 1, "placed grass");
+		helper.succeed();
+	}
+
+	/** Owner, 2026-10-12: bamboo (the plant) joined the axes tag. */
+	@GameTest
+	public void naturalBambooMultipliesWithAFortuneAxe(GameTestHelper helper) {
+		helper.setBlock(POS.below(), Blocks.DIRT);
+		assertMultiplied(helper, rolls(helper, Blocks.BAMBOO.defaultBlockState(),
+				tool(helper, Items.IRON_AXE, Enchantments.FORTUNE), Items.BAMBOO), 1, "natural bamboo");
+		helper.succeed();
+	}
+
+	/**
+	 * Owner, 2026-10-12: {@code #minecraft:leaves} joined the hoes tag. Leaves drop a random mix, so this looks for
+	 * what vanilla can never give from one block: two saplings or three sticks. At Fortune V a roll does that about
+	 * 13% of the time, so none in {@value #LEAF_ROLLS} has odds near 10⁻⁶; placed leaves must never do it.
+	 */
+	@GameTest
+	public void naturalLeavesMultiplyWithAFortuneHoe(GameTestHelper helper) {
+		ItemStack hoe = tool(helper, Items.IRON_HOE, Enchantments.FORTUNE);
+		BlockState leaves = Blocks.OAK_LEAVES.defaultBlockState();
+		boolean beyondVanilla = false;
+		for (int i = 0; i < LEAF_ROLLS && !beyondVanilla; i++) {
+			beyondVanilla = beyondVanilla(drops(helper, leaves, hoe));
+		}
+		helper.assertTrue(beyondVanilla, Component.literal("natural oak leaves never multiplied in " + LEAF_ROLLS));
+		markPos(helper);
+		for (int i = 0; i < LEAF_ROLLS; i++) {
+			List<ItemStack> stacks = drops(helper, leaves, hoe);
+			helper.assertFalse(beyondVanilla(stacks), Component.literal("placed oak leaves multiplied: " + stacks));
+		}
+		helper.succeed();
+	}
+
+	private static boolean beyondVanilla(List<ItemStack> stacks) {
+		int saplings = stacks.stream().filter(s -> s.is(Items.OAK_SAPLING)).mapToInt(ItemStack::getCount).sum();
+		int sticks = stacks.stream().filter(s -> s.is(Items.STICK)).mapToInt(ItemStack::getCount).sum();
+		return saplings > 1 || sticks > 2;
 	}
 
 	@GameTest
