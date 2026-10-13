@@ -24,6 +24,7 @@
 		"GrindstoneMenuInvoker",
 		"GrindstoneMenuMixin",
 		"GrindstoneResultSlotMixin",
+		"HoeItemMixin",
 		"HolderReferenceAccessor",
 		"IngredientMixin",
 		"InventoryMixin",

@@ -8,7 +8,7 @@
 **Branch:** main (commit straight to main and push; no CI; see decisions.md)
 
 ## Where we are
-Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA, CB, CC), 10cD (DA, DB), 10cEA and 10cEB done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
+Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA, CB, CC), 10cD (DA, DB) and 10cE (EA, EB, EC) done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
 - 3: `ExperienceCurve`, no level cap, exact XP points, counters saturate. 4: `MaxLevels` via `MODIFY` (restart to
   apply), `ConflictFamily` + `allow_together`, `EnchantRules`, Lure/Riptide 5 with safe caps.
 - 5: `cost/` (`CostModel`, `PricingTable`, curse discount, `cleanseCost`, `extractCost`).
@@ -72,10 +72,11 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
   wraps `destroyBlock`).
 - 10cEB (2026-10-13): Replant (`tool/Replant` inside `BlockMixin`'s drop wrapper, ahead of Magnetic; block tag
   `enchanting2:replantable`).
-- Tests: 361 JUnit + 306 GameTests (`./gradlew build`) + 6 client GameTests (`./gradlew runClientGameTest`).
+- 10cEC (2026-10-13): Tiller (`tool/Tiller` from `HoeItemMixin.useOn`; radius capped at 8).
+- Tests: 361 JUnit + 309 GameTests (`./gradlew build`) + 6 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Next: 10cEC Tiller, then
+1. Next: 10cF Quick Strike + Last Stand, then
    F Quick Strike + Last Stand,
    G Speed/Flight/Double Jump (owner order and answers: decisions.md "10c order and eight design answers"; TODO
    "Phase 10c"). Each stage writes its plan first; each enchantment adds a `LevelCeilings` row, a `.desc` line, tags,
@@ -105,7 +106,7 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
    Magnetic (inventory, XP to you, a full inventory spilling), Ender Link, a Magnetic sword kill. + 10cDB: dying with
    Keep on Death gear (back in place), with keepInventory on (no doubles), with Vanishing on it (gone). + 10cEA: Area
    Mining through stone with ores (ores stay), a wall vs a floor, sneaking, a shovel in dirt. + 10cEB: Replant on a
-   wheat field and on cocoa.
+   wheat field and on cocoa. + 10cEC: Tiller III on grass (7×7), blocks under tall grass staying.
 
 ## Open questions / blockers
 - Owner: Magnetic and Ender Link share a tool (DESIGN §4: ours declare no exclusive set; ender chest first). DESIGN §9

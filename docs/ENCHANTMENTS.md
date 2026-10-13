@@ -219,7 +219,7 @@ Silk Touch and Fortune can share a tool in this mod. By default Fortune never mu
 | Enchantment | Max | Cost | Fits | What it does | Status |
 |---|---|---|---|---|---|
 | Replant | 1 | 10 | hoes | breaking a grown crop (wheat, carrots, potatoes, beetroots, nether wart, cocoa) replants it with a seed from its own drops; never makes a seed; young crops break as usual | Built |
-| Tiller | 3 | 1/lvl | hoes | tills 3×3 / 5×5 / 7×7 | Planned |
+| Tiller | 3 | 1/lvl | hoes | tilling also tills the dirt, grass and paths around it (3×3 / 5×5 / 7×7, open sky above only), 1 durability per block; stops if the hoe breaks | Built |
 
 ### What an axe and a shovel take
 - **Axe:** every mining-tool enchantment above (Efficiency, Fortune, Silk Touch, Smelting), Reach, XP Boost,

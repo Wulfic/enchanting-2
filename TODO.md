@@ -1849,7 +1849,19 @@ survive, else the seed drops. Never creates a seed.
   Magnetic, 1 bean replanted and 2 in the inventory; the seed rule with test-chosen drops) + client GameTests green.
   Mutations (three runs): the wrapper call, the "seed taken" check, the maturity check, the order before Magnetic, and
   the seed take each fail their test. Owner `runClient`: harvesting a wheat field with Replant, cocoa on a jungle tree.
-#### 10cEC — Tiller (detail before code)
+#### 10cEC — Tiller  ✅ 2026-10-13
+**Hooks:** `@WrapMethod` on `HoeItem.useOn` (server only, after vanilla): if it consumed the action, the centre is now
+farmland and the hoe carries `enchanting2:till_radius` (LevelBasedValue, linear 1/level), each block in the square of
+that radius (nearest ring first) that is dirt, grass or dirt path with air above, where `player.mayUseItemAt` and
+`level.mayInteract` allow, turns to farmland with vanilla's flags and game event, costing 1 durability; it stops when
+the hoe breaks. Radius capped at 8 (17×17) in code and as a soft ceiling (a hard one is for proven mechanical limits:
+`LevelCeilingsTest` refused it).
+**Not doing:** firing Fabric's `UseBlockCallback` per block (mods act in it, e.g. right-click harvest); coarse/rooted
+dirt (vanilla turns them to dirt, not farmland).
+- ✅ 2026-10-13: 361 JUnit + 309 GameTests (`TillerGameTest`, three) + client GameTests green. Mutations (three runs):
+  the hook, the air-above check, the stop-on-break check (without it a broken hoe tilled all 25), the block check
+  and the durability each fail their test. Phase 10cE complete. Owner `runClient`: Tiller III on a grass field
+  (7×7, sound, durability), and that blocks under tall grass stay (not air above).
 
 ### Phase 10e — Curses (three stages, one commit each)
 **Goal:** five new curses, each with a GameTest that fails if its effect breaks, and a per-level curse discount.

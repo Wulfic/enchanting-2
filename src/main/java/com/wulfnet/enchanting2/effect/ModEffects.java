@@ -80,6 +80,9 @@ public final class ModEffects {
 	public static final DataComponentType<Unit> AREA_MINING = register("area_mining", Unit.CODEC);
 	/** Breaking a mature crop plants it again from one of its own seeds (Replant, Phase 10c). */
 	public static final DataComponentType<Unit> REPLANT = register("replant", Unit.CODEC);
+	/** Tilling a block also tills the square of this radius around it (Tiller, Phase 10c). */
+	public static final DataComponentType<LevelBasedValue> TILL_RADIUS = register("till_radius",
+			LevelBasedValue.CODEC);
 	/** Entity effect for {@code minecraft:projectile_spawned}: the arrow ignores gravity for a while (TrueShot Aura). */
 	public static final MapCodec<SuspendGravity> SUSPEND_GRAVITY = Registry.register(
 			BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE,
@@ -96,7 +99,7 @@ public final class ModEffects {
 						SPRINT_EXHAUSTION_REDUCTION, LAVA_WALKER, POWDER_SNOW_WALKER, SHIELD_DISABLE_REDUCTION,
 						BLOCK_RETALIATION, BLOCK_ABSORPTION, RIPOSTE, DEFLECT_CHANCE, STEADY_STANCE,
 						SHIELD_BASH, DROPS_TO_INVENTORY, DROPS_TO_ENDER_CHEST, EXPERIENCE_TO_PLAYER, KEEP_ON_DEATH,
-						AREA_MINING, REPLANT)
+						AREA_MINING, REPLANT, TILL_RADIUS)
 						.map(ModEffects::key).toList(),
 				BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE.getKey(SUSPEND_GRAVITY));
 		SuspendGravity.register();
