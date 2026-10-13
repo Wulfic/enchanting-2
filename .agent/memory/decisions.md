@@ -1332,3 +1332,35 @@ custom tooltip component and a mixin into tooltip building, for little gain over
 changes tooltips that were broken).
 **Affects:** tooltip/TooltipFit, tooltip/TooltipScroll, client/TallTooltips, client/EnchantmentDescriptions,
 mixin/client/GuiGraphicsMixin, mixin/client/MouseHandlerMixin, lang en_us
+
+## 2026-10-13 — Ctrl descriptions are always "Name: description" (owner, Phase 11c A)
+**Context:** owner: inventory Ctrl tooltips "still too large". 11b only went compact when the under-the-name layout
+overflowed the screen, so a normal item still got two or three lines per enchantment.
+**Choice (owner, asked: "always condensed"):** Ctrl always puts each description on its enchantment's line, wrapped at
+`TooltipFit.compactWidth` (200–320 px). `TooltipFit.Layout`/`choose` removed. Scrolling and the scroll line unchanged.
+**Rejected (offered to the owner):** clipping each description to one line with "…" (loses text); Ctrl = full,
+Ctrl+Shift = condensed (a second modifier for the layout nobody wanted).
+**Affects:** client/EnchantmentDescriptions, tooltip/TooltipFit, TooltipClientGameTest
+
+## 2026-10-13 — A picked row's price includes its own surcharge (owner, Phase 11c B)
+**Context:** owner: Mending's table price should show its true cost with the other enchantments. The row showed only
+its ENCHANT line (2); the `other_levels_surcharge` was a separate footer line.
+**Choice (agent):** a picked row's amount = its ENCHANT + its SURCHARGE line, and its tooltip says "Includes N for the
+M other enchantment levels". The footer keeps a surcharge line only when the enchantment has no ENCHANT line, i.e. it
+is already on the item (Mending on the item, Efficiency added), so every charged level is still shown somewhere.
+Unpicked rows still show no price (pricing every unpicked row would need the server to price N what-ifs).
+**Rejected:** dropping footer surcharge lines entirely (hides levels in the already-on-the-item case); changing the
+anvil's breakdown (owner asked about the enchant screen).
+**Affects:** table/TablePanelView, client/TableList, lang `enchanting2.table.tooltip.surcharge`
+
+## 2026-10-13 — Anvils unbreakable by default (owner, Phase 11c C)
+**Context:** owner: anvils unbreakable by default, an option for vanilla durability, a multiplier to make them last.
+**Choice:** `anvil.vanilla_durability` (false) and `anvil.durability_multiplier` (int 1–100, like
+`mobs.health_multiplier`). (agent) Both vanilla damage sites (use: `AnvilMenu` `onTake` lambda, 12%; landing:
+`FallingBlockEntity.causeFallDamage`, 0.05 + 0.05 × distance) are wrapped at their `AnvilBlock.damage` call: off =
+keep the state; on = a second roll keeps 1/multiplier of vanilla's chips (no extra roll at 1, so vanilla is exact).
+"Unbreakable" covers falls too: a dropped anvil that chipped would contradict the setting's name.
+**Rejected:** an `@Inject` into static `AnvilBlock.damage` (no level, so no server config, and it would change every
+other mod's call); a double multiplier (no double reader; whole multiples match mobs); multiplier below 1 (owner asked
+only to increase durability, and the second-roll scheme can't raise the chance).
+**Affects:** config/AnvilSection, anvil/AnvilWear, mixin/AnvilMenuMixin, mixin/FallingBlockEntityMixin, ConfigScreen

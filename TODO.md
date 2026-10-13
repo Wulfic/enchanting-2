@@ -2676,6 +2676,40 @@ changes to the anvil/grindstone windows.
 **Blast radius:** no destructive steps (all edits to tracked files; rollback `git revert <sha>` per commit). The
 protocol bump turns away 1.0.0 clients on a new server (intended: their slot count would desync).
 
+## Phase 11c — Owner's second report (2026-10-13; Tier 2: three units, one commit each)
+
+**Owner report:** (1) Ctrl descriptions in item tooltips are still too large; (2) the table's Mending price should
+show its true cost with the other picked enchantments; (3) anvils unbreakable by default, with an option for vanilla
+durability and a multiplier to make them last longer.
+**Owner answer (1):** Ctrl is always the condensed "Name: description" layout; the under-the-name layout goes.
+**Causes:** (1) `TooltipFit.choose` keeps the full layout whenever it fits the screen, so a normal item gets two or
+three lines per enchantment. (2) `TablePanelView.lineAmount` shows only the ENCHANT line (Mending's 2); its
+`other_levels_surcharge` is a separate footer line. (3) vanilla: `AnvilMenu.onTake`'s lambda (`method_24922`, javap
+1.21.11) chips at `nextFloat() < 0.12`; `FallingBlockEntity.causeFallDamage` at `0.05 + 0.05 × distance`. Both call
+`AnvilBlock.damage`.
+- [x] A. Always condensed: `EnchantmentDescriptions.addTo` uses the inline layout only; `TooltipFit.Layout`/`choose`
+      removed (JUnit case with it). Scroll line unchanged. Client GameTest: a Sharpness book with Ctrl is
+      "Sharpness V: <desc>" on one line, no bare name; Silk Touch wraps with indented continuation lines.
+- [x] B. Mending's true cost: a picked row's amount = its ENCHANT line + its own SURCHARGE line; the footer no longer
+      repeats surcharge lines (rows + curse line + totals still add up). Row tooltip says how much is for the other
+      levels. JUnit in `TablePanelViewTest` (Mending + Efficiency V: row 2 + 5 × surcharge, no footer surcharge row).
+      Found while writing it: Mending already on the item has a surcharge but no picked row, so that one case keeps
+      its footer line (JUnit `anUnpickedEnchantmentsSurchargeIsAFooterLine`).
+- [x] C. Anvil durability: `anvil.vanilla_durability` (false) and `anvil.durability_multiplier` (int 1–100, 1);
+      pure rule `anvil/AnvilWear` (JUnit); `AnvilMenuMixin` + `FallingBlockEntityMixin` `@WrapOperation` on
+      `AnvilBlock.damage` (keep the state when the rule says so); config screen options; docs/CONFIG.md, README,
+      CHANGELOG. GameTests: 200 takes leave a default anvil plain; with vanilla durability on it chips; a falling
+      anvil from 30 blocks stays plain by default.
+- [x] D. decisions.md, state.md, build + client GameTests.
+      ✅ 2026-10-13: 413 JUnit, 334 GameTests (+4 `AnvilWearGameTest`), 7 client GameTests (a timing flaw in the
+      11b wheel check fixed: gotchas.md). Owner checks in `runClient`: Ctrl tooltips condensed, Mending's row price
+      and tooltip note, an anvil after many uses, the two new Anvil config options.
+**Not doing:** anvil durability per block type, changes to the anvil window's surcharge lines, unpicked rows showing
+prices, a toggle back to the under-the-name layout.
+**Blast radius:** no destructive steps (edits to tracked files; rollback `git revert <sha>` per commit). Config files
+on disk are never rewritten on load; missing keys read as the new defaults, so existing servers' anvils become
+unbreakable on update (the owner's ask; called out in CHANGELOG).
+
 ## Phase 12 — Every 26.x version, with 1.21.11 kept in step (Tier 2; starts after the owner's runClient checks
 ## and the v1.0.0 tag push)
 

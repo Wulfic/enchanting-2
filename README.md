@@ -25,6 +25,7 @@ enchantment is kept, 49 new ones are added, and almost everything can be configu
   worked.
 - A breakdown beside the slots shows every price line, the total, and any book enchantment that won't apply and why.
 - A book applies every enchantment the item can take. By default, the rest stay on the book.
+- Anvils never wear out. Vanilla's chipping and breaking can be turned back on, and made rarer with a multiplier.
 
 **Grindstone**
 - Pick what to do: **Extract** one enchantment onto a plain book, **Cleanse** one curse, or Disenchant / Repair as in
@@ -33,7 +34,7 @@ enchantment is kept, 49 new ones are added, and almost everything can be configu
 **Costs**
 - One clear rule prices the table and the anvil: 1 XP level per enchantment level by default (Sharpness V = 5).
   Upgrading pays only for the added levels. Single-level enchantments cost 10, Mending costs more on a heavily
-  enchanted item.
+  enchanted item (the table shows Mending's full price, with the other enchantments, on its row).
 - Curses make enchanting cheaper: each curse on the item takes a share off the price, up to 45%. Removing a curse at
   the grindstone pays that discount back.
 
@@ -49,8 +50,8 @@ enchantment is kept, 49 new ones are added, and almost everything can be configu
   Keep on Death for anything durable, and five curses that give a discount.
 - Axes take Knockback, Looting and Fire Aspect. Crossbows take Flame and Infinity. Silk Touch picks up spawners.
   Infinity on a water or lava bucket gives 256 uses.
-- Hold **Ctrl** over an item to see what each of its enchantments does. On an item with many enchantments the
-  descriptions go beside the names to save room, and a tooltip taller than the screen scrolls with the mouse wheel.
+- Hold **Ctrl** over an item to see what each of its enchantments does, beside each name ("Efficiency V: ...") to
+  keep the tooltip short. A tooltip taller than the screen scrolls with the mouse wheel.
 
 **Other**
 - An optional health multiplier for every mob (1x to 100x, off by default).

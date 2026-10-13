@@ -550,3 +550,21 @@ description and failed on "High Level (GameTest) I" and "Third Party (GameTest)"
 `.desc` lang line; `EnchantmentDescriptionLangTest` only covers real ones.
 **Fix:** filter by `I18n.exists(DescriptionPlan.key(id))` when a test needs described enchantments.
 **Affects:** src/gametest/java/com/wulfnet/enchanting2/gametest/TooltipClientGameTest.java
+
+## 2026-10-13 — The anvil-wear hook targets a lambda by its intermediary name
+**Fact (javap 1.21.11):** the chip roll in `AnvilMenu.onTake` lives in the `access.execute` lambda, named
+`method_24922(Player, Level, BlockPos)` in both the named dev jar and production (Mojang mappings don't name lambdas,
+so intermediary's name stays). `AnvilMenuMixin.enchanting2$wearOnUse` targets it by that name.
+**Trap for Phase 12:** 26.x is unobfuscated, so the lambda will be `lambda$onTake$N`. Find N with javap per node and
+put the name behind a Stonecutter condition. A wrong name doesn't fail quietly: `defaultRequire: 1` makes the game
+refuse to start, and `AnvilWearGameTest` covers the behaviour both ways.
+**Affects:** src/main/java/com/wulfnet/enchanting2/mixin/AnvilMenuMixin.java
+
+## 2026-10-13 — Client GameTests only render on a tick: time-based client state can go stale between frames
+**Symptom:** `TooltipClientGameTest` "and back up: 0 from 0": after 100 wheel notches the tall tooltip's offset was 0.
+**Cause:** `TooltipScroll` resets a tooltip not drawn for 200 ms. The client GameTest draws only on `waitTick`, so 100
+`scroll` calls with no tick between them took over 200 ms on a loaded machine (another instance was running tests)
+and the tooltip started over. Real play draws every frame, so the product was fine.
+**Fix:** one notch per `waitTick` until the offset stops moving. Any client GameTest step that relies on "drawn
+recently" must tick between actions.
+**Affects:** src/gametest/java/com/wulfnet/enchanting2/gametest/TooltipClientGameTest.java

@@ -98,10 +98,15 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
   menu indices 38–42, protocol 5), picks start at level I, row descriptions need Ctrl, tall tooltips go compact with
   Ctrl and scroll (`tooltip/TooltipFit`, `TooltipScroll`, client `GuiGraphicsMixin`, `MouseHandlerMixin`). CHANGELOG
   has an [Unreleased] section; the local `v1.0.0` tag predates it (protocol 4).
-- Tests: 410 JUnit + 330 GameTests (`./gradlew build`) + 7 client GameTests (`./gradlew runClientGameTest`).
+- 11c (2026-10-13, owner's second report): Ctrl descriptions always "Name: description" (`TooltipFit.choose` gone);
+  a picked table row's price includes its own surcharge (Mending's true cost; footer line only for one already on the
+  item); anvils unbreakable by default, `anvil.vanilla_durability` + `durability_multiplier` (`anvil/AnvilWear`,
+  hooks at `AnvilBlock.damage` in `AnvilMenuMixin` lambda `method_24922` and `FallingBlockEntityMixin`).
+- Tests: 413 JUnit + 334 GameTests (`./gradlew build`) + 7 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Owner decides: the local `v1.0.0` tag (protocol 4) vs a 1.0.1 for the 11b fixes. Then the owner's runClient
+1. Owner decides: the local `v1.0.0` tag (protocol 4) vs a 1.0.1 for the 11b + 11c fixes. 11c owner checks: Ctrl
+   tooltips read well condensed, Mending's row price and its tooltip note, an anvil after many uses. Then the owner's runClient
    checks (item 2, plus 11b: slot look, a tall tooltip in the creative tab, the "Name: description" wording), push the tag (local only, owner said wait), then Phase 12
    (TODO.md: every 26.x version + 1.21.11 in step, Stonecutter spike 12A first on branch `port/26x`). Phase 11 done. The owner's
    `runClient` look at the 10o windows is still open (screenshots `enchanting2-anvil-*`, `enchanting2-grindstone-*`). A new enchantment still adds a `LevelCeilings` row, a `.desc` line, tags, a

@@ -10,14 +10,20 @@ and versions follow [Semantic Versioning](https://semver.org/).
   instead of the highest level the table sells. The level arrows still go up to it.
 - **Enchanting table:** the list's hover tooltips show an enchantment's description only while Ctrl is held, as item
   tooltips do.
+- **Tooltips:** with Ctrl held, each description is always on its enchantment's own line ("Efficiency V: ..."),
+  never under it, so even a few enchantments no longer make a tall tooltip.
+- **Enchanting table:** a picked enchantment's price includes its surcharge for the item's other enchantments, so
+  Mending's row shows what it really costs with everything else picked (its tooltip says how much of it that is).
+- **Anvils never wear out by default.** `anvil.vanilla_durability` brings back vanilla's chipping and breaking, from
+  use and from falling; `anvil.durability_multiplier` (1 to 100) makes each chip that many times rarer. Existing
+  servers get the new default on update.
 - Network protocol 5: a 1.0.0 client can't join a server running this version, or the reverse (the table window's
   slots changed).
 
 ### Added
 - **Enchanting table:** the player's armor and offhand slots, beside the inventory.
-- **Tooltips:** with Ctrl held on an item with many enchantments, each description goes on its enchantment's line
-  when the usual layout wouldn't fit the screen. A tooltip taller than the screen (any item) now starts at its top
-  instead of cutting off the item's name, says "Scroll to see the rest", and scrolls with the mouse wheel.
+- **Tooltips:** a tooltip taller than the screen (any item) now starts at its top instead of cutting off the item's
+  name, says "Scroll to see the rest", and scrolls with the mouse wheel.
 
 ## [1.0.0] - 2026-10-13
 
