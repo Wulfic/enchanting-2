@@ -39,6 +39,7 @@
 			"com.wulfnet.enchanting2.gametest.TillerGameTest",
 			"com.wulfnet.enchanting2.gametest.QuickStrikeGameTest",
 			"com.wulfnet.enchanting2.gametest.LastStandGameTest",
+			"com.wulfnet.enchanting2.gametest.MobHealthGameTest",
 			"com.wulfnet.enchanting2.gametest.ElytraGameTest",
 			"com.wulfnet.enchanting2.gametest.DoubleJumpGameTest"
 		],

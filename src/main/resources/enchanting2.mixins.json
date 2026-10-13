@@ -5,6 +5,7 @@
 	"mixins": [
 		"AbstractArrowMixin",
 		"AnvilMenuMixin",
+		"AttributesMixin",
 		"BlockItemMixin",
 		"BlockMixin",
 		"BlocksAttacksMixin",

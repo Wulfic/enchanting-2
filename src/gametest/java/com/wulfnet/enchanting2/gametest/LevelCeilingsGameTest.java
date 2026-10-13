@@ -10,6 +10,7 @@ import com.wulfnet.enchanting2.cost.PricingTable;
 import com.wulfnet.enchanting2.enchantment.LevelCeilings;
 import com.wulfnet.enchanting2.enchantment.LevelCeilings.Ceiling;
 import com.wulfnet.enchanting2.enchantment.LevelCeilings.Kind;
+import com.wulfnet.enchanting2.mobs.MobHealth;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -188,7 +189,9 @@ public class LevelCeilingsGameTest {
 		int swiftSneak = ceiling("minecraft:swift_sneak");
 		check(helper, sneak + 0.15 * swiftSneak >= 1.0 && sneak + 0.15 * (swiftSneak - 1) < 1.0,
 				"Swift Sneak " + swiftSneak + " from a sneaking speed of " + sneak);
-		helper.assertValueEqual(1024.0, max(Attributes.MAX_HEALTH), Component.literal("max health max"));
+		// Raised from vanilla's 1024 for the mob health multiplier (TODO 10m, owner 2026-10-13).
+		helper.assertValueEqual(MobHealth.MAX_HEALTH_CEILING, max(Attributes.MAX_HEALTH),
+				Component.literal("max health max"));
 		// Efficiency adds level² + 1 mining efficiency; Aqua Affinity multiplies submerged mining speed by 1 + 4 × level.
 		helper.assertValueEqual(1024.0, max(Attributes.MINING_EFFICIENCY), Component.literal("mining efficiency max"));
 		int efficiency = ceiling("minecraft:efficiency");

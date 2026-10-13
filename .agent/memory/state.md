@@ -84,13 +84,16 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
 - 10cGC (2026-10-13): Double Jump (`movement/DoubleJump`, client `LocalPlayerMixin` wraps `tryToStartFallFlying`,
   `PlayerMixin` air-jump flag; no packet).
 - 10d (2026-10-13): balance pass done; retunes in decisions.md "10d rulings".
-- Tests: 371 JUnit + 325 GameTests (`./gradlew build`) + 7 client GameTests (`./gradlew runClientGameTest`).
+- 10l (2026-10-13): table list in the window (`table/TableWindow`, `TableListModel`, client `TableList`; side panel
+  gone, `SidePanel` list mode deleted). 10n: amounts carry units (`PanelText.amount`, `Row.unit`). 10m:
+  `mobs.health_multiplier` (`mobs/MobHealth`, permanent modifier, `AttributesMixin` ceiling 1,000,000).
+- Tests: 395 JUnit + 329 GameTests (`./gradlew build`) + 7 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Next: the table screen rework (owner 2026-10-13, layout B: taller window, book kept, the list in the offer area with
-   a scroll bar and hover descriptions, price + Enchant under the slots); plan in TODO "10l". Then run the
-   client for the owner's look. Anvil/grindstone: decide after. 10d is done; a new enchantment still adds a `LevelCeilings` row, a
-   `.desc` line, tags, a price row if single-level, docs rows.
+1. Next: the owner's look at the table window in `runClient` (10l v2: 248 wide, one-line rows, list in the box,
+   Enchant under the slots), the "Mobs" slider and the unit labels; adjust from that. Then decide the anvil and
+   grindstone panels (owner: after the table). A new enchantment still adds a `LevelCeilings` row, a `.desc` line,
+   tags, a price row if single-level, docs rows.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
    ~1,000,000) + 6D: panel look, config screen "Display" toggle, and a vanilla server keeping the vanilla anvil screen +
    6bC: grindstone panel look, and a vanilla server keeping the vanilla grindstone + 7D: table panel and window look

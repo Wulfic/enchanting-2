@@ -550,6 +550,28 @@ class ConfigParseTest {
 		assertEquals(List.of(), missing.issues());
 	}
 
+	/** Owner, 2026-10-13 (TODO 10m): 1x (vanilla) by default, whole multiples 1 to 100, round trips through the file. */
+	@Test
+	void mobHealthMultiplierIsOneByDefaultAndReadWithinOneToAHundred() throws SyntaxError {
+		assertEquals(1, CommonConfig.defaults().mobs().healthMultiplier());
+		for (int multiplier : new int[] { 1, 3, 100 }) {
+			var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
+					CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
+					FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS,
+					SilkTouchSection.DEFAULTS, LastStandSection.DEFAULTS, new MobsSection(multiplier));
+			var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
+			assertEquals(custom, parsed.config(), "mobs.health_multiplier " + multiplier);
+			assertEquals(List.of(), parsed.issues(), "mobs.health_multiplier " + multiplier);
+		}
+		for (String bad : new String[] { "0", "101", "-3", "2.5", "true" }) {
+			var parsed = common("{ schema_version: 1, mobs: { health_multiplier: " + bad + " } }");
+			assertEquals(MobsSection.DEFAULTS, parsed.config().mobs(), bad);
+			assertEquals(List.of("mobs.health_multiplier"), keys(parsed.issues()), bad);
+		}
+		assertThrows(IllegalArgumentException.class, () -> new MobsSection(0));
+		assertThrows(IllegalArgumentException.class, () -> new MobsSection(101));
+	}
+
 	@Test
 	void enchantmentCostFieldsAreRead() throws SyntaxError {
 		var parsed = ConfigFiles.parse("""

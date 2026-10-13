@@ -128,6 +128,10 @@ without losing anything, and it works the same in singleplayer, LAN and on a ded
   keep working at that level. Vanilla accepts levels up to 255.
 - Chunk and entity attachments (tracker marks, cooldowns) are orphaned data that vanilla ignores.
 - XP levels stay as they are. Only the curve reverts.
+- **Multiplied mobs keep their health** (owner, 2026-10-13; §6 "Mob health multiplier"): the
+  `enchanting2:health_multiplier` max-health modifier is saved with each mob, so they stay
+  multiplied. Set the multiplier to 1x and load the areas first to take it off. Vanilla's 1024
+  ceiling returns, so any mob above it is clamped to 1024.
 - **New `enchanting2:` enchantments are lost, but their items are kept** (measured on 1.21.11,
   Phase 1.10). Vanilla drops the unknown enchantment from the item and logs a WARN. The item and
   its other enchantments stay. A book holding only new enchantments becomes an empty enchanted
@@ -643,6 +647,17 @@ Client-only (no packet, no server rule).
 - Tests: JUnit for the line builder (key per ID, missing key → no line, hidden → no line, Ctrl off → hint only); a
   lang-completeness test that fails when any `minecraft:` or `enchanting2:` enchantment lacks a `.desc` key, so every
   later enchantment stage has to write its description; a client GameTest screenshot with Ctrl held.
+
+### Mob health multiplier (owner, 2026-10-13; TODO 10m)
+`common.json5` `mobs.health_multiplier`, whole multiples 1 to 100 (default 1 = vanilla), an
+integer slider in the config screen's "Mobs" category. Every `Mob`, bosses included, never
+players or armor stands. One `max_health` modifier `enchanting2:health_multiplier`
+(`add_multiplied_total` by multiplier − 1), put on when a mob enters a level and, after a
+config reload or a save from the screen, on every loaded mob. A change keeps each mob's share
+of health (half stays half). The modifier is **saved with the mob**: vanilla reads attributes
+before health, so a multiplied mob loads with its exact health (a transient modifier would be
+missing then, clamp the load to the base max and heal the mob). Vanilla's 1024 max-health
+ceiling is raised to 1,000,000 (`AttributesMixin`, `max_health` only) so 100x is 100x.
 
 ### Books
 Can hold any enabled enchantment, mixed. Applicability is checked when the book is applied.

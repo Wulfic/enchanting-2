@@ -1,6 +1,7 @@
 package com.wulfnet.enchanting2.config;
 
 import com.wulfnet.enchanting2.Enchanting2;
+import com.wulfnet.enchanting2.mobs.MobHealth;
 import com.wulfnet.enchanting2.network.ServerNetworking;
 import java.nio.file.Path;
 import java.util.Objects;
@@ -92,6 +93,7 @@ public final class ServerConfigs {
 		reloadOne(commonFile(), CommonConfig.CODEC, holder::enchanting2$setConfig);
 		reloadOne(enchantmentsFile(), EnchantmentOverrides.CODEC, holder::enchanting2$setEnchantments);
 		ServerNetworking.syncToAll(server);
+		MobHealth.applyAll(server);
 	}
 
 	private static <T> void loadAtStartup(Path file, ConfigCodec<T> codec, Consumer<T> set) {

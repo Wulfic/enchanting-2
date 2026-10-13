@@ -12,6 +12,7 @@ import com.wulfnet.enchanting2.enchantment.ItemWideningHook;
 import com.wulfnet.enchanting2.enchantment.MaxLevelHook;
 import com.wulfnet.enchanting2.fortune.FortuneDrops;
 import com.wulfnet.enchanting2.fortune.PlacedBlocks;
+import com.wulfnet.enchanting2.mobs.MobHealth;
 import com.wulfnet.enchanting2.network.ServerNetworking;
 import com.wulfnet.enchanting2.shield.BulwarkEffect;
 import com.wulfnet.enchanting2.spawner.CollectedSpawners;
@@ -41,6 +42,7 @@ public final class Enchanting2 implements ModInitializer {
 		Acquisition.register();
 		HeadDrops.register();
 		NightVisionTicker.register();
+		MobHealth.register();
 		LOGGER.info("Enchanting 2 initialized");
 	}
 }

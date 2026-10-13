@@ -15,6 +15,7 @@ import com.wulfnet.enchanting2.config.EnchantmentOverrides;
 import com.wulfnet.enchanting2.config.ExperienceSection;
 import com.wulfnet.enchanting2.config.FortuneSection;
 import com.wulfnet.enchanting2.config.LastStandSection;
+import com.wulfnet.enchanting2.config.MobsSection;
 import com.wulfnet.enchanting2.config.SilkTouchSection;
 import com.wulfnet.enchanting2.config.SmeltingSection;
 import com.wulfnet.enchanting2.config.TableSection;
@@ -32,6 +33,7 @@ import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.YetAnotherConfigLib;
 import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import dev.isxander.yacl3.api.controller.IntegerFieldControllerBuilder;
+import dev.isxander.yacl3.api.controller.IntegerSliderControllerBuilder;
 import dev.isxander.yacl3.api.controller.TickBoxControllerBuilder;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -114,6 +116,18 @@ public final class ConfigScreen {
 		ConfigCategory.Builder fortune = ConfigCategory.createBuilder()
 				.name(Component.translatable(KEY + "category.fortune"))
 				.option(LabelOption.create(modeLabel));
+		ConfigCategory.Builder mobs = ConfigCategory.createBuilder()
+				.name(Component.translatable(KEY + "category.mobs"));
+		mobs.option(Option.<Integer>createBuilder()
+				.name(Component.translatable(KEY + "mobs.health_multiplier"))
+				.description(description("mobs.health_multiplier"))
+				.binding(MobsSection.DEFAULTS.healthMultiplier(), () -> draft.mobHealthMultiplier,
+						v -> draft.mobHealthMultiplier = v)
+				.controller(option -> IntegerSliderControllerBuilder.create(option)
+						.range(MobsSection.MIN_HEALTH_MULTIPLIER, MobsSection.MAX_HEALTH_MULTIPLIER).step(1)
+						.formatValue(v -> Component.translatable(KEY + "mobs.health_multiplier.value", v)))
+				.available(editable)
+				.build());
 		ConfigCategory.Builder effects = ConfigCategory.createBuilder()
 				.name(Component.translatable(KEY + "category.effects"))
 				.option(LabelOption.create(modeLabel));
@@ -284,6 +298,7 @@ public final class ConfigScreen {
 				.category(table.build())
 				.category(fortune.build())
 				.category(effects.build())
+				.category(mobs.build())
 				.category(enchantments.build())
 				.category(display)
 				// YACL saves when any option changed, the display one included, so write only the files that did.
@@ -378,6 +393,7 @@ public final class ConfigScreen {
 		SmeltingSilkPriority smeltingSilkPriority;
 		boolean collectSpawners;
 		boolean lastStandPvp;
+		int mobHealthMultiplier;
 
 		Draft(CommonConfig from) {
 			enabled = from.experience().enabled();
@@ -399,6 +415,7 @@ public final class ConfigScreen {
 			smeltingSilkPriority = from.smelting().silkPriority();
 			collectSpawners = from.silkTouch().collectSpawners();
 			lastStandPvp = from.lastStand().pvp();
+			mobHealthMultiplier = from.mobs().healthMultiplier();
 		}
 
 		void setAllowed(ConflictFamily family, boolean value) {
@@ -418,7 +435,8 @@ public final class ConfigScreen {
 					new AnvilSection(invalidBookMode),
 					new TableSection(treasureRequiresFullPower), new FortuneSection(silkFortuneMode),
 					new BeheadingSection(playerHeads), new SmeltingSection(smeltingSilkPriority),
-					new SilkTouchSection(collectSpawners), new LastStandSection(lastStandPvp));
+					new SilkTouchSection(collectSpawners), new LastStandSection(lastStandPvp),
+					new MobsSection(mobHealthMultiplier));
 		}
 	}
 }

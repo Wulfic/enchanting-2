@@ -9,7 +9,7 @@ import java.util.Objects;
  */
 public record CommonConfig(ExperienceSection experience, AllowTogetherSection allowTogether, CostsSection costs,
 		CursesSection curses, AnvilSection anvil, TableSection table, FortuneSection fortune, BeheadingSection beheading,
-		SmeltingSection smelting, SilkTouchSection silkTouch, LastStandSection lastStand) {
+		SmeltingSection smelting, SilkTouchSection silkTouch, LastStandSection lastStand, MobsSection mobs) {
 	public static final String FILE_NAME = "common.json5";
 	public static final int SCHEMA_VERSION = 1;
 
@@ -37,7 +37,7 @@ public record CommonConfig(ExperienceSection experience, AllowTogetherSection al
 					TableSection.read(root.section("table")), FortuneSection.read(root.section("fortune")),
 					BeheadingSection.read(root.section("beheading")), SmeltingSection.read(root.section("smelting")),
 					SilkTouchSection.read(root.section("silk_touch")),
-					LastStandSection.read(root.section("last_stand")));
+					LastStandSection.read(root.section("last_stand")), MobsSection.read(root.section("mobs")));
 		}
 
 		@Override
@@ -54,6 +54,7 @@ public record CommonConfig(ExperienceSection experience, AllowTogetherSection al
 			root.put("smelting", value.smelting.write(), "The Smelting enchantment.");
 			root.put("silk_touch", value.silkTouch.write(), "Silk Touch on mob spawners.");
 			root.put("last_stand", value.lastStand.write(), "The Last Stand enchantment.");
+			root.put("mobs", value.mobs.write(), "Mobs.");
 		}
 	};
 
@@ -69,11 +70,22 @@ public record CommonConfig(ExperienceSection experience, AllowTogetherSection al
 		Objects.requireNonNull(smelting, "smelting");
 		Objects.requireNonNull(silkTouch, "silkTouch");
 		Objects.requireNonNull(lastStand, "lastStand");
+		Objects.requireNonNull(mobs, "mobs");
+	}
+
+	/** Every section but {@code mobs}, which stays at its defaults: for callers that never touch mobs. */
+	public CommonConfig(ExperienceSection experience, AllowTogetherSection allowTogether, CostsSection costs,
+			CursesSection curses, AnvilSection anvil, TableSection table, FortuneSection fortune,
+			BeheadingSection beheading, SmeltingSection smelting, SilkTouchSection silkTouch,
+			LastStandSection lastStand) {
+		this(experience, allowTogether, costs, curses, anvil, table, fortune, beheading, smelting, silkTouch, lastStand,
+				MobsSection.DEFAULTS);
 	}
 
 	public static CommonConfig defaults() {
 		return new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS, CostsSection.DEFAULTS,
 				CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS, FortuneSection.DEFAULTS,
-				BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS, LastStandSection.DEFAULTS);
+				BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS, LastStandSection.DEFAULTS,
+				MobsSection.DEFAULTS);
 	}
 }

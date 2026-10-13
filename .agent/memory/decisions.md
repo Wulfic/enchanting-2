@@ -1239,3 +1239,17 @@ current health scaled with it. (3) Units on every cost number in the anvil, grin
 **Rejected:** +40 px, a resolution-dependent width; hostile-only or boss-excluding scope; new-spawns-only.
 **Affects:** table/TableWindow, client/TableList, EnchantmentScreenMixin, config (common.json5 + ConfigScreen),
 mob health hook, PanelText amounts in SidePanel/TableList
+
+## 2026-10-13 — Mob health multiplier: permanent modifier, ceiling raised (agent + owner)
+**Context:** TODO 10m planned a transient `max_health` modifier. Vanilla's `readAdditionalSaveData` loads attributes,
+then sets the saved health clamped to the live max; a transient modifier isn't there yet, so a 3x zombie at 30/60
+loads at 20/20, and keeping its share on re-apply would heal it to 60/60 every chunk load. Vanilla also caps
+`max_health` at 1024, so 100x stopped at 1024.
+**Choice:** a permanent (saved) modifier `enchanting2:health_multiplier`, re-checked on `ENTITY_LOAD` (changed only if
+its amount differs) and on every config reload; health keeps its share on a change. Owner: raise the ceiling to
+1,000,000 through `AttributesMixin` (`max_health` only, matched by description key since other attributes share 1024).
+Applies to `Mob`, not every `LivingEntity` (armor stands have no use for it).
+**Why:** the save/load GameTest fails with a transient modifier (mutation run: 60/60 instead of 30/60).
+**Rejected:** transient + the 10a saved-health restore (that restore only raises health, so a share-scaled heal on
+load still wins); keeping vanilla's cap (owner).
+**Affects:** mobs/MobHealth, mixin/AttributesMixin, config/MobsSection, ServerConfigs.reload, DESIGN §2a + §6

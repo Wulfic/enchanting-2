@@ -1540,12 +1540,17 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       ✅ v2 2026-10-13: JUnit (band pieces contiguous, grid centred, row zones), client GameTest (wider window fits
       854x480, slot moved in x and y, stepper on the row, last visible row picked in place). Keep-in-view logic removed:
       one-line rows never move on a pick.
-- [ ] 10m Mob health multiplier (owner 2026-10-13): `mobs.health_multiplier` in common.json5, whole numbers 1–100,
+- [x] 10m Mob health multiplier (owner 2026-10-13): `mobs.health_multiplier` in common.json5, whole numbers 1–100,
       default 1, an integer slider in the config screen. Every non-player `LivingEntity` (bosses too). A transient
       `max_health` modifier `enchanting2:health_multiplier` (`add_multiplied_total`, multiplier − 1) put on at entity
       load / spawn (server) and re-applied to every loaded mob on config reload; health keeps its fraction of max.
       At 1 the modifier is removed. JUnit: parse/clamp/defaults; GameTest: a zombie at 3x has 60 max and full health,
       back to 1x restores 20, a half-health one stays half, players untouched.
+      ✅ 2026-10-13, changed while building: the modifier is **permanent** (saved), not transient (a transient one
+      heals half-health mobs on every chunk load: vanilla clamps the saved health before it's back; mutation run
+      confirms the save/load GameTest fails with it). `Mob` only (no armor stands). Owner: raise vanilla's 1024
+      max-health ceiling (`AttributesMixin`, 1,000,000). JUnit `mobHealthMultiplier…` in ConfigParseTest;
+      `MobHealthGameTest` (spawn at 3x, players untouched, reload to 1x, share kept, 100x = 2000, save/load).
 - [x] 10n Cost units (owner 2026-10-13): every cost amount in the anvil, grindstone and table panels, table rows and
       tooltips reads "N levels" (lang key, singular "1 level"); vanilla's anvil label unchanged. Lang test + the
       client GameTests' expected texts move.  ✅ 2026-10-13: `PanelText.amount` + `Row.unit` (LEVELS default, the
