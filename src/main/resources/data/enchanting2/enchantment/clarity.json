@@ -1,0 +1,38 @@
+{
+  "anvil_cost": 4,
+  "description": {
+    "translate": "enchantment.enchanting2.clarity"
+  },
+  "effects": {
+    "enchanting2:shorten_effects": {
+      "effects": [
+        "minecraft:blindness",
+        "minecraft:darkness",
+        "minecraft:nausea"
+      ],
+      "fraction": {
+        "type": "minecraft:fraction",
+        "numerator": {
+          "type": "minecraft:linear",
+          "base": 1.0,
+          "per_level_above_first": 1.0
+        },
+        "denominator": 3.0
+      }
+    }
+  },
+  "max_cost": {
+    "base": 25,
+    "per_level_above_first": 8
+  },
+  "max_level": 3,
+  "min_cost": {
+    "base": 5,
+    "per_level_above_first": 8
+  },
+  "slots": [
+    "head"
+  ],
+  "supported_items": "#minecraft:enchantable/head_armor",
+  "weight": 2
+}

@@ -3,6 +3,8 @@ package com.wulfnet.enchanting2.mixin;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.wulfnet.enchanting2.config.ExperienceSection;
 import com.wulfnet.enchanting2.curse.CurseEffects;
+import com.wulfnet.enchanting2.effect.ModEffects;
+import com.wulfnet.enchanting2.effect.WornEffects;
 import com.wulfnet.enchanting2.experience.ExperienceCurve;
 import com.wulfnet.enchanting2.experience.ExperienceCurve.Position;
 import com.wulfnet.enchanting2.experience.PlayerExperience;
@@ -116,10 +118,17 @@ abstract class PlayerMixin {
 		return (int) Math.clamp((long) a + b, Integer.MIN_VALUE, Integer.MAX_VALUE);
 	}
 
-	/** Phase 10e, Curse of Hunger: every exhaustion source goes through here, scaled by the armor's Hunger. */
+	/**
+	 * Every exhaustion source goes through here: Curse of Hunger (Phase 10e) scales it up, Sustenance (Phase 10cA)
+	 * takes its share off, and the two multiply (DESIGN §9).
+	 */
 	@ModifyVariable(method = "causeFoodExhaustion", at = @At("HEAD"), argsOnly = true)
 	private float enchanting2$hunger(float amount) {
 		Player self = (Player) (Object) this;
-		return self.level() instanceof ServerLevel ? CurseEffects.scaleExhaustion(self, amount) : amount;
+		if (!(self.level() instanceof ServerLevel)) {
+			return amount;
+		}
+		return WornEffects.reduceExhaustion(self, ModEffects.EXHAUSTION_REDUCTION,
+				CurseEffects.scaleExhaustion(self, amount));
 	}
 }

@@ -5,9 +5,12 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.curse.CurseEffects;
 import com.wulfnet.enchanting2.effect.Lifesteal;
+import com.wulfnet.enchanting2.effect.WornEffects;
 import java.util.Map;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -60,6 +63,34 @@ abstract class LivingEntityMixin {
 	@Inject(method = "handleEquipmentChanges", at = @At("TAIL"))
 	private void enchanting2$weight(Map<EquipmentSlot, ItemStack> changes, CallbackInfo ci) {
 		CurseEffects.updateWeight((LivingEntity) (Object) this);
+	}
+
+	/**
+	 * Phase 10cA, Clarity: the listed effects land shorter, or not at all. Server only: the client receives the already
+	 * shortened instance through {@code forceAddEffect}, and shortening it again there would show the wrong time.
+	 */
+	@WrapMethod(method = "addEffect(Lnet/minecraft/world/effect/MobEffectInstance;Lnet/minecraft/world/entity/Entity;)Z")
+	private boolean enchanting2$clarity(MobEffectInstance instance, Entity source, Operation<Boolean> original) {
+		LivingEntity self = (LivingEntity) (Object) this;
+		if (!(self.level() instanceof ServerLevel)) {
+			return original.call(instance, source);
+		}
+		MobEffectInstance shortened = WornEffects.shorten(self, instance);
+		return shortened != null && original.call(shortened, source);
+	}
+
+	/** As {@link #enchanting2$clarity}, for the path that skips {@code canBeAffected}. */
+	@WrapMethod(method = "forceAddEffect")
+	private void enchanting2$clarityForced(MobEffectInstance instance, Entity source, Operation<Void> original) {
+		LivingEntity self = (LivingEntity) (Object) this;
+		if (!(self.level() instanceof ServerLevel)) {
+			original.call(instance, source);
+			return;
+		}
+		MobEffectInstance shortened = WornEffects.shorten(self, instance);
+		if (shortened != null) {
+			original.call(shortened, source);
+		}
 	}
 
 	/**

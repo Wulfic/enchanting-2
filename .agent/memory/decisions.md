@@ -1031,3 +1031,27 @@ add with no cap (four pieces at V = +200%). Discount unchanged (15% at I, +5%/le
 max level 1 for either; Weight multiplying per piece or adding uncapped; Fragility ×(1 + level); Hunger +50%/level,
 on held items, or capped / highest-piece-only.
 **Affects:** docs/DESIGN.md §5a, TODO 10e, the five curse JSONs
+
+## 2026-10-12 — 10c order and eight design answers (owner)
+**Context:** 10c holds 25 M-route enchantments; DESIGN §9 left their activation, cost and edge rules open.
+**Choice (owner):** build easy first: (A) helmet/leggings hooks: Calm Gaze, Phantom Ward, Clarity, Sustenance,
+Endurance, Sure Footing on powder snow; (B) boots: Lava Walking, Snow Walker; (C) the seven shields; (D) drops: Magnetic,
+Ender Link, Keep on Death; (E) tools: Area Mining, Replant, Tiller; (F) Quick Strike, Last Stand; (G) Speed, Flight,
+Double Jump (client input networking) last.
+- Phantom Ward: insomnia spawning unchanged; phantoms ignore the wearer (still attack others); a phantom the wearer
+  hurts targets them until vanilla drops the target.
+- Endurance: sprint distance and sprint-jumps (0.2) both reduced; Sustenance and the Hunger curse multiply on top.
+- Clarity: any wearer (players and mobs). I/II shorten Blindness, Darkness, Nausea at application (infinite stays
+  infinite); III blocks all three, infinite included; each Warden Darkness pulse is shortened as it lands.
+- Flight: while gliding, holding jump gives steady forward thrust growing per level (V ≈ one rocket); 1 elytra
+  durability per second of thrust; Speed scales it; takeoff is vanilla.
+- Keep on Death: free, forever: back in its slot on respawn, enchantment kept; which items take it stays configurable.
+- Quick Strike: the second hit repeats the damage only, ignoring i-frames: no Fire Aspect/Knockback/Vampirism/
+  on-hit effects/Critical Strike roll/durability, and it never chains.
+- Last Stand: on in PvP by default (config toggle turns it off); a Totem of Undying fires first and doesn't use the
+  cooldown.
+**Rejected:** riskiest-first or shields-first order; Phantom Ward stopping insomnia spawns; Endurance on sprint
+distance only; Clarity players-only or capping infinite effects at I/II; Flight as a cooldown rocket or creative
+hover; Keep on Death costing durability or one use; Quick Strike at half damage or as a full second hit; Last Stand
+off in PvP.
+**Affects:** docs/DESIGN.md §9, TODO 10c

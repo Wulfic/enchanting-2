@@ -447,3 +447,19 @@ earlier "Weight I" step (tick 2) also saw no modifier. A failed `thenExecute` (`
 **Fix:** none needed: the test still fails. When a mutation run reports a later step than expected, instrument the
 earlier ones (a temporary `System.out` shows as `[STDOUT]` in the log) before concluding the earlier assert passed.
 **Affects:** any `helper.startSequence()` GameTest
+
+## 2026-10-12 — A new GameTest class runs only once it's listed in the GameTest `fabric.mod.json`
+**Symptom:** `./gradlew build` said "All 267 required tests passed" after adding `WornEnchantmentsGameTest` (six tests):
+the same count as before, all green.
+**Cause:** Fabric finds GameTest classes through the `fabric-gametest` entrypoint list in
+`src/gametest/resources/fabric.mod.json`, not by scanning. An unlisted class compiles and is silently skipped.
+**Fix:** add the class to that list (client ones to `fabric-client-gametest`), and check that the "N required tests"
+count went up by the number of tests added.
+**Affects:** src/gametest/resources/fabric.mod.json
+
+## 2026-10-12 — The mock GameTest player is creative, so mob targeting never picks it
+**Trap:** `makeMockServerPlayerInLevel()` overrides `gameMode()`; `TargetingConditions.DEFAULT` refuses creative
+players, so `Phantom.canAttack(level, mockPlayer, DEFAULT)` is false bare-headed and a "ward refuses" test would pass
+vacuously. It's also invulnerable (no exhaustion): set `getAbilities().invulnerable = false` for hunger tests.
+**Fix:** test targeting on a zombie when the hook reads only the target's equipment, and assert the bare case first.
+**Affects:** src/gametest/.../WornEnchantmentsGameTest.java

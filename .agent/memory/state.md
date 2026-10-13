@@ -8,7 +8,7 @@
 **Branch:** main (commit straight to main and push; no CI; see decisions.md)
 
 ## Where we are
-Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j and 10k done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
+Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k and 10cA done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
 - 3: `ExperienceCurve`, no level cap, exact XP points, counters saturate. 4: `MaxLevels` via `MODIFY` (restart to
   apply), `ConflictFamily` + `allow_together`, `EnchantRules`, Lure/Riptide 5 with safe caps.
 - 5: `cost/` (`CostModel`, `PricingTable`, curse discount, `cleanseCost`, `extractCost`).
@@ -49,12 +49,17 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j and 10k done (TODO.md has e
   durability damage rounds at random (`EnchantmentHelperMixin`).
 - 10eC (2026-10-12): Weight (`movement_penalty` component, one capped modifier set at `handleEquipmentChanges`,
   `curses.weight_max_slowdown_percent` 50) and Hunger (`exhaustion` component, `causeFoodExhaustion`), `curse/*`.
-- Tests: 352 JUnit + 267 GameTests (`./gradlew build`) + 5 client GameTests (`./gradlew runClientGameTest`).
+- 10cA (2026-10-12): Calm Gaze (`EnderManMixin`), Phantom Ward (`PhantomMixin.canAttack`, transient provocation),
+  Clarity (`LivingEntityMixin` wraps `addEffect`/`forceAddEffect`, server only, rounded), Sustenance (`PlayerMixin`),
+  Endurance (`ServerPlayerMixin`, sliced after `isSprinting`), Sure Footing on powder snow (`PowderSnowBlockMixin`);
+  components in `ModEffects`, shared `effect/WornEffects` + `WornMath`.
+- Tests: 358 JUnit + 273 GameTests (`./gradlew build`) + 5 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Next: 10c (M route, see TODO; each enchantment needs its own written sub-plan with owner questions first: edge
-   cases from DESIGN §9; each adds a `LevelCeilings` row, a `.desc` line, a screen entry comes free), then 10d
-   balance pass.
+1. Next: 10cB boots (Lava Walking, Snow Walker), then C shields, D drops, E tools, F Quick Strike + Last Stand,
+   G Speed/Flight/Double Jump (owner order and answers: decisions.md "10c order and eight design answers"; TODO
+   "Phase 10c"). Each stage writes its plan first; each enchantment adds a `LevelCeilings` row, a `.desc` line, tags,
+   a price row if single-level, docs rows. Then 10d balance pass.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
    ~1,000,000) + 6D: panel look, config screen "Display" toggle, and a vanilla server keeping the vanilla anvil screen +
    6bC: grindstone panel look, and a vanilla server keeping the vanilla grindstone + 7D: table panel and window look
@@ -69,7 +74,9 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j and 10k done (TODO.md has e
    toggles, and with Enchantment Descriptions installed that only one set of lines shows (confirms `enchdesc`) +
    10j: an enchantment's max level / cost fields and their notes, a raised max after a restart (Efficiency 10) +
    10e: the five curse names in red with their Ctrl descriptions, a Weight set's walking feel (I vs V, the 50% cap),
-   a curse's two discount fields and the Weight cap field, a curse picked at the table showing its discount line.
+   a curse's two discount fields and the Weight cap field, a curse picked at the table showing its discount line. + 10cA: the five new names and descriptions, staring at an
+   enderman in a Calm Gaze helmet, a sleepless night in Phantom Ward, a Warden's Darkness with Clarity I vs III,
+   sprinting through powder snow in Sure Footing III.
 
 ## Open questions / blockers
 - Owner (2026-10-06): a lowered max level never touches existing items (decisions.md).
@@ -87,5 +94,6 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j and 10k done (TODO.md has e
   both through `saveWithBackup` (`.bak` first).
 - `.env` and MCP configs are tracked with live credentials (owner's call). Rotate the `ghp_` PAT.
 - `.claude/skills/` and `.github/skills/` are hand-synced copies.
+- A new GameTest class must be listed in `src/gametest/resources/fabric.mod.json` or it silently never runs.
 - `./gradlew build` runs JUnit + server GameTests only. Run `./gradlew runClientGameTest` too for client changes (opens
   a game window, ~2.5 min; screenshots in `build/run/clientGameTest/screenshots/`).

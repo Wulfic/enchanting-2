@@ -3,6 +3,7 @@ package com.wulfnet.enchanting2.effect;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.wulfnet.enchanting2.Enchanting2;
+import java.util.stream.Stream;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -30,6 +31,19 @@ public final class ModEffects {
 			LevelBasedValue.CODEC);
 	/** Extra hunger exhaustion as a fraction, summed over worn pieces, uncapped (Curse of Hunger, Phase 10e). */
 	public static final DataComponentType<LevelBasedValue> EXHAUSTION = register("exhaustion", LevelBasedValue.CODEC);
+	/** Endermen don't notice the wearer staring, the carved-pumpkin effect (Calm Gaze, Phase 10c). */
+	public static final DataComponentType<Unit> GAZE_DISGUISE = register("gaze_disguise", Unit.CODEC);
+	/** Phantoms don't target the wearer unless provoked (Phantom Ward, Phase 10c). */
+	public static final DataComponentType<Unit> IGNORED_BY_PHANTOMS = register("ignored_by_phantoms", Unit.CODEC);
+	/** The listed mob effects last shorter on the wearer, refused at 1 (Clarity, Phase 10c). */
+	public static final DataComponentType<ShortenEffects> SHORTEN_EFFECTS = register("shorten_effects",
+			ShortenEffects.CODEC);
+	/** Fraction of all hunger exhaustion removed, summed over worn pieces, clamped to 1 (Sustenance, Phase 10c). */
+	public static final DataComponentType<LevelBasedValue> EXHAUSTION_REDUCTION = register("exhaustion_reduction",
+			LevelBasedValue.CODEC);
+	/** As {@link #EXHAUSTION_REDUCTION}, for sprinting and sprint-jumping only (Endurance, Phase 10c). */
+	public static final DataComponentType<LevelBasedValue> SPRINT_EXHAUSTION_REDUCTION = register(
+			"sprint_exhaustion_reduction", LevelBasedValue.CODEC);
 	/** Entity effect for {@code minecraft:projectile_spawned}: the arrow ignores gravity for a while (TrueShot Aura). */
 	public static final MapCodec<SuspendGravity> SUSPEND_GRAVITY = Registry.register(
 			BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE,
@@ -40,9 +54,11 @@ public final class ModEffects {
 
 	/** Loads the class, which registers the fields above. Call once from mod init. */
 	public static void register() {
-		Enchanting2.LOGGER.debug("Registered effect components {}, {}, {}, {}, {}, {} and entity effect {}",
-				key(LIFESTEAL), key(HEAD_DROP_CHANCE), key(SMELT_DROPS), key(NIGHT_VISION), key(MOVEMENT_PENALTY),
-				key(EXHAUSTION), BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE.getKey(SUSPEND_GRAVITY));
+		Enchanting2.LOGGER.debug("Registered effect components {} and entity effect {}",
+				Stream.of(LIFESTEAL, HEAD_DROP_CHANCE, SMELT_DROPS, NIGHT_VISION, MOVEMENT_PENALTY, EXHAUSTION,
+						GAZE_DISGUISE, IGNORED_BY_PHANTOMS, SHORTEN_EFFECTS, EXHAUSTION_REDUCTION,
+						SPRINT_EXHAUSTION_REDUCTION).map(ModEffects::key).toList(),
+				BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE.getKey(SUSPEND_GRAVITY));
 		SuspendGravity.register();
 	}
 

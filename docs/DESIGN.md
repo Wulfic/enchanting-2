@@ -727,6 +727,7 @@ enchantment falls in one of three groups, shown in the config screen next to its
   | Aqua Affinity | 25 | submerged mining speed caps at 20; past I you mine faster underwater than on land (found in 10jA: it scales) |
   | Critical Strike, Vampirism, Beheading, Anchored | 20, 25, 50, 10 | the chance or share reaches 100% |
   | Reach, Toughness | 122, 40 | interaction range caps at 64, armor toughness at 20 |
+  | Clarity, Sustenance, Endurance | 3, 25, 20 | the reduction reaches 100% (immune, no hunger drain, free sprinting) |
   | Single-level ones whose effect doesn't scale (Silk Touch, Infinity, Mending, Vision...) | 1 | extra levels do nothing (a GameTest checks their effects have no level-based value) |
 
 - **Hard ceiling (clamped, WARN, the field won't go higher):** a level that breaks the mechanic: Lure 5, Quick
@@ -756,7 +757,7 @@ enchantment falls in one of three groups, shown in the config screen next to its
 | Freezing | 5 | melee, ranged | Slowness on hit | D | same |
 | Attack Speed | 5 | melee | `attack_speed` attribute | D | |
 | Critical Strike | 5 | all weapons | 5%/level chance of +50% damage (max 25%) | D | `damage` + `random_chance` |
-| Quick Strike | 5 | melee | 5%/level chance of a second hit (max 25%) | M | i-frames, effect/crit duplication, Vampirism, durability, PvP |
+| Quick Strike | 5 | melee | 5%/level chance of a second hit (max 25%); the second hit repeats the damage only, ignoring i-frames: no on-hit effects, Vampirism, Critical Strike roll or durability, never chains (owner, 2026-10-12) | M | i-frames, effect/crit duplication, Vampirism, durability, PvP |
 | TrueShot Aura | 1 | bow, crossbow (crossbow: owner, 2026-10-10, Phase 10g) | arrows ignore gravity for 5 s, then fall normally (owner, 2026-10-09) | E | despawn as normal arrows; the countdown survives a save |
 | Toughness | 5 | armor | `armor_toughness` attribute | D | |
 | Health | 5 | armor | `max_health` attribute | D | health clamping on unequip |
@@ -764,19 +765,19 @@ enchantment falls in one of three groups, shown in the config screen next to its
 | Double Jump | 1 | boots | one extra air jump; resets on ground | M | client input packet; water/lava/ladder/creative/vehicle; server validation |
 | Lava Walking | 1 | boots | stand and walk on the surface of lava; sneak to sink; standing on lava still burns, as touching lava does; mobs too (owner, 2026-10-10) | M | `canStandOnFluid`-style hook on both sides (the client moves the player); the box sits just above the lava, so vanilla's in-lava check misses it and the burn is applied explicitly; falling in from height lands on the surface |
 | Snow Walker | 1 | boots | exactly the leather-boots effect on any boots: walk on powder snow instead of sinking, sneak to sink, and no freezing; mobs too (owner, 2026-10-10) | M | mixins on `PowderSnowBlock.canEntityWalkOnPowderSnow` and the freeze check (`canFreeze`, vanilla's `#freeze_immune_wearables`) |
-| Flight | 5 | elytra | powered flight without fireworks | M | activation, durability, speed, takeoff, anti-cheat |
+| Flight | 5 | elytra | powered flight without fireworks: while gliding, holding jump gives steady forward thrust growing per level (V ≈ one rocket), 1 elytra durability per second of thrust, Speed scales it, takeoff is vanilla (owner, 2026-10-12) | M | activation, durability, speed, takeoff, anti-cheat |
 | Speed | 5 | elytra | +10% elytra flight speed per level (V = +50%); costs 6 per level; scales both gliding and firework-rocket boosts (owner, 2026-10-10) | M | glide physics run on the client for players (`LivingEntity.updateFallFlyingMovement`), so the hook runs on both sides; the rocket boost is applied in `FireworkRocketEntity`'s tick, also client-side for the player; server's fall-flying moved-too-quickly allowance (GameTest at V with a rocket along a dive, like Riptide's); stacks with Flight |
 | Smelting | 1 | pickaxe, shovel, axe, hoe | smelts every drop with a smelting recipe (logs → charcoal), after Fortune; grants the recipe's XP (owner, 2026-10-09) | E | Silk Touch wins by default (§4); no ore list, `enchanting2:smelting_excluded` item tag for datapacks |
 | Magnetic | 1 | tools, weapons | drops go straight into the inventory; overflow drops normally | M | ownership, pickup events, dupes |
 | Reach | 3 | tools, weapons | `block_/entity_interaction_range` attributes | D | vanilla server already validates against attributes |
 | XP Boost | 5 | tools, weapons | +5% XP per level | D | `mob_experience` / `block_experience`; Mending loop |
 | Vision | 1 | helmet | Night Vision while worn, players only | E | tick handler refreshes under 11 s (no flicker), removes on unequip, never touches a longer potion (owner, 2026-10-09) |
-| Keep on Death | 1 | durables (configurable) | kept through death | M | keepInventory, graves mods, dupes |
+| Keep on Death | 1 | durables (configurable) | kept through death, back in its slot on respawn, enchantment kept, no cost (owner, 2026-10-12) | M | keepInventory, graves mods, dupes |
 | Area Mining | 1 | pickaxe, shovel | breaks 3×3 facing the hit face; sneak to break one block | M | only blocks with hardness ≤ the centre block and mineable by the tool; each extra block fires the break event (protection/claim mods) and costs durability; Fortune/Silk/Smelting/Magnetic apply per block |
 | Replant | 1 | hoe | breaking a mature crop replants it, using a seed taken from its own drops | M | never creates a seed; immature crops break normally |
 | Tiller | 3 | hoe | tills 3×3 / 5×5 / 7×7 | M | only dirt/grass → farmland; durability per block; respects protection |
 | Ender Link | 1 | tools, weapons | drops go to the ender chest; overflow drops normally | M | **conflicts with Magnetic**; dupes; respects pickup events |
-| Last Stand | 3 | chestplate | once per cooldown, a lethal hit leaves you at 1 HP with brief absorption; cooldown 10 / 8 / 6 min | M | a Totem of Undying fires first; HUD cooldown indicator; works in PvP (configurable) |
+| Last Stand | 3 | chestplate | once per cooldown, a lethal hit leaves you at 1 HP with brief absorption; cooldown 10 / 8 / 6 min | M | a Totem of Undying fires first and doesn't use the cooldown; HUD cooldown indicator; works in PvP by default, a config toggle turns it off (owner, 2026-10-12) |
 | Deflect | 3 | shield | blocked projectiles reflect at the shooter; chance 33 / 66 / 100% | M | reflected projectile ownership; no infinite ping-pong between two shields |
 | Shield Bash | 3 | shield | attacking while blocking knocks the target back and briefly stuns | M | cooldown; balance vs. Knockback |
 | Steadfast | 3 | shield | an axe disables the shield for less time: −33% per level, III = never (vanilla 5 s) (owner, 2026-10-10) | M | `blocks_attacks.disable_cooldown_scale` per stack (`BlocksAttacks.disable`); PvP axe play |
@@ -785,13 +786,13 @@ enchantment falls in one of three groups, shown in the config screen next to its
 | Riposte | 5 | shield | after a block, your next melee hit within 2 s deals +3% per level (V = +15%) (owner, 2026-10-10) | M | per-player timer, used up by the hit; stacks with Critical Strike and Quick Strike |
 | Steady Stance | 1 | shield | no movement slowdown while blocking; priced 10 (§5) (owner, 2026-10-10) | M | the slowdown is applied client-side to the player's input; PvP balance |
 | Calm Gaze | 1 | helmet | endermen don't get angry when you look at them, the carved-pumpkin effect (owner, 2026-10-10) | M | the enderman stare check reads `#minecraft:gaze_disguise_equipment`; add an enchantment check beside it |
-| Clarity | 3 | helmet | Blindness, Darkness and Nausea last 33% shorter per level, III = immune (owner, 2026-10-10) | M | effect-applied hook; the Warden's Darkness pulse; only these three effects |
-| Phantom Ward | 1 | helmet | phantoms don't target you, even with insomnia (owner, 2026-10-10) | M | phantom target selection; still attacked if you hit one |
+| Clarity | 3 | helmet | Blindness, Darkness and Nausea last 33% shorter per level, III = immune (owner, 2026-10-10); any wearer, mobs too; I/II shorten at application and leave an infinite effect infinite, III blocks infinite ones too (owner, 2026-10-12) | M | effect-applied hook; the Warden's Darkness pulse is shortened each time it lands; only these three effects |
+| Phantom Ward | 1 | helmet | phantoms don't target you, even with insomnia (owner, 2026-10-10); insomnia spawning unchanged, phantoms still attack other players (owner, 2026-10-12) | M | phantom target selection; a phantom you hurt targets you until vanilla drops the target |
 | Sustenance | 5 | helmet | 4% less hunger drain per level, V = 20% (owner, 2026-10-10) | M | exhaustion hook, every source; multiplies with Endurance and the Hunger curse (10e) |
 | Step Assist | 1 | leggings | step up full blocks without jumping (owner, 2026-10-10) | D | `step_height` attribute +0.4 (0.6 → 1.0) |
 | Anchored | 5 | leggings | 10% knockback resistance per level, hits only (owner, 2026-10-10 and 2026-10-12) | D | `knockback_resistance` attribute (melee and projectiles), not `explosion_knockback_resistance` (Blast Protection's job); with netherite armor it reaches the 100% clamp |
-| Endurance | 5 | leggings | sprinting costs 5% less hunger per level, V = 25% (owner, 2026-10-10) | M | exhaustion hook, sprint only |
-| Sure Footing | 3 | leggings | a third of the slowdown on soul sand and honey gone per level, III = none (owner, 2026-10-12); powder snow in 10c (owner, 2026-10-12) | D (+M for powder snow) | `movement_efficiency` attribute (Soul Speed's), `fraction` level / 3. It's read only by `LivingEntity.getBlockSpeedFactor` (javap 1.21.11), so it covers blocks with a speed factor (soul sand, honey 0.4) and never powder snow, which slows through `makeStuckInBlock` |
+| Endurance | 5 | leggings | sprinting costs 5% less hunger per level, V = 25% (owner, 2026-10-10) | M | exhaustion hook, sprint only: sprint distance and sprint-jumps (owner, 2026-10-12) |
+| Sure Footing | 3 | leggings | a third of the slowdown on soul sand, honey and powder snow gone per level, III = none (owner, 2026-10-12); in powder snow only the sideways slowdown, so sinking and freezing stay vanilla (10cA) | D (+M for powder snow) | `movement_efficiency` attribute (Soul Speed's), `fraction` level / 3. It's read only by `LivingEntity.getBlockSpeedFactor` (javap 1.21.11), so it covers blocks with a speed factor (soul sand, honey 0.4) and never powder snow, which slows through `makeStuckInBlock`: a mixin there applies the same `lerp` to its x/z multiplier on both sides |
 | Cushion | 3 | elytra, chestplate | reduces wall-collision damage | D | `damage_protection` on `fly_into_wall` |
 | Beheading | 5 | melee | 2% × level to drop the victim's head on a player's direct melee kill, on top of vanilla's wither skull roll (owner, 2026-10-09) | E | zombie, skeleton, wither skeleton, creeper, piglin (loot table `enchanting2:beheading/heads`); no ender dragon (it never rolls death loot); player heads behind `beheading.player_heads` (default off) |
 

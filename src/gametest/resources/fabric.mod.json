@@ -28,7 +28,8 @@
 			"com.wulfnet.enchanting2.gametest.EffectEnchantmentsGameTest",
 			"com.wulfnet.enchanting2.gametest.SpawnerGameTest",
 			"com.wulfnet.enchanting2.gametest.InfiniteBucketGameTest",
-			"com.wulfnet.enchanting2.gametest.LevelCeilingsGameTest"
+			"com.wulfnet.enchanting2.gametest.LevelCeilingsGameTest",
+			"com.wulfnet.enchanting2.gametest.WornEnchantmentsGameTest"
 		],
 		"fabric-client-gametest": [
 			"com.wulfnet.enchanting2.gametest.AnvilScreenClientGameTest",

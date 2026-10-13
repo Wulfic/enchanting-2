@@ -118,6 +118,11 @@ public final class LevelCeilings {
 		t.put("enchanting2:step_assist", soft(1));
 		t.put("enchanting2:anchored", soft(10));
 		t.put("enchanting2:sure_footing", soft(3));
+		t.put("enchanting2:calm_gaze", soft(1));
+		t.put("enchanting2:phantom_ward", soft(1));
+		t.put("enchanting2:clarity", soft(3));
+		t.put("enchanting2:sustenance", soft(25));
+		t.put("enchanting2:endurance", soft(20));
 		t.put("enchanting2:fragility", NONE);
 		t.put("enchanting2:greed", soft(10));
 		t.put("enchanting2:fumbling", soft(7));

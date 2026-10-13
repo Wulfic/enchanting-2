@@ -4,15 +4,15 @@ Every enchantment in Enchanting 2, grouped by what it goes on: armor first (head
 then elytra, shield, weapons, tools, and anything durable. Each enchantment is listed once,
 under the narrowest group that covers it. The **Fits** column says exactly which items take it.
 
-In game, holding Ctrl over an item will show these descriptions under each enchantment (planned, Phase 10h).
+In game, holding Ctrl over an item shows these descriptions under each enchantment.
 
 The design lives in [DESIGN.md](DESIGN.md) (§5 prices, §8 max levels, §9 new enchantments). **Update this file
 whenever an enchantment, a max level or a price changes.**
 
 **Status**
 - **Vanilla**: a Minecraft 1.21.11 enchantment, kept under its vanilla ID (max levels per DESIGN §8)
-- **Built**: ours, in the mod now (Phase 10a/10b)
-- **Planned**: ours, not built yet (Phase 10c, 10i, or 10e for curses)
+- **Built**: ours, in the mod now
+- **Planned**: ours, not built yet (Phase 10c)
 
 **Cost** is in XP levels, for adding the enchantment at the table or anvil (DESIGN §5):
 - **1/lvl**: the default, 1 level per enchantment level (V = 5). An upgrade pays only the added levels.
@@ -42,10 +42,10 @@ change needs a restart. See DESIGN §8.
 | Respiration | 5 | 1/lvl | helmets | longer underwater breathing | Vanilla |
 | Aqua Affinity | 1 | 10 | helmets | normal mining speed underwater | Vanilla |
 | Vision | 1 | 10 | helmets | Night Vision while worn (players only), no flicker, removed when taken off | Built |
-| Calm Gaze | 1 | 10 † | helmets | endermen don't get angry when you look at them (like wearing a carved pumpkin) | Planned |
-| Clarity | 3 | 1/lvl | helmets | Blindness, Darkness and Nausea last 33% shorter per level (III = immune) | Planned |
-| Phantom Ward | 1 | 10 † | helmets | phantoms don't target you, even when you haven't slept | Planned |
-| Sustenance | 5 | 1/lvl | helmets | 4% less hunger drain per level (V = 20%) | Planned |
+| Calm Gaze | 1 | 10 | helmets | endermen don't get angry when you look at them (like wearing a carved pumpkin); hitting one still does | Built |
+| Clarity | 3 | 1/lvl | helmets | Blindness, Darkness and Nausea last a third shorter per level (III = immune, even to endless ones); works on mobs too | Built |
+| Phantom Ward | 1 | 10 | helmets | phantoms don't target you, even when you haven't slept (they still spawn and still go for other players); one you hurt hunts you until it loses you | Built |
+| Sustenance | 5 | 1/lvl | helmets | 4% less hunger drain per level from everything (V = 20%); multiplies with Endurance and Curse of Hunger | Built |
 
 ### Chestplate
 | Enchantment | Max | Cost | Fits | What it does | Status |
@@ -59,8 +59,8 @@ change needs a restart. See DESIGN §8.
 | Swift Sneak | 5 | 1/lvl | leggings | faster sneaking (capped at walking speed) | Vanilla |
 | Step Assist | 1 | 10 | leggings | step up full blocks without jumping | Built |
 | Anchored | 5 | 1/lvl | leggings | 10% knockback resistance per level against hits (not explosions) | Built |
-| Endurance | 5 | 1/lvl | leggings | sprinting costs 5% less hunger per level (V = 25%) | Planned |
-| Sure Footing | 3 | 1/lvl | leggings | a third less slowdown per level on soul sand and honey (III = none); powder snow comes in 10c | Built (powder snow planned) |
+| Endurance | 5 | 1/lvl | leggings | sprinting and sprint-jumping cost 5% less hunger per level (V = 25%) | Built |
+| Sure Footing | 3 | 1/lvl | leggings | a third less slowdown per level on soul sand, honey and powder snow (III = none); in powder snow you still sink and freeze | Built |
 
 ### Boots
 | Enchantment | Max | Cost | Fits | What it does | Status |

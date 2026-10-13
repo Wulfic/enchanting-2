@@ -3,7 +3,7 @@ package com.wulfnet.enchanting2.curse;
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.config.ServerConfigs;
 import com.wulfnet.enchanting2.effect.ModEffects;
-import net.minecraft.core.component.DataComponentType;
+import com.wulfnet.enchanting2.effect.WornEffects;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
@@ -11,8 +11,6 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.item.enchantment.LevelBasedValue;
 
 /**
  * Phase 10e: Curse of Weight and Curse of Hunger, which vanilla's effect components can't express. Both read our
@@ -36,7 +34,7 @@ public final class CurseEffects {
 		if (speed == null || !(entity.level() instanceof ServerLevel level)) {
 			return;
 		}
-		double sum = sum(entity, ModEffects.MOVEMENT_PENALTY);
+		double sum = WornEffects.sum(entity, ModEffects.MOVEMENT_PENALTY);
 		if (!Double.isFinite(sum)) {
 			Enchanting2.LOGGER.warn("Curse of Weight on {} sums to {}; ignoring it (a datapack's movement_penalty?)",
 					entity.getStringUUID(), sum);
@@ -55,7 +53,7 @@ public final class CurseEffects {
 
 	/** {@code amount} scaled by Hunger on the armor {@code player} wears; unchanged without it. */
 	public static float scaleExhaustion(Player player, float amount) {
-		double sum = sum(player, ModEffects.EXHAUSTION);
+		double sum = WornEffects.sum(player, ModEffects.EXHAUSTION);
 		if (sum == 0.0) {
 			return amount;
 		}
@@ -65,16 +63,5 @@ public final class CurseEffects {
 			return amount;
 		}
 		return amount * CurseMath.exhaustionFactor(sum);
-	}
-
-	private static double sum(LivingEntity entity, DataComponentType<LevelBasedValue> type) {
-		double[] total = {0.0};
-		EnchantmentHelper.runIterationOnEquipment(entity, (enchantment, level, item) -> {
-			LevelBasedValue value = enchantment.value().effects().get(type);
-			if (value != null) {
-				total[0] += value.calculate(level);
-			}
-		});
-		return total[0];
 	}
 }

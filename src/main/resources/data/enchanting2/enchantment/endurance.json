@@ -1,0 +1,27 @@
+{
+  "anvil_cost": 4,
+  "description": {
+    "translate": "enchantment.enchanting2.endurance"
+  },
+  "effects": {
+    "enchanting2:sprint_exhaustion_reduction": {
+      "type": "minecraft:linear",
+      "base": 0.05,
+      "per_level_above_first": 0.05
+    }
+  },
+  "max_cost": {
+    "base": 25,
+    "per_level_above_first": 8
+  },
+  "max_level": 5,
+  "min_cost": {
+    "base": 5,
+    "per_level_above_first": 8
+  },
+  "slots": [
+    "legs"
+  ],
+  "supported_items": "#minecraft:enchantable/leg_armor",
+  "weight": 2
+}

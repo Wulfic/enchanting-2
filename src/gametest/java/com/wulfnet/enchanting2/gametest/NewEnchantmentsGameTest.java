@@ -58,7 +58,7 @@ import net.minecraft.world.phys.Vec3;
 public class NewEnchantmentsGameTest {
 	private static final double EPSILON = 1.0E-6;
 
-	/** The max level of every enchantment in {@link ModEnchantments#KEYS}, as the TODO 10a and 10b tables say. */
+	/** The max level of every enchantment in {@link ModEnchantments#KEYS}, as DESIGN §9 says. */
 	private static final Map<ResourceKey<Enchantment>, Integer> MAX = Map.ofEntries(
 			Map.entry(ModEnchantments.WITHERING, 5),
 			Map.entry(ModEnchantments.POISONING, 5),
@@ -79,6 +79,11 @@ public class NewEnchantmentsGameTest {
 			Map.entry(ModEnchantments.STEP_ASSIST, 1),
 			Map.entry(ModEnchantments.ANCHORED, 5),
 			Map.entry(ModEnchantments.SURE_FOOTING, 3),
+			Map.entry(ModEnchantments.CALM_GAZE, 1),
+			Map.entry(ModEnchantments.PHANTOM_WARD, 1),
+			Map.entry(ModEnchantments.CLARITY, 3),
+			Map.entry(ModEnchantments.SUSTENANCE, 5),
+			Map.entry(ModEnchantments.ENDURANCE, 5),
 			Map.entry(ModEnchantments.FRAGILITY, 5),
 			Map.entry(ModEnchantments.GREED, 5),
 			Map.entry(ModEnchantments.FUMBLING, 5),
@@ -224,7 +229,17 @@ public class NewEnchantmentsGameTest {
 				new Case(ModEnchantments.ANCHORED, Items.NETHERITE_LEGGINGS, true),
 				new Case(ModEnchantments.ANCHORED, Items.NETHERITE_CHESTPLATE, false),
 				new Case(ModEnchantments.SURE_FOOTING, Items.DIAMOND_LEGGINGS, true),
-				new Case(ModEnchantments.SURE_FOOTING, Items.DIAMOND_BOOTS, false));
+				new Case(ModEnchantments.SURE_FOOTING, Items.DIAMOND_BOOTS, false),
+				new Case(ModEnchantments.CALM_GAZE, Items.TURTLE_HELMET, true),
+				new Case(ModEnchantments.CALM_GAZE, Items.CARVED_PUMPKIN, false),
+				new Case(ModEnchantments.PHANTOM_WARD, Items.LEATHER_HELMET, true),
+				new Case(ModEnchantments.PHANTOM_WARD, Items.LEATHER_BOOTS, false),
+				new Case(ModEnchantments.CLARITY, Items.NETHERITE_HELMET, true),
+				new Case(ModEnchantments.CLARITY, Items.NETHERITE_CHESTPLATE, false),
+				new Case(ModEnchantments.SUSTENANCE, Items.GOLDEN_HELMET, true),
+				new Case(ModEnchantments.SUSTENANCE, Items.GOLDEN_LEGGINGS, false),
+				new Case(ModEnchantments.ENDURANCE, Items.CHAINMAIL_LEGGINGS, true),
+				new Case(ModEnchantments.ENDURANCE, Items.CHAINMAIL_HELMET, false));
 		for (Case c : cases) {
 			boolean actual = get(helper, c.key()).value().isSupportedItem(new ItemStack(c.item()));
 			helper.assertValueEqual(c.supported(), actual,

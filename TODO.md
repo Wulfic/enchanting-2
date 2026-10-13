@@ -1497,6 +1497,70 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       - Table panel rows sorted by translated name (client, `TablePanelView`), JUnit on the sort, DESIGN §7.
 - [ ] 10d Balance pass: every candidate moves from REVIEW to INCLUDE/DEFER/REMOVE
 
+### Phase 10c — Mixin/network enchantments (owner order, 2026-10-12; decisions.md "10c order and eight design answers")
+**Order:** A helmet/leggings hooks → B boots (Lava Walking, Snow Walker) → C seven shields → D drops (Magnetic, Ender
+Link, Keep on Death) → E tools (Area Mining, Replant, Tiller) → F Quick Strike, Last Stand → G Speed, Flight, Double
+Jump. Each stage writes its plan here before code; each enchantment gets JSON + lang name + `.desc` + `non_treasure` and
+`tooltip_order` tags + a `LevelCeilings` row + a `PricingTable` row if single-level + docs/ENCHANTMENTS.md + DESIGN §9.
+**Rollback:** one commit per stage, `git revert <sha>`. Stage A writes no world data (all hooks read equipment live;
+Phantom Ward's provocation is a transient field).
+
+### Stage 10cA — Calm Gaze, Phantom Ward, Clarity, Sustenance, Endurance, Sure Footing on powder snow → commit  ✅ 2026-10-12
+**Not doing:** Calm Gaze on other gaze checks (only `EnderMan.isBeingStaredBy` reads the disguise; javap); Phantom Ward
+on insomnia spawning (owner); Clarity on any effect but the three in its JSON; Sustenance/Endurance on mobs (no food);
+Sure Footing on powder snow's vertical stuck factor (only x/z, so sinking/climbing stays vanilla) or freezing.
+**Hooks (javap 1.21.11):**
+- Calm Gaze: `EnderMan.isBeingStaredBy(Player)` (package-private; first line tests
+  `LivingEntity.PLAYER_NOT_WEARING_DISGUISE_ITEM`). HEAD, cancellable: false when the player's equipment carries
+  `enchanting2:gaze_disguise` (unit component). Server only by nature.
+- Phantom Ward: `Phantom.canAttack(ServerLevel, LivingEntity, TargetingConditions)` is re-checked by all three phantom
+  goals (target pick, attack strategy, sweep), so HEAD there: a target whose equipment carries
+  `enchanting2:ignored_by_phantoms` is refused unless provoked. Provoked = `@Unique UUID` on the phantom, set when
+  `getLastHurtByMob() == target` (vanilla's 100-tick memory) and kept while `getTarget() == target`; a check against
+  that target while it isn't the current target clears it (vanilla dropped it).
+- Clarity: `LivingEntity.addEffect(MobEffectInstance, Entity)` and `forceAddEffect(...)`, server only (the client
+  receives the already-shortened instance through `forceAddEffect`; shortening there too would double it). Component
+  `enchanting2:shorten_effects` `{effects: HolderSet<MobEffect>, fraction: LevelBasedValue}`; fractions for the incoming
+  effect summed over equipment, clamped [0, 1]. ≥ 1 → refused (infinite too); else `withScaledDuration(1 − f)` (infinite
+  stays infinite). Clarity JSON: blindness, darkness, nausea, `fraction` level / 3.
+- Sustenance: `enchanting2:exhaustion_reduction` (LevelBasedValue, summed, clamped [0, 1]) in the existing
+  `causeFoodExhaustion` hook: `amount × (1 + hunger) × (1 − reduction)`. 0.04/level, helmet.
+- Endurance: `enchanting2:sprint_exhaustion_reduction`, 0.05/level, leggings. `ServerPlayerMixin`, `@ModifyArg` on the
+  first `causeFoodExhaustion` after `isSprinting()` (`@Slice`) in `checkMovementStatistics` (0.1/m sprint) and
+  `jumpFromGround` (0.2 sprint-jump). It then still goes through Hunger and Sustenance, so all three multiply.
+- Sure Footing on powder snow: `PowderSnowBlock.entityInside` → `@ModifyArg` on `Entity.makeStuckInBlock`'s Vec3
+  (0.9, 1.5, 0.9): x and z become `lerp(movement_efficiency, 0.9, 1)` for a LivingEntity, the same formula as
+  `getBlockSpeedFactor`. Runs on both sides (the client moves the player); `movement_efficiency` is a synced attribute
+  (javap: `setSyncable(true)`). Soul Speed's own `movement_efficiency` is only added on soul-speed blocks, so it never
+  reaches powder snow.
+**Data:** `calm_gaze.json`, `phantom_ward.json` (I, head), `clarity.json` (III, head), `sustenance.json` (V, head),
+`endurance.json` (V, legs); weight 2, costs like Vision/Toughness. `ModEnchantments` keys, `ModEffects` four component
+types, tags, lang names + `.desc` (Sure Footing's `.desc` gains powder snow). `PricingTable` 10-rows for Calm Gaze and
+Phantom Ward. `LevelCeilings`: Calm Gaze, Phantom Ward soft 1; Clarity soft 3 (immune); Sustenance soft 25, Endurance
+soft 20 (no drain at all).
+**Tests (GameTest unless noted):**
+- Calm Gaze: a mock player looking straight at an enderman's eyes is "staring" bare-headed and not with the helmet.
+- Phantom Ward: `canAttack` true bare-headed, false warded; after the warded player hurts the phantom, true; still true
+  while it's the target; after `setTarget(null)` and the memory expired, false again. Another (unwarded) player stays
+  attackable.
+- Clarity: Blindness 300 ticks → I 200, II 100, III refused; Darkness infinite → I infinite, III refused; Speed 300
+  untouched at III; a zombie wearing Clarity III is immune (any wearer).
+- Sustenance V: one causeFoodExhaustion(1.0) → 0.8; with Hunger V on four pieces → 3.0 × 0.8 = 2.4.
+- Endurance V: sprint 1 m on a mock player through `checkMovementStatistics` → exhaustion 0.075 (0.1 × 0.75); walking
+  unchanged; sprint-jump 0.15 vs 0.2.
+- Sure Footing III in powder snow: stuck multiplier x/z 1.0, y 1.5; I → 0.9333; none → 0.9.
+- JUnit: the reduction math (clamp, multiply with Hunger), `PricingTable` 10s, ceiling rows (existing completeness tests
+  fail without them), lang completeness (existing).
+- Mutation run before commit: each hook off must fail its test.
+- ✅ 2026-10-12: 358 JUnit + 273 GameTests + client GameTests green (`WornEnchantmentsGameTest`, `WornMathTest`).
+  Mutation run (the three new mixins unregistered, Clarity/Sustenance/Endurance hooks passing through) fails exactly the
+  six new GameTests. Phantom Ward is tested on zombies: the mock player is creative, which `TargetingConditions`
+  never targets. Clarity rounds the shortened duration (vanilla's `withScaledDuration` floors, and the float 2/3 made
+  Clarity II on 300 ticks 99). Shared code: `effect/WornEffects` (moved `CurseEffects.sum` there), `effect/WornMath`.
+  Owner `runClient`: the five names and `.desc` lines, an enderman you stare at with a Calm Gaze helmet, a night
+  without sleep in a Phantom Ward helmet, a Warden's Darkness with Clarity I vs III, sprinting through powder snow
+  in Sure Footing III leggings.
+
 ### Phase 10e — Curses (three stages, one commit each)
 **Goal:** five new curses, each with a GameTest that fails if its effect breaks, and a per-level curse discount.
 **Not doing:** Hunger on held items (owner: armor only); changing Binding/Vanishing (stay level 1, 10%); curses on

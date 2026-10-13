@@ -3,11 +3,13 @@
 	"package": "com.wulfnet.enchanting2.gametest.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
+		"EnderManInvoker",
 		"EntityInvoker",
 		"ExperienceOrbAccessor",
 		"FoodDataAccessor",
 		"FishingHookAccessor",
-		"MobAccessor"
+		"MobAccessor",
+		"PhantomInvoker"
 	],
 	"injectors": {
 		"defaultRequire": 1
