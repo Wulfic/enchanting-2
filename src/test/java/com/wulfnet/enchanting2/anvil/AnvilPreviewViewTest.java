@@ -7,13 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.wulfnet.enchanting2.anvil.AnvilOutcome.Entry;
 import com.wulfnet.enchanting2.anvil.AnvilOutcome.Status;
-import com.wulfnet.enchanting2.anvil.AnvilPreviewView.Label;
 import com.wulfnet.enchanting2.anvil.TransferRules.Fate;
 import com.wulfnet.enchanting2.cost.CostBreakdown.Kind;
 import com.wulfnet.enchanting2.cost.CostBreakdown.Line;
 import com.wulfnet.enchanting2.cost.CostBreakdown;
 import com.wulfnet.enchanting2.enchantment.EnchantRules.Verdict;
 import com.wulfnet.enchanting2.screen.PanelText.Arg;
+import com.wulfnet.enchanting2.screen.PanelText.Label;
 import com.wulfnet.enchanting2.screen.PanelText.Msg;
 import com.wulfnet.enchanting2.screen.PanelText.Row;
 import com.wulfnet.enchanting2.screen.PanelText.Tone;

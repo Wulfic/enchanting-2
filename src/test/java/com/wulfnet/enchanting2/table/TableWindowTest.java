@@ -3,6 +3,7 @@ package com.wulfnet.enchanting2.table;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.wulfnet.enchanting2.screen.WindowPiece;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -41,9 +42,9 @@ class TableWindowTest {
 
 	@Test
 	void eachBackgroundBandCoversTheWholeWidthOnce() {
-		for (List<TableWindow.Piece> band : List.of(TableWindow.TOP, TableWindow.BAND, TableWindow.BOTTOM)) {
+		for (List<WindowPiece> band : List.of(TableWindow.TOP, TableWindow.BAND, TableWindow.BOTTOM)) {
 			int x = 0;
-			for (TableWindow.Piece piece : band) {
+			for (WindowPiece piece : band) {
 				assertEquals(x, piece.x(), "pieces are contiguous: " + band);
 				assertTrue(piece.u() + piece.uWidth() <= TableWindow.VANILLA_WIDTH, "inside the texture: " + piece);
 				x += piece.width();
@@ -55,7 +56,7 @@ class TableWindowTest {
 	/** The inventory grid is drawn unstretched and centred; its slots move by the same amount. */
 	@Test
 	void theInventoryGridIsCentred() {
-		TableWindow.Piece grid = TableWindow.BOTTOM.stream().filter(p -> p.uWidth() == p.width() && p.width() > 100)
+		WindowPiece grid = TableWindow.BOTTOM.stream().filter(p -> p.uWidth() == p.width() && p.width() > 100)
 				.findFirst().orElseThrow();
 		assertEquals(TableWindow.inventorySlotX(8) - 8, grid.x() - grid.u(), "slots move with the grid");
 		assertEquals(grid.x(), TableWindow.WIDTH - (grid.x() + grid.width()), "the same grey on both sides");

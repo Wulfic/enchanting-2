@@ -1335,7 +1335,7 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       Toughness, Health, Swiftness, Reach, XP Boost, Cushion. JSON + lang + tags +
       GameTest each. Plan and stages below. (Vision moved to 10b, owner 2026-10-09.)
 - [x] 10b Custom effect types (E): Vampirism, TrueShot Aura, Smelting, Beheading, Vision. Plan and stages below.
-- [ ] 10c Mixin/network (M): Quick Strike, Magnetic, Ender Link, Keep on Death, Double Jump,
+- [x] 10c Mixin/network (M): Quick Strike, Magnetic, Ender Link, Keep on Death, Double Jump,
       Lava Walking, Snow Walker, Flight, Speed, Area Mining, Replant, Tiller, Last Stand, Deflect, Shield Bash,
       Steadfast, Spiked, Bulwark, Riposte, Steady Stance (Spiked and Bulwark are E-route; built here with the shields),
       Calm Gaze, Clarity, Phantom Ward, Sustenance (helmet), Endurance (leggings).
@@ -1495,7 +1495,7 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
         than one dirt over a seeded run, a placed one exactly one; natural leaves with a Fortune hoe multiply.
         DESIGN §6 table + docs/ENCHANTMENTS.md Fortune row.
       - Table panel rows sorted by translated name (client, `TablePanelView`), JUnit on the sort, DESIGN §7.
-- [ ] 10l Table screen in the window (owner, 2026-10-13; decisions.md "10d rulings and the table screen rework"):
+- [x] 10l Table screen in the window (owner, 2026-10-13; decisions.md "10d rulings and the table screen rework"):
       the side panel "feels janky". Layout B (owner pick): window 51 px taller, book kept, the list in vanilla's offer
       box, price + Enchant under the item/lapis slots. Client only, plus one client-side slot offset. One commit, then
       the owner looks at it in `runClient` before it's final. Anvil/grindstone: decided after this (owner).
@@ -1540,6 +1540,7 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       ✅ v2 2026-10-13: JUnit (band pieces contiguous, grid centred, row zones), client GameTest (wider window fits
       854x480, slot moved in x and y, stepper on the row, last visible row picked in place). Keep-in-view logic removed:
       one-line rows never move on a pick.
+      ✅ Owner accepted v2 as final, 2026-10-13 ("looks good, finalize it").
 - [x] 10m Mob health multiplier (owner 2026-10-13): `mobs.health_multiplier` in common.json5, whole numbers 1–100,
       default 1, an integer slider in the config screen. Every non-player `LivingEntity` (bosses too). A transient
       `max_health` modifier `enchanting2:health_multiplier` (`add_multiplied_total`, multiplier − 1) put on at entity
@@ -1557,6 +1558,65 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       table's lapis total LAPIS); table rows "5 lvl" (no room for "levels"); table totals relabelled "Total"/"Lapis";
       `SidePanel` list mode deleted (unused since 10l). JUnit `PanelTextTest`; anvil client GameTest checks the total's
       unit.
+- [ ] 10o Anvil and grindstone in the window (owner 2026-10-13; decisions.md "Anvil and grindstone in the window:
+      full-height right column"). Tier 2: three commits (oA, oB, oC), each green on `./gradlew build` and
+      `./gradlew runClientGameTest`. Client only: no server logic, payloads, protocol or prices change.
+      **Geometry** (MC-free `screen/ColumnWindow` + JUnit; GUI px from the window's top-left):
+      - Both windows 296 × 166 (vanilla 176 + `EXTRA_WIDTH` 120). Vanilla's part untouched: slots, rename box, title,
+        "Inventory" label all where vanilla puts them. Fits 320 × 240 (smallest GUI-scaled screen) and 1080p at scale 4.
+      - Background in three pieces, full height: texture columns 0–170 as is; column 170 (plain grey rows 3–162,
+        straight border above and below, pixel-checked in both textures) stretched over x 170–290; the right border
+        (columns 170–176) at x 290.
+      - Box frame y 10 and 155 (7 px grey above and below), interior y 11–155 (144 tall). Right frame x 289, 3 px grey
+        before the border. Left frame: anvil x 172 (the rename box ends at 168), interior 116 wide; grindstone x 149
+        (texture plain from 146), interior 139 wide. Scroll bar 6 px at the interior's right edge, 1 px gap, villager
+        scroller sprite (as the table's).
+      - Anvil box: grey interior, inset frame, rows wrapped at 10 px lines (14 lines), amounts right-aligned, colours as
+        `SidePanel`'s today; no title line. Grindstone list: 12 px rows (12 in view), the table's row palette (beige,
+        pink picked, dark disabled), headings in tan on the brown interior, the instruction status as the last
+        (wrapped, muted) line.
+      - Grindstone label: price statuses (cost, free, gives XP, insufficient, too expensive) drawn where the anvil's
+        cost label is (y 69, right-aligned to x 168, vanilla's translucent strip, green/red, longest form that clears
+        "Inventory"). `GrindstonePanelView.label(...)`; `panel(...)` keeps the status line only for instructions.
+      **Behaviour:** wheel scrolls either box; the thumb drags; scroll resets when the left slot's item changes. A
+      click anywhere in the box never throws the carried item (inside the window now, so vanilla's own bounds do it).
+      Grindstone row hover → tooltip: full row text, the enchantment's `.desc` line, its price. On a vanilla server
+      both screens stay vanilla (176 wide, no box).
+      **Stages:**
+      - oA shared pieces, no visible change: `screen/ScrollModel` (scroll, clamp, thumb, drag; JUnit) with
+        `table/TableListModel` delegating to it (`TableListModelTest` unchanged and green proves it); `screen/WindowPiece`
+        replaces `TableWindow.Piece`; `screen/ColumnWindow` + `ColumnWindowTest`; client `ScrollBar` and `PickerStyle`
+        pulled out of `TableList`; `AnvilPreviewView.Label` moves to `PanelText.Label`.
+        ✅ oA 2026-10-13: 408 JUnit (+13: `ScrollModelTest`, `ColumnWindowTest`; `TableListModelTest` unchanged and
+        green), server GameTests and client GameTests green, table screenshots unchanged. The thumb's grab state moved
+        into `ScrollModel` too (`press`/`drag`/`release`). `ColumnWindowTest` caught the anvil box 1 px off (frame now
+        x 172: 3 px grey both sides).
+      - oB anvil: `AnvilScreenMixin` (width set at the constructor's TAIL so `init` centres the wide window; box at
+        `renderBg` TAIL; scroll input; label right edge = 176, not `imageWidth`); new `ItemCombinerScreenMixin` wraps
+        the background blit, anvil only (Smithing shares the class); client `AnvilBox`. Removes `AnvilPanelTab`, the
+        `ClientConfig` field, its `ConfigScreen` toggle and lang keys (`anvil.tab.*`, `anvil.panel.title`,
+        `config.display.show_preview_panel*`); `ClientConfig` rejects an old `anvil.show_preview_panel` as "no longer
+        used". DESIGN §2 (client.json5) + §6 anvil screen.
+      - oC grindstone: `GrindstoneScreenMixin` (width before `super.init()`, shift hack gone, background wrap, list,
+        label, scroll input); client `GrindstoneList`; `GrindstonePanelView.label`. Deletes `SidePanel`,
+        `SidePanelLayout` and `SidePanelLayoutTest` (owner approval needed: deleting a test). DESIGN §6 grindstone.
+      **Tests:** JUnit `ScrollModelTest`, `ColumnWindowTest`, `ClientConfigTest` (the two tooltip toggles round-trip;
+      an old file with the anvil key loads with one "no longer used" issue), `GrindstonePanelViewTest` on `label` and
+      the trimmed status line, `AnvilLangKeysTest`/grindstone lang walk. Client GameTests rewritten for the window:
+      anvil 296 wide and centred at 854×480, rename box at leftPos + 62, box text (price lines, skipped entry, total
+      with unit), a long breakdown scrolls by wheel, a box click keeps the carried item, 40,000 total, label clears
+      "Inventory"; grindstone 296 wide, extract by clicking a row, cleanse row, the label says "Enchantment Cost: 5",
+      a list click keeps the carried item; screenshots `enchanting2-anvil-*`, `enchanting2-grindstone-*` for the owner.
+      Replaced (owner approval): `SidePanelLayoutTest`; `ClientConfigTest`'s four panel-toggle tests; the anvil
+      test's `narrowScreenShiftsTheWindow` + `tabHidesPanelAndSavesClientConfig`; the grindstone test's
+      `narrowScreenShiftsTheWindow`.
+      **Not doing:** the table window (only its scroll maths and palette move into shared classes); server logic,
+      payloads, `NetworkProtocol.VERSION`; any vanilla-server screen; recipe-viewer integration code; a config option
+      for the width; other languages.
+      **Blast radius / rollback:** client screens and one client.json5 key. No world, server or common config data.
+      Each stage is one commit on main → `git revert <sha>` (oB and oC revert independently; reverting oA needs oB and
+      oC reverted first). client.json5: nothing rewrites it on load; a config-screen save after oB drops the old
+      `anvil` section, `.bak` written first; reverted code reads the missing key as its default (`true`).
 - [x] 10d Balance pass: every candidate moves from REVIEW to INCLUDE/DEFER/REMOVE  ✅ 2026-10-13 (owner ruled R1, R2, R3,
       R5 as drafted and R4 for Health and Last Stand only; everything else INCLUDE. New GameTests: the two treasure ones
       tagged like Mending and needing 15 shelves; JUnit Flight 6/level; the tag JUnit failed red before its update)

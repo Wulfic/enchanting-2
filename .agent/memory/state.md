@@ -90,10 +90,10 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
 - Tests: 395 JUnit + 329 GameTests (`./gradlew build`) + 7 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Next: the owner's look at the table window in `runClient` (10l v2: 248 wide, one-line rows, list in the box,
-   Enchant under the slots), the "Mobs" slider and the unit labels; adjust from that. Then decide the anvil and
-   grindstone panels (owner: after the table). A new enchantment still adds a `LevelCeilings` row, a `.desc` line,
-   tags, a price row if single-level, docs rows.
+1. In progress: 10o, anvil and grindstone in the window (TODO.md "10o", decisions.md 2026-10-13 "full-height right
+   column"); stages oA (shared) → oB (anvil) → oC (grindstone), one commit each. Owner approved deleting/replacing
+   the side-panel tests listed there. Table window 10l v2 accepted by the owner. A new enchantment still adds a
+   `LevelCeilings` row, a `.desc` line, tags, a price row if single-level, docs rows.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
    ~1,000,000) + 6D: panel look, config screen "Display" toggle, and a vanilla server keeping the vanilla anvil screen +
    6bC: grindstone panel look, and a vanilla server keeping the vanilla grindstone + 7D: table panel and window look

@@ -16,6 +16,7 @@ import com.wulfnet.enchanting2.screen.PanelText.Msg;
 import com.wulfnet.enchanting2.screen.PanelText.Row;
 import com.wulfnet.enchanting2.screen.PanelText.Tone;
 import com.wulfnet.enchanting2.screen.PanelText.Zone;
+import com.wulfnet.enchanting2.screen.WindowPiece;
 import com.wulfnet.enchanting2.table.TableBridge;
 import com.wulfnet.enchanting2.table.TableListModel.Hit;
 import com.wulfnet.enchanting2.table.TableOutcome.Status;
@@ -148,9 +149,9 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 	/** Texture rows {@code [v, v + vHeight)} drawn {@code height} tall at {@code y}, piece by piece across. */
 	@Unique
 	private static void enchanting2$band(GuiGraphics graphics, RenderPipeline pipeline, Identifier texture,
-			List<TableWindow.Piece> pieces, int x, int y, int v, int vHeight, int height, int textureWidth,
+			List<WindowPiece> pieces, int x, int y, int v, int vHeight, int height, int textureWidth,
 			int textureHeight) {
-		for (TableWindow.Piece piece : pieces) {
+		for (WindowPiece piece : pieces) {
 			graphics.blit(pipeline, texture, x + piece.x(), y, piece.u(), v, piece.width(), height, piece.uWidth(),
 					vHeight, textureWidth, textureHeight);
 		}

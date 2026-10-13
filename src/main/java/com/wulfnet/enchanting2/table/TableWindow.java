@@ -1,5 +1,7 @@
 package com.wulfnet.enchanting2.table;
 
+import com.wulfnet.enchanting2.screen.ScrollModel;
+import com.wulfnet.enchanting2.screen.WindowPiece;
 import java.util.List;
 
 /**
@@ -24,22 +26,15 @@ public final class TableWindow {
 	/** A texture row that is plain window grey across (borders included), stretched to fill {@link #EXTRA}. */
 	public static final int BAND_ROW = 76;
 
-	/**
-	 * One horizontal piece of a background band: texture columns {@code [u, u + uWidth)} drawn over
-	 * {@code [x, x + width)}, stretched when the widths differ.
-	 */
-	public record Piece(int u, int uWidth, int x, int width) {
-	}
-
 	/** The top band: the left part as is (title, book, slots), a plain grey column stretched over the old box, the right border. */
-	public static final List<Piece> TOP = List.of(new Piece(0, 58, 0, 58), new Piece(58, 1, 58, WIDTH - 58 - 6),
-			new Piece(170, 6, WIDTH - 6, 6));
+	public static final List<WindowPiece> TOP = List.of(new WindowPiece(0, 58, 0, 58),
+			new WindowPiece(58, 1, 58, WIDTH - 58 - 6), new WindowPiece(170, 6, WIDTH - 6, 6));
 	/** The grey band and the bottom (inventory) band: borders kept, the inventory grid centred, grey on both sides. */
-	public static final List<Piece> BAND = List.of(new Piece(0, 4, 0, 4), new Piece(4, 1, 4, WIDTH - 8),
-			new Piece(172, 4, WIDTH - 4, 4));
-	public static final List<Piece> BOTTOM = List.of(new Piece(0, 4, 0, 4), new Piece(4, 1, 4, EXTRA_WIDTH / 2),
-			new Piece(4, 168, 4 + EXTRA_WIDTH / 2, 168), new Piece(170, 1, 172 + EXTRA_WIDTH / 2, EXTRA_WIDTH / 2),
-			new Piece(172, 4, WIDTH - 4, 4));
+	public static final List<WindowPiece> BAND = List.of(new WindowPiece(0, 4, 0, 4),
+			new WindowPiece(4, 1, 4, WIDTH - 8), new WindowPiece(172, 4, WIDTH - 4, 4));
+	public static final List<WindowPiece> BOTTOM = List.of(new WindowPiece(0, 4, 0, 4),
+			new WindowPiece(4, 1, 4, EXTRA_WIDTH / 2), new WindowPiece(4, 168, 4 + EXTRA_WIDTH / 2, 168),
+			new WindowPiece(170, 1, 172 + EXTRA_WIDTH / 2, EXTRA_WIDTH / 2), new WindowPiece(172, 4, WIDTH - 4, 4));
 
 	/** One list line per entry. */
 	public static final int LINE = 12;
@@ -53,7 +48,7 @@ public final class TableWindow {
 	public static final int ROW_WIDTH = LIST_WIDTH - SCROLLBAR_WIDTH - 1;
 	public static final int SCROLLBAR_X = LIST_X + ROW_WIDTH + 1;
 	/** Vanilla's villager-trade scroller sprite. */
-	public static final int THUMB_HEIGHT = 27;
+	public static final int THUMB_HEIGHT = ScrollModel.THUMB_HEIGHT;
 
 	/**
 	 * A row, as x ranges from its left edge: the name from {@link #NAME_LEFT} up to {@link #NAME_RIGHT}, then (picked)

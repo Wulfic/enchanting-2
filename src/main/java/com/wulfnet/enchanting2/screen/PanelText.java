@@ -6,9 +6,9 @@ import java.util.Optional;
 import java.util.OptionalLong;
 
 /**
- * What a side panel says, as lang keys with typed arguments: the anvil's cost panel and the grindstone's picker. Pure,
- * so the views that build it are unit-tested; the client only turns {@link Msg}s into components (enchantment names,
- * level numerals, the item's name).
+ * What a screen's panel says, as lang keys with typed arguments: the anvil's breakdown, the grindstone's picker, the
+ * table's list. Pure, so the views that build it are unit-tested; the client only turns {@link Msg}s into components
+ * (enchantment names, level numerals, the item's name).
  */
 public final class PanelText {
 	private PanelText() {
@@ -101,6 +101,34 @@ public final class PanelText {
 		/** The amount with its unit, if there is one. */
 		public Optional<Msg> amountText() {
 			return amount.isPresent() ? Optional.of(PanelText.amount(amount.getAsLong(), unit)) : Optional.empty();
+		}
+	}
+
+	/**
+	 * A cost label drawn in vanilla's place beside the "Inventory" label: the anvil's, and the grindstone's price (10o).
+	 *
+	 * @param forms the same message from longest to shortest; the screen draws the first that fits beside the
+	 *              "Inventory" label, else the last
+	 */
+	public record Label(List<Msg> forms, Tone tone) {
+		public Label {
+			forms = List.copyOf(forms);
+			if (forms.isEmpty()) {
+				throw new IllegalArgumentException("a label needs at least one form");
+			}
+			Objects.requireNonNull(tone, "tone");
+		}
+
+		public static Label of(Tone tone, Msg... forms) {
+			return new Label(List.of(forms), tone);
+		}
+
+		public Msg full() {
+			return forms.getFirst();
+		}
+
+		public Msg compact() {
+			return forms.getLast();
 		}
 	}
 

@@ -24,10 +24,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.item.ItemStack;
 
@@ -38,34 +36,6 @@ import net.minecraft.world.item.ItemStack;
  * live in {@link TableListModel}; this draws it and builds the hover tooltip.
  */
 public final class TableList {
-	private static final Identifier SCROLLER = Identifier.withDefaultNamespace("container/villager/scroller");
-	private static final Identifier SCROLLER_DISABLED = Identifier.withDefaultNamespace(
-			"container/villager/scroller_disabled");
-
-	/** A row's light top-left edge, body and dark bottom-right edge, from vanilla's three offer sprites. */
-	private record Palette(int light, int body, int dark) {
-	}
-
-	private static final Palette NORMAL = new Palette(0xFFE0CA9F, 0xFFA09172, 0xFF544C3B);
-	/** Not a vanilla sprite: the normal beige a step lighter, so hovering differs from picking. */
-	private static final Palette HOVERED = new Palette(0xFFF0DEB6, 0xFFB8A784, 0xFF6A6049);
-	private static final Palette PICKED = new Palette(0xFFFAB9EF, 0xFFB688AE, 0xFF654C61);
-	private static final Palette DISABLED = new Palette(0xFF211D17, 0xFF51493A, 0xFF332E24);
-
-	/**
-	 * Name colours. Vanilla's own offer text (0x685E4A) is too faint on beige at this size, so a darker brown; a
-	 * picked name is vanilla's hovered-offer yellow; an unpickable one a muted tan that still reads on the dark row.
-	 */
-	private static final int LABEL = 0xFF3B3326;
-	private static final int LABEL_HOVERED = 0xFFFFFF80;
-	private static final int LABEL_DISABLED = 0xFF9A8C70;
-	private static final int BAD = 0xFFFF6060;
-	private static final int PRICE = 0xFF80FF20;
-	/** The box: vanilla's inset frame, and the dark level-icon column's brown behind the rows. */
-	private static final int FRAME_DARK = 0xFF373737;
-	private static final int FRAME_LIGHT = 0xFFFFFFFF;
-	private static final int INTERIOR = 0xFF51493A;
-	private static final int TRACK = 0xFF211D17;
 	private static final String ELLIPSIS = "…";
 	private static final int TEXT_Y = 2;
 
@@ -78,8 +48,6 @@ public final class TableList {
 	private List<String> lastTooltip = List.of();
 	private int left;
 	private int top;
-	/** The thumb is held: where in it the press landed. */
-	private OptionalInt grab = OptionalInt.empty();
 
 	public TableList(Font font) {
 		this.font = font;
@@ -118,11 +86,7 @@ public final class TableList {
 
 		int right = left + TableWindow.LIST_WIDTH;
 		int bottom = top + TableWindow.LIST_HEIGHT;
-		graphics.fill(left - 1, top - 1, right + 1, top, FRAME_DARK);
-		graphics.fill(left - 1, top, left, bottom + 1, FRAME_DARK);
-		graphics.fill(left, bottom, right + 1, bottom + 1, FRAME_LIGHT);
-		graphics.fill(right, top, right + 1, bottom, FRAME_LIGHT);
-		graphics.fill(left, top, right, bottom, INTERIOR);
+		PickerStyle.box(graphics, left, top, right, bottom, PickerStyle.INTERIOR);
 
 		Optional<Hit> hovered = hit(mouseX, mouseY);
 		graphics.enableScissor(left, top, left + TableWindow.ROW_WIDTH, bottom);
@@ -140,10 +104,7 @@ public final class TableList {
 		}
 		graphics.disableScissor();
 
-		int trackX = windowLeft + TableWindow.SCROLLBAR_X;
-		graphics.fill(trackX, top, trackX + TableWindow.SCROLLBAR_WIDTH, bottom, TRACK);
-		graphics.blitSprite(RenderPipelines.GUI_TEXTURED, model.maxScroll() > 0 ? SCROLLER : SCROLLER_DISABLED, trackX,
-				top + model.thumbTop(), TableWindow.SCROLLBAR_WIDTH, TableWindow.THUMB_HEIGHT);
+		ScrollBar.draw(graphics, model.scrolling(), windowLeft + TableWindow.SCROLLBAR_X, top);
 
 		lastTooltip = List.of();
 		hoveredEntry(mouseX, mouseY).ifPresent(entry -> {
@@ -161,29 +122,24 @@ public final class TableList {
 	private void drawEntry(GuiGraphics graphics, Entry entry, Function<Msg, Component> text, int y, boolean hover,
 			Optional<Zone> zone) {
 		int height = TableWindow.LINE;
-		Palette palette = entry.selected() ? PICKED
-				: !entry.clickable() ? DISABLED
-				: hover ? HOVERED
-				: NORMAL;
+		PickerStyle.Palette palette = entry.selected() ? PickerStyle.PICKED
+				: !entry.clickable() ? PickerStyle.DISABLED
+				: hover ? PickerStyle.HOVERED
+				: PickerStyle.NORMAL;
 		int x = left;
-		int right = x + TableWindow.ROW_WIDTH;
-		graphics.fill(x, y, right, y + height, palette.body());
-		graphics.fill(x, y, right, y + 1, palette.light());
-		graphics.fill(x, y, x + 1, y + height, palette.light());
-		graphics.fill(x, y + height - 1, right, y + height, palette.dark());
-		graphics.fill(right - 1, y, right, y + height, palette.dark());
+		PickerStyle.row(graphics, palette, x, y, x + TableWindow.ROW_WIDTH, height);
 
-		int color = entry.row().tone() == Tone.BAD ? BAD
-				: !entry.clickable() ? LABEL_DISABLED
-				: entry.selected() ? LABEL_HOVERED
-				: LABEL;
+		int color = entry.row().tone() == Tone.BAD ? PickerStyle.BAD
+				: !entry.clickable() ? PickerStyle.LABEL_DISABLED
+				: entry.selected() ? PickerStyle.LABEL_HOVERED
+				: PickerStyle.LABEL;
 		int nameRight = entry.stepper().isPresent() ? TableWindow.NAME_RIGHT : TableWindow.COST_RIGHT;
 		String name = fit(drawnNames.get(entry.id()), nameRight - TableWindow.NAME_LEFT);
 		graphics.drawString(font, name, x + TableWindow.NAME_LEFT, y + TEXT_Y, color, entry.selected());
 		if (entry.row().amount().isPresent()) {
 			String cost = fit(Component.translatable(TablePanelView.KEY + "row.cost", entry.row().amount().getAsLong())
 					.getString(), TableWindow.COST_WIDTH);
-			graphics.drawString(font, cost, x + TableWindow.COST_RIGHT - font.width(cost), y + TEXT_Y, PRICE, true);
+			graphics.drawString(font, cost, x + TableWindow.COST_RIGHT - font.width(cost), y + TEXT_Y, PickerStyle.PRICE, true);
 		}
 		if (entry.stepper().isPresent()) {
 			Stepper stepper = entry.stepper().get();
@@ -195,7 +151,7 @@ public final class TableList {
 			String level = text.apply(stepper.label()).getString();
 			int levelWidth = TableWindow.INCREASE_LEFT - TableWindow.LEVEL_LEFT;
 			graphics.drawString(font, fit(level, levelWidth), x + TableWindow.LEVEL_LEFT
-					+ Math.max(0, (levelWidth - font.width(level)) / 2), lineY, LABEL_HOVERED, true);
+					+ Math.max(0, (levelWidth - font.width(level)) / 2), lineY, PickerStyle.LABEL_HOVERED, true);
 			drawArrow(graphics, ">", x + TableWindow.INCREASE_LEFT, TableWindow.INCREASE_RIGHT - TableWindow.INCREASE_LEFT,
 					lineY, stepper.canIncrease(), overIncrease);
 		}
@@ -203,7 +159,9 @@ public final class TableList {
 
 	private void drawArrow(GuiGraphics graphics, String arrow, int x, int width, int y, boolean enabled,
 			boolean hovered) {
-		int color = !enabled ? PICKED.dark() : hovered ? FRAME_LIGHT : LABEL_HOVERED;
+		int color = !enabled ? PickerStyle.PICKED.dark()
+				: hovered ? PickerStyle.FRAME_LIGHT
+				: PickerStyle.LABEL_HOVERED;
 		graphics.drawString(font, arrow, x + (width - font.width(arrow)) / 2, y, color, enabled);
 		if (enabled && hovered) {
 			graphics.requestCursor(CursorTypes.POINTING_HAND);
@@ -238,9 +196,7 @@ public final class TableList {
 	}
 
 	public boolean overScrollBar(double mouseX, double mouseY) {
-		int trackX = left + TableWindow.ROW_WIDTH + 1;
-		return mouseX >= trackX && mouseX < trackX + TableWindow.SCROLLBAR_WIDTH && mouseY >= top
-				&& mouseY < top + TableWindow.LIST_HEIGHT;
+		return ScrollBar.over(model.scrolling(), scrollBarX(), top, mouseX, mouseY);
 	}
 
 	public Optional<Hit> hit(double mouseX, double mouseY) {
@@ -259,26 +215,16 @@ public final class TableList {
 
 	/** A press on the scroll bar: holds the thumb, or (on the track) centres it on the mouse first. */
 	public void press(double mouseY) {
-		double y = mouseY - top;
-		if (model.overThumb(y)) {
-			grab = OptionalInt.of((int) Math.floor(y) - model.thumbTop());
-		} else {
-			grab = OptionalInt.of(TableWindow.THUMB_HEIGHT / 2);
-			model.dragThumb(y, grab.getAsInt());
-		}
+		model.scrolling().press(mouseY - top);
 	}
 
 	/** @return whether the thumb is held, so the drag was the list's */
 	public boolean drag(double mouseY) {
-		if (grab.isEmpty()) {
-			return false;
-		}
-		model.dragThumb(mouseY - top, grab.getAsInt());
-		return true;
+		return model.scrolling().drag(mouseY - top);
 	}
 
 	public void release() {
-		grab = OptionalInt.empty();
+		model.scrolling().release();
 	}
 
 	public void scroll(double notches) {

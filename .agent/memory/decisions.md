@@ -1253,3 +1253,23 @@ Applies to `Mob`, not every `LivingEntity` (armor stands have no use for it).
 **Rejected:** transient + the 10a saved-health restore (that restore only raises health, so a share-scaled heal on
 load still wins); keeping vanilla's cap (owner).
 **Affects:** mobs/MobHealth, mixin/AttributesMixin, config/MobsSection, ServerConfigs.reload, DESIGN §2a + §6
+
+## 2026-10-13 — Anvil and grindstone in the window: full-height right column (owner)
+**Context:** the owner accepted the 10l v2 table window ("looks good, finalize") and had left the anvil and
+grindstone side panels to be decided after it (they "feel janky", decisions.md "10d rulings").
+**Choice (owner):** both move into the window. Mocked first as a top-half box with the inventory centred; that leaves
+~50 px for the anvil's "Enchantment Cost: 9" (~95 px) beside the moved "Inventory" label, so the owner picked the
+variant: vanilla's window untouched on the left, the window 120 px wider (296 x 166), and one box running the full
+height of the new right column (the villager trade list's shape, mirrored). Anvil: read-only breakdown, 10 px wrapped
+lines, scroll bar. Grindstone: table-style picker rows (beige / pink picked / dark disabled), 12 px, scroll bar, hover
+tooltips with descriptions. The anvil's show/hide tab, `client.json5` `anvil.show_preview_panel` and its config-screen
+toggle are removed; an old file's key is reported "no longer used" (not "typo?") and otherwise ignored.
+Agent detail: the grindstone's price statuses (cost, free, insufficient, too expensive) draw where the anvil's cost
+label is, in vanilla's green/red; its long instructions ("Pick an action above.") stay as the list's last line, since
+they can be ~400 px wide and the label spot has ~110.
+**Why:** one look across all three screens; nothing drawn outside the window, so recipe viewers (which read the
+window's bounds) lay out around it — the reason the 6D panel avoided the right side no longer applies.
+**Rejected:** top-half box with centred inventory (label squeeze); taller windows (240 px minimum GUI height leaves
+~60 px); keeping the tab as a collapse toggle (a window that changes size on click).
+**Affects:** AnvilScreenMixin, GrindstoneScreenMixin, new ItemCombinerScreenMixin, screen/ColumnWindow, ScrollModel,
+ClientConfig, ConfigScreen; deletes SidePanel, SidePanelLayout, AnvilPanelTab

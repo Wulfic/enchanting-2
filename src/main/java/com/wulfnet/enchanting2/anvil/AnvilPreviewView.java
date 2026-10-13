@@ -6,13 +6,13 @@ import com.wulfnet.enchanting2.anvil.TransferRules.Fate;
 import com.wulfnet.enchanting2.cost.CostBreakdown;
 import com.wulfnet.enchanting2.enchantment.EnchantRules.Verdict;
 import com.wulfnet.enchanting2.screen.PanelText.Arg;
+import com.wulfnet.enchanting2.screen.PanelText.Label;
 import com.wulfnet.enchanting2.screen.PanelText.Msg;
 import com.wulfnet.enchanting2.screen.PanelText.Row;
 import com.wulfnet.enchanting2.screen.PanelText.Tone;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
@@ -29,32 +29,6 @@ public final class AnvilPreviewView {
 	public static final String VANILLA_TOO_EXPENSIVE = "container.repair.expensive";
 
 	private AnvilPreviewView() {
-	}
-
-	/**
-	 * @param forms the same message from longest to shortest; the screen draws the first that fits beside the
-	 *              "Inventory" label, else the last
-	 */
-	public record Label(List<Msg> forms, Tone tone) {
-		public Label {
-			forms = List.copyOf(forms);
-			if (forms.isEmpty()) {
-				throw new IllegalArgumentException("a label needs at least one form");
-			}
-			Objects.requireNonNull(tone, "tone");
-		}
-
-		static Label of(Tone tone, Msg... forms) {
-			return new Label(List.of(forms), tone);
-		}
-
-		public Msg full() {
-			return forms.getFirst();
-		}
-
-		public Msg compact() {
-			return forms.getLast();
-		}
 	}
 
 	/**
