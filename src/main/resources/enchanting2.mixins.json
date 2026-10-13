@@ -26,6 +26,7 @@
 		"GrindstoneResultSlotMixin",
 		"HolderReferenceAccessor",
 		"IngredientMixin",
+		"InventoryMixin",
 		"ItemUtilsMixin",
 		"LavaFluidMixin",
 		"LiquidBlockMixin",

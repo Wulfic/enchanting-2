@@ -1780,6 +1780,37 @@ one pickaxe → the ender chest first, then the inventory. Mutation run: each ho
   Owner `runClient`: mining with Magnetic (items in the inventory, XP straight to you, a full inventory spilling),
   Ender Link into the ender chest, a Magnetic sword kill.
 
+#### 10cDB — Keep on Death  ✅ 2026-10-12
+**Owner (decisions.md "10c order and eight design answers"):** free, forever: back in its slot on respawn, enchantment
+kept; which items take it stays configurable.
+**Hooks (javap 1.21.11):** `Player.dropEquipment` (only without keepInventory) runs `destroyVanishingCursedItems`, then
+`Inventory.dropAll` (the 36 main slots, then `EntityEquipment.dropAll`: armor, off hand). `@WrapMethod` on
+`Inventory.dropAll`: take every Keep on Death stack out of its slot (all `getContainerSize()` slots, equipment
+included), run vanilla, put them back. They stay in the dead player's inventory, so a logout on the death screen saves
+them. On respawn, Fabric's `ServerPlayerEvents.COPY_FROM` (end of `restoreFrom`) with `alive` false moves each one into
+the same slot of the new player, only where that slot is empty (with keepInventory vanilla already copied everything,
+so nothing doubles), and clears the old slot.
+- Curse of Vanishing still wins: it's destroyed before `dropAll`.
+- Which items: `supported_items` `#enchanting2:enchantable/keep_on_death` = `#minecraft:enchantable/durability` by
+  default (datapacks change it; **agent reading** of "configurable", recorded; owner to confirm whether it needs a
+  config-screen list too). Component `enchanting2:keep_on_death` (unit), slots any.
+**Not doing:** graves mods (if one empties the inventory first, there's nothing left for us); mob equipment.
+**Data:** `keep_on_death.json` (I, weight 2, Calm Gaze costs), the tag, `PricingTable` 10 row, `LevelCeilings` soft
+1, tags, lang + `.desc`.
+**Tests (GameTest, survival mock player):** a Keep on Death pickaxe in slot 3 and helmet worn, plain dirt in slot 4,
+and a Keep on Death + Vanishing sword: after `die()` the dirt is on the ground, the pickaxe and helmet are still in
+their slots and not on the ground, the sword is gone; a second mock player `restoreFrom(dead, false)` gets the pickaxe
+in slot 3 and the helmet on its head, and the dead one's slots are empty. `restoreFrom(alive, true)` (the
+keepInventory/end-portal path) leaves exactly one pickaxe. Mutation run: each hook off fails a test.
+- ✅ 2026-10-12: 361 JUnit + 299 GameTests (`KeepOnDeathGameTest`, three) + 6 client GameTests green. Changed from the
+  plan: a slot something else took on respawn sends the kept item anywhere in the inventory, then to the ground,
+  instead of leaving it on the discarded old player (tested). keepInventory is simulated by hand (`replaceWith`
+  before `restoreFrom`): the gamerule is shared by every concurrent test. Mutations (three runs): the `dropAll` wrapper,
+  the `COPY_FROM` registration, and the already-copied skip each fail; the skip first survived a count-only check
+  (`Inventory.add` moves a shared stack, it doesn't double it), so the test also checks the slot. Phase 10cD complete.
+  Owner `runClient`: die with a Keep on Death pickaxe and armor (back in place on respawn), with keepInventory on (no
+  doubles), and with Curse of Vanishing on the same item (gone).
+
 ### Phase 10e — Curses (three stages, one commit each)
 **Goal:** five new curses, each with a GameTest that fails if its effect breaks, and a per-level curse discount.
 **Not doing:** Hunger on held items (owner: armor only); changing Binding/Vanishing (stay level 1, 10%); curses on

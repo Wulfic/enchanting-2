@@ -254,7 +254,7 @@ Silk Touch and Fortune can share a tool in this mod. By default Fortune never mu
 |---|---|---|---|---|---|
 | Unbreaking | 5 | 1/lvl | anything with durability | uses durability more slowly | Vanilla |
 | Mending | 1 | 2 + 2 per other level | anything with durability (every item it can repair) | XP repairs the item | Vanilla |
-| Keep on Death | 1 | 10 † | durables (configurable) | kept through death | Planned |
+| Keep on Death | 1 | 10 | durables (the item tag `enchanting2:enchantable/keep_on_death`, datapacks change it) | never dropped on death, back in the same slot on respawn, free; Curse of Vanishing still destroys it | Built |
 
 "Anything with durability" means armor, elytra, shield, swords, axes, pickaxes, shovels, hoes, spears, the mace, bow,
 crossbow, trident, flint and steel, shears, brush, fishing rod and the two on-a-stick items: every vanilla item that

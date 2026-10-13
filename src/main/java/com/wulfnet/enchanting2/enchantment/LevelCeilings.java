@@ -139,6 +139,7 @@ public final class LevelCeilings {
 		t.put("enchanting2:shield_bash", NONE);
 		t.put("enchanting2:magnetic", soft(1));
 		t.put("enchanting2:ender_link", soft(1));
+		t.put("enchanting2:keep_on_death", soft(1));
 		TABLE = Map.copyOf(t);
 	}
 

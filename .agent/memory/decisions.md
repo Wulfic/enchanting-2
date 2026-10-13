@@ -1149,3 +1149,14 @@ killed; a bow counts for its arrow), read where items (`Block.popResource`, `Ent
 **Rejected:** an exclusive set (against §4 and its test); `LootTableEvents.MODIFY_DROPS` (misses a mob's held and
 worn gear and XP); giving XP points directly (Mending only works through orbs).
 **Affects:** drops/DropRedirect, mixin/BlockMixin, mixin/EntityMixin, mixin/ExperienceOrbMixin, mixin/LivingEntityMixin
+
+## 2026-10-12 — Keep on Death keeps items in the dead player's inventory; items by tag (agent, 10cDB)
+**Context:** owner: free, forever, back in its slot, "which items take it stays configurable".
+**Choice:** `Inventory.dropAll` leaves kept stacks in their slots, so they're saved with a player who logs out on the
+death screen; Fabric `COPY_FROM` moves them to the same slots on respawn, skipping stacks keepInventory or the end
+portal already copied, and sending one whose slot something else took anywhere else (then the ground), never leaving
+it on the discarded old player. Items: `supported_items` = tag `enchanting2:enchantable/keep_on_death`, default
+`#minecraft:enchantable/durability`, so a datapack configures it (owner asked whether a screen list is wanted).
+**Rejected:** a side stash on the old player (lost if the player logs out while dead); a config-screen item list
+without the owner asking (big UI for a rare setting); dropping a kept item when its slot is taken.
+**Affects:** drops/KeepOnDeath, mixin/InventoryMixin

@@ -3,6 +3,7 @@ package com.wulfnet.enchanting2;
 import com.wulfnet.enchanting2.acquisition.Acquisition;
 import com.wulfnet.enchanting2.bucket.InfiniteBuckets;
 import com.wulfnet.enchanting2.config.ServerConfigs;
+import com.wulfnet.enchanting2.drops.KeepOnDeath;
 import com.wulfnet.enchanting2.effect.HeadDrops;
 import com.wulfnet.enchanting2.effect.ModEffects;
 import com.wulfnet.enchanting2.effect.NightVisionTicker;
@@ -25,6 +26,7 @@ public final class Enchanting2 implements ModInitializer {
 	public void onInitialize() {
 		ModEffects.register();
 		BulwarkEffect.register();
+		KeepOnDeath.register();
 		CollectedSpawners.register();
 		InfiniteBuckets.register();
 		ServerNetworking.registerPayloads();
