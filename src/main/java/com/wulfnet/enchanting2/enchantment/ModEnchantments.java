@@ -65,6 +65,7 @@ public final class ModEnchantments {
 	public static final ResourceKey<Enchantment> LAST_STAND = key("last_stand");
 	public static final ResourceKey<Enchantment> SPEED = key("speed");
 	public static final ResourceKey<Enchantment> FLIGHT = key("flight");
+	public static final ResourceKey<Enchantment> DOUBLE_JUMP = key("double_jump");
 
 	public static final List<ResourceKey<Enchantment>> KEYS = List.of(
 			WITHERING, POISONING, FREEZING, ATTACK_SPEED, CRITICAL_STRIKE, REACH, XP_BOOST, TOUGHNESS, HEALTH,
@@ -73,7 +74,7 @@ public final class ModEnchantments {
 			HUNGER, LAVA_WALKING, SNOW_WALKER, STEADFAST, SPIKED, BULWARK, RIPOSTE,
 			DEFLECT, STEADY_STANCE, SHIELD_BASH, MAGNETIC, ENDER_LINK,
 			KEEP_ON_DEATH, AREA_MINING, REPLANT, TILLER, QUICK_STRIKE,
-			LAST_STAND, SPEED, FLIGHT);
+			LAST_STAND, SPEED, FLIGHT, DOUBLE_JUMP);
 
 	/**
 	 * Our curses (DESIGN §5a, Phase 10e), a subset of {@link #KEYS}. They're tagged like vanilla's Binding and

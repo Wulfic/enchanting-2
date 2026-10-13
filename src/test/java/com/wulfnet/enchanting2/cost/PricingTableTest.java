@@ -42,7 +42,7 @@ class PricingTableTest {
 				"enchanting2:phantom_ward", "enchanting2:lava_walking", "enchanting2:snow_walker",
 				"enchanting2:steady_stance", "enchanting2:magnetic", "enchanting2:ender_link",
 				"enchanting2:keep_on_death", "enchanting2:area_mining",
-				"enchanting2:replant")) {
+				"enchanting2:replant", "enchanting2:double_jump")) {
 			assertEquals(new Pricing(10, 0, UpgradeMode.LEVEL_DIFFERENCE, 0, 10), PricingTable.builtIn().get(id), id);
 		}
 	}

@@ -515,3 +515,8 @@ rounded that down one time in ten million. A latent 10eB bug, caught by a long r
 **Fix:** values within 1e-5 (relative) of a whole number count as whole and draw no roll. JUnit
 `floatErrorNextToAWholeValueIsNotAFraction`.
 **Affects:** enchantment/StochasticRounding
+
+## 2026-10-13 — Client GameTest: `pressKey` is a click, not a hold
+**Trap:** `TestInput.pressKey` presses and releases before the tick runs, so anything read through `KeyMapping.isDown()`
+(jump, sneak, sprint) never sees it; click-counted keys (attack, use via `consumeClick`) do.
+**Fix:** `holdKeyFor(options -> options.keyJump, 2)`. Affects: DoubleJumpClientGameTest

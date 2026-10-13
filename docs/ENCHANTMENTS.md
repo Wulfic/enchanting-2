@@ -70,7 +70,7 @@ change needs a restart. See DESIGN §8.
 | Frost Walker | 5 | 2/lvl | boots | freezes water under you as you walk; no magma or campfire damage | Vanilla |
 | Soul Speed | 5 | 1/lvl | boots | faster on soul sand and soul soil | Vanilla |
 | Swiftness | 5 | 1/lvl | boots | more movement speed | Built |
-| Double Jump | 1 | 10 † | boots | one extra jump in the air, reset on landing | Planned |
+| Double Jump | 1 | 10 | boots | one extra jump in the air (not in water or lava, on a ladder, riding, flying or gliding), ready again on landing; it breaks your fall; with an elytra, the next press takes off | Built |
 | Lava Walking | 1 | 10 | boots | stand and walk on lava (still or flowing) at normal speed; sneak to sink, and once under you swim as usual; standing on lava still burns, so bring Fire Resistance; a fall onto lava hurts like a fall onto ground; works on mobs too | Built |
 | Snow Walker | 1 | 10 | boots | the leather-boots effect on any boots: walk on and climb powder snow, sneak to sink, no freezing; works on mobs too | Built |
 

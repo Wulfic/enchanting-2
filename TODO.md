@@ -1977,6 +1977,28 @@ Mutation run.
   runs): the push, the durability, Speed's factor and the X cap each fail their test. Owner `runClient`: holding jump
   while gliding at I, III and V (does I feel too close to V?), climbing, the durability drain.
 
+#### 10cGC — Double Jump
+**DESIGN §9:** boots, I; one extra air jump, reset on the ground; concerns: client input packet; water, lava, ladder,
+creative, vehicle; server validation.
+**Hooks (javap 1.21.11):** movement is the client's, so the client jumps and tells the server.
+- Client: `LocalPlayer.aiStep` calls `tryToStartFallFlying()` only on a fresh jump press (not held from last tick), not
+  toggling creative flight, not on a ladder. `@WrapOperation` on that call: if `DoubleJump.canAirJump` (worn
+  `enchanting2:double_jump` unit, airborne, not in water or lava, not on a ladder, not riding, not flying, not gliding,
+  not used since landing): `jumpFromGround()`, reset fall distance, mark used, and skip the glide start for this press
+  (the next press still takes off with an elytra).
+- **No packet (changed from the first plan):** the jump breaks the fall on the server by itself, through vanilla's
+  `checkFallDistanceAccumulation` (fall distance capped at 1 every tick the player isn't falling faster than 0.5), and
+  a mutation run showed the planned `DoubleJumpPayload`'s server reset changed nothing. The server can't police a
+  client's own movement past its usual checks either way.
+- Once per air time: a `@Unique` flag on `Player`, cleared in `Player.tick` when on the ground, in water or lava, or
+  on a ladder, on both sides.
+**Data:** `double_jump.json` (I, `#minecraft:enchantable/foot_armor`, feet, weight 2, Calm Gaze costs), `PricingTable`
+10 row, `LevelCeilings` soft 1, tags, lang.
+**Tests:** GameTest on the rules: a mock player in the air with the boots may air-jump, the jump lifts it and resets its
+fall; a second air jump is refused; landing (the tick rule) allows it again; no boots, the ground, flying, riding or
+water refuse it. Client GameTest with real input: falling from 20 blocks up, one jump press makes the player rise; a second
+press in the same fall doesn't. Mutation run.
+
 ### Phase 10e — Curses (three stages, one commit each)
 **Goal:** five new curses, each with a GameTest that fails if its effect breaks, and a per-level curse discount.
 **Not doing:** Hunger on held items (owner: armor only); changing Binding/Vanishing (stay level 1, 10%); curses on

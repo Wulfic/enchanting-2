@@ -12,6 +12,8 @@ import com.wulfnet.enchanting2.effect.WornEffects;
 import com.wulfnet.enchanting2.experience.ExperienceCurve;
 import com.wulfnet.enchanting2.experience.ExperienceCurve.Position;
 import com.wulfnet.enchanting2.experience.PlayerExperience;
+import com.wulfnet.enchanting2.movement.AirJumpState;
+import com.wulfnet.enchanting2.movement.DoubleJump;
 import com.wulfnet.enchanting2.shield.ShieldBash;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
@@ -41,7 +43,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * vanilla's {@code int} add would overflow. Everything else stays vanilla.
  */
 @Mixin(Player.class)
-abstract class PlayerMixin {
+abstract class PlayerMixin implements AirJumpState {
 	@Shadow
 	public int experienceLevel;
 
@@ -138,6 +140,26 @@ abstract class PlayerMixin {
 		}
 		return WornEffects.reduceExhaustion(self, ModEffects.EXHAUSTION_REDUCTION,
 				CurseEffects.scaleExhaustion(self, amount));
+	}
+
+	/** Phase 10cGC, Double Jump: whether the air jump was used since the player last touched the ground. */
+	@Unique
+	private boolean enchanting2$airJumpUsed;
+
+	@Override
+	public boolean enchanting2$airJumpUsed() {
+		return enchanting2$airJumpUsed;
+	}
+
+	@Override
+	public void enchanting2$setAirJumpUsed(boolean used) {
+		enchanting2$airJumpUsed = used;
+	}
+
+	/** Phase 10cGC, Double Jump: landing (or water, lava, a ladder) readies the air jump again, on both sides. */
+	@Inject(method = "tick", at = @At("TAIL"))
+	private void enchanting2$readyAirJump(CallbackInfo ci) {
+		DoubleJump.tick((Player) (Object) this);
 	}
 
 	/** Phase 10cFA, Quick Strike for a player's melee hit: the one damage call in {@code attack}. */

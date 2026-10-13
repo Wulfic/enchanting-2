@@ -107,7 +107,8 @@ public class NewEnchantmentsGameTest {
 			Map.entry(ModEnchantments.QUICK_STRIKE, 5),
 			Map.entry(ModEnchantments.LAST_STAND, 3),
 			Map.entry(ModEnchantments.SPEED, 5),
-			Map.entry(ModEnchantments.FLIGHT, 5));
+			Map.entry(ModEnchantments.FLIGHT, 5),
+			Map.entry(ModEnchantments.DOUBLE_JUMP, 1));
 
 	/** The vanilla source tags (owner 2026-10-09: everywhere), plus our table pool. */
 	private static final List<TagKey<Enchantment>> SOURCES = List.of(EnchantmentTags.NON_TREASURE,
@@ -300,7 +301,9 @@ public class NewEnchantmentsGameTest {
 				new Case(ModEnchantments.SPEED, Items.ELYTRA, true),
 				new Case(ModEnchantments.SPEED, Items.DIAMOND_CHESTPLATE, false),
 				new Case(ModEnchantments.FLIGHT, Items.ELYTRA, true),
-				new Case(ModEnchantments.FLIGHT, Items.LEATHER_CHESTPLATE, false));
+				new Case(ModEnchantments.FLIGHT, Items.LEATHER_CHESTPLATE, false),
+				new Case(ModEnchantments.DOUBLE_JUMP, Items.GOLDEN_BOOTS, true),
+				new Case(ModEnchantments.DOUBLE_JUMP, Items.GOLDEN_LEGGINGS, false));
 		for (Case c : cases) {
 			boolean actual = get(helper, c.key()).value().isSupportedItem(new ItemStack(c.item()));
 			helper.assertValueEqual(c.supported(), actual,
