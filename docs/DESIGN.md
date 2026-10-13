@@ -447,9 +447,11 @@ Readable and not random. The vanilla three-random-offers screen is replaced by o
   the vanilla window (slots, book) grows to 248 × 217 (10l, owner 2026-10-13). The list fills
   vanilla's offer box, grown with it: one 12 px line per entry (name, then `< V >` when picked,
   then the cost), a scroll bar, rows sorted by translated name so mod and vanilla enchantments
-  interleave (owner, 2026-10-12). A row click picks at the highest level the table sells, or
-  unpicks; `<` / `>` step the level. Hovering a row shows its description and, when it can't be
-  picked, why ("Needs 8 bookshelves", "Conflicts with Fortune", "Already at maximum level").
+  interleave (owner, 2026-10-12). A row click picks level I (one above the item's own level), or
+  unpicks; `<` / `>` step the level (owner, 2026-10-13). Hovering a row shows, with Ctrl held, its
+  description (otherwise the "hold Ctrl" hint) and, when it can't be picked, why ("Needs 8
+  bookshelves", "Conflicts with Fortune", "Already at maximum level"). The player's armor and
+  offhand slots sit beside the inventory (owner, 2026-10-13).
   Under the item and lapis slots: the XP levels and lapis (green if affordable, red if not) or
   why there is no price, and the Enchant button, whose tooltip has the Mending surcharge, the
   curse discount, the totals and the status. Enchant carries the numbers the player saw, and the

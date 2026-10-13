@@ -6,6 +6,7 @@ import com.wulfnet.enchanting2.network.TableEnchantPayload;
 import com.wulfnet.enchanting2.network.TablePreviewHolder;
 import com.wulfnet.enchanting2.network.TablePreviewPayload;
 import com.wulfnet.enchanting2.network.TableSelectPayload;
+import com.wulfnet.enchanting2.table.TableEquipmentSlot;
 import com.wulfnet.enchanting2.table.TableMenuAccess;
 import com.wulfnet.enchanting2.table.TableOutcome;
 import com.wulfnet.enchanting2.table.TableOutcome.Status;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import net.fabricmc.fabric.api.entity.FakePlayer;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -32,8 +34,10 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.stats.Stats;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.EnchantmentMenu;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -192,6 +196,57 @@ public class TableGameTest {
 		helper.setBlock(TABLE.offset(corner.getX() / 2, corner.getY(), corner.getZ() / 2), Blocks.STONE);
 		full.slotsChanged(full.getSlot(0).container);
 		equal(helper, 14, outcome(full).shelves(), "a blocked shelf doesn't count");
+		helper.succeed();
+	}
+
+	// --- the player's equipment (owner 2026-10-13) ---
+
+	/**
+	 * The menu has the player's armor and offhand after the inventory, as the inventory screen's own slots: the worn
+	 * items, armor only in its own slot, Binding stays on outside creative, and a shift-click moves worn armor onto the
+	 * table and back into the inventory (never into another menu slot, so the indices vanilla uses are unchanged).
+	 */
+	@GameTest
+	public void theMenuHasThePlayersArmorAndOffhand(GameTestHelper helper) {
+		ServerPlayer player = AnvilGameTest.player(helper, RICH);
+		player.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.IRON_HELMET));
+		player.setItemSlot(EquipmentSlot.CHEST, new ItemStack(Items.DIAMOND_CHESTPLATE));
+		player.setItemSlot(EquipmentSlot.OFFHAND, new ItemStack(Items.SHIELD));
+		EnchantmentMenu menu = table(helper, player, 0, ItemStack.EMPTY, 0);
+
+		equal(helper, 43, menu.slots.size(), "item, lapis, 36 inventory, 4 armor, offhand");
+		List<EquipmentSlot> order = List.of(EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS,
+				EquipmentSlot.FEET, EquipmentSlot.OFFHAND);
+		for (int i = 0; i < order.size(); i++) {
+			Slot slot = menu.getSlot(TableEquipmentSlot.FIRST_MENU_INDEX + i);
+			check(helper, slot instanceof TableEquipmentSlot equipment && equipment.equipmentSlot() == order.get(i),
+					"menu slot " + (TableEquipmentSlot.FIRST_MENU_INDEX + i) + " is " + order.get(i));
+			check(helper, slot.getItem() == player.getItemBySlot(order.get(i)), order.get(i) + " is the worn stack");
+		}
+		check(helper, slot(menu, 38).is(Items.IRON_HELMET) && slot(menu, 42).is(Items.SHIELD), "helmet and shield");
+
+		check(helper, !menu.getSlot(38).mayPlace(new ItemStack(Items.STICK)), "a stick isn't a helmet");
+		check(helper, !menu.getSlot(38).mayPlace(new ItemStack(Items.IRON_BOOTS)), "boots aren't a helmet");
+		check(helper, menu.getSlot(41).mayPlace(new ItemStack(Items.IRON_BOOTS)), "boots go on the feet");
+		check(helper, menu.getSlot(42).mayPlace(new ItemStack(Items.STICK)), "anything goes in the offhand");
+
+		menu.getSlot(41).setByPlayer(new ItemStack(Items.IRON_BOOTS));
+		check(helper, player.getItemBySlot(EquipmentSlot.FEET).is(Items.IRON_BOOTS), "boots put on through the menu");
+
+		// The mock player is always creative (gotchas.md 2026-10-07), so the survival check asks a FakePlayer.
+		player.setItemSlot(EquipmentSlot.HEAD, with(helper, Items.IRON_HELMET, Map.of(Enchantments.BINDING_CURSE, 1)));
+		FakePlayer survival = FakePlayer.get(helper.getLevel());
+		check(helper, !survival.isCreative(), "the FakePlayer is in survival");
+		check(helper, !menu.getSlot(38).mayPickup(survival), "Curse of Binding keeps the helmet on");
+		check(helper, menu.getSlot(38).mayPickup(player), "but not in creative");
+
+		menu.quickMoveStack(player, 39);
+		check(helper, slot(menu, 0).is(Items.DIAMOND_CHESTPLATE), "shift-click puts the worn chestplate on the table");
+		check(helper, player.getItemBySlot(EquipmentSlot.CHEST).isEmpty(), "and takes it off");
+		menu.quickMoveStack(player, 0);
+		check(helper, slot(menu, 0).isEmpty() && player.getItemBySlot(EquipmentSlot.CHEST).isEmpty()
+				&& player.getInventory().contains(new ItemStack(Items.DIAMOND_CHESTPLATE)),
+				"shift-click from the table goes to the inventory, as in vanilla");
 		helper.succeed();
 	}
 

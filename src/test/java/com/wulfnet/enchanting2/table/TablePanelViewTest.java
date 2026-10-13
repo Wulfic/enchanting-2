@@ -244,11 +244,14 @@ class TablePanelViewTest {
 	// --- clicks ---
 
 	@Test
-	void bodyClickPicksAtTheHighestSellableLevelOrUnpicks() {
+	void bodyClickPicksOneLevelAboveTheItemsOrUnpicks() {
+		TableSelection fresh = TablePanelView.click(TableSelection.EMPTY,
+				row(FORTUNE, 0, 3, 3, 0, TableRow.Status.OK), Zone.BODY);
+		assertEquals(Map.of(FORTUNE, 1), fresh.levels(), "level I on an item without it (owner 2026-10-13)");
 		TableRow efficiency = row(EFFICIENCY, 1, 5, 4, 0, TableRow.Status.OK);
 		TableSelection picked = TablePanelView.click(TableSelection.EMPTY, efficiency, Zone.BODY);
-		assertEquals(Map.of(EFFICIENCY, 4), picked.levels(), "highest the table sells");
-		TableRow pickedRow = row(EFFICIENCY, 1, 5, 4, 4, TableRow.Status.OK);
+		assertEquals(Map.of(EFFICIENCY, 2), picked.levels(), "one above the item's Efficiency I");
+		TableRow pickedRow = row(EFFICIENCY, 1, 5, 4, 2, TableRow.Status.OK);
 		assertEquals(TableSelection.EMPTY, TablePanelView.click(picked, pickedRow, Zone.BODY), "unpicks");
 
 		TableRow maxed = row(FORTUNE, 5, 5, 5, 0, TableRow.Status.MAXED);

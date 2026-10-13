@@ -4,6 +4,7 @@ import com.wulfnet.enchanting2.client.TablePreviewState;
 import com.wulfnet.enchanting2.client.TableScreenAccess;
 import com.wulfnet.enchanting2.network.TablePreviewPayload;
 import com.wulfnet.enchanting2.screen.PanelText.Zone;
+import com.wulfnet.enchanting2.table.TableEquipmentSlot;
 import com.wulfnet.enchanting2.table.TableMenuAccess;
 import com.wulfnet.enchanting2.table.TableRow;
 import com.wulfnet.enchanting2.table.TableSelection;
@@ -221,6 +222,16 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		int slotY = context.computeOnClient(client -> client.player.containerMenu.getSlot(FIRST_INVENTORY_SLOT).y);
 		check(slotX == TableWindow.inventorySlotX(8) && slotY == TableWindow.inventorySlotY(84),
 				"the inventory moved with the grid: " + slotX + ", " + slotY);
+		// Owner, 2026-10-13: the client's menu has the same five equipment slots as the server's, where the layout says.
+		List<int[]> equipment = context.computeOnClient(client -> client.player.containerMenu.slots.stream()
+				.skip(TableEquipmentSlot.FIRST_MENU_INDEX).map(s -> new int[] {s.x, s.y}).toList());
+		check(equipment.size() == 5, "armor and offhand slots on the client: " + equipment.size());
+		for (int i = 0; i < 4; i++) {
+			check(equipment.get(i)[0] == TableWindow.ARMOR_X && equipment.get(i)[1] == TableWindow.armorSlotY(i),
+					"armor slot " + i + " at " + equipment.get(i)[0] + ", " + equipment.get(i)[1]);
+		}
+		check(equipment.get(4)[0] == TableWindow.OFFHAND_X && equipment.get(4)[1] == TableWindow.OFFHAND_Y,
+				"offhand at " + equipment.get(4)[0] + ", " + equipment.get(4)[1]);
 		int width = context.computeOnClient(client -> client.getWindow().getGuiScaledWidth());
 		int left = screen(context, TableScreenAccess::enchanting2$leftPos);
 		check(left >= 0 && left + TableWindow.WIDTH <= width, "the window fits " + width + " wide: left " + left);
@@ -234,7 +245,7 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		context.takeScreenshot("enchanting2-table-empty");
 	}
 
-	/** Sword + 64 lapis at 15 shelves: pick Sharpness V and Mending in the list, Enchant for 17 and 17. */
+	/** Sword + 64 lapis at 15 shelves: pick Sharpness (at I), step it to V, pick Mending, Enchant for 17 and 17. */
 	private static void enchantThroughTheList(ClientGameTestContext context, TestSingleplayerContext world) {
 		setSlots(world, new ItemStack(Items.DIAMOND_SWORD), 64);
 		context.waitTicks(3);
@@ -251,14 +262,26 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		scrollIntoView(context, SHARPNESS);
 		moveTo(context, rowsX(context) + 30, screen(context, access -> access.enchanting2$rowY(SHARPNESS)).orElseThrow());
 		context.waitTicks(2);
+		// Owner, 2026-10-13: the description needs Ctrl here too; without it, the hint.
+		List<String> plain = screen(context, TableScreenAccess::enchanting2$rowTooltip);
+		check(!plain.contains(text("enchantment.minecraft.sharpness.desc"))
+				&& plain.contains(text("enchanting2.tooltip.hold_ctrl")), "no description without Ctrl: " + plain);
+		context.getInput().holdKey(GLFW.GLFW_KEY_LEFT_CONTROL);
+		context.waitTicks(2);
 		List<String> tooltip = screen(context, TableScreenAccess::enchanting2$rowTooltip);
 		check(tooltip.contains(text("enchantment.minecraft.sharpness.desc")),
-				"the row's tooltip has its description: " + tooltip);
+				"the row's tooltip has its description with Ctrl: " + tooltip);
 		context.takeScreenshot("enchanting2-table-tooltip");
+		context.getInput().releaseKey(GLFW.GLFW_KEY_LEFT_CONTROL);
+		context.waitTick();
 
 		clickRow(context, SHARPNESS);
-		check(held(world).equals(TableSelection.EMPTY.with(SHARPNESS, 5)),
-				"the click picked Sharpness V on the server: " + held(world));
+		check(held(world).equals(TableSelection.EMPTY.with(SHARPNESS, 1)),
+				"the click picked Sharpness I on the server (owner 2026-10-13): " + held(world));
+		for (int level = 2; level <= 5; level++) {
+			clickArrow(context, SHARPNESS, Zone.INCREASE);
+		}
+		check(held(world).equals(TableSelection.EMPTY.with(SHARPNESS, 5)), "stepped up to V: " + held(world));
 		clickRow(context, MENDING);
 		TableSelection both = TableSelection.EMPTY.with(SHARPNESS, 5).with(MENDING, 1);
 		check(held(world).equals(both), "and Mending: " + held(world));
@@ -298,11 +321,13 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		setSlots(world, new ItemStack(Items.IRON_SWORD), 64);
 		context.waitTicks(3);
 		clickRow(context, SHARPNESS);
-		check(held(world).equals(TableSelection.EMPTY.with(SHARPNESS, 5)), "picked at V: " + held(world));
+		check(held(world).equals(TableSelection.EMPTY.with(SHARPNESS, 1)), "picked at I: " + held(world));
 		clickArrow(context, SHARPNESS, Zone.DECREASE);
-		check(held(world).equals(TableSelection.EMPTY.with(SHARPNESS, 4)), "stepped down to IV: " + held(world));
+		check(held(world).equals(TableSelection.EMPTY.with(SHARPNESS, 1)), "never below I: " + held(world));
 		clickArrow(context, SHARPNESS, Zone.INCREASE);
-		check(held(world).equals(TableSelection.EMPTY.with(SHARPNESS, 5)), "and back up to V: " + held(world));
+		check(held(world).equals(TableSelection.EMPTY.with(SHARPNESS, 2)), "stepped up to II: " + held(world));
+		clickArrow(context, SHARPNESS, Zone.DECREASE);
+		check(held(world).equals(TableSelection.EMPTY.with(SHARPNESS, 1)), "and back down to I: " + held(world));
 		clickRow(context, SHARPNESS);
 		check(held(world).equals(TableSelection.EMPTY), "clicking a picked row unpicks it: " + held(world));
 	}
@@ -338,7 +363,7 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		context.waitTicks(3);
 		clickRow(context, AQUA_AFFINITY);
 		clickRow(context, EFFICIENCY);
-		check(held(world).equals(TableSelection.EMPTY.with(AQUA_AFFINITY, 1).with(EFFICIENCY, 5)),
+		check(held(world).equals(TableSelection.EMPTY.with(AQUA_AFFINITY, 1).with(EFFICIENCY, 1)),
 				"two picks on a book: " + held(world));
 
 		int max = screen(context, TableScreenAccess::enchanting2$maxScroll);
@@ -376,7 +401,7 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		clickEnchant(context);
 		world.getServer().runOnServer(server -> {
 			ItemStack book = serverMenu(server).getSlot(0).getItem();
-			check(book.is(Items.ENCHANTED_BOOK) && level(server, book, Enchantments.EFFICIENCY) == 5
+			check(book.is(Items.ENCHANTED_BOOK) && level(server, book, Enchantments.EFFICIENCY) == 1
 					&& level(server, book, Enchantments.AQUA_AFFINITY) == 1, "an enchanted book with both: " + book);
 		});
 	}

@@ -204,14 +204,15 @@ public final class TablePanelView {
 	}
 
 	/**
-	 * The selection after a click on {@code row}: the body toggles the pick (at the highest level this table sells), the
-	 * stepper moves the level within what's sellable. A click that changes nothing returns {@code current}.
+	 * The selection after a click on {@code row}: the body toggles the pick (one level above the item's, so level I on a
+	 * new enchantment; owner 2026-10-13), the stepper moves the level within what's sellable. A click that changes
+	 * nothing returns {@code current}.
 	 */
 	public static TableSelection click(TableSelection current, TableRow row, Zone zone) {
 		String id = row.id();
 		int picked = current.levels().getOrDefault(id, 0);
 		return switch (zone) {
-			case BODY -> picked > 0 ? current.without(id) : row.ok() ? current.with(id, row.maxSelectable()) : current;
+			case BODY -> picked > 0 ? current.without(id) : row.ok() ? current.with(id, row.currentLevel() + 1) : current;
 			case DECREASE -> picked > row.currentLevel() + 1 ? current.with(id, picked - 1) : current;
 			case INCREASE -> picked > 0 && picked < row.maxSelectable() ? current.with(id, picked + 1) : current;
 		};

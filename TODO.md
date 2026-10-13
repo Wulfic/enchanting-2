@@ -2635,6 +2635,42 @@ the next load with a vanilla WARN. Nothing outside the repo is touched.
 - [x] 11.3 Plan the 26.x port as a new roadmap entry. Public release is a later decision.  ✅ 2026-10-13: Phase 12
       below; owner answers in decisions.md "26.x: every version, 1.21.11 kept in step".
 
+## Phase 11b — Owner's table-screen fixes (2026-10-13; Tier 2: ~10 files, client + server + protocol)
+
+**Owner report:** (1) the table window has no armor slots; (2) every pick starts at the max level, not I; (3) item
+descriptions show by default; they should need Ctrl; (4) even with Ctrl, a tool with tons of enchantments gets a
+tooltip taller than the screen. Owner answers: armor + offhand; "compact + scroll" for (4).
+**Causes:** (1) vanilla's table menu has no equipment slots. (2) `TablePanelView.click` BODY picks at
+`maxSelectable()` (agent choice 2026-10-07). (3) `TableList.tooltip` adds the description unconditionally (the item
+tooltip hook is already Ctrl-gated). (4) `DefaultTooltipPositioner` sets `y = screenH - h - 3` with no floor, so a tall
+tooltip loses its top (the item name and first enchantments).
+- [x] A. Equipment slots: `EnchantmentMenuMixin` adds 4 armor + offhand slots after the 36 inventory slots (menu
+      indices 38–42) on the server always, on the client only when `TableBridge.clientServerIsOurs()` (as the
+      inventory move does). Own `table/EquipmentSlot`-style `Slot` subclass mirroring package-private `ArmorSlot`
+      (stack 1, `isEquippableInSlot`, Binding's `PREVENT_ARMOR_CHANGE`, `onEquipItem`) + offhand like `InventoryMenu$1`.
+      Positions in `TableWindow` (armor column centred in the left margin, offhand in the right, hotbar row); slot
+      frames drawn by `EnchantmentScreenMixin`. `NetworkProtocol.VERSION` 4 → 5 (slot count is now part of the
+      contract). Shift-click keeps vanilla's rules (index ≥ 2 → into the table's slot). GameTest: the menu has 43
+      slots, 38–41 are the player's head/chest/legs/feet, 42 the offhand, a stick can't go in the helmet slot, a
+      Binding helmet can't be taken out in survival. Client GameTest: the five slots sit inside the window, clear of
+      the inventory grid.
+- [x] B. Pick at level I: BODY picks `currentLevel + 1`; JUnit in `TablePanelViewTest`; client GameTest picks adjust.
+- [x] C. Row tooltip: description only with Ctrl (and `tooltips.enchantment_descriptions`), else the hint (if
+      `show_hint`), through `DescriptionPlan.of`; client GameTest asserts both.
+- [ ] D. Compact Ctrl layout: when the full layout (descriptions under names, 200 px) would be taller than the screen,
+      each description goes on its name's line, wrapped wider. Pure capacity/fit maths in `tooltip/TooltipFit`
+      (JUnit); client GameTest on an item with many enchantments.
+- [ ] E. Scroll: a tooltip taller than the screen starts at its top (y 4) and the mouse wheel scrolls it while it is
+      shown. Pure state in `tooltip/TooltipScroll` (JUnit: no overflow = vanilla y, clamp, reset on a new tooltip or a
+      stale one); client `GuiGraphicsMixin` wraps `positionTooltip` in `renderTooltip`, `MouseHandlerMixin` wraps
+      `Screen.mouseScrolled` in `onScroll`. "Scroll for more" line after the item name when our hook sees overflow.
+- [ ] F. Docs (CHANGELOG, README, ENCHANTMENTS/CONFIG unaffected unless keys change), decisions.md, state.md; build,
+      client GameTests, commit per unit.
+**Not doing:** a config toggle for scrolling, multi-column tooltips, moving shift-click armor into armor slots,
+changes to the anvil/grindstone windows.
+**Blast radius:** no destructive steps (all edits to tracked files; rollback `git revert <sha>` per commit). The
+protocol bump turns away 1.0.0 clients on a new server (intended: their slot count would desync).
+
 ## Phase 12 — Every 26.x version, with 1.21.11 kept in step (Tier 2; starts after the owner's runClient checks
 ## and the v1.0.0 tag push)
 

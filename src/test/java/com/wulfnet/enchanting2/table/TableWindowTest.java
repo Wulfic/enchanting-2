@@ -83,6 +83,26 @@ class TableWindowTest {
 				"the label is under the list");
 	}
 
+	/**
+	 * Owner, 2026-10-13: the armor column in the grey left of the inventory grid, the offhand mirrored on the right, frames
+	 * (one pixel outside each 16-pixel slot) clear of the grid and the window's borders.
+	 */
+	@Test
+	void equipmentSlotsSitInTheGreyBesideTheInventory() {
+		int gridLeft = TableWindow.inventorySlotX(8) - 1;
+		int gridRight = TableWindow.inventorySlotX(8 + 8 * 18) + 16 + 1;
+		int border = 4;
+		assertTrue(TableWindow.ARMOR_X - 1 > border, "armor frame clears the left border");
+		assertTrue(TableWindow.ARMOR_X + 16 + 1 < gridLeft, "armor frame clears the grid");
+		assertTrue(TableWindow.OFFHAND_X - 1 > gridRight, "offhand frame clears the grid");
+		assertTrue(TableWindow.OFFHAND_X + 16 + 1 < TableWindow.WIDTH - border, "offhand frame clears the right border");
+		assertEquals(TableWindow.ARMOR_X, TableWindow.WIDTH - (TableWindow.OFFHAND_X + 16), "mirrored");
+		assertEquals(TableWindow.inventorySlotY(84), TableWindow.armorSlotY(0), "helmet level with the first row");
+		assertEquals(18, TableWindow.armorSlotY(1) - TableWindow.armorSlotY(0), "slots touch, as in the inventory");
+		assertTrue(TableWindow.armorSlotY(3) + 16 + 1 < TableWindow.HEIGHT - border, "boots frame clears the bottom");
+		assertEquals(TableWindow.inventorySlotY(142), TableWindow.OFFHAND_Y, "offhand level with the hotbar");
+	}
+
 	/** 1080p at GUI scale 4 is 480 x 270: the window still fits. */
 	@Test
 	void theWindowFitsAt1080pGuiScaleFour() {

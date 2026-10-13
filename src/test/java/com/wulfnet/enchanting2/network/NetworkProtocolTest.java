@@ -19,13 +19,14 @@ class NetworkProtocolTest {
 	}
 
 	/**
-	 * v4 (Stage 7B): the enchanting table panel, selection and enchant. A v3 client waits for vanilla table offers the
-	 * server never makes, so it must not join; nor older ones (v3 the grindstone, v2 and v1 the anvil).
+	 * v5 (2026-10-13): the table menu has the player's armor and offhand after the inventory, so a v4 client's menu is
+	 * five slots short and its clicks would land on the wrong slots. v4 (Stage 7B): the table panel, selection and
+	 * enchant; a v3 client waits for vanilla offers the server never makes (v3 the grindstone, v2 and v1 the anvil).
 	 */
 	@Test
-	void protocolIsV4AndOlderClientsAreAMismatch() {
-		assertEquals(4, NetworkProtocol.VERSION);
-		for (int old : new int[] {1, 2, 3}) {
+	void protocolIsV5AndOlderClientsAreAMismatch() {
+		assertEquals(5, NetworkProtocol.VERSION);
+		for (int old : new int[] {1, 2, 3, 4}) {
 			Verdict v = NetworkProtocol.classify(Set.of("minecraft:brand", "enchanting2:v" + old + "/config_sync"),
 					REQUIRED);
 			assertEquals(new Verdict(Kind.MISMATCH, List.of(old)), v);

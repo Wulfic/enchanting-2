@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
  * check is unit-tested without Minecraft.
  */
 public final class NetworkProtocol {
-	public static final int VERSION = 4;
+	public static final int VERSION = 5;
 
 	private static final Pattern OUR_CHANNEL = Pattern.compile(Pattern.quote(Enchanting2.MOD_ID) + ":v(\\d{1,9})/.+");
 

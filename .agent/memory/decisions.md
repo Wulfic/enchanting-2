@@ -1296,3 +1296,20 @@ proven first by a 1.21.11-only spike (12A).
 jump straight to 26.3 (owner chose all versions, so each 26.x line is its own node anyway).
 **Affects:** build.gradle, settings.gradle, gradle.properties, every version-sensitive mixin
 
+
+## 2026-10-13 — Table window: armor + offhand slots, picks start at I, Ctrl for row descriptions (owner, Phase 11b)
+**Context:** owner: no armor slots in the table window; every pick started at the max level; descriptions showed by
+default and made long tooltips unreadable.
+**Choice (owner):** armor and offhand slots in the window; a row click picks level I (one above the item's own level
+for an upgrade), reversing the agent's 2026-10-07 "highest sellable level"; the row tooltip's description needs Ctrl,
+like item tooltips, and shows the "hold Ctrl" hint otherwise. **(agent):** real menu slots, indices 38–42 after the
+inventory, added on the server always and on the client only when `TableBridge.clientServerIsOurs()`; a
+`TableEquipmentSlot` mirrors package-private `ArmorSlot` instead of an access widener (the project has none, and
+one class is less than a new build-wide mechanism). `NetworkProtocol.VERSION` 4 → 5 although no payload changed: the
+menu's slot count is a client/server contract, and a 1.0.0 client's menu would be five slots short. Shift-click keeps
+vanilla's rule (anything not on the table goes onto it), so worn armor shift-clicks straight onto the table.
+**Why:** the owner wants to enchant worn gear without leaving the table; level I matches how players step up.
+**Rejected:** slots drawn client-side only (can't be clicked); an access widener for `ArmorSlot`; shift-click from the
+table back into the armor slot (vanilla's index ranges stay as they are).
+**Affects:** table/TableEquipmentSlot, TableWindow, mixin/EnchantmentMenuMixin, EnchantmentScreenMixin,
+TablePanelView.click, client/TableList, network/NetworkProtocol

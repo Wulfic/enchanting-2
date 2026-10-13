@@ -75,6 +75,14 @@ public final class TableWindow {
 	public static final int BUTTON_WIDTH = 48;
 	public static final int BUTTON_HEIGHT = 20;
 
+	/**
+	 * The player's equipment beside the inventory (owner 2026-10-13): head to feet in a column in the grey left of the
+	 * grid, starting level with its first row, and the offhand mirrored on the right, level with the hotbar.
+	 */
+	public static final int ARMOR_X = 16;
+	public static final int OFFHAND_X = WIDTH - ARMOR_X - 16;
+	public static final int OFFHAND_Y = VANILLA_HEIGHT - 24 + EXTRA;
+
 	/** Vanilla's {@code imageHeight - 94} and x 8, moved with the inventory. */
 	public static final int INVENTORY_LABEL_X = 8 + EXTRA_WIDTH / 2;
 	public static final int INVENTORY_LABEL_Y = VANILLA_HEIGHT - 94 + EXTRA;
@@ -90,5 +98,10 @@ public final class TableWindow {
 	/** Where a player inventory slot vanilla puts at {@code vanillaY} goes. */
 	public static int inventorySlotY(int vanillaY) {
 		return vanillaY + EXTRA;
+	}
+
+	/** The {@code index}th armor slot's y, head (0) to feet (3). */
+	public static int armorSlotY(int index) {
+		return inventorySlotY(84) + index * 18;
 	}
 }

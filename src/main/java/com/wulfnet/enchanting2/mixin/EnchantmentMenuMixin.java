@@ -9,6 +9,7 @@ import com.wulfnet.enchanting2.network.TablePreviewHolder;
 import com.wulfnet.enchanting2.network.TablePreviewPayload;
 import com.wulfnet.enchanting2.table.TableBridge;
 import com.wulfnet.enchanting2.table.TableCalculator;
+import com.wulfnet.enchanting2.table.TableEquipmentSlot;
 import com.wulfnet.enchanting2.table.TableMenuAccess;
 import com.wulfnet.enchanting2.table.TableOutcome;
 import com.wulfnet.enchanting2.table.TablePool;
@@ -28,6 +29,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.stats.Stats;
 import net.minecraft.world.Container;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -112,6 +114,13 @@ abstract class EnchantmentMenuMixin extends AbstractContainerMenu implements Tab
 	private void enchanting2$init(int containerId, Inventory inventory, ContainerLevelAccess levelAccess,
 			CallbackInfo ci) {
 		enchanting2$player = inventory.player;
+		// The player's armor and offhand after the inventory (owner 2026-10-13). Both sides must add the same slots:
+		// the server always (both sides run the mod), a client only on our server, as with the inventory move above.
+		if (!inventory.player.level().isClientSide() || TableBridge.clientServerIsOurs()) {
+			for (EquipmentSlot slot : TableEquipmentSlot.ORDER) {
+				addSlot(TableEquipmentSlot.at(inventory, slot));
+			}
+		}
 	}
 
 	@Override

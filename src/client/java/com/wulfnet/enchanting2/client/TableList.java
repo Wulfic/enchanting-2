@@ -1,6 +1,7 @@
 package com.wulfnet.enchanting2.client;
 
 import com.mojang.blaze3d.platform.cursor.CursorTypes;
+import com.wulfnet.enchanting2.config.ClientConfig;
 import com.wulfnet.enchanting2.screen.PanelText.Msg;
 import com.wulfnet.enchanting2.screen.PanelText.Stepper;
 import com.wulfnet.enchanting2.screen.PanelText.Tone;
@@ -20,6 +21,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.Function;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.locale.Language;
@@ -166,13 +168,22 @@ public final class TableList {
 		return font.plainSubstrByWidth(text, Math.max(0, width - font.width(ELLIPSIS))) + ELLIPSIS;
 	}
 
-	/** Full name, the description, why it can't be picked, and its price when picked. */
+	/**
+	 * Full name, the description (with Ctrl held, as on item tooltips; owner 2026-10-13) or the "hold Ctrl" hint, why it
+	 * can't be picked, and its price when picked.
+	 */
 	private List<Component> tooltip(Entry entry, Function<Msg, Component> text) {
 		List<Component> lines = new ArrayList<>();
 		lines.add(text.apply(entry.row().text()).copy().withStyle(ChatFormatting.WHITE));
-		String description = DescriptionPlan.key(entry.id());
-		if (Language.getInstance().has(description)) {
+		ClientConfig settings = ClientSettings.get();
+		DescriptionPlan plan = DescriptionPlan.of(List.of(entry.id()), Language.getInstance()::has,
+				Minecraft.getInstance().hasControlDown(), settings.enchantmentDescriptions(),
+				settings.showDescriptionHint());
+		String description = plan.descriptions().get(entry.id());
+		if (description != null) {
 			lines.add(Component.translatable(description).withStyle(ChatFormatting.GRAY));
+		} else if (plan.hint()) {
+			lines.add(Component.translatable(EnchantmentDescriptions.HINT_KEY).withStyle(ChatFormatting.DARK_GRAY));
 		}
 		entry.reason().ifPresent(reason -> lines.add(text.apply(reason).copy().withStyle(ChatFormatting.RED)));
 		entry.row().amountText().ifPresent(amount -> lines.add(Component.translatable(TablePanelView.KEY

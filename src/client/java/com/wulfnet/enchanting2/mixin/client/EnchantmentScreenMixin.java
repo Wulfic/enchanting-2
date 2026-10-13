@@ -19,6 +19,7 @@ import com.wulfnet.enchanting2.screen.PanelText.Row;
 import com.wulfnet.enchanting2.screen.PanelText.Tone;
 import com.wulfnet.enchanting2.screen.PanelText.Zone;
 import com.wulfnet.enchanting2.table.TableBridge;
+import com.wulfnet.enchanting2.table.TableEquipmentSlot;
 import com.wulfnet.enchanting2.table.TableListModel.Hit;
 import com.wulfnet.enchanting2.table.TableOutcome.Status;
 import com.wulfnet.enchanting2.table.TablePanelView;
@@ -40,6 +41,7 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.EnchantmentScreen;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -47,6 +49,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.inventory.EnchantmentMenu;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import org.jspecify.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
@@ -75,6 +78,9 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 	private static final int BAD = 0xFFAA0000;
 	@Unique
 	private static final int NORMAL = 0xFF404040;
+	/** Vanilla's 18-pixel slot frame. */
+	@Unique
+	private static final Identifier enchanting2$SLOT = Identifier.withDefaultNamespace("container/slot");
 
 	@Unique
 	private @Nullable TableList enchanting2$list;
@@ -171,6 +177,13 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 		TableList list = enchanting2$list;
 		if (list == null) {
 			return;
+		}
+		// The armor and offhand slots sit on plain grey, so they get vanilla's slot frame (the items draw over it).
+		for (Slot slot : menu.slots) {
+			if (slot instanceof TableEquipmentSlot) {
+				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, enchanting2$SLOT, leftPos + slot.x - 1, topPos + slot.y - 1,
+						18, 18);
+			}
 		}
 		ItemStack target = menu.getSlot(0).getItem();
 		if (!ItemStack.isSameItemSameComponents(target, enchanting2$scrolledFor)) {
