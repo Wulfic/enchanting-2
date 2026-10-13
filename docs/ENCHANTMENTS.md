@@ -11,8 +11,7 @@ whenever an enchantment, a max level or a price changes.**
 
 **Status**
 - **Vanilla**: a Minecraft 1.21.11 enchantment, kept under its vanilla ID (max levels per DESIGN §8)
-- **Built**: ours, in the mod now
-- **Planned**: ours, not built yet (Phase 10c)
+- **Built**: ours, added by Enchanting 2
 
 **Cost** is in XP levels, for adding the enchantment at the table or anvil (DESIGN §5):
 - **1/lvl**: the default, 1 level per enchantment level (V = 5). An upgrade pays only the added levels.
@@ -22,7 +21,6 @@ whenever an enchantment, a max level or a price changes.**
 - **Treasure** (like Mending): the table offers it only with 15 bookshelves, librarians charge double, and mobs never spawn wearing it. Health and Last Stand (owner, 2026-10-13).
 - **Mending**: 2, plus 2 for every level of every other non-curse enchantment on the item.
 - **Curses**: 0, and each one takes a percentage off the item's enchant cost (DESIGN §5a).
-- **†**: a planned enchantment's price, decided now; its stage adds the price row when it is built (10f set the rest).
 
 Unknown or third-party enchantments use the default 1/lvl unless `enchantments.json5` says otherwise.
 
@@ -30,8 +28,8 @@ Unknown or third-party enchantments use the default 1/lvl unless `enchantments.j
 Menu): each enchantment can be turned off or kept out of the table, loot or trades, priced, and given a different max
 level, up to 255 (Efficiency 100 works). Where extra levels stop doing anything (Thorns past VII, Depth Strider past
 III), the screen says so. Where they'd break the game (Lure past V, Quick Charge past IV, Riptide past VII), they're
-capped. The screen's max-level and price fields come in Phase 10j; until then those are file-only, and a max level
-change needs a restart. See DESIGN §8.
+capped. A max level change applies after a restart (or reopening the world). Every key: [CONFIG.md](CONFIG.md).
+See DESIGN §8.
 
 ---
 

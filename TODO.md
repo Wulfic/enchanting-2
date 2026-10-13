@@ -2610,8 +2610,26 @@ the next load with a vanilla WARN. Nothing outside the repo is touched.
       and the table panel order (ours first, ID order; see state.md).
 
 ## Phase 11 — v1 wrap-up (private repo; nothing published)
-- [ ] 11.1 README, changelog, config documentation
-- [ ] 11.2 Version tag + build artifact (tag push is outward-facing, so the owner confirms)
+- [x] 11.1 README, changelog, config documentation (owner 2026-10-13: README for players and modpack makers)
+      ✅ 2026-10-13: 402 JUnit (+3 `ConfigDocsTest`, red on empty blocks first). A new or changed config key now
+      means pasting the test's expected text into `docs/CONFIG.md` (and the key table there if it's new).
+      **Goal:** a reader who has never seen the repo can install, configure and remove the mod safely from the docs.
+      **Approach:** `README.md` (what it does, requirements, install, both sides required, config, add/remove notes
+      from DESIGN §2a, building, licence All-Rights-Reserved as `fabric.mod.json` says); `CHANGELOG.md` (Keep a
+      Changelog, one 1.0.0 entry summarising features, not commits); `docs/CONFIG.md` (where files live, who can edit,
+      `/reload`, `.bak`, then each file's defaults verbatim). Verbatim beats a hand table: JUnit `ConfigDocsTest`
+      renders each codec's defaults with `ConfigFiles.render` and fails if the block in CONFIG.md differs, so the doc
+      can't drift. `docs/ENCHANTMENTS.md` legend: drop the stale "Planned"/"†"/"Phase 10j; until then" lines.
+      - [x] 1. `docs/CONFIG.md` + `src/test/.../config/ConfigDocsTest.java` (watch it fail on a changed default)
+      - [x] 2. `README.md`, `CHANGELOG.md`
+      - [x] 3. `docs/ENCHANTMENTS.md` legend
+      - [x] 4. `./gradlew build`; commit
+      **Not doing:** screenshots/GIFs in the README, a wiki, other languages, Modrinth/CurseForge pages (11.3 / later).
+      **Blast radius:** README.md overwritten (template placeholder line, in git). Otherwise additive.
+      **Rollback:** `git revert <sha>`.
+- [ ] 11.2 Version tag + build artifact (tag push is outward-facing, so the owner confirms). Owner 2026-10-13: 1.0.0.
+      `gradle.properties` `mod_version=1.0.0`, `./gradlew build`, jar from `build/libs/`; tag `v1.0.0` local, push
+      only on the owner's word. No GitHub release (nothing published).
 - [ ] 11.3 Plan the 26.x port as a new roadmap entry. Public release is a later decision.
 
 ---

@@ -1273,3 +1273,15 @@ window's bounds) lay out around it — the reason the 6D panel avoided the right
 ~60 px); keeping the tab as a collapse toggle (a window that changes size on click).
 **Affects:** AnvilScreenMixin, GrindstoneScreenMixin, new ItemCombinerScreenMixin, screen/ColumnWindow, ScrollModel,
 ClientConfig, ConfigScreen; deletes SidePanel, SidePanelLayout, AnvilPanelTab
+
+## 2026-10-13 — Config docs quote the default files verbatim, under a test
+**Context:** 11.1 needed config documentation for players and modpack makers; the keys already carry comments in the
+files the mod writes.
+**Choice:** `docs/CONFIG.md` has prose (where files live, who edits, `/reload`, `.bak`, restart for max levels), a
+short section table, and each file's defaults pasted verbatim. JUnit `ConfigDocsTest` renders `codec.defaults()` with
+`ConfigFiles.render` and compares it with the block after `<!-- defaults: <file> -->`.
+**Why:** one source of truth (the codecs' comments), and the doc can't go stale silently: the failure message is
+the text to paste.
+**Rejected:** a hand-written key table for every key (drifts with each new option); generating the doc in Gradle
+(another build step for three blocks).
+**Affects:** docs/CONFIG.md, src/test/java/com/wulfnet/enchanting2/config/ConfigDocsTest.java
