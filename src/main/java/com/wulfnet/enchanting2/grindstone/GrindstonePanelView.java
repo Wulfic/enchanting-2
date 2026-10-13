@@ -2,6 +2,7 @@ package com.wulfnet.enchanting2.grindstone;
 
 import com.wulfnet.enchanting2.grindstone.GrindstoneOutcome.Status;
 import com.wulfnet.enchanting2.screen.PanelText.Arg;
+import com.wulfnet.enchanting2.screen.PanelText.Label;
 import com.wulfnet.enchanting2.screen.PanelText.Msg;
 import com.wulfnet.enchanting2.screen.PanelText.Row;
 import com.wulfnet.enchanting2.screen.PanelText.Tone;
@@ -14,9 +15,11 @@ import java.util.OptionalInt;
 import java.util.OptionalLong;
 
 /**
- * What the grindstone's picker panel says about the server's panel payload (DESIGN §6, decisions.md 2026-10-07
- * "Grindstone"): a heading per action, one clickable row per pick with its price, and a status line at the bottom. Pure,
- * so every status and action is unit-tested; the client only draws it and sends the clicked row's choice.
+ * What the grindstone's picker says about the server's panel payload (DESIGN §6, decisions.md 2026-10-07
+ * "Grindstone"): a heading per action, one clickable row per pick with its price, and at the bottom what to do next.
+ * The price itself (cost, free, too expensive) is a {@link Label} in vanilla's cost-label place (TODO 10o), not a line
+ * in the list. Pure, so every status and action is unit-tested; the client only draws it and sends the clicked row's
+ * choice.
  */
 public final class GrindstonePanelView {
 	public static final String KEY = "enchanting2.grindstone.";
@@ -48,6 +51,8 @@ public final class GrindstonePanelView {
 	}
 
 	/**
+	 * The rows, then the status line when the status is an instruction; a priced status is the {@link #label} instead.
+	 *
 	 * @param playerLevel          the player's XP level, for "insufficient levels"
 	 * @param maximumOperationCost the server's {@code maximum_operation_cost}, if it set one
 	 */
@@ -66,11 +71,48 @@ public final class GrindstonePanelView {
 			boolean selected = choice.isPresent() && choice.get().equals(option.choice());
 			items.add(new Item(row(option, playerLevel), Optional.of(option.choice()), selected));
 		}
-		Optional<GrindstoneOption> picked = choice.flatMap(c -> options.stream()
-				.filter(o -> o.choice().equals(c)).findFirst());
-		items.add(Item.text(Row.of(status(status, picked, levelsCharged, playerLevel, maximumOperationCost),
-				tone(status, levelsCharged, playerLevel))));
+		if (!priced(status)) {
+			items.add(Item.text(Row.of(status(status, picked(options, choice), levelsCharged, playerLevel,
+					maximumOperationCost), tone(status, levelsCharged, playerLevel))));
+		}
 		return items;
+	}
+
+	/**
+	 * The price where vanilla's anvil shows its cost, longest form first: empty unless the status is priced (OK, or too
+	 * expensive). Same arguments as {@link #panel}.
+	 */
+	public static Optional<Label> label(Status status, List<GrindstoneOption> options,
+			Optional<GrindstoneChoice> choice, int levelsCharged, int playerLevel, OptionalInt maximumOperationCost) {
+		Objects.requireNonNull(status, "status");
+		if (!priced(status)) {
+			return Optional.empty();
+		}
+		Optional<GrindstoneOption> picked = picked(options, choice);
+		Msg full = status(status, picked, levelsCharged, playerLevel, maximumOperationCost);
+		Tone tone = tone(status, levelsCharged, playerLevel);
+		if (status == Status.TOO_EXPENSIVE) {
+			return Optional.of(Label.of(tone, full, Msg.of(VANILLA_TOO_EXPENSIVE)));
+		}
+		Msg cost = Msg.of(VANILLA_COST, new Arg.Num(levelsCharged));
+		Msg shortCost = Msg.of(KEY + "label.cost_short", new Arg.Num(levelsCharged));
+		if (full.equals(cost)) {
+			return Optional.of(Label.of(tone, cost, shortCost));
+		}
+		if (full.key().equals(KEY + "status.insufficient")) {
+			return Optional.of(Label.of(tone, full, cost, shortCost));
+		}
+		return Optional.of(Label.of(tone, full));
+	}
+
+	/** A status whose message is a price, shown as the {@link #label}. */
+	static boolean priced(Status status) {
+		return status == Status.OK || status == Status.TOO_EXPENSIVE;
+	}
+
+	private static Optional<GrindstoneOption> picked(List<GrindstoneOption> options,
+			Optional<GrindstoneChoice> choice) {
+		return choice.flatMap(c -> options.stream().filter(o -> o.choice().equals(c)).findFirst());
 	}
 
 	/** One pick: Extract and Cleanse name the enchantment and show the price; Disenchant and Repair are vanilla's. */
@@ -94,7 +136,7 @@ public final class GrindstonePanelView {
 		};
 	}
 
-	/** The bottom line: what happens if the player takes the result now, or why nothing can be taken. */
+	/** What happens if the player takes the result now, or why nothing can be taken. */
 	static Msg status(Status status, Optional<GrindstoneOption> picked, int levelsCharged, int playerLevel,
 			OptionalInt maximumOperationCost) {
 		return switch (status) {

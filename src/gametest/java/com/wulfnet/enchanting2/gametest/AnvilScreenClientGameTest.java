@@ -109,7 +109,7 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 		int nameX = screen(context, AnvilScreenAccess::enchanting2$nameBoxX);
 		check(nameX == leftPos + 62, "rename box at " + nameX + ", window at " + leftPos);
 		int topPos = (height - ColumnWindow.HEIGHT) / 2;
-		check(screen(context, AnvilScreenAccess::enchanting2$boxLeft) == leftPos + ColumnWindow.ANVIL.left()
+		check(screen(context, AnvilScreenAccess::enchanting2$boxLeft) == leftPos + ColumnWindow.BOX.left()
 				&& screen(context, AnvilScreenAccess::enchanting2$boxTop) == topPos + ColumnWindow.BOX_TOP,
 				"the box sits in the right column");
 		check(screen(context, AnvilScreenAccess::enchanting2$boxText)

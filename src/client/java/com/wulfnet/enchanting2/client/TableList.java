@@ -57,7 +57,7 @@ public final class TableList {
 	/**
 	 * Draws the box at the window's {@code (windowLeft, windowTop)}, and sets the tooltip for the entry under the mouse.
 	 *
-	 * @param text resolves an entry's message (names, levels) the way the side panels do
+	 * @param text resolves an entry's message (names, levels) the way the anvil and grindstone boxes do
 	 */
 	public void draw(GuiGraphics graphics, List<Entry> entries, Function<Msg, Component> text, int windowLeft,
 			int windowTop, int mouseX, int mouseY) {

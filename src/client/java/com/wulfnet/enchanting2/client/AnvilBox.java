@@ -19,13 +19,13 @@ import net.minecraft.util.FormattedCharSequence;
  * what it drew for the client GameTest.
  */
 public final class AnvilBox {
-	private static final ColumnWindow.Box BOX = ColumnWindow.ANVIL;
+	private static final ColumnWindow.Box BOX = ColumnWindow.BOX;
 	private static final int LINE = 10;
 	private static final int PADDING = 3;
 	private static final int TOP_PADDING = 2;
 	private static final int INDENT = 6;
 	private static final int AMOUNT_GAP = 4;
-	/** The window's own grey, so the colours below read as they did in the side panel. */
+	/** The window's own grey, so the colours below read as they did in the 6D side panel. */
 	private static final int INTERIOR = 0xFFC6C6C6;
 	/** Vanilla's container label grey, and darker tones that stay readable on it. */
 	private static final int NORMAL = 0xFF404040;

@@ -34,10 +34,11 @@ public final class ColumnWindow {
 	/** The interior ends here (exclusive); the frame's right edge is this column. */
 	public static final int BOX_RIGHT = WIDTH - BORDER - 1;
 
-	/** The anvil's box starts right of its rename box (columns 59–168). */
-	public static final Box ANVIL = new Box(173);
-	/** The grindstone's starts right of its result slot (the texture is plain grey from column 146). */
-	public static final Box GRINDSTONE = new Box(150);
+	/**
+	 * Both windows' box: right of vanilla's part, which runs to column 168 at full height (the inventory grid, and the
+	 * anvil's rename box). Both textures are plain grey from 169 over the box's whole height, so its frame sits at 172.
+	 */
+	public static final Box BOX = new Box(173);
 
 	/** The scroll bar at the interior's right edge, a one-pixel gap left of it. */
 	public static final int SCROLLBAR_WIDTH = 6;
@@ -49,10 +50,7 @@ public final class ColumnWindow {
 	private ColumnWindow() {
 	}
 
-	/**
-	 * One window's box: its interior from {@code left} to {@link #BOX_RIGHT}, {@link #BOX_TOP} down
-	 * {@link #BOX_HEIGHT}.
-	 */
+	/** The box: its interior from {@code left} to {@link #BOX_RIGHT}, {@link #BOX_TOP} down {@link #BOX_HEIGHT}. */
 	public record Box(int left) {
 		public Box {
 			if (left <= 0 || left >= BOX_RIGHT - SCROLLBAR_WIDTH - 1) {

@@ -29,7 +29,8 @@ import org.junit.jupiter.api.Test;
  */
 class GrindstoneLangKeysTest {
 	/** Built in client code, which JUnit can't load; kept in step by hand. */
-	private static final List<String> CLIENT_KEYS = List.of(GrindstonePanelView.KEY + "panel.title");
+	private static final List<String> CLIENT_KEYS = List.of(GrindstonePanelView.KEY + "row.cost",
+			GrindstonePanelView.KEY + "tooltip.cost");
 	private static final Pattern PLACEHOLDER = Pattern.compile("%(?:(\\d+)\\$)?s");
 
 	private static JsonObject lang() throws Exception {
@@ -65,6 +66,8 @@ class GrindstoneLangKeysTest {
 						for (int charged : new int[] {0, 5}) {
 							GrindstonePanelView.panel(status, options, pick, charged, level, max).stream()
 									.map(Item::row).forEach(row -> all.add(row.text()));
+							GrindstonePanelView.label(status, options, pick, charged, level, max)
+									.ifPresent(label -> all.addAll(label.forms()));
 						}
 					}
 				}

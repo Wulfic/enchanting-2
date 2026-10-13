@@ -529,3 +529,16 @@ rounded that down one time in ten million. A latent 10eB bug, caught by a long r
 between the client and integrated server per tick.
 **Fix:** rerun once. If it repeats, look at which test touches packets outside the API (the shield/Double Jump client
 tests drive real input) before suspecting the change under test.
+**Seen again** 2026-10-13 (10oC), same place (the world after the config-screen test); the rerun was green. Twice
+in one day now: if it shows a third time, chase it instead of rerunning.
+
+## 2026-10-13 — A full-height box must clear vanilla's part at full height, not just the top band (10oC)
+**Symptom:** the grindstone's picker box covered the inventory's 9th column, and the client GameTest's "a click in
+the list keeps the carried item" failed: the diamonds went missing. Our `mouseClicked` ate the click, but vanilla's
+`mouseReleased` still saw the hotbar slot under the mouse.
+**Cause:** the box's left edge (x 150) came from texture columns that are plain grey in rows 4–80 only. The box runs
+rows 11–155, through the inventory grid (to column 168). Over rows 3–162 only columns 169–171 are plain, in both
+textures.
+**Fix:** one `ColumnWindow.BOX` at x 173 for both screens; `ColumnWindowTest` now asserts the frame clears the
+inventory grid. Measure a texture over the rows the overlay actually covers. And never let an in-window box overlap
+a slot: vanilla's release handling acts on the slot under the mouse whatever the click handler did.

@@ -6,8 +6,7 @@ import com.wulfnet.enchanting2.grindstone.GrindstoneAction;
 import com.wulfnet.enchanting2.grindstone.GrindstoneChoice;
 import com.wulfnet.enchanting2.grindstone.GrindstoneMenuAccess;
 import com.wulfnet.enchanting2.grindstone.GrindstoneOption;
-import com.wulfnet.enchanting2.screen.SidePanelLayout.Placement;
-import com.wulfnet.enchanting2.screen.SidePanelLayout;
+import com.wulfnet.enchanting2.screen.ColumnWindow;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -35,12 +34,13 @@ import net.minecraft.world.item.enchantment.ItemEnchantments;
 import org.lwjgl.glfw.GLFW;
 
 /**
- * Stage 6bC on the real client: the grindstone's picker panel lists the server's rows, a click on a row picks it, the
- * take moves the enchantment, a curse gets a Cleanse row with its price, and a click on the panel never throws the
- * carried item. Screenshots land in the client GameTest run dir for the owner to look at.
+ * The grindstone on the real client (Stage 6bC; in the window since TODO 10o): the window is wide and centred even on a
+ * small screen, the picker lists the server's rows with hover descriptions, a click on a row picks it and the price
+ * shows in vanilla's cost-label place, the take moves the enchantment, a curse gets a Cleanse row with its price, and a
+ * click in the list never throws the carried item. Screenshots land in the client GameTest run dir for the owner.
  */
 public class GrindstoneScreenClientGameTest implements FabricClientGameTest {
-	/** 854x480 at GUI scale auto is 427 wide: neither side fits the panel, so the window shifts. */
+	/** 854x480 at GUI scale auto is 427 x 240: the 296 wide window still fits, centred. */
 	private static final int NARROW_WIDTH = 854;
 	private static final int NARROW_HEIGHT = 480;
 	private static final int WIDE_WIDTH = 1920;
@@ -64,12 +64,12 @@ public class GrindstoneScreenClientGameTest implements FabricClientGameTest {
 			context.waitForScreen(GrindstoneScreen.class);
 			context.waitTick();
 
-			narrowScreenShiftsTheWindow(context);
+			wideWindowFitsTheSmallScreenCentred(context);
 			context.getInput().resizeWindow(WIDE_WIDTH, WIDE_HEIGHT);
 			context.waitTick();
-			extractThroughThePanel(context, world);
+			extractThroughTheList(context, world);
 			cursedItemGetsACleanseRow(context, world);
-			panelClickKeepsTheCarriedItem(context, world);
+			listClickKeepsTheCarriedItem(context, world);
 			closingClearsThePanel(context);
 		}
 	}
@@ -120,29 +120,35 @@ public class GrindstoneScreenClientGameTest implements FabricClientGameTest {
 	}
 
 	/** {@code x, y} in GUI coordinates; the input API takes window pixels. */
-	private static void click(ClientGameTestContext context, int x, int y) {
+	private static void moveTo(ClientGameTestContext context, int x, int y) {
 		double scale = context.computeOnClient(client -> client.getWindow().getGuiScale());
 		context.getInput().setCursorPos((x + 0.5) * scale, (y + 0.5) * scale);
+	}
+
+	private static void click(ClientGameTestContext context, int x, int y) {
+		moveTo(context, x, y);
 		context.getInput().pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
 	}
 
-	private static void narrowScreenShiftsTheWindow(ClientGameTestContext context) {
-		SidePanelLayout layout = screen(context, GrindstoneScreenAccess::enchanting2$layout);
-		check(layout != null, "our server, but the screen has no layout (mixin not applied?)");
-		check(layout.placement() == Placement.SHIFTED, "427 wide should shift, got " + layout);
+	private static void wideWindowFitsTheSmallScreenCentred(ClientGameTestContext context) {
+		check(screen(context, GrindstoneScreenAccess::enchanting2$wide), "our server, but not wide (mixin?)");
+		check(screen(context, GrindstoneScreenAccess::enchanting2$imageWidth) == ColumnWindow.WIDTH, "296 wide");
 		int width = context.computeOnClient(client -> client.getWindow().getGuiScaledWidth());
+		int height = context.computeOnClient(client -> client.getWindow().getGuiScaledHeight());
 		int leftPos = screen(context, GrindstoneScreenAccess::enchanting2$leftPos);
-		check(leftPos == layout.leftPos() && leftPos > (width - 176) / 2, "window not moved right: " + layout);
-		check(layout.panelX() >= 0 && layout.panelX() + layout.panelWidth() + SidePanelLayout.GAP <= leftPos,
-				"panel on screen, left of the window: " + layout);
-		List<String> panel = screen(context, GrindstoneScreenAccess::enchanting2$panelText);
-		check(panel.equals(List.of(Component.translatable("enchanting2.grindstone.status.empty").getString())),
-				"empty grindstone panel: " + panel);
-		context.takeScreenshot("enchanting2-grindstone-shifted-empty");
+		check(leftPos == (width - ColumnWindow.WIDTH) / 2 && leftPos >= 0, "centred at " + leftPos + " on " + width);
+		check(screen(context, GrindstoneScreenAccess::enchanting2$listLeft) == leftPos + ColumnWindow.BOX.left()
+				&& screen(context, GrindstoneScreenAccess::enchanting2$listTop)
+						== (height - IMAGE_HEIGHT) / 2 + ColumnWindow.BOX_TOP, "the list sits in the right column");
+		List<String> list = screen(context, GrindstoneScreenAccess::enchanting2$listText);
+		check(list.equals(List.of(Component.translatable("enchanting2.grindstone.status.empty").getString())),
+				"empty grindstone list: " + list);
+		check(screen(context, GrindstoneScreenAccess::enchanting2$labelText) == null, "no price without an item");
+		context.takeScreenshot("enchanting2-grindstone-empty");
 	}
 
-	/** Sword (Sharpness V, Unbreaking III) + 3 books: pick Sharpness on the panel, take the book. */
-	private static void extractThroughThePanel(ClientGameTestContext context, TestSingleplayerContext world) {
+	/** Sword (Sharpness V, Unbreaking III) + 3 books: hover and pick Sharpness in the list, take the book. */
+	private static void extractThroughTheList(ClientGameTestContext context, TestSingleplayerContext world) {
 		world.getServer().runOnServer(server -> {
 			GrindstoneMenu menu = serverMenu(server);
 			menu.getSlot(GrindstoneMenu.INPUT_SLOT).set(with(server, Items.DIAMOND_SWORD,
@@ -150,26 +156,33 @@ public class GrindstoneScreenClientGameTest implements FabricClientGameTest {
 			menu.getSlot(GrindstoneMenu.ADDITIONAL_SLOT).set(new ItemStack(Items.BOOK, 3));
 		});
 		context.waitTicks(2);
-		SidePanelLayout layout = screen(context, GrindstoneScreenAccess::enchanting2$layout);
-		check(layout != null && layout.placement() == Placement.LEFT, "1920x1080 should place the panel left: "
-				+ layout);
-		List<String> panel = screen(context, GrindstoneScreenAccess::enchanting2$panelText);
+		List<String> panel = screen(context, GrindstoneScreenAccess::enchanting2$listText);
 		check(panel.contains("Sharpness V") && panel.contains("Unbreaking III"), "a row per enchantment: " + panel);
 		check(panel.contains(Component.translatable("enchanting2.grindstone.status.pick").getString()),
 				"asks for a pick: " + panel);
+		check(screen(context, GrindstoneScreenAccess::enchanting2$labelText) == null, "no price before a pick");
 		check(resultOnClient(context).isEmpty(), "no result before a pick");
-		context.takeScreenshot("enchanting2-grindstone-rows");
 
 		OptionalInt rowY = screen(context, access -> access.enchanting2$rowY(EXTRACT_SHARPNESS));
 		check(rowY.isPresent(), "the Sharpness row is drawn");
-		click(context, layout.panelX() + 10, rowY.getAsInt());
+		int rowX = screen(context, GrindstoneScreenAccess::enchanting2$listLeft) + 10;
+		moveTo(context, rowX, rowY.getAsInt());
+		context.waitTicks(2);
+		List<String> tooltip = screen(context, GrindstoneScreenAccess::enchanting2$rowTooltip);
+		check(tooltip.size() == 3 && tooltip.get(0).equals("Sharpness V")
+				&& tooltip.get(1).equals(Component.translatable("enchantment.minecraft.sharpness.desc").getString())
+				&& tooltip.get(2).contains("5"), "name, description and price on hover: " + tooltip);
+		context.takeScreenshot("enchanting2-grindstone-rows");
+		click(context, rowX, rowY.getAsInt());
 		context.waitTicks(3);
 		Optional<GrindstoneChoice> held = world.getServer().computeOnServer(server ->
 				((GrindstoneMenuAccess) serverMenu(server)).enchanting2$choice());
 		check(held.equals(Optional.of(EXTRACT_SHARPNESS)), "the click picked Sharpness on the server: " + held);
 		check(resultOnClient(context).is(Items.ENCHANTED_BOOK), "the result arrived: " + resultOnClient(context));
-		panel = screen(context, GrindstoneScreenAccess::enchanting2$panelText);
-		check(panel.contains(Component.translatable("container.repair.cost", 5).getString()), "costs 5: " + panel);
+		String label = screen(context, GrindstoneScreenAccess::enchanting2$labelText);
+		check(Component.translatable("container.repair.cost", 5).getString().equals(label), "costs 5: " + label);
+		panel = screen(context, GrindstoneScreenAccess::enchanting2$listText);
+		check(!panel.contains(label), "the price isn't repeated in the list: " + panel);
 		context.takeScreenshot("enchanting2-grindstone-picked");
 
 		int leftPos = screen(context, GrindstoneScreenAccess::enchanting2$leftPos);
@@ -206,7 +219,7 @@ public class GrindstoneScreenClientGameTest implements FabricClientGameTest {
 					Map.of(Enchantments.SHARPNESS, 5, Enchantments.VANISHING_CURSE, 1)));
 		});
 		context.waitTicks(2);
-		List<String> panel = screen(context, GrindstoneScreenAccess::enchanting2$panelText);
+		List<String> panel = screen(context, GrindstoneScreenAccess::enchanting2$listText);
 		check(panel.contains(Component.translatable("enchanting2.grindstone.heading.cleanse").getString())
 				&& panel.contains("Curse of Vanishing"), "a Cleanse row for the curse: " + panel);
 		int cost = context.computeOnClient(client -> GrindstoneOptionsState
@@ -218,18 +231,17 @@ public class GrindstoneScreenClientGameTest implements FabricClientGameTest {
 		context.takeScreenshot("enchanting2-grindstone-cleanse");
 	}
 
-	/** Vanilla would count a click beside the window as outside and throw the carried item; the panel isn't outside. */
-	private static void panelClickKeepsTheCarriedItem(ClientGameTestContext context, TestSingleplayerContext world) {
+	/** The list is inside the window, so vanilla never counts a click on it as outside and throws the carried item. */
+	private static void listClickKeepsTheCarriedItem(ClientGameTestContext context, TestSingleplayerContext world) {
 		world.getServer().runOnServer(server -> {
 			GrindstoneMenu menu = serverMenu(server);
 			menu.setCarried(new ItemStack(Items.DIAMOND, 7));
 			menu.broadcastChanges();
 		});
 		context.waitTicks(2);
-		SidePanelLayout layout = screen(context, GrindstoneScreenAccess::enchanting2$layout);
-		int height = context.computeOnClient(client -> client.getWindow().getGuiScaledHeight());
-		// The title line: on the panel, not a row.
-		click(context, layout.panelX() + 10, (height - IMAGE_HEIGHT) / 2 + 6);
+		// Near the list's bottom, below the rows: inside the box, not a pick.
+		click(context, screen(context, GrindstoneScreenAccess::enchanting2$listLeft) + 10,
+				screen(context, GrindstoneScreenAccess::enchanting2$listTop) + ColumnWindow.BOX_HEIGHT - 5);
 		context.waitTicks(3);
 		ItemStack carried = world.getServer().computeOnServer(server -> serverMenu(server).getCarried().copy());
 		check(carried.is(Items.DIAMOND) && carried.getCount() == 7, "the carried diamonds were thrown: " + carried);

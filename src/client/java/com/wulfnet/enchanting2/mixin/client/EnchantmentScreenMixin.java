@@ -68,7 +68,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  */
 @Mixin(EnchantmentScreen.class)
 abstract class EnchantmentScreenMixin extends AbstractContainerScreen<EnchantmentMenu> implements TableScreenAccess {
-	/** Readable on the window's grey: the side panels' green, red and label grey. */
+	/** Readable on the window's grey: the anvil box's green, red and label grey. */
 	@Unique
 	private static final int GOOD = 0xFF1E7B1E;
 	@Unique

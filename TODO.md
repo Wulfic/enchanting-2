@@ -1558,7 +1558,7 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       table's lapis total LAPIS); table rows "5 lvl" (no room for "levels"); table totals relabelled "Total"/"Lapis";
       `SidePanel` list mode deleted (unused since 10l). JUnit `PanelTextTest`; anvil client GameTest checks the total's
       unit.
-- [ ] 10o Anvil and grindstone in the window (owner 2026-10-13; decisions.md "Anvil and grindstone in the window:
+- [x] 10o Anvil and grindstone in the window (owner 2026-10-13; decisions.md "Anvil and grindstone in the window:
       full-height right column"). Tier 2: three commits (oA, oB, oC), each green on `./gradlew build` and
       `./gradlew runClientGameTest`. Client only: no server logic, payloads, protocol or prices change.
       **Geometry** (MC-free `screen/ColumnWindow` + JUnit; GUI px from the window's top-left):
@@ -1568,8 +1568,8 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
         straight border above and below, pixel-checked in both textures) stretched over x 170–290; the right border
         (columns 170–176) at x 290.
       - Box frame y 10 and 155 (7 px grey above and below), interior y 11–155 (144 tall). Right frame x 289, 3 px grey
-        before the border. Left frame: anvil x 172 (the rename box ends at 168), interior 116 wide; grindstone x 149
-        (texture plain from 146), interior 139 wide. Scroll bar 6 px at the interior's right edge, 1 px gap, villager
+        before the border. Left frame x 172 for both (vanilla's part, inventory grid included, ends at 168; the
+        grindstone's planned x 149 overlapped it, see oC), interior 116 wide. Scroll bar 6 px at the interior's right edge, 1 px gap, villager
         scroller sprite (as the table's).
       - Anvil box: grey interior, inset frame, rows wrapped at 10 px lines (14 lines), amounts right-aligned, colours as
         `SidePanel`'s today; no title line. Grindstone list: 12 px rows (12 in view), the table's row palette (beige,
@@ -1606,6 +1606,12 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       - oC grindstone: `GrindstoneScreenMixin` (width before `super.init()`, shift hack gone, background wrap, list,
         label, scroll input); client `GrindstoneList`; `GrindstonePanelView.label`. Deletes `SidePanel`,
         `SidePanelLayout` and `SidePanelLayoutTest` (owner approval needed: deleting a test). DESIGN §6 grindstone.
+        ✅ oC 2026-10-13: 399 JUnit (SidePanelLayoutTest's 8 gone with its class, owner approved; GrindstonePanelViewTest
+        moved to `label` + trimmed status line; the lang walk covers the label's forms), server and client GameTests
+        green. Changed while building: **one box for both screens at x 173** (the grindstone's planned x 149 sat over
+        the inventory's last column at full height; gotchas.md). Picks that can only be refused (a curse to extract, a
+        book's only entry) draw dark and don't click, as the table's unpickable rows. Rows show "5 lvl" like the
+        table's; the tooltip has "Costs 5 levels". DESIGN §6 table paragraph brought up to 10l too.
       **Tests:** JUnit `ScrollModelTest`, `ColumnWindowTest`, `ClientConfigTest` (the two tooltip toggles round-trip;
       an old file with the anvil key loads with one "no longer used" issue), `GrindstonePanelViewTest` on `label` and
       the trimmed status line, `AnvilLangKeysTest`/grindstone lang walk. Client GameTests rewritten for the window:

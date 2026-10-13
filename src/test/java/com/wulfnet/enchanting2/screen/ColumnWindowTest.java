@@ -9,10 +9,16 @@ import org.junit.jupiter.api.Test;
 
 /** The layout's numbers have to line up with vanilla's anvil and grindstone textures and with each other (TODO 10o). */
 class ColumnWindowTest {
-	/** Vanilla's anvil rename box sprite (x 59, 110 wide) ends here; the texture is plain grey from the next column. */
-	private static final int RENAME_BOX_END = 59 + 110 - 1;
-	/** Right of vanilla's grindstone result slot, the texture is plain grey from this column. */
-	private static final int GRINDSTONE_PLAIN_FROM = 146;
+	/** Vanilla's anvil rename box sprite: x 59, 110 wide. */
+	private static final int RENAME_BOX_END = 59 + 110;
+	/** The inventory grid's last column: slot x 8 + 8 × 18, 16 wide (its frame is drawn from the texture). */
+	private static final int INVENTORY_END = 8 + 8 * 18 + 16;
+	/**
+	 * Pixel-checked in anvil.png and grindstone.png: from here the texture is plain grey over rows 3–162, the box's
+	 * whole height. The top band alone is plain further left in the grindstone, which put its first box over the
+	 * inventory's last column (caught by the client GameTest, 10oC).
+	 */
+	private static final int FULL_HEIGHT_PLAIN_FROM = 169;
 	/** The texture's border rows: 0–2 above, 163–165 below. */
 	private static final int PLAIN_TOP_ROW = 3;
 	private static final int PLAIN_BOTTOM_ROW = 162;
@@ -34,13 +40,14 @@ class ColumnWindowTest {
 	}
 
 	@Test
-	void eachBoxStartsRightOfVanillasContentWithTheSameGapBothSides() {
-		int anvilGap = ColumnWindow.ANVIL.left() - 1 - (RENAME_BOX_END + 1);
+	void theBoxClearsVanillasPartWithTheSameGapBothSides() {
+		int frameLeft = ColumnWindow.BOX.left() - 1;
+		assertTrue(frameLeft >= INVENTORY_END && frameLeft >= RENAME_BOX_END,
+				"the full-height box clears the inventory grid and the rename box");
+		assertEquals(3, frameLeft - FULL_HEIGHT_PLAIN_FROM, "grey between vanilla's part and the frame");
 		int rightGap = ColumnWindow.WIDTH - ColumnWindow.BORDER + 3 - (ColumnWindow.BOX_RIGHT + 1);
-		assertEquals(3, anvilGap, "grey between the rename box and the frame");
 		assertEquals(3, rightGap, "grey between the frame and the border's shadow");
-		assertEquals(3, ColumnWindow.GRINDSTONE.left() - 1 - GRINDSTONE_PLAIN_FROM, "grey after the result slot");
-		assertTrue(ColumnWindow.ANVIL.left() - 1 >= ColumnWindow.PLAIN_COLUMN, "the anvil's frame is on plain grey");
+		assertTrue(frameLeft >= ColumnWindow.PLAIN_COLUMN, "the frame is on the stretched plain column");
 	}
 
 	@Test
@@ -56,12 +63,10 @@ class ColumnWindowTest {
 	void linesAndRowsFillTheBox() {
 		assertEquals(0, ColumnWindow.BOX_HEIGHT % 12, "whole 12 px picker rows");
 		assertTrue(ColumnWindow.BOX_HEIGHT > ScrollModel.THUMB_HEIGHT);
-		assertEquals(116, ColumnWindow.ANVIL.width());
-		assertEquals(139, ColumnWindow.GRINDSTONE.width());
-		for (ColumnWindow.Box box : List.of(ColumnWindow.ANVIL, ColumnWindow.GRINDSTONE)) {
-			assertEquals(ColumnWindow.BOX_RIGHT, box.scrollBarX() + ColumnWindow.SCROLLBAR_WIDTH);
-			assertEquals(box.left() + box.rowWidth() + 1, box.scrollBarX(), "a one-pixel gap before the bar");
-		}
+		ColumnWindow.Box box = ColumnWindow.BOX;
+		assertEquals(116, box.width());
+		assertEquals(ColumnWindow.BOX_RIGHT, box.scrollBarX() + ColumnWindow.SCROLLBAR_WIDTH);
+		assertEquals(box.left() + box.rowWidth() + 1, box.scrollBarX(), "a one-pixel gap before the bar");
 	}
 
 	/** 320 x 240 is the smallest GUI-scaled screen; 1080p at GUI scale 4 is 480 x 270. */
@@ -74,7 +79,7 @@ class ColumnWindowTest {
 
 	@Test
 	void theCostLabelStaysInVanillasPart() {
-		assertTrue(ColumnWindow.LABEL_RIGHT < ColumnWindow.ANVIL.left() - 1);
+		assertTrue(ColumnWindow.LABEL_RIGHT < ColumnWindow.BOX.left() - 1);
 	}
 
 	@Test

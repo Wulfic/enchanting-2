@@ -87,13 +87,19 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
 - 10l (2026-10-13): table list in the window (`table/TableWindow`, `TableListModel`, client `TableList`; side panel
   gone, `SidePanel` list mode deleted). 10n: amounts carry units (`PanelText.amount`, `Row.unit`). 10m:
   `mobs.health_multiplier` (`mobs/MobHealth`, permanent modifier, `AttributesMixin` ceiling 1,000,000).
-- Tests: 395 JUnit + 329 GameTests (`./gradlew build`) + 7 client GameTests (`./gradlew runClientGameTest`).
+- 10o (2026-10-13): anvil and grindstone in the window (296 × 166, `screen/ColumnWindow`, one full-height box on the
+  right at x 173): client `AnvilBox`, `GrindstoneList`, `CostLabel`; shared `ScrollModel`, `PickerStyle`, `ScrollBar`,
+  `WindowBackground`; `ItemCombinerScreenMixin` draws the anvil background. `SidePanel`, `SidePanelLayout`,
+  `AnvilPanelTab` and client.json5 `anvil.show_preview_panel` gone. Table 10l v2 accepted by the owner.
+- Tests: 399 JUnit + 329 GameTests (`./gradlew build`) + 7 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. In progress: 10o, anvil and grindstone in the window (TODO.md "10o", decisions.md 2026-10-13 "full-height right
-   column"); stages oA (shared) → oB (anvil) → oC (grindstone), one commit each. Owner approved deleting/replacing
-   the side-panel tests listed there. Table window 10l v2 accepted by the owner. A new enchantment still adds a
-   `LevelCeilings` row, a `.desc` line, tags, a price row if single-level, docs rows.
+1. Next: the owner's look at the anvil and grindstone windows in `runClient` (10o; screenshots
+   `enchanting2-anvil-*`, `enchanting2-grindstone-*` in `build/run/clientGameTest/screenshots/`). Open for the owner:
+   the anvil's amounts drop under a row's text when they don't fit beside it ("5 lvl" like the table would keep one
+   line); grindstone rows cut long names ("Disenchant (XP ba…") with the full text in the tooltip. Then Phase 11
+   (README is still the template line). A new enchantment still adds a `LevelCeilings` row, a `.desc` line, tags, a
+   price row if single-level, docs rows.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
    ~1,000,000) + 6D: panel look, config screen "Display" toggle, and a vanilla server keeping the vanilla anvil screen +
    6bC: grindstone panel look, and a vanilla server keeping the vanilla grindstone + 7D: table panel and window look
@@ -124,7 +130,8 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
    sound, HUD timer), with a totem in hand, the "Last Stand in PvP" toggle. + 10cGA: Speed V vs plain elytra over a
    long flat, a rocket boost, no rubber-banding. + 10cGB: Flight I / III / V held while gliding and climbing (is I
    too close to V?), the durability drain. + 10cGC: double jumps (land, cliff, none in water or on a ladder, elytra
-   takes off on the second press).
+   takes off on the second press). + 10o: anvil and grindstone windows (look, wheel and thumb scrolling, a long
+   breakdown, the grindstone's hover tooltips, the price label), with a recipe viewer installed if you use one.
 
 ## Open questions / blockers
 - Owner (2026-10-06): a lowered max level never touches existing items (decisions.md).
@@ -143,5 +150,7 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
 - `.env` and MCP configs are tracked with live credentials (owner's call). Rotate the `ghp_` PAT.
 - `.claude/skills/` and `.github/skills/` are hand-synced copies.
 - A new GameTest class must be listed in `src/gametest/resources/fabric.mod.json` or it silently never runs.
+- The client GameTest flake "Network synchronizer in invalid state" hit twice on 2026-10-13 (gotchas.md): rerun once;
+  a third time means chase it.
 - `./gradlew build` runs JUnit + server GameTests only. Run `./gradlew runClientGameTest` too for client changes (opens
   a game window, ~2.5 min; screenshots in `build/run/clientGameTest/screenshots/`).

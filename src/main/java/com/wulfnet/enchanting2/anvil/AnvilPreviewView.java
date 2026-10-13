@@ -18,9 +18,9 @@ import java.util.OptionalInt;
 import java.util.OptionalLong;
 
 /**
- * What the anvil screen says about a server preview (DESIGN §5 Messages, §6 Anvil): the cost label and the side panel's
- * rows, as lang keys with typed arguments. Pure, so every status, verdict, fate and line kind is unit-tested; the client
- * only turns {@link Msg}s into components (enchantment names, level numerals, the item's name).
+ * What the anvil screen says about a server preview (DESIGN §5 Messages, §6 Anvil): the cost label and the breakdown
+ * box's rows, as lang keys with typed arguments. Pure, so every status, verdict, fate and line kind is unit-tested; the
+ * client only turns {@link Msg}s into components (enchantment names, level numerals, the item's name).
  */
 public final class AnvilPreviewView {
 	public static final String KEY = "enchanting2.anvil.";
@@ -123,7 +123,7 @@ public final class AnvilPreviewView {
 	}
 
 	/**
-	 * The side panel, top to bottom: the blocking reason (when there is one), the price lines and total, then every
+	 * The breakdown box, top to bottom: the blocking reason (when there is one), the price lines and total, then every
 	 * entry that wasn't applied with its reason and fate.
 	 */
 	public static List<Row> panel(Status status, Optional<CostBreakdown> breakdown, List<Entry> entries,

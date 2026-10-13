@@ -444,15 +444,16 @@ Readable and not random. The vanilla three-random-offers screen is replaced by o
   (`table.treasure_requires_full_power = true`). Curses are never gated: they're a discount, not
   power.
 - **Screen** (only when the server runs Enchanting 2; on a vanilla server the screen is vanilla):
-  the vanilla window stays (slots, book). Its first two offer rows show the XP levels and lapis
-  (green if affordable, red if not) or why there is no price, and the third is the Enchant
-  button. The list is a scrollable side panel (160 wide) placed like the grindstone's, rows sorted
-  by translated name so mod and vanilla enchantments interleave (owner, 2026-10-12). A row
-  click picks at the highest level the table sells, or unpicks; `<` / `>` step the level. Rows
-  that can't be picked say why ("Needs 8 bookshelves", "Conflicts with Fortune", "Already at
-  maximum level"). The footer shows the Mending surcharge, the curse discount, the totals and
-  the status. Enchant carries the numbers the player saw, and the server refuses it if they no
-  longer match. A click on the panel never throws the carried item.
+  the vanilla window (slots, book) grows to 248 × 217 (10l, owner 2026-10-13). The list fills
+  vanilla's offer box, grown with it: one 12 px line per entry (name, then `< V >` when picked,
+  then the cost), a scroll bar, rows sorted by translated name so mod and vanilla enchantments
+  interleave (owner, 2026-10-12). A row click picks at the highest level the table sells, or
+  unpicks; `<` / `>` step the level. Hovering a row shows its description and, when it can't be
+  picked, why ("Needs 8 bookshelves", "Conflicts with Fortune", "Already at maximum level").
+  Under the item and lapis slots: the XP levels and lapis (green if affordable, red if not) or
+  why there is no price, and the Enchant button, whose tooltip has the Mending surcharge, the
+  curse discount, the totals and the status. Enchant carries the numbers the player saw, and the
+  server refuses it if they no longer match. A click in the list never throws the carried item.
 - Books can be enchanted with any table enchantment, several at once.
 - The server recomputes everything. The client's numbers are display only.
 
@@ -473,8 +474,8 @@ transferable instead of destroyable.
 - Curses can't be *extracted* onto a book. They can be *removed* (see Cleanse below).
 
 ### Grindstone modes
-The panel beside the grindstone lists the actions for what's in the slots, one row per pick with
-its price:
+The picker in the grindstone's window lists the actions for what's in the slots, one row per
+pick with its price:
 
 | Slots | Action |
 |---|---|
@@ -492,9 +493,14 @@ its price:
 - `maximum_operation_cost` caps Extract and Cleanse like the anvil (Cleanse's minimum of 30
   means a cap below 30 blocks it). Creative players bypass the cap, and `creative_free` makes it
   free.
-- The panel is placed like the anvil's (left, else right, else the window shifts) and has no
-  hide tab: it's the control. Vanilla's red X shows only when the server refuses something,
-  not while it waits for a pick.
+- The window is 296 × 166 like the anvil's (10o, owner 2026-10-13): vanilla's part untouched,
+  the picker in a box running the full height of the new right column, rows in the enchanting
+  table's style (beige, pink when picked, dark for a curse or a book's only entry, which can only
+  be refused), "5 lvl" prices, a scroll bar, and hover tooltips with the enchantment's
+  description and price. The price of the pick (cost, free, gives XP back, insufficient, too
+  expensive) is drawn where the anvil's cost label is; what to do next ("Pick an action above.")
+  is the list's last line. Vanilla's red X shows only when the server refuses something, not
+  while it waits for a pick.
 - On a vanilla server, a modded client keeps the vanilla grindstone.
 
 ### Fortune on all mining tools
