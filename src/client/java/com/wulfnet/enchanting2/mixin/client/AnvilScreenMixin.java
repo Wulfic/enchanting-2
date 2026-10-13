@@ -251,4 +251,9 @@ abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> implements
 	public List<String> enchanting2$panelText() {
 		return enchanting2$panel != null ? enchanting2$panel.lastText() : List.of();
 	}
+
+	@Override
+	public List<String> enchanting2$panelAmounts() {
+		return enchanting2$panel != null ? enchanting2$panel.lastAmounts() : List.of();
+	}
 }

@@ -227,8 +227,8 @@ public final class TableList {
 			lines.add(Component.translatable(description).withStyle(ChatFormatting.GRAY));
 		}
 		entry.reason().ifPresent(reason -> lines.add(text.apply(reason).copy().withStyle(ChatFormatting.RED)));
-		entry.row().amount().ifPresent(amount -> lines.add(Component.translatable(TablePanelView.KEY + "tooltip.cost",
-				amount).withStyle(ChatFormatting.GREEN)));
+		entry.row().amountText().ifPresent(amount -> lines.add(Component.translatable(TablePanelView.KEY
+				+ "tooltip.cost", text.apply(amount)).withStyle(ChatFormatting.GREEN)));
 		return lines;
 	}
 

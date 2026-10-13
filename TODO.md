@@ -1546,9 +1546,12 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       load / spawn (server) and re-applied to every loaded mob on config reload; health keeps its fraction of max.
       At 1 the modifier is removed. JUnit: parse/clamp/defaults; GameTest: a zombie at 3x has 60 max and full health,
       back to 1x restores 20, a half-health one stays half, players untouched.
-- [ ] 10n Cost units (owner 2026-10-13): every cost amount in the anvil, grindstone and table panels, table rows and
+- [x] 10n Cost units (owner 2026-10-13): every cost amount in the anvil, grindstone and table panels, table rows and
       tooltips reads "N levels" (lang key, singular "1 level"); vanilla's anvil label unchanged. Lang test + the
-      client GameTests' expected texts move.
+      client GameTests' expected texts move.  ✅ 2026-10-13: `PanelText.amount` + `Row.unit` (LEVELS default, the
+      table's lapis total LAPIS); table rows "5 lvl" (no room for "levels"); table totals relabelled "Total"/"Lapis";
+      `SidePanel` list mode deleted (unused since 10l). JUnit `PanelTextTest`; anvil client GameTest checks the total's
+      unit.
 - [x] 10d Balance pass: every candidate moves from REVIEW to INCLUDE/DEFER/REMOVE  ✅ 2026-10-13 (owner ruled R1, R2, R3,
       R5 as drafted and R4 for Health and Last Stand only; everything else INCLUDE. New GameTests: the two treasure ones
       tagged like Mending and needing 15 shelves; JUnit Flight 6/level; the tag JUnit failed red before its update)

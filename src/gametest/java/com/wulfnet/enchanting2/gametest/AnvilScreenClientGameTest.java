@@ -145,6 +145,10 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 		check(panel.contains(Component.translatable("enchanting2.anvil.fate.keep_on_book").getString()),
 				"Silk Touch stays on the book: " + panel);
 		check(panel.stream().anyMatch(t -> t.startsWith("Sharpness")), "Sharpness line: " + panel);
+		// Owner, 2026-10-13: a bare number read as confusing; the total says "levels".
+		List<String> amounts = screen(context, AnvilScreenAccess::enchanting2$panelAmounts);
+		check(amounts.contains(Component.translatable("enchanting2.amount.levels", total).getString()),
+				"the total carries its unit: " + amounts);
 		context.takeScreenshot("enchanting2-anvil-panel-left");
 	}
 

@@ -30,4 +30,7 @@ public interface AnvilScreenAccess {
 
 	/** @return the panel's rows as drawn in the last frame (before wrapping); empty when the panel is hidden */
 	List<String> enchanting2$panelText();
+
+	/** @return the panel's amounts with their units, as drawn in the last frame */
+	List<String> enchanting2$panelAmounts();
 }

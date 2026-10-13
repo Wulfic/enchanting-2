@@ -1,6 +1,7 @@
 package com.wulfnet.enchanting2.table;
 
 import com.wulfnet.enchanting2.cost.CostBreakdown;
+import com.wulfnet.enchanting2.screen.PanelText;
 import com.wulfnet.enchanting2.screen.PanelText.Arg;
 import com.wulfnet.enchanting2.screen.PanelText.Msg;
 import com.wulfnet.enchanting2.screen.PanelText.Row;
@@ -170,7 +171,7 @@ public final class TablePanelView {
 				footer.add(new Row(Msg.of(KEY + "total.levels"), OptionalLong.of(price.levelsCharged()),
 						playerLevel >= price.levelsCharged() ? Tone.NORMAL : Tone.BAD, false));
 				footer.add(new Row(Msg.of(KEY + "total.lapis"), OptionalLong.of(price.lapisCharged()),
-						lapisCount >= price.lapisCharged() ? Tone.NORMAL : Tone.BAD, false));
+						lapisCount >= price.lapisCharged() ? Tone.NORMAL : Tone.BAD, false, PanelText.Unit.LAPIS));
 			}
 		}
 		footer.addAll(status(status, rows, invalid, cost, playerLevel, lapisCount, maximumOperationCost));

@@ -269,9 +269,7 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 		MutableComponent tooltip = Component.empty();
 		for (Row row : breakdown) {
 			MutableComponent line = enchanting2$text(row.text(), target).copy();
-			if (row.amount().isPresent()) {
-				line.append(": " + row.amount().getAsLong());
-			}
+			row.amountText().ifPresent(amount -> line.append(": ").append(enchanting2$text(amount, target)));
 			lines.add(line.getString());
 			if (!tooltip.getSiblings().isEmpty()) {
 				tooltip.append("\n");

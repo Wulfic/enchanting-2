@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.wulfnet.enchanting2.cost.CostBreakdown;
 import com.wulfnet.enchanting2.cost.CostBreakdown.Kind;
+import com.wulfnet.enchanting2.screen.PanelText;
 import com.wulfnet.enchanting2.screen.PanelText.Arg;
 import com.wulfnet.enchanting2.screen.PanelText.Msg;
 import com.wulfnet.enchanting2.screen.PanelText.Row;
@@ -174,7 +175,7 @@ class TablePanelViewTest {
 		assertEquals(List.of(
 				new Row(Msg.of(K + "line.surcharge", new Arg.Ench(MENDING)), OptionalLong.of(10), Tone.NORMAL, false),
 				new Row(Msg.of(K + "total.levels"), OptionalLong.of(17), Tone.NORMAL, false),
-				new Row(Msg.of(K + "total.lapis"), OptionalLong.of(17), Tone.NORMAL, false),
+				new Row(Msg.of(K + "total.lapis"), OptionalLong.of(17), Tone.NORMAL, false, PanelText.Unit.LAPIS),
 				Row.of(Msg.of(K + "status.ready"), Tone.GOOD)), footer);
 
 		List<Row> poor = TablePanelView.footer(Status.OK, List.of(), Optional.empty(),

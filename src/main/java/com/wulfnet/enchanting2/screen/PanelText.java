@@ -2,6 +2,7 @@ package com.wulfnet.enchanting2.screen;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.OptionalLong;
 
 /**
@@ -56,21 +57,50 @@ public final class PanelText {
 		}
 	}
 
+	/** What a row's amount counts. */
+	public enum Unit {
+		LEVELS,
+		LAPIS
+	}
+
+	/** Lang keys for an amount with its unit (owner 2026-10-13: a bare number read as confusing). */
+	public static final String AMOUNT_KEY = "enchanting2.amount.";
+
+	/** "1 level", "5 levels", "-2 levels", "17 lapis". */
+	public static Msg amount(long value, Unit unit) {
+		String key = switch (unit) {
+			case LAPIS -> "lapis";
+			case LEVELS -> Math.abs(value) == 1 ? "level" : "levels";
+		};
+		return Msg.of(AMOUNT_KEY + key, new Arg.Num(value));
+	}
+
 	/**
 	 * One panel row.
 	 *
-	 * @param amount XP levels, shown right-aligned; empty for rows that aren't a price
+	 * @param amount shown right-aligned with its {@code unit}; empty for rows that aren't a price
 	 * @param indent a detail of the row above
 	 */
-	public record Row(Msg text, OptionalLong amount, Tone tone, boolean indent) {
+	public record Row(Msg text, OptionalLong amount, Tone tone, boolean indent, Unit unit) {
 		public Row {
 			Objects.requireNonNull(text, "text");
 			Objects.requireNonNull(amount, "amount");
 			Objects.requireNonNull(tone, "tone");
+			Objects.requireNonNull(unit, "unit");
+		}
+
+		/** An amount in XP levels, as every panel price is except the table's lapis. */
+		public Row(Msg text, OptionalLong amount, Tone tone, boolean indent) {
+			this(text, amount, tone, indent, Unit.LEVELS);
 		}
 
 		public static Row of(Msg text, Tone tone) {
 			return new Row(text, OptionalLong.empty(), tone, false);
+		}
+
+		/** The amount with its unit, if there is one. */
+		public Optional<Msg> amountText() {
+			return amount.isPresent() ? Optional.of(PanelText.amount(amount.getAsLong(), unit)) : Optional.empty();
 		}
 	}
 
