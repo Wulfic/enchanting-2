@@ -1173,7 +1173,7 @@ for the HUD; an anvil-land "clang" plays on a save.
 transient cooldown (a relog would reset it).
 **Affects:** combat/LastStand, combat/LastStandClock, effect/LastStandEffect, config/LastStandSection, client/LastStandHud
 
-## 2026-10-13 — Flight is a share of a rocket's step per tick, not a constant force (agent, 10cGB; owner to confirm)
+## 2026-10-13 — Flight is a share of a rocket's step per tick, not a constant force (agent, 10cGB; owner confirmed 2026-10-13)
 **Context:** owner: "steady forward thrust growing per level, V ≈ one rocket". A scratch simulation of vanilla's glide
 (`updateFallFlyingMovement`) and rocket step (pull toward 1.5 × look by half the gap, + 0.1 × look) settled numbers:
 level flight: glide alone 1.52, rocket 1.67 blocks/tick; climbing at 20°: glide alone 0.38, rocket 1.66.
@@ -1196,3 +1196,32 @@ blocks a tick, on both sides, so any upward jump already breaks the fall. Moveme
 never refuse the jump itself, only log it.
 **Rejected:** the payload (dead weight: a channel, a handler and a protocol question for no behavior).
 **Affects:** movement/DoubleJump, mixin/client/LocalPlayerMixin, mixin/PlayerMixin
+
+## 2026-10-13 — Three open 10c questions closed (owner)
+**Context:** state.md carried owner questions left open by 10cDA, 10cDB and 10cGB.
+**Choice (owner):** (1) Magnetic and Ender Link stay allowed together on one tool (ender chest first, then the
+inventory); no exclusive set. (2) Flight keeps the share-of-a-rocket model (every level cruises near a rocket's speed;
+levels differ in how fast they get there). (3) Keep on Death's items stay an item tag only
+(`enchanting2:enchantable/keep_on_death`); no config-screen list.
+**Why:** (1) DESIGN §4: our enchantments declare no exclusive sets, and the combination is useful. (2) The alternatives
+in the Flight entry above either brake a coasting glider or make V climb 2.5x harder than a rocket. (3) A datapack tag
+is already configurable; a list would add a config surface for a rare edit.
+**Rejected:** an exclusive Magnetic/Ender Link set (DESIGN §9's original line); a level-scaled Flight target; an item
+list in common.json5 and the config screen.
+**Affects:** docs/DESIGN.md §9 (Ender Link row), elytra/Flight, drops/KeepOnDeath
+
+## 2026-10-13 — 10d rulings and the table screen rework (owner)
+**Context:** the 10d sheet (TODO "10d") proposed five retunes; state.md also asked about the table panel's scroll.
+**Choice (owner):** R1 Attack Speed +5%/level (V = +25%). R2 Vampirism 2%/level (V = 10%), reversing the owner's own
+2026-10-09 4%. R3 Reach entity range +0.25/level (III = 3.75), block range +0.5/level kept. R4 treasure (Mending's
+treatment) for Health and Last Stand only; Keep on Death stays non-treasure. R5 Flight 6/level like Speed. Every other
+§9 enchantment INCLUDE at its shipped numbers; DEFER list unchanged; REMOVE none. Table screen: the scrolling list
+moves out of the side panel into the window's own offer area, with a scroll bar and hover descriptions; the Enchant
+button moves out of the list's box into the rest of the window; the picked row stays in view. Owner reviews it in a
+running client before it's final.
+**Why:** owner: the side panel "feels janky". Retunes: Attack Speed V outdid Sharpness V, Vampirism V out-healed
+Regeneration II six times over, Reach III gave 4.5-block melee, Health and Last Stand rolled onto mob spawn gear,
+Flight V cost 5 while Speed V cost 30.
+**Rejected:** treasure for Keep on Death (owner); keeping the side panel.
+**Affects:** data/enchanting2/enchantment/{attack_speed,vampirism,reach}.json, enchantment tags, cost/PricingTable,
+client table screen (EnchantmentScreenMixin, TablePanelView)

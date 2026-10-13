@@ -94,9 +94,9 @@ public class EffectEnchantmentsGameTest {
 
 	// --- Vampirism -----------------------------------------------------------------------------------------------
 
-	/** Level V heals 20% of what the zombie lost (after its armor), and the zombie loses exactly what it would anyway. */
+	/** Level V heals 10% of what the zombie lost (2% a level, owner 2026-10-13) (after its armor), and the zombie loses exactly what it would anyway. */
 	@GameTest
-	public void vampirismHealsTwentyPercentOfTheHealthLostAtLevelFive(GameTestHelper helper) {
+	public void vampirismHealsTenPercentOfTheHealthLostAtLevelFive(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
 		Zombie plainTarget = still(helper, EntityType.ZOMBIE, new BlockPos(1, 1, 1));
 		Zombie vampTarget = still(helper, EntityType.ZOMBIE, new BlockPos(4, 1, 1));
@@ -109,7 +109,7 @@ public class EffectEnchantmentsGameTest {
 		float lost = before - vampTarget.getHealth();
 		helper.assertTrue(lost > 0, Component.literal("the zombie lost no health"));
 		assertClose(helper, before - plainTarget.getHealth(), lost, "health lost with and without Vampirism");
-		assertClose(helper, START_HEALTH + 0.2 * lost, vamp.getHealth(), "Vampirism V heal");
+		assertClose(helper, START_HEALTH + 0.1 * lost, vamp.getHealth(), "Vampirism V heal");
 		assertClose(helper, START_HEALTH, plain.getHealth(), "no enchantment, no heal");
 		helper.succeed();
 	}
@@ -123,7 +123,7 @@ public class EffectEnchantmentsGameTest {
 		ServerPlayer vamp = holding(helper, enchanted(helper, Items.DIAMOND_SWORD, ModEnchantments.VAMPIRISM, 5));
 		target.hurtServer(level, level.damageSources().playerAttack(vamp), 20.0F);
 		helper.assertTrue(target.isDeadOrDying(), Component.literal("the zombie should be dead"));
-		assertClose(helper, START_HEALTH + 0.2 * 2.0, vamp.getHealth(), "heal from a 2 HP target");
+		assertClose(helper, START_HEALTH + 0.1 * 2.0, vamp.getHealth(), "heal from a 2 HP target");
 		helper.succeed();
 	}
 

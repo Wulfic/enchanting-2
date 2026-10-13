@@ -8,8 +8,8 @@
       {
         "amount": {
           "type": "minecraft:linear",
-          "base": 0.1,
-          "per_level_above_first": 0.1
+          "base": 0.05,
+          "per_level_above_first": 0.05
         },
         "attribute": "minecraft:attack_speed",
         "id": "enchanting2:enchantment.attack_speed",

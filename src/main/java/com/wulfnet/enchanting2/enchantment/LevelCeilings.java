@@ -104,13 +104,13 @@ public final class LevelCeilings {
 		t.put("enchanting2:freezing", NONE);
 		t.put("enchanting2:attack_speed", NONE);
 		t.put("enchanting2:critical_strike", soft(20));
-		t.put("enchanting2:reach", soft(122));
+		t.put("enchanting2:reach", soft(244));
 		t.put("enchanting2:xp_boost", NONE);
 		t.put("enchanting2:toughness", soft(40));
 		t.put("enchanting2:health", NONE_NOTED);
 		t.put("enchanting2:swiftness", NONE);
 		t.put("enchanting2:cushion", soft(5));
-		t.put("enchanting2:vampirism", soft(25));
+		t.put("enchanting2:vampirism", soft(50));
 		t.put("enchanting2:beheading", soft(50));
 		t.put("enchanting2:smelting", soft(1));
 		t.put("enchanting2:true_shot_aura", soft(1));

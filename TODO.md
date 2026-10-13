@@ -1495,7 +1495,57 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
         than one dirt over a seeded run, a placed one exactly one; natural leaves with a Fortune hoe multiply.
         DESIGN §6 table + docs/ENCHANTMENTS.md Fortune row.
       - Table panel rows sorted by translated name (client, `TablePanelView`), JUnit on the sort, DESIGN §7.
-- [ ] 10d Balance pass: every candidate moves from REVIEW to INCLUDE/DEFER/REMOVE
+- [x] 10d Balance pass: every candidate moves from REVIEW to INCLUDE/DEFER/REMOVE  ✅ 2026-10-13 (owner ruled R1, R2, R3,
+      R5 as drafted and R4 for Health and Last Stand only; everything else INCLUDE. New GameTests: the two treasure ones
+      tagged like Mending and needing 15 shelves; JUnit Flight 6/level; the tag JUnit failed red before its update)
+      **Sheet (agent draft 2026-10-13; owner rules each RETUNE, the rest stand unless overridden).** Numbers from the
+      shipped JSON and `PricingTable`. Yardstick: Sharpness V adds ~+40% to a netherite sword's hit. Every new non-curse
+      enchantment is in `#minecraft:non_treasure` (10a), so it is also rolled onto mob spawn gear. "Treasure" here
+      means Mending's treatment: out of `#non_treasure`, into `#minecraft:treasure` and `enchanting2:offered_at_table`,
+      so the table needs 15 shelves, librarians charge double, loot and trades keep it, mob spawn gear never gets it.
+      | Enchantment | Max | Cost | At max (stacked worst case) | Verdict |
+      |---|---|---|---|---|
+      | Attack Speed | 5 | 1/lvl | +50% attack speed (sword 1.6 → 2.4 hits/s, = Haste V); the largest DPS multiplier in the mod, above Sharpness V | **R1** +5%/lvl (V = +25%) |
+      | Vampirism | 5 | 1/lvl | heals 20% of damage dealt, every hit; Sharpness V + Attack Speed V on a crowd ≈ 4.8 HP/s, 6× Regeneration II | **R2** 2%/lvl (V = 10%, ≈ 2 HP/s after R1); overrides owner 2026-10-09 |
+      | Reach | 3 | 1/lvl | block and entity range +1.5: melee 3 → 4.5 blocks, half again any unenchanted player's | **R3** entity +0.25/lvl (III = 3.75), block +0.5/lvl kept |
+      | Health | 5 | 1/lvl | +5 HP a piece, a set +20 (40 HP, double); a zombie in a rolled Health V set has 40 HP | **R4** treasure |
+      | Last Stand | 3 | 1/lvl | a free totem every 6 min for 3 levels; mobs roll it too (a zombie that shrugs off a lethal hit) | **R4** treasure |
+      | Keep on Death | 1 | 10 | soulbound on any durable, from any table at any shelf count | **R4** treasure |
+      | Flight | 5 | 1/lvl | V = a rocket held down for 1 durability/s (Mending refills): replaces rockets, costs 5 while Speed V costs 30 | **R5** 6/lvl like Speed (V = 30) |
+      | Critical Strike | 5 | 1/lvl | 25% chance of ×1.5 = +12.5% average | INCLUDE |
+      | Quick Strike | 5 | 1/lvl | 25% repeat = +25% average | INCLUDE |
+      | Withering, Poisoning, Freezing | 5 | 1/lvl | 6 s of Wither I / Poison I (~5 damage, can't kill) / Slowness I, refreshed per hit, bows too | INCLUDE |
+      | Beheading | 5 | 1/lvl | 10% head on a direct melee kill | INCLUDE |
+      | XP Boost | 5 | 1/lvl | +25% XP | INCLUDE |
+      | TrueShot Aura | 1 | 10 | 5 s of flat flight | INCLUDE |
+      | Magnetic, Ender Link | 1 | 10 | allowed together (owner 2026-10-13) | INCLUDE |
+      | Toughness | 5 | 1/lvl | +2.5 a piece, a set +10 (cap 20): netherite vs a 20-damage hit 64% → 69% armor; real on iron/diamond | INCLUDE |
+      | Cushion | 3 | 1/lvl | 12 protection points vs walls (48%) | INCLUDE |
+      | Swiftness | 5 | 1/lvl | +25% speed (Speed I is +20%), stacks with potions and Soul Speed | INCLUDE |
+      | Vision, Calm Gaze, Phantom Ward, Clarity, Sustenance | | | helmet utility; Clarity III makes the Warden's Darkness a non-event | INCLUDE |
+      | Step Assist, Anchored, Sure Footing, Endurance | | | leggings utility; Anchored V + netherite reaches the 100% clamp | INCLUDE |
+      | Double Jump, Lava Walking, Snow Walker | 1 | 10 | boots utility | INCLUDE |
+      | Speed | 5 | 6/lvl | +50% glide and rocket speed | INCLUDE |
+      | Steadfast | 3 | 1/lvl | III: axes never disable the shield (owner: III = never); removes PvP's shield counter | INCLUDE (PvP flag) |
+      | Spiked | 5 | 1/lvl | 5 thorns damage per blocked melee hit, no durability (Thorns III: 1–4 at 45%) | INCLUDE |
+      | Bulwark, Riposte, Deflect, Shield Bash, Steady Stance | | | shield utility | INCLUDE |
+      | Area Mining, Smelting, Replant, Tiller | | | tool utility | INCLUDE |
+      | Fragility, Weight, Greed, Fumbling, Hunger | 5 | 0 | curses: a discount (10e) | INCLUDE |
+      - Vanilla Lunge V (20 exhaustion a lunge, decisions.md 2026-10-06 flag): the hunger is the user's own cost, so it
+        limits itself. Keep 5; the flag closes.
+      - DEFER, unchanged: Vein Miner, Leaping, Cleansing, Executioner, Seeking, Shockwave; the not-picked shield, helmet
+        and leggings ideas stay not picked. REMOVE: none.
+      **Retune work once ruled (one commit; each changed number's existing test moves, never deleted):**
+      - R1–R3: JSON amounts; `.desc` lines and docs/ENCHANTMENTS.md rows that quote the numbers; `LevelCeilings` notes
+        recomputed (Vampirism's 100% lands at L50, not 25; Reach's entity bound moves); the 10a GameTests' attribute
+        and heal values.
+      - R4: tags (`non_treasure` −3, `treasure` +3, `offered_at_table` +3; check vanilla's `on_random_loot` and
+        `tradeable` include `#treasure` before relying on it). GameTest: each of the three is in the table pool only at
+        15 shelves, not in `#on_mob_spawn_equipment`, still in `#on_random_loot` and `#tradeable`. A decisions.md entry
+        reversing 10a's "every new enchantment is non-treasure" for these three.
+      - R5: `PricingTable` row `enchanting2:flight` `Pricing(0, 6, LEVEL_DIFFERENCE, 0, 10)`; JUnit Flight V = 30,
+        II → V = 18; DESIGN §5 and docs/ENCHANTMENTS.md cost lines.
+      - Then DESIGN §9's heading drops "(all REVIEW)" and each row gets its verdict.
 
 ### Phase 10c — Mixin/network enchantments (owner order, 2026-10-12; decisions.md "10c order and eight design answers")
 **Order:** A helmet/leggings hooks → B boots (Lava Walking, Snow Walker) → C seven shields → D drops (Magnetic, Ender

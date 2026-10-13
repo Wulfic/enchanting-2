@@ -254,6 +254,21 @@ public class TableCalculatorGameTest {
 		helper.succeed();
 	}
 
+	/** Owner 2026-10-13 (10d R4): Health and Last Stand wait for 15 shelves like Mending; Keep on Death doesn't. */
+	@GameTest
+	public void healthAndLastStandNeedFullPower(GameTestHelper helper) {
+		ItemStack chestplate = new ItemStack(Items.DIAMOND_CHESTPLATE);
+		TableOutcome weak = compute(helper, chestplate, 14, TableSelection.EMPTY);
+		equal(helper, TableRow.Status.NEEDS_FULL_POWER, row(weak, "enchanting2:health").status(), "Health at 14");
+		equal(helper, TableRow.Status.NEEDS_FULL_POWER, row(weak, "enchanting2:last_stand").status(),
+				"Last Stand at 14");
+		equal(helper, TableRow.Status.OK, row(weak, "enchanting2:keep_on_death").status(), "Keep on Death at 14");
+		TableOutcome full = compute(helper, chestplate, FULL, TableSelection.EMPTY);
+		equal(helper, TableRow.Status.OK, row(full, "enchanting2:health").status(), "Health at 15");
+		equal(helper, TableRow.Status.OK, row(full, "enchanting2:last_stand").status(), "Last Stand at 15");
+		helper.succeed();
+	}
+
 	// --- prices (DESIGN §5 table) ---
 
 	@GameTest

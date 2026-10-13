@@ -115,6 +115,16 @@ public class NewEnchantmentsGameTest {
 			EnchantmentTags.IN_ENCHANTING_TABLE, EnchantmentTags.TRADEABLE, EnchantmentTags.ON_RANDOM_LOOT,
 			EnchantmentTags.ON_MOB_SPAWN_EQUIPMENT, EnchantmentTags.ON_TRADED_EQUIPMENT, TablePool.OFFERED);
 
+	/** Owner 2026-10-13 (10d R4): treasure like Mending, so loot, librarians and the table, never mob or villager gear. */
+	private static final List<ResourceKey<Enchantment>> TREASURE = List.of(ModEnchantments.HEALTH,
+			ModEnchantments.LAST_STAND);
+	private static final List<TagKey<Enchantment>> TREASURE_SOURCES = List.of(EnchantmentTags.TREASURE,
+			EnchantmentTags.DOUBLE_TRADE_PRICE, EnchantmentTags.TRADEABLE, EnchantmentTags.ON_RANDOM_LOOT,
+			TablePool.OFFERED);
+	private static final List<TagKey<Enchantment>> NOT_TREASURE_SOURCES = List.of(EnchantmentTags.NON_TREASURE,
+			EnchantmentTags.IN_ENCHANTING_TABLE, EnchantmentTags.ON_MOB_SPAWN_EQUIPMENT,
+			EnchantmentTags.ON_TRADED_EQUIPMENT);
+
 	private record OnHit(ResourceKey<Enchantment> key, Holder<MobEffect> effect) {
 	}
 
@@ -191,8 +201,8 @@ public class NewEnchantmentsGameTest {
 		List<Holder<Enchantment>> pool = TablePool.members(registry(helper),
 				new AcquisitionRules(EnchantmentOverrides.defaults()));
 		for (ResourceKey<Enchantment> key : ModEnchantments.KEYS) {
-			if (ModEnchantments.CURSES.contains(key)) {
-				continue; // tagged like vanilla curses: CursesGameTest
+			if (ModEnchantments.CURSES.contains(key) || TREASURE.contains(key)) {
+				continue; // tagged like vanilla curses (CursesGameTest) or Mending (below)
 			}
 			Holder<Enchantment> holder = get(helper, key);
 			for (TagKey<Enchantment> source : SOURCES) {
@@ -201,6 +211,25 @@ public class NewEnchantmentsGameTest {
 			}
 			helper.assertFalse(holder.is(EnchantmentTags.TREASURE),
 					Component.literal(key.identifier() + " is treasure"));
+			helper.assertTrue(pool.contains(holder), Component.literal(key.identifier() + " is not in the table pool"));
+		}
+		helper.succeed();
+	}
+
+	@GameTest
+	public void treasureOnesAreTaggedLikeMending(GameTestHelper helper) {
+		List<Holder<Enchantment>> pool = TablePool.members(registry(helper),
+				new AcquisitionRules(EnchantmentOverrides.defaults()));
+		for (ResourceKey<Enchantment> key : TREASURE) {
+			Holder<Enchantment> holder = get(helper, key);
+			for (TagKey<Enchantment> source : TREASURE_SOURCES) {
+				helper.assertTrue(holder.is(source),
+						Component.literal(key.identifier() + " is not in #" + source.location()));
+			}
+			for (TagKey<Enchantment> source : NOT_TREASURE_SOURCES) {
+				helper.assertFalse(holder.is(source),
+						Component.literal(key.identifier() + " is in #" + source.location()));
+			}
 			helper.assertTrue(pool.contains(holder), Component.literal(key.identifier() + " is not in the table pool"));
 		}
 		helper.succeed();
@@ -347,22 +376,23 @@ public class NewEnchantmentsGameTest {
 		});
 	}
 
-	/** {@code add_multiplied_base} +10% per level: level 1 = base × 1.1, level 5 = base × 1.5. */
+	/** {@code add_multiplied_base} +5% per level (owner 2026-10-13): level 1 = base × 1.05, level 5 = base × 1.25. */
 	@GameTest
-	public void attackSpeedAddsTenPercentOfBasePerLevel(GameTestHelper helper) {
+	public void attackSpeedAddsFivePercentOfBasePerLevel(GameTestHelper helper) {
 		ServerPlayer player = helper.makeMockServerPlayerInLevel();
 		double base = player.getAttributeBaseValue(Attributes.ATTACK_SPEED);
-		assertClose(helper, base * 1.1, withEnchantment(player,
+		assertClose(helper, base * 1.05, withEnchantment(player,
 				enchanted(helper, Items.DIAMOND_SWORD, ModEnchantments.ATTACK_SPEED, 1), EquipmentSlot.MAINHAND,
 				Attributes.ATTACK_SPEED), "Attack Speed I");
-		assertClose(helper, base * 1.5, withEnchantment(player,
+		assertClose(helper, base * 1.25, withEnchantment(player,
 				enchanted(helper, Items.DIAMOND_SWORD, ModEnchantments.ATTACK_SPEED, 5), EquipmentSlot.MAINHAND,
 				Attributes.ATTACK_SPEED), "Attack Speed V");
 		helper.succeed();
 	}
 
+	/** Block range +0.5 a level, entity range +0.25 (owner 2026-10-13: melee III is 3.75 blocks, not 4.5). */
 	@GameTest
-	public void reachAddsHalfABlockPerLevelToBothRanges(GameTestHelper helper) {
+	public void reachAddsHalfABlockToBlockRangeAndAQuarterToEntityRange(GameTestHelper helper) {
 		ServerPlayer player = helper.makeMockServerPlayerInLevel();
 		double blockBase = player.getAttributeBaseValue(Attributes.BLOCK_INTERACTION_RANGE);
 		double entityBase = player.getAttributeBaseValue(Attributes.ENTITY_INTERACTION_RANGE);
@@ -370,7 +400,7 @@ public class NewEnchantmentsGameTest {
 		assertClose(helper, blockBase + 1.5,
 				withEnchantment(player, pickaxe, EquipmentSlot.MAINHAND, Attributes.BLOCK_INTERACTION_RANGE),
 				"Reach III block range");
-		assertClose(helper, entityBase + 1.5, player.getAttributeValue(Attributes.ENTITY_INTERACTION_RANGE),
+		assertClose(helper, entityBase + 0.75, player.getAttributeValue(Attributes.ENTITY_INTERACTION_RANGE),
 				"Reach III entity range");
 		helper.succeed();
 	}

@@ -3,6 +3,8 @@
     "#minecraft:in_enchanting_table",
     "minecraft:mending",
     "minecraft:frost_walker",
+    "enchanting2:health",
+    "enchanting2:last_stand",
     "minecraft:binding_curse",
     "minecraft:vanishing_curse",
     "enchanting2:fragility",

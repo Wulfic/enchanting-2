@@ -4,7 +4,7 @@
 > cheap to read at the start of every session. History belongs in `decisions.md` and
 > `gotchas.md`; this file only answers "where am I right now?".
 
-**Last updated:** 2026-10-12
+**Last updated:** 2026-10-13
 **Branch:** main (commit straight to main and push; no CI; see decisions.md)
 
 ## Where we are
@@ -83,11 +83,13 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
   `updateFallFlying` TAIL; jump from `isJumping()` / `getLastClientInput()`).
 - 10cGC (2026-10-13): Double Jump (`movement/DoubleJump`, client `LocalPlayerMixin` wraps `tryToStartFallFlying`,
   `PlayerMixin` air-jump flag; no packet).
-- Tests: 366 JUnit + 323 GameTests (`./gradlew build`) + 7 client GameTests (`./gradlew runClientGameTest`).
+- 10d (2026-10-13): balance pass done; retunes in decisions.md "10d rulings".
+- Tests: 371 JUnit + 325 GameTests (`./gradlew build`) + 7 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Next: 10d balance pass (TODO "10d": every candidate REVIEW → INCLUDE/DEFER/REMOVE), best after the owner's
-   `runClient` checks below and answers to the open questions; a new enchantment still adds a `LevelCeilings` row, a
+1. Next: the table screen rework (owner 2026-10-13, layout B: taller window, book kept, the list in the offer area with
+   a scroll bar and hover descriptions, price + Enchant under the slots); plan in TODO "Phase 10l". Then run the
+   client for the owner's look. Anvil/grindstone: decide after. 10d is done; a new enchantment still adds a `LevelCeilings` row, a
    `.desc` line, tags, a price row if single-level, docs rows.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
    ~1,000,000) + 6D: panel look, config screen "Display" toggle, and a vanilla server keeping the vanilla anvil screen +
@@ -122,15 +124,6 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
    takes off on the second press).
 
 ## Open questions / blockers
-- Owner: Magnetic and Ender Link share a tool (DESIGN §4: ours declare no exclusive set; ender chest first). DESIGN §9
-  had said they conflict. Keep, or make them exclusive?
-- Owner: Flight's model. A share of a rocket per level means every level cruises near a rocket's speed once it gets
-  there; levels differ in how fast they get there. The alternative (a level-scaled target) makes I barely help and
-  V climb 2.5× harder than a rocket. decisions.md 2026-10-13 has the numbers.
-- Owner: Keep on Death's items are an item tag (`enchanting2:enchantable/keep_on_death`, durables by default). Does
-  "configurable" need a config-screen list too?
-- Owner: after a pick near the bottom of a scrolling table list, the picked row can scroll out of view (its footer
-  grows). Keep the picked row in view?
 - Owner (2026-10-06): a lowered max level never touches existing items (decisions.md).
 
 ## Do not forget

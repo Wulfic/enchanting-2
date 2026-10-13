@@ -18,7 +18,8 @@ whenever an enchantment, a max level or a price changes.**
 - **1/lvl**: the default, 1 level per enchantment level (V = 5). An upgrade pays only the added levels.
 - **10**: every single-level enchantment except Mending and the curses (owner, 2026-10-10).
 - **2/lvl**: Frost Walker only (V = 10; owner, 2026-10-10).
-- **6/lvl**: Speed (elytra) only (V = 30; owner, 2026-10-10).
+- **6/lvl**: Speed and Flight (elytra) (V = 30; owner, 2026-10-10 and 2026-10-13).
+- **Treasure** (like Mending): the table offers it only with 15 bookshelves, librarians charge double, and mobs never spawn wearing it. Health and Last Stand (owner, 2026-10-13).
 - **Mending**: 2, plus 2 for every level of every other non-curse enchantment on the item.
 - **Curses**: 0, and each one takes a percentage off the item's enchant cost (DESIGN §5a).
 - **†**: a planned enchantment's price, decided now; its stage adds the price row when it is built (10f set the rest).
@@ -51,7 +52,7 @@ change needs a restart. See DESIGN §8.
 | Enchantment | Max | Cost | Fits | What it does | Status |
 |---|---|---|---|---|---|
 | Cushion | 3 | 1/lvl | chestplates, elytra | less damage from flying into walls | Built |
-| Last Stand | 3 | 1/lvl | chestplates | once per cooldown (10 / 8 / 6 min), a hit that would kill you leaves you at half a heart with Absorption I for 5 s; a Totem of Undying goes first and leaves the cooldown alone; not against the void or /kill; works in PvP unless the server turns it off; the cooldown shows right of the hotbar | Built |
+| Last Stand | 3 | 1/lvl | chestplates | treasure; once per cooldown (10 / 8 / 6 min), a hit that would kill you leaves you at half a heart with Absorption I for 5 s; a Totem of Undying goes first and leaves the cooldown alone; not against the void or /kill; works in PvP unless the server turns it off; the cooldown shows right of the hotbar | Built |
 
 ### Leggings
 | Enchantment | Max | Cost | Fits | What it does | Status |
@@ -86,7 +87,7 @@ because Frost Walker already crosses water (owner, 2026-10-10).
 | Projectile Protection | 5 | 1/lvl | all armor | less projectile damage | Vanilla |
 | Thorns | 5 | 1/lvl | all armor | chance to hurt attackers (V = 75%) | Vanilla |
 | Toughness | 5 | 1/lvl | all armor | more armor toughness | Built |
-| Health | 5 | 1/lvl | all armor | more max health; kept through a relog | Built |
+| Health | 5 | 1/lvl | all armor | treasure; half a heart of max health per level per piece (a V set = +10 hearts); kept through a relog | Built |
 
 The four protections can all share one piece in this mod (vanilla allows only one).
 
@@ -96,7 +97,7 @@ The four protections can all share one piece in this mod (vanilla allows only on
 
 | Enchantment | Max | Cost | Fits | What it does | Status |
 |---|---|---|---|---|---|
-| Flight | 5 | 1/lvl | elytra | hold jump while gliding for a firework rocket's boost, a fifth of one per level (V = a rocket held down); 1 elytra durability per second of thrust; Speed scales it | Built |
+| Flight | 5 | 6/lvl | elytra | hold jump while gliding for a firework rocket's boost, a fifth of one per level (V = a rocket held down); 1 elytra durability per second of thrust; Speed scales it | Built |
 | Speed | 5 | 6/lvl | elytra | +10% elytra flight speed per level (V = +50%), gliding and firework boosts; dives stay vanilla; stops adding at X (double speed) | Built |
 
 Cushion (chestplate table above) also fits elytra.
@@ -159,9 +160,9 @@ throws normally.
 ### Any melee weapon
 | Enchantment | Max | Cost | Fits | What it does | Status |
 |---|---|---|---|---|---|
-| Vampirism | 5 | 1/lvl | melee | heals 4%/level of the health the target lost, direct hits only | Built |
+| Vampirism | 5 | 1/lvl | melee | heals 2%/level of the health the target lost (V = 10%), direct hits only | Built |
 | Beheading | 5 | 1/lvl | melee | 2%/level chance of a mob head on a player's melee kill | Built |
-| Attack Speed | 5 | 1/lvl | melee | faster attacks | Built |
+| Attack Speed | 5 | 1/lvl | melee | attacks 5% faster per level (V = +25%) | Built |
 | Quick Strike | 5 | 1/lvl | melee | 5% chance per level (25% at V) that a hit lands again at once: the damage only (no knockback, Fire Aspect or other on-hit effects, Vampirism, crit roll or durability), never a third | Built |
 
 ### Melee or ranged
@@ -241,7 +242,7 @@ Silk Touch and Fortune can share a tool in this mod. By default Fortune never mu
 
 | Enchantment | Max | Cost | Fits | What it does | Status |
 |---|---|---|---|---|---|
-| Reach | 3 | 1/lvl | mining tools, melee | longer block and entity reach | Built |
+| Reach | 3 | 1/lvl | mining tools, melee | block reach +0.5 and entity reach +0.25 per level (III: 6 and 3.75 blocks) | Built |
 | XP Boost | 5 | 1/lvl | mining tools, melee, bow, crossbow | +5%/level XP from kills and mining | Built |
 | Magnetic | 1 | 10 | tools, weapons | drops from blocks you break and mobs you kill go straight into your inventory, and their XP to you (Mending applies); what doesn't fit drops | Built |
 | Ender Link | 1 | 10 | tools, weapons | drops from blocks you break and mobs you kill go to your ender chest (XP as normal); what doesn't fit drops; with Magnetic too, the ender chest fills first | Built |

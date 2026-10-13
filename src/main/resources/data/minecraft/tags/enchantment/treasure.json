@@ -4,6 +4,8 @@
     "enchanting2:greed",
     "enchanting2:fumbling",
     "enchanting2:weight",
-    "enchanting2:hunger"
+    "enchanting2:hunger",
+    "enchanting2:health",
+    "enchanting2:last_stand"
   ]
 }

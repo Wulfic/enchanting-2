@@ -60,6 +60,12 @@ class PricingTableTest {
 	}
 
 	@Test
+	void flightCostsSixPerLevel() {
+		assertEquals(new Pricing(0, 6, UpgradeMode.LEVEL_DIFFERENCE, 0, 10),
+				PricingTable.builtIn().get("enchanting2:flight"));
+	}
+
+	@Test
 	void fileOverrideStillBeatsASingleLevelRow() {
 		String id = "minecraft:silk_touch";
 		assertEquals(new Pricing(3, 1, UpgradeMode.LEVEL_DIFFERENCE, 0, 10),

@@ -174,7 +174,7 @@ public class LevelCeilingsGameTest {
 		helper.assertValueEqual(64.0, max(Attributes.BLOCK_INTERACTION_RANGE), Component.literal("block reach max"));
 		int reach = ceiling("enchanting2:reach");
 		double entityBase = player.getAttributeBaseValue(Attributes.ENTITY_INTERACTION_RANGE);
-		check(helper, entityBase + 0.5 * reach >= 64.0 && entityBase + 0.5 * (reach - 1) < 64.0,
+		check(helper, entityBase + 0.25 * reach >= 64.0 && entityBase + 0.25 * (reach - 1) < 64.0,
 				"Reach " + reach + " from an entity reach of " + entityBase);
 		helper.assertValueEqual(20.0, max(Attributes.ARMOR_TOUGHNESS), Component.literal("armor toughness max"));
 		helper.assertValueEqual(20.0, 0.5 * ceiling("enchanting2:toughness"), Component.literal("Toughness at its ceiling"));

@@ -14,6 +14,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -81,7 +82,8 @@ class ModEnchantmentDataTest {
 
 	/**
 	 * {@code non_treasure} feeds every vanilla source (owner 2026-10-09: everywhere); {@code tooltip_order} groups them.
-	 * Curses (Phase 10e) are tagged like vanilla's Binding and Vanishing instead, and the table offers them.
+	 * Curses (Phase 10e) are tagged like vanilla's Binding and Vanishing instead, and the table offers them. Health and
+	 * Last Stand are treasure like Mending (owner 2026-10-13, 10d): the same tags as the curses except {@code curse}.
 	 */
 	@Test
 	void everyEnchantmentIsInEverySourceAndTheTooltipOrder() throws Exception {
@@ -89,17 +91,20 @@ class ModEnchantmentDataTest {
 		Set<String> tooltipOrder = tagValues("/data/minecraft/tags/enchantment/tooltip_order.json");
 		Set<String> curses = ModEnchantments.CURSES.stream().map(key -> key.identifier().toString())
 				.collect(Collectors.toSet());
+		Set<String> treasure = new HashSet<>(curses);
+		treasure.addAll(List.of("enchanting2:health", "enchanting2:last_stand"));
 		for (String name : names()) {
 			String id = "enchanting2:" + name;
 			assertTrue(tooltipOrder.contains(id), name + " is not in #minecraft:tooltip_order");
-			assertEquals(!curses.contains(id), nonTreasure.contains(id),
-					name + ": #minecraft:non_treasure membership (curses are treasure)");
+			assertEquals(!treasure.contains(id), nonTreasure.contains(id),
+					name + ": #minecraft:non_treasure membership (curses, Health and Last Stand are treasure)");
 		}
-		for (String tag : List.of("curse", "treasure", "on_random_loot", "tradeable")) {
-			assertEquals(curses, tagValues("/data/minecraft/tags/enchantment/" + tag + ".json"), "#minecraft:" + tag);
+		assertEquals(curses, tagValues("/data/minecraft/tags/enchantment/curse.json"), "#minecraft:curse");
+		for (String tag : List.of("treasure", "on_random_loot", "tradeable")) {
+			assertEquals(treasure, tagValues("/data/minecraft/tags/enchantment/" + tag + ".json"), "#minecraft:" + tag);
 		}
-		assertTrue(tagValues("/data/enchanting2/tags/enchantment/offered_at_table.json").containsAll(curses),
-				"the table offers every curse");
+		assertTrue(tagValues("/data/enchanting2/tags/enchantment/offered_at_table.json").containsAll(treasure),
+				"the table offers every curse, Health and Last Stand");
 	}
 
 	/** DESIGN §4: conflicts default to "allow together", so none of ours declares an exclusive set. */

@@ -6,8 +6,8 @@
   "effects": {
     "enchanting2:lifesteal": {
       "type": "minecraft:linear",
-      "base": 0.04,
-      "per_level_above_first": 0.04
+      "base": 0.02,
+      "per_level_above_first": 0.02
     }
   },
   "max_cost": {

@@ -100,6 +100,13 @@ class CostModelTest {
 		assertEquals(18, cost(Map.of("enchanting2:speed", 2), Map.of("enchanting2:speed", 5)));
 	}
 
+	/** Owner, 2026-10-13 (10d): Flight is priced like Speed, V = 30, II → V = 18. */
+	@Test
+	void flightSixPerLevel() {
+		assertEquals(30, cost(Map.of(), Map.of("enchanting2:flight", 5)));
+		assertEquals(18, cost(Map.of("enchanting2:flight", 2), Map.of("enchanting2:flight", 5)));
+	}
+
 	@Test
 	void frostWalkerTwoPerLevel() {
 		assertEquals(10, cost(Map.of(), Map.of(FROST_WALKER, 5)));
