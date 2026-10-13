@@ -7,6 +7,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.curse.CurseEffects;
+import com.wulfnet.enchanting2.drops.DropRedirect;
 import com.wulfnet.enchanting2.effect.Footing;
 import com.wulfnet.enchanting2.effect.Lifesteal;
 import com.wulfnet.enchanting2.effect.WornEffects;
@@ -171,6 +172,15 @@ abstract class LivingEntityMixin implements ShieldState {
 	private float enchanting2$riposte(float amount, @Local(argsOnly = true) ServerLevel level,
 			@Local(argsOnly = true) DamageSource source) {
 		return ShieldEffects.riposte(level, source, amount);
+	}
+
+	/**
+	 * Phase 10cDA, Magnetic and Ender Link on mobs: everything a mob drops when it dies (loot, gear, XP) happens in
+	 * here, so the killer's weapon decides where it goes.
+	 */
+	@WrapMethod(method = "dropAllDeathLoot")
+	private void enchanting2$redirectDeathLoot(ServerLevel level, DamageSource source, Operation<Void> original) {
+		DropRedirect.within(DropRedirect.forKill(source), () -> original.call(level, source));
 	}
 
 	/**

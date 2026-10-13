@@ -8,7 +8,7 @@
 **Branch:** main (commit straight to main and push; no CI; see decisions.md)
 
 ## Where we are
-Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB and 10cC (CA, CB, CC) done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
+Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA, CB, CC) and 10cDA done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
 - 3: `ExperienceCurve`, no level cap, exact XP points, counters saturate. 4: `MaxLevels` via `MODIFY` (restart to
   apply), `ConflictFamily` + `allow_together`, `EnchantRules`, Lure/Riptide 5 with safe caps.
 - 5: `cost/` (`CostModel`, `PricingTable`, curse discount, `cleanseCost`, `extractCost`).
@@ -64,10 +64,12 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB and 10cC (
 - 10cCC (2026-10-12): Steady Stance (client `LocalPlayerMixin.itemUseSpeedMultiplier`), Shield Bash (client
   `MinecraftMixin` lets the attack click through; server `PlayerMixin` `@WrapMethod` on `attack`), `shield/ShieldBash`;
   `ShieldClientGameTest` drives real input.
-- Tests: 361 JUnit + 291 GameTests (`./gradlew build`) + 6 client GameTests (`./gradlew runClientGameTest`).
+- 10cDA (2026-10-12): Magnetic and Ender Link via `drops/DropRedirect` (context around `Block.dropResources` and
+  `LivingEntity.dropAllDeathLoot`; `BlockMixin`, `EntityMixin.spawnAtLocation`, `ExperienceOrbMixin.award`).
+- Tests: 361 JUnit + 296 GameTests (`./gradlew build`) + 6 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Next: 10cD drops (Magnetic, Ender Link, Keep on Death; owner scope answer in decisions.md 2026-10-12), E tools,
+1. Next: 10cDB Keep on Death, then E tools,
    F Quick Strike + Last Stand,
    G Speed/Flight/Double Jump (owner order and answers: decisions.md "10c order and eight design answers"; TODO
    "Phase 10c"). Each stage writes its plan first; each enchantment adds a `LevelCeilings` row, a `.desc` line, tags,
@@ -93,9 +95,14 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB and 10cC (
    + 10cCA: the four shield names/descriptions, Spiked V against a zombie, Bulwark III's yellow hearts (gone after
    5 s), Steadfast III against an axe vindicator. + 10cCB: a skeleton against Deflect III (arrows come back, none to
    pick up), blaze fireballs, a ghast fireball. + 10cCC: walking with a Steady Stance shield up; Shield Bash III on a
-   zombie (knockback, slow, shield down 3 s); a plain shield still can't attack while raised.
+   zombie (knockback, slow, shield down 3 s); a plain shield still can't attack while raised. + 10cDA: mining with
+   Magnetic (inventory, XP to you, a full inventory spilling), Ender Link, a Magnetic sword kill.
 
 ## Open questions / blockers
+- Owner: Magnetic and Ender Link share a tool (DESIGN §4: ours declare no exclusive set; ender chest first). DESIGN §9
+  had said they conflict. Keep, or make them exclusive?
+- Owner: after a pick near the bottom of a scrolling table list, the picked row can scroll out of view (its footer
+  grows). Keep the picked row in view?
 - Owner (2026-10-06): a lowered max level never touches existing items (decisions.md).
 
 ## Do not forget

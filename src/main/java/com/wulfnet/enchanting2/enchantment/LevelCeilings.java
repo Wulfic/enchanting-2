@@ -137,6 +137,8 @@ public final class LevelCeilings {
 		t.put("enchanting2:deflect", soft(3));
 		t.put("enchanting2:steady_stance", soft(1));
 		t.put("enchanting2:shield_bash", NONE);
+		t.put("enchanting2:magnetic", soft(1));
+		t.put("enchanting2:ender_link", soft(1));
 		TABLE = Map.copyOf(t);
 	}
 

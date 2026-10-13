@@ -1739,6 +1739,47 @@ weight 2, lang + `.desc`, tags.
   fail their test. Phase 10cC complete. Owner `runClient`: walking with a Steady Stance shield up; bashing a zombie
   with Shield Bash III (knockback, slow, shield down 3 s), and that a plain shield still can't attack while raised.
 
+### Stage 10cD — drops: Magnetic, Ender Link (DA), Keep on Death (DB); one commit each
+**Owner (decisions.md 2026-10-12):** drops from blocks broken and mobs killed with the item; Magnetic also sends XP to
+the player (Mending applies); Ender Link items only; overflow drops normally.
+
+#### 10cDA — Magnetic, Ender Link  ✅ 2026-10-12
+**Hooks (javap 1.21.11):** a server-thread redirect context (`drops/DropRedirect`, a stack so nesting restores) set
+while a player's tool produces drops, read where items and XP spawn:
+- Blocks: `Block.dropResources(state, level, pos, blockEntity, entity, tool)` (`@WrapMethod`; the breaking path via
+  `playerDestroy`) → context when `entity` is a server player and `tool` carries `enchanting2:drops_to_inventory`
+  or `drops_to_ender_chest`. Items: `Block.popResource(level, pos, stack)` (static `@WrapMethod`), which every
+  `getDrops` stack goes through after Fortune and Smelting.
+- Mobs: `LivingEntity.dropAllDeathLoot(level, source)` (`@WrapMethod`) → context when `source.getEntity()` is a
+  server player and `source.getWeaponItem()` carries one (a bow's arrow carries the bow). It runs the loot table,
+  `dropCustomDeathLoot` (held/worn gear), `dropEquipment` and `dropExperience`; their items all funnel into
+  `Entity.spawnAtLocation(level, stack, Vec3)` (the other overloads call it; javap), `@WrapMethod` there.
+- XP: `ExperienceOrb.award(level, pos, amount)` (static `@WrapMethod`; blocks' `popExperience`, Smelting's furnace
+  XP and `dropExperience` all use it) → with `enchanting2:experience_to_player` in the context, the orbs spawn at the
+  player instead, so they're picked up next tick and Mending applies.
+- Redirect: Ender Link first (`getEnderChestInventory().addItem`), then Magnetic (`getInventory().add` on a copy);
+  whatever doesn't fit continues to vanilla's spawn. Nothing is created: only the remainder spawns.
+**Conflict:** DESIGN §9's "conflicts with Magnetic" loses to §4 (owner: conflicts default to allow together; none of
+ours declares an `exclusive_set`, guarded by `ModEnchantmentDataTest`, which caught a first try at an exclusive set).
+Both can share a tool: the ender chest fills first, then the inventory. Open question for the owner (state.md).
+**Not doing:** container contents spilled when a chest is broken (they drop in `removeBlock`, outside the tool's
+drops); a player victim's inventory (players drop through `Inventory.dropAll`, not death loot); pickup events/sounds
+(no Fabric event; per-block pickup sounds would spam).
+**Data:** `magnetic.json`, `ender_link.json` (I, `#enchanting2:enchantable/tool_or_weapon`, mainhand, weight 2,
+costs like Calm Gaze), `PricingTable` 10 rows, `LevelCeilings` soft 1, tags, lang + `.desc`.
+**Tests (GameTest, survival mock player):** Magnetic pickaxe on stone → cobblestone in the inventory, none on the
+ground; on coal ore the XP orbs appear at the player, not the block; a full inventory → the cobblestone drops. Ender
+Link pickaxe → cobblestone in the ender chest, the coal-ore XP at the block. A Magnetic sword kill of a husk wearing a
+helmet (drop chance 2) → the helmet in the inventory and the XP at the player; a plain sword → on the ground. Both on
+one pickaxe → the ender chest first, then the inventory. Mutation run: each hook off fails a test.
+- ✅ 2026-10-12: 361 JUnit + 296 GameTests (`DropsGameTest`, five) + 6 client GameTests green. Mutations (three runs):
+  each redirect context, the `popResource`, `spawnAtLocation` and XP hooks, and the ender-chest-first order fail their
+  tests. A mock player's sword damage never applies (it isn't ticked), so the kill test's husk has 0.01 health.
+  `TableScreenClientGameTest`'s stepper step re-scrolls the picked row into view: a sword's table list now scrolls,
+  and the pick's footer pushed Sharpness out of the window (owner check: should the panel keep a picked row in view?).
+  Owner `runClient`: mining with Magnetic (items in the inventory, XP straight to you, a full inventory spilling),
+  Ender Link into the ender chest, a Magnetic sword kill.
+
 ### Phase 10e — Curses (three stages, one commit each)
 **Goal:** five new curses, each with a GameTest that fails if its effect breaks, and a per-level curse discount.
 **Not doing:** Hunger on held items (owner: armor only); changing Binding/Vanishing (stay level 1, 10%); curses on

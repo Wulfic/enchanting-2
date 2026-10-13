@@ -243,8 +243,8 @@ Silk Touch and Fortune can share a tool in this mod. By default Fortune never mu
 |---|---|---|---|---|---|
 | Reach | 3 | 1/lvl | mining tools, melee | longer block and entity reach | Built |
 | XP Boost | 5 | 1/lvl | mining tools, melee, bow, crossbow | +5%/level XP from kills and mining | Built |
-| Magnetic | 1 | 10 † | tools, weapons | drops go straight into your inventory; the rest drops normally | Planned |
-| Ender Link | 1 | 10 † | tools, weapons | drops go to your ender chest; conflicts with Magnetic | Planned |
+| Magnetic | 1 | 10 | tools, weapons | drops from blocks you break and mobs you kill go straight into your inventory, and their XP to you (Mending applies); what doesn't fit drops | Built |
+| Ender Link | 1 | 10 | tools, weapons | drops from blocks you break and mobs you kill go to your ender chest (XP as normal); what doesn't fit drops; with Magnetic too, the ender chest fills first | Built |
 
 ---
 

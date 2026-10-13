@@ -1,0 +1,24 @@
+{
+  "anvil_cost": 4,
+  "description": {
+    "translate": "enchantment.enchanting2.magnetic"
+  },
+  "effects": {
+    "enchanting2:drops_to_inventory": {},
+    "enchanting2:experience_to_player": {}
+  },
+  "max_cost": {
+    "base": 65,
+    "per_level_above_first": 0
+  },
+  "max_level": 1,
+  "min_cost": {
+    "base": 15,
+    "per_level_above_first": 0
+  },
+  "slots": [
+    "mainhand"
+  ],
+  "supported_items": "#enchanting2:enchantable/tool_or_weapon",
+  "weight": 2
+}

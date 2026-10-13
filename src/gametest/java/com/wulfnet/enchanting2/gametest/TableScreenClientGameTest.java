@@ -271,12 +271,18 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		context.waitTicks(3);
 		clickRow(context, SHARPNESS);
 		check(held(world).equals(TableSelection.EMPTY.with(SHARPNESS, 5)), "picked at V: " + held(world));
+		// A pick adds footer lines, which can push a row near the bottom out of view (the sword's list scrolls since
+		// Magnetic and Ender Link, Phase 10cD): bring it back before using its stepper.
+		scrollIntoView(context, SHARPNESS);
 		OptionalInt down = screen(context, access -> access.enchanting2$arrowX(SHARPNESS, Zone.DECREASE));
 		OptionalInt rowY = screen(context, access -> access.enchanting2$rowY(SHARPNESS));
-		check(down.isPresent() && rowY.isPresent(), "the picked row has a stepper");
+		check(down.isPresent() && rowY.isPresent(), "the picked row has a stepper: row " + rowY + ", arrow " + down
+				+ ", scroll " + screen(context, TableScreenAccess::enchanting2$scrollOffset) + ", panel "
+				+ screen(context, TableScreenAccess::enchanting2$panelText));
 		click(context, down.getAsInt(), rowY.getAsInt());
 		context.waitTicks(3);
 		check(held(world).equals(TableSelection.EMPTY.with(SHARPNESS, 4)), "stepped down to IV: " + held(world));
+		scrollIntoView(context, SHARPNESS);
 		OptionalInt up = screen(context, access -> access.enchanting2$arrowX(SHARPNESS, Zone.INCREASE));
 		click(context, up.orElseThrow(), screen(context, access -> access.enchanting2$rowY(SHARPNESS)).orElseThrow());
 		context.waitTicks(3);

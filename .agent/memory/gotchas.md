@@ -494,3 +494,9 @@ took 11).
 **Fact (javap 1.21.11):** `Math.round(seconds × disable_cooldown_scale × 20)`, and nothing at all when the scaled
 seconds are ≤ 0. Steadfast I on a 5 s axe is 67 ticks, II 33, III none.
 **Affects:** ShieldsGameTest
+
+## 2026-10-12 — A mock player's held weapon never adds attack damage
+**Symptom:** a GameTest kill with `player.attack(husk)` left a 0.5-health husk alive while holding a diamond sword.
+**Cause:** weapon attribute modifiers apply in `detectEquipmentUpdates` on tick, and a mock player is never ticked; its
+attack strength is also at 0, so a hit does about 0.2.
+**Fix:** give the target almost no health (0.01), or tick-independent damage. Affects: DropsGameTest

@@ -265,7 +265,8 @@ public class LevelCeilingsGameTest {
 				"minecraft:infinity", "minecraft:channeling", "minecraft:mending", "minecraft:binding_curse",
 				"minecraft:vanishing_curse", "enchanting2:smelting", "enchanting2:true_shot_aura", "enchanting2:vision",
 				"enchanting2:step_assist", "enchanting2:calm_gaze", "enchanting2:phantom_ward",
-				"enchanting2:lava_walking", "enchanting2:snow_walker", "enchanting2:steady_stance");
+				"enchanting2:lava_walking", "enchanting2:snow_walker", "enchanting2:steady_stance",
+				"enchanting2:magnetic", "enchanting2:ender_link");
 		for (String id : softOne) {
 			Ceiling ceiling = LevelCeilings.of(id).orElseThrow();
 			check(helper, ceiling.kind() == Kind.SOFT && ceiling.level() == 1, id + " isn't a soft-1 row");

@@ -1136,3 +1136,16 @@ readings each.
   an axe's disable does (cooldown + `stopUsingItem`).
 **Rejected:** sprinting while blocking; a bash that replaces the attack (no weapon damage); bashing on a miss.
 **Affects:** shield/ShieldBash, mixin/PlayerMixin, mixin/client/LocalPlayerMixin, mixin/client/MinecraftMixin
+
+## 2026-10-12 — Magnetic and Ender Link share a tool; one redirect for both (agent, 10cDA)
+**Context:** DESIGN §9 marked Ender Link "conflicts with Magnetic", but DESIGN §4 (owner) says conflicts default to
+allow together and none of ours declares an `exclusive_set`; `ModEnchantmentDataTest` guards that and failed a first
+try at an exclusive set.
+**Choice:** no exclusive set; with both on one tool the ender chest fills first, then the inventory, then the ground.
+Both run through `drops/DropRedirect`, a server-thread context set around `Block.dropResources` (the tool's block
+drops, after Fortune and Smelting) and `LivingEntity.dropAllDeathLoot` (loot, gear, XP of a mob the player's weapon
+killed; a bow counts for its arrow), read where items (`Block.popResource`, `Entity.spawnAtLocation`) and orbs
+(`ExperienceOrb.award`) spawn.
+**Rejected:** an exclusive set (against §4 and its test); `LootTableEvents.MODIFY_DROPS` (misses a mob's held and
+worn gear and XP); giving XP points directly (Mending only works through orbs).
+**Affects:** drops/DropRedirect, mixin/BlockMixin, mixin/EntityMixin, mixin/ExperienceOrbMixin, mixin/LivingEntityMixin
