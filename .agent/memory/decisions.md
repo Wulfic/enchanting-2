@@ -1285,3 +1285,14 @@ the text to paste.
 **Rejected:** a hand-written key table for every key (drifts with each new option); generating the doc in Gradle
 (another build step for three blocks).
 **Affects:** docs/CONFIG.md, src/test/java/com/wulfnet/enchanting2/config/ConfigDocsTest.java
+
+## 2026-10-13 — 26.x: every version, 1.21.11 kept in step (Phase 12 plan)
+**Context:** 11.3 asked for a 26.x port plan. Stable lines today: 26.1.2, 26.2, 26.3 (26.4 in snapshots).
+**Choice (owner):** support all 26.x versions; keep 1.21.11 in step (every feature on every version); start after the
+owner's runClient checks and the v1.0.0 tag push. Agent's plan: one tree with Stonecutter + loom-back-compat,
+proven first by a 1.21.11-only spike (12A).
+**Why:** in-step support across four or more versions makes per-version branches a cherry-pick tax on every change.
+**Rejected:** branch per version (fallback only if 12A fails, with its cost shown to the owner); 26.x only; one
+jump straight to 26.3 (owner chose all versions, so each 26.x line is its own node anyway).
+**Affects:** build.gradle, settings.gradle, gradle.properties, every version-sensitive mixin
+

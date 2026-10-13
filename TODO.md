@@ -2632,7 +2632,47 @@ the next load with a vanilla WARN. Nothing outside the repo is touched.
       only on the owner's word. No GitHub release (nothing published).
       ✅ 2026-10-13: 1.0.0 built (`build/libs/enchanting2-1.0.0.jar`, 758 KB, Jankson nested), tag `v1.0.0` local.
       Open: push the tag (owner). Undo a local tag: `git tag -d v1.0.0`.
-- [ ] 11.3 Plan the 26.x port as a new roadmap entry. Public release is a later decision.
+- [x] 11.3 Plan the 26.x port as a new roadmap entry. Public release is a later decision.  ✅ 2026-10-13: Phase 12
+      below; owner answers in decisions.md "26.x: every version, 1.21.11 kept in step".
+
+## Phase 12 — Every 26.x version, with 1.21.11 kept in step (Tier 2; starts after the owner's runClient checks
+## and the v1.0.0 tag push)
+
+**Goal:** one source tree builds and tests a jar for 1.21.11 and for each stable 26.x line (26.1.2, 26.2, 26.3 today;
+26.4 once stable), and every feature lands on all of them in the same commit.
+**Facts (checked 2026-10-13):** stable 26.3, 26.2, 26.1.2; 26.4 in snapshots. 26.x is unobfuscated: Loom plugin
+`net.fabricmc.fabric-loom` (no remap), no `mappings` line, `implementation`/`compileOnly` instead of `mod*`, `jar`
+instead of `remapJar`, access widener header `official`, Java 25. Builds exist for every target: Fabric API
+`0.162.0+26.3`, YACL `3.9.7+26.3/26.2/26.1-fabric`, Mod Menu 21.0.0 (26.3) / 20.0.3 (26.2) / 18.0.2 (26.1.x).
+Loader 0.19.5. Sources: docs.fabricmc.net porting pages (1.21.11→26.1, 26.1→26.2), Modrinth and Fabric meta APIs.
+**Approach (to be proven by 12A):** Stonecutter (one tree, per-version nodes, `//? if >=26.2` comments where code
+differs) plus `loom-back-compat` (picks `fabric-loom-remap` + Java 21 below 26, `fabric-loom` + Java 25 from 26 on).
+Other mods ship exactly this split with it (FabPose; DayOfMind Additions: 26.2 · 26.1.2 · 1.21.9–1.21.11).
+**Rejected:** a branch per version with cherry-picks (the owner wants every feature everywhere: N cherry-picks and N
+conflict resolutions per change, and drift nobody sees); separate repos (same, worse); 26.x only (owner keeps
+1.21.11).
+**Not doing:** snapshots/pre-releases as nodes, NeoForge/Quilt, publishing anywhere, new features during the port.
+**Blast radius:** the build system and possibly the source layout. All on branch `port/26x`; main untouched until a
+stage is green on every node. **Rollback:** delete the branch (`git branch -D port/26x`, gated: it's unmerged work).
+
+- [ ] 12A Spike: Stonecutter + loom-back-compat with only the 1.21.11 node. Exit: the same jar contents as v1.0.0
+      (class list + `fabric.mod.json` diff empty but the version), 402 JUnit + GameTests + client GameTests green,
+      the `runServer` port stays 25566 (parallel-instance rule). If the tools can't run GameTests or client GameTests
+      per node, or Jankson's jar-in-jar, stop and bring the owner the branch-per-version fallback with its cost.
+- [ ] 12B 26.1.2 node: Java 25 toolchain, 26.1 deps, access widener header, Fabric API renames (its 26.1 porting
+      page), vanilla changes (NeoForge 26.1 primer). Version-specific code only behind Stonecutter conditions; a
+      difference used in more than ~3 places gets a small adapter class per version instead. Mixins first: 53 of
+      them target vanilla internals, so each one gets checked against 26.1.2's source, not just compiled.
+- [ ] 12C 26.2 node (Fabric 26.1→26.2 porting page, fabricmc.net 2026-06-15 blog).
+- [ ] 12D 26.3 node.
+- [ ] 12E Release and process: one jar per node (`enchanting2-<mod>+<mc>.jar`), `fabric.mod.json` `minecraft` range
+      per node, a script that builds and tests every node and reports per node (about 5–6 min per node with client
+      GameTests), CHANGELOG lists the supported versions. AGENTS.md / state.md: "done" means green on every node.
+      README requirements table per version.
+      **Risks:** rendering and `GuiGraphics` changes hit the three window screens; enchantment component or registry
+      changes hit `MODIFY` hooks and `LevelCeilings`; GameTest API changes; world data: our attachments' codecs must
+      read the same on every node (a GameTest per node that loads a 1.21.11-written chunk is worth adding in 12B).
+      New nodes later: 26.4 once stable, as its own stage.
 
 ---
 
