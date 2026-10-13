@@ -1811,6 +1811,36 @@ keepInventory/end-portal path) leaves exactly one pickaxe. Mutation run: each ho
   Owner `runClient`: die with a Keep on Death pickaxe and armor (back in place on respawn), with keepInventory on (no
   doubles), and with Curse of Vanishing on the same item (gone).
 
+### Stage 10cE — tools: Area Mining (EA), Replant (EB), Tiller (EC); one commit each
+
+#### 10cEA — Area Mining  ✅ 2026-10-13
+**DESIGN §9:** pickaxe, shovel; 3×3 facing the hit face; sneak for one block; only blocks no harder than the centre
+and mineable by the tool; each extra block fires the break event (claims) and costs durability; Fortune, Silk Touch,
+Smelting and Magnetic apply per block.
+**Hooks (javap 1.21.11):** `ServerPlayerGameMode.destroyBlock(pos)` checks the tool, block-entity permission and
+adventure rules, runs `playerWillDestroy` (Fabric's `PlayerBlockBreakEvents.BEFORE` cancels there), `removeBlock`,
+`mineBlock` (durability) and `playerDestroy` (drops: Fortune, Silk, Smelting, Magnetic's redirect). `@WrapMethod` on
+it: if the main hand carries `enchanting2:area_mining` (unit), the player isn't sneaking and this isn't one of our own
+extra breaks (a thread-local flag), read the centre's hardness before the break, run vanilla, and if it broke, call
+`destroyBlock` for each of the 8 neighbours in the face's plane that is no harder (`getDestroySpeed` ≥ 0 and ≤ the
+centre's) and `isCorrectToolForDrops` with the tool, stopping if the tool breaks. The face: the one the client sent with
+its last `handleBlockBreakAction` for that block (`@Inject` HEAD stores face + pos on the game mode); with none (another
+mod's break, a test), the axis the player is looking along.
+**Data:** `area_mining.json` (I, new item tag `enchanting2:enchantable/area_mining` = `#minecraft:pickaxes` +
+`#minecraft:shovels`, mainhand, weight 2, Calm Gaze costs), `PricingTable` 10 row, `LevelCeilings` soft 1, tags,
+lang + `.desc`.
+**Tests (GameTest, survival mock player):** looking down at a stone 3×3 with an obsidian and a dirt in it: the 7 stones
+go (7 cobblestone, 7 durability), obsidian (harder) and dirt (not a pickaxe block) stay; sneaking or a plain pickaxe
+breaks one; looking north at a wall breaks the 3×3 in that wall; a neighbour a `PlayerBlockBreakEvents.BEFORE`
+listener refuses (keyed to that test's position) stays. Mutation run.
+- ✅ 2026-10-13: 361 JUnit + 303 GameTests (`AreaMiningGameTest`, four) + 6 client GameTests green. Mutations (four
+  runs): the hook, the sneak check, the hardness check, the face/look axis and the tool check each fail their test (the
+  sneak check needed its own run: with the hook off it can't show). Owner `runClient`: mining stone with ores in it
+  (the ores stay), a wall vs a floor, sneaking, a shovel in dirt.
+
+#### 10cEB — Replant (detail before code)
+#### 10cEC — Tiller (detail before code)
+
 ### Phase 10e — Curses (three stages, one commit each)
 **Goal:** five new curses, each with a GameTest that fails if its effect breaks, and a per-level curse discount.
 **Not doing:** Hunger on held items (owner: armor only); changing Binding/Vanishing (stay level 1, 10%); curses on

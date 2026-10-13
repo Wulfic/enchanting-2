@@ -8,7 +8,7 @@
 **Branch:** main (commit straight to main and push; no CI; see decisions.md)
 
 ## Where we are
-Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA, CB, CC) and 10cD (DA, DB) done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
+Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA, CB, CC), 10cD (DA, DB) and 10cEA done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
 - 3: `ExperienceCurve`, no level cap, exact XP points, counters saturate. 4: `MaxLevels` via `MODIFY` (restart to
   apply), `ConflictFamily` + `allow_together`, `EnchantRules`, Lure/Riptide 5 with safe caps.
 - 5: `cost/` (`CostModel`, `PricingTable`, curse discount, `cleanseCost`, `extractCost`).
@@ -68,10 +68,12 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
   `LivingEntity.dropAllDeathLoot`; `BlockMixin`, `EntityMixin.spawnAtLocation`, `ExperienceOrbMixin.award`).
 - 10cDB (2026-10-12): Keep on Death (`InventoryMixin.dropAll` keeps them in place; `drops/KeepOnDeath` on Fabric
   `COPY_FROM`); items from tag `enchanting2:enchantable/keep_on_death`.
-- Tests: 361 JUnit + 299 GameTests (`./gradlew build`) + 6 client GameTests (`./gradlew runClientGameTest`).
+- 10cEA (2026-10-13): Area Mining (`tool/AreaMining`; `ServerPlayerGameModeMixin` remembers the client's face and
+  wraps `destroyBlock`).
+- Tests: 361 JUnit + 303 GameTests (`./gradlew build`) + 6 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Next: 10cE tools (Area Mining, Replant, Tiller), then
+1. Next: 10cEB Replant, 10cEC Tiller, then
    F Quick Strike + Last Stand,
    G Speed/Flight/Double Jump (owner order and answers: decisions.md "10c order and eight design answers"; TODO
    "Phase 10c"). Each stage writes its plan first; each enchantment adds a `LevelCeilings` row, a `.desc` line, tags,
@@ -99,7 +101,8 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
    pick up), blaze fireballs, a ghast fireball. + 10cCC: walking with a Steady Stance shield up; Shield Bash III on a
    zombie (knockback, slow, shield down 3 s); a plain shield still can't attack while raised. + 10cDA: mining with
    Magnetic (inventory, XP to you, a full inventory spilling), Ender Link, a Magnetic sword kill. + 10cDB: dying with
-   Keep on Death gear (back in place), with keepInventory on (no doubles), with Vanishing on it (gone).
+   Keep on Death gear (back in place), with keepInventory on (no doubles), with Vanishing on it (gone). + 10cEA: Area
+   Mining through stone with ores (ores stay), a wall vs a floor, sneaking, a shovel in dirt.
 
 ## Open questions / blockers
 - Owner: Magnetic and Ender Link share a tool (DESIGN §4: ours declare no exclusive set; ender chest first). DESIGN §9

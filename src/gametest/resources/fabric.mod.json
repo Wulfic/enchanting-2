@@ -33,7 +33,8 @@
 			"com.wulfnet.enchanting2.gametest.BootsGameTest",
 			"com.wulfnet.enchanting2.gametest.ShieldsGameTest",
 			"com.wulfnet.enchanting2.gametest.DropsGameTest",
-			"com.wulfnet.enchanting2.gametest.KeepOnDeathGameTest"
+			"com.wulfnet.enchanting2.gametest.KeepOnDeathGameTest",
+			"com.wulfnet.enchanting2.gametest.AreaMiningGameTest"
 		],
 		"fabric-client-gametest": [
 			"com.wulfnet.enchanting2.gametest.AnvilScreenClientGameTest",

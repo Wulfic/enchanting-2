@@ -53,6 +53,7 @@ public final class PricingTable {
 			Map.entry("enchanting2:magnetic", SINGLE_LEVEL),
 			Map.entry("enchanting2:ender_link", SINGLE_LEVEL),
 			Map.entry("enchanting2:keep_on_death", SINGLE_LEVEL),
+			Map.entry("enchanting2:area_mining", SINGLE_LEVEL),
 			Map.entry("enchanting2:fragility", CURSE_15),
 			Map.entry("enchanting2:weight", CURSE_15),
 			Map.entry("enchanting2:greed", CURSE_15),
