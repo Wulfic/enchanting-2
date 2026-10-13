@@ -1,6 +1,8 @@
 package com.wulfnet.enchanting2.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.sugar.Local;
+import com.wulfnet.enchanting2.effect.Footing;
 import com.wulfnet.enchanting2.effect.WornMath;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -33,5 +35,15 @@ abstract class PowderSnowBlockMixin {
 		}
 		return new Vec3(WornMath.stuckFactor(multiplier.x, efficiency), multiplier.y,
 				WornMath.stuckFactor(multiplier.z, efficiency));
+	}
+
+	/**
+	 * Phase 10cB, Snow Walker: the leather-boots check, read by the collision shape (which already lets a sneaking or
+	 * fast-falling entity through) and by {@code LivingEntity.onClimbable}. Both sides; freezing is in
+	 * {@code LivingEntityMixin}.
+	 */
+	@ModifyReturnValue(method = "canEntityWalkOnPowderSnow", at = @At("RETURN"))
+	private static boolean enchanting2$snowWalker(boolean walks, Entity entity) {
+		return walks || Footing.walksOnPowderSnow(entity);
 	}
 }

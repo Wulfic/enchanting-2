@@ -28,6 +28,8 @@
     "enchanting2:greed",
     "enchanting2:fumbling",
     "enchanting2:weight",
-    "enchanting2:hunger"
+    "enchanting2:hunger",
+    "enchanting2:lava_walking",
+    "enchanting2:snow_walker"
   ]
 }

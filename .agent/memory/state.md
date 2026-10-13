@@ -8,7 +8,7 @@
 **Branch:** main (commit straight to main and push; no CI; see decisions.md)
 
 ## Where we are
-Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k and 10cA done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
+Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA and 10cB done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
 - 3: `ExperienceCurve`, no level cap, exact XP points, counters saturate. 4: `MaxLevels` via `MODIFY` (restart to
   apply), `ConflictFamily` + `allow_together`, `EnchantRules`, Lure/Riptide 5 with safe caps.
 - 5: `cost/` (`CostModel`, `PricingTable`, curse discount, `cleanseCost`, `extractCost`).
@@ -53,10 +53,12 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k and 10cA done (TODO.md
   Clarity (`LivingEntityMixin` wraps `addEffect`/`forceAddEffect`, server only, rounded), Sustenance (`PlayerMixin`),
   Endurance (`ServerPlayerMixin`, sliced after `isSprinting`), Sure Footing on powder snow (`PowderSnowBlockMixin`);
   components in `ModEffects`, shared `effect/WornEffects` + `WornMath`.
-- Tests: 358 JUnit + 273 GameTests (`./gradlew build`) + 5 client GameTests (`./gradlew runClientGameTest`).
+- 10cB (2026-10-12): Lava Walking (`LivingEntity.canStandOnFluid`, flows via `LiquidBlockMixin`, not sneaking or sunk)
+  and Snow Walker (`canEntityWalkOnPowderSnow`, `canFreeze`), rules in `effect/Footing`; `BootsGameTest` on husks.
+- Tests: 358 JUnit + 279 GameTests (`./gradlew build`) + 5 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Next: 10cB boots (Lava Walking, Snow Walker), then C shields, D drops, E tools, F Quick Strike + Last Stand,
+1. Next: 10cC shields (owner answers for Shield Bash, Deflect, Bulwark in decisions.md 2026-10-12), then D drops, E tools, F Quick Strike + Last Stand,
    G Speed/Flight/Double Jump (owner order and answers: decisions.md "10c order and eight design answers"; TODO
    "Phase 10c"). Each stage writes its plan first; each enchantment adds a `LevelCeilings` row, a `.desc` line, tags,
    a price row if single-level, docs rows. Then 10d balance pass.
@@ -76,7 +78,8 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k and 10cA done (TODO.md
    10e: the five curse names in red with their Ctrl descriptions, a Weight set's walking feel (I vs V, the 50% cap),
    a curse's two discount fields and the Weight cap field, a curse picked at the table showing its discount line. + 10cA: the five new names and descriptions, staring at an
    enderman in a Calm Gaze helmet, a sleepless night in Phantom Ward, a Warden's Darkness with Clarity I vs III,
-   sprinting through powder snow in Sure Footing III.
+   sprinting through powder snow in Sure Footing III. + 10cB: a lava lake and its flowing edge in Lava Walking boots
+   (speed, burn, sneak to sink, getting out after sinking), a fall onto lava, Snow Walker iron boots on powder snow.
 
 ## Open questions / blockers
 - Owner (2026-10-06): a lowered max level never touches existing items (decisions.md).

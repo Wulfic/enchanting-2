@@ -1062,3 +1062,28 @@ off in PvP.
 applies), then the usual lava burn; walking on it is normal ground speed.
 **Rejected:** lava cushioning a fall like water; a soul-sand-like slowdown on the surface.
 **Affects:** docs/DESIGN.md §9, TODO 10cB
+
+## 2026-10-12 — Shield Bash, Deflect, Bulwark, Magnetic/Ender Link scope (owner, for 10cC/10cD)
+**Context:** DESIGN §9 left Shield Bash's stun and cooldown, Deflect's ownership, Bulwark's cooldown and what the
+drop enchantments pull unspecified.
+**Choice (owner):**
+- Shield Bash: attacking with the shield raised knocks back like Knockback I per level and gives Slowness IV for 0.5 s
+  per level; the shield then goes on a 3 s item cooldown.
+- Deflect: the projectile flies back at its shooter at the same speed and damage, owned by the shield holder (kill
+  credit, arrows not picked up); a projectile reflects at most once, so no ping-pong.
+- Bulwark: absorption lasts 5 s; granted again only 10 s after the last grant.
+- Magnetic / Ender Link: drops from blocks broken and mobs killed with the item; Magnetic also sends XP straight to the
+  player (Mending applies); Ender Link moves items only.
+**Rejected:** knockback-only or a full stun (Slowness + Weakness 255); the shooter keeping ownership; a 5 s or 30 s
+Bulwark cooldown; blocks only; no XP.
+**Affects:** docs/DESIGN.md §9, TODO 10cC, 10cD
+
+## 2026-10-12 — Lava Walking stands on flowing lava too (agent, 10cB)
+**Context:** vanilla's `LiquidBlock.getCollisionShape` gives the strider's stable shape only on a source (`LEVEL` 0).
+Lava lakes are ringed by flows, so a source-only walker drops in at every edge.
+**Choice:** for a lava walker, the `LEVEL` read in `getCollisionShape` returns 0; the rest of the check (above the shape,
+not under more lava, `canStandOnFluid`) stays vanilla's. On a thin flow the feet can rest above the lava, so that spot
+may not burn.
+**Rejected:** source-only, as striders (feels broken at edges); a new collision shape following the flow's height (more
+code for a rare case, and it would differ from the strider's half block).
+**Affects:** mixin/LiquidBlockMixin, effect/Footing, BootsGameTest

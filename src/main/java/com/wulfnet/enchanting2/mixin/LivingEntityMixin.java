@@ -1,9 +1,11 @@
 package com.wulfnet.enchanting2.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.curse.CurseEffects;
+import com.wulfnet.enchanting2.effect.Footing;
 import com.wulfnet.enchanting2.effect.Lifesteal;
 import com.wulfnet.enchanting2.effect.WornEffects;
 import java.util.Map;
@@ -14,6 +16,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.storage.ValueInput;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -91,6 +94,22 @@ abstract class LivingEntityMixin {
 		if (shortened != null) {
 			original.call(shortened, source);
 		}
+	}
+
+	/**
+	 * Phase 10cB, Lava Walking: vanilla asks this both for the lava block's collision ({@code LiquidBlock}'s half-block
+	 * stable shape, a strider's footing) and in {@code shouldTravelInFluid}, so true is standing on lava and moving at
+	 * ground speed on it (owner, 2026-10-12). Strider overrides it without calling here, so striders are untouched.
+	 */
+	@ModifyReturnValue(method = "canStandOnFluid", at = @At("RETURN"))
+	private boolean enchanting2$lavaWalking(boolean stands, FluidState fluid) {
+		return stands || Footing.standsOnLava((LivingEntity) (Object) this, fluid);
+	}
+
+	/** Phase 10cB, Snow Walker: no freezing, as vanilla's {@code #freeze_immune_wearables} (leather) gives. */
+	@ModifyReturnValue(method = "canFreeze", at = @At("RETURN"))
+	private boolean enchanting2$snowWalker(boolean freezes) {
+		return freezes && !Footing.walksOnPowderSnow((LivingEntity) (Object) this);
 	}
 
 	/**

@@ -44,6 +44,10 @@ public final class ModEffects {
 	/** As {@link #EXHAUSTION_REDUCTION}, for sprinting and sprint-jumping only (Endurance, Phase 10c). */
 	public static final DataComponentType<LevelBasedValue> SPRINT_EXHAUSTION_REDUCTION = register(
 			"sprint_exhaustion_reduction", LevelBasedValue.CODEC);
+	/** The wearer stands on lava's surface unless sneaking, as a strider does (Lava Walking, Phase 10c). */
+	public static final DataComponentType<Unit> LAVA_WALKER = register("lava_walker", Unit.CODEC);
+	/** The wearer walks on powder snow and doesn't freeze, the leather-boots effect (Snow Walker, Phase 10c). */
+	public static final DataComponentType<Unit> POWDER_SNOW_WALKER = register("powder_snow_walker", Unit.CODEC);
 	/** Entity effect for {@code minecraft:projectile_spawned}: the arrow ignores gravity for a while (TrueShot Aura). */
 	public static final MapCodec<SuspendGravity> SUSPEND_GRAVITY = Registry.register(
 			BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE,
@@ -57,7 +61,7 @@ public final class ModEffects {
 		Enchanting2.LOGGER.debug("Registered effect components {} and entity effect {}",
 				Stream.of(LIFESTEAL, HEAD_DROP_CHANCE, SMELT_DROPS, NIGHT_VISION, MOVEMENT_PENALTY, EXHAUSTION,
 						GAZE_DISGUISE, IGNORED_BY_PHANTOMS, SHORTEN_EFFECTS, EXHAUSTION_REDUCTION,
-						SPRINT_EXHAUSTION_REDUCTION).map(ModEffects::key).toList(),
+						SPRINT_EXHAUSTION_REDUCTION, LAVA_WALKER, POWDER_SNOW_WALKER).map(ModEffects::key).toList(),
 				BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE.getKey(SUSPEND_GRAVITY));
 		SuspendGravity.register();
 	}

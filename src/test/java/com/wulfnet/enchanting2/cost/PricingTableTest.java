@@ -39,7 +39,7 @@ class PricingTableTest {
 		for (String id : List.of("minecraft:aqua_affinity", "minecraft:silk_touch", "minecraft:flame",
 				"minecraft:infinity", "minecraft:channeling", "minecraft:multishot", "enchanting2:smelting",
 				"enchanting2:true_shot_aura", "enchanting2:vision", "enchanting2:step_assist", "enchanting2:calm_gaze",
-				"enchanting2:phantom_ward")) {
+				"enchanting2:phantom_ward", "enchanting2:lava_walking", "enchanting2:snow_walker")) {
 			assertEquals(new Pricing(10, 0, UpgradeMode.LEVEL_DIFFERENCE, 0, 10), PricingTable.builtIn().get(id), id);
 		}
 	}

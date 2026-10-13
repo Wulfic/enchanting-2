@@ -283,7 +283,9 @@ public class AcquisitionGameTest {
 						e -> new EnchantmentOverrides.Entry(e.getValue()))));
 		int doubled = 0;
 		int halved = 0;
-		for (int i = 0; i < 100; i++) {
+		// Roll until both cases have been seen a few times: a fixed count broke when new tradeable enchantments
+		// (Phase 10cB) shifted which book each seed picks. Seeded, so still deterministic.
+		for (int i = 0; i < 1000 && (doubled < 5 || halved < 5); i++) {
 			Offer base = offer(helper, EnchantmentOverrides.defaults(), i);
 			Offer on = offer(helper, overrides.apply(allTreasure), i);
 			Offer off = offer(helper, overrides.apply(noneTreasure), i);

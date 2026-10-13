@@ -128,6 +128,8 @@ public final class LevelCeilings {
 		t.put("enchanting2:fumbling", soft(7));
 		t.put("enchanting2:weight", NONE_NOTED);
 		t.put("enchanting2:hunger", NONE);
+		t.put("enchanting2:lava_walking", soft(1));
+		t.put("enchanting2:snow_walker", soft(1));
 		TABLE = Map.copyOf(t);
 	}
 

@@ -1,14 +1,20 @@
 package com.wulfnet.enchanting2.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
+import com.wulfnet.enchanting2.effect.Footing;
 import com.wulfnet.enchanting2.fortune.FortuneTags;
 import com.wulfnet.enchanting2.fortune.PlacedBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.EntityCollisionContext;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
@@ -27,5 +33,22 @@ abstract class LiquidBlockMixin {
 			PlacedBlocks.mark(serverLevel, pos);
 		}
 		return placed;
+	}
+
+	/**
+	 * Phase 10cB, Lava Walking (agent, 2026-10-12): vanilla's stable shape is for source blocks only, which suits a
+	 * strider in a lava lake but would drop a walker into every flow at a lake's edge. For a lava walker, flowing lava
+	 * reads as level 0 here; the rest of the check (above the shape, not under more lava) is vanilla's.
+	 */
+	@ModifyExpressionValue(method = "getCollisionShape", at = @At(value = "INVOKE",
+			target = "Ljava/lang/Integer;intValue()I"))
+	private int enchanting2$lavaWalkingOnFlows(int level, @Local(argsOnly = true) BlockState state,
+			@Local(argsOnly = true) CollisionContext context) {
+		if (level != 0 && context instanceof EntityCollisionContext entityContext
+				&& entityContext.getEntity() instanceof LivingEntity living
+				&& Footing.standsOnLava(living, state.getFluidState())) {
+			return 0;
+		}
+		return level;
 	}
 }

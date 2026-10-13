@@ -8,6 +8,7 @@
 		"ExperienceOrbAccessor",
 		"FoodDataAccessor",
 		"FishingHookAccessor",
+		"LivingEntityInvoker",
 		"MobAccessor",
 		"PhantomInvoker"
 	],

@@ -1561,6 +1561,55 @@ soft 20 (no drain at all).
   without sleep in a Phantom Ward helmet, a Warden's Darkness with Clarity I vs III, sprinting through powder snow
   in Sure Footing III leggings.
 
+### Stage 10cB — Lava Walking, Snow Walker (boots) → commit  ✅ 2026-10-12
+**Not doing:** fire immunity or protecting the boots (standing on lava burns, owner); a slowdown or fall cushion on lava
+(owner, 2026-10-12: a floor); walking on lava under other lava (only the top surface, vanilla's rule); Snow Walker
+changing powder snow's look or the climb (the climb comes free: `onClimbable` asks the same method); Lava Walking for
+striders (they already walk on lava).
+**Hooks (javap 1.21.11):**
+- Lava Walking: `LiquidBlock.getCollisionShape` gives `SHAPE_STABLE` (half a block) when the context `isAbove` it, the
+  block is a source (`LEVEL` 0) and `CollisionContext.canStandOnFluid(above, fluid)`, which asks
+  `LivingEntity.canStandOnFluid(fluid)` (false in `LivingEntity`, Strider's override says lava) and that the block
+  above isn't the same fluid. `LivingEntity.shouldTravelInFluid` asks the same method, so true there also means ground
+  speed instead of lava's ×0.5 drag (owner: normal speed). `@ModifyReturnValue` on `LivingEntity.canStandOnFluid`: true
+  for lava when the entity wears `enchanting2:lava_walker` (unit component), isn't `isDescending()` (sneaking) and its
+  lava height ≤ 0.5 (so a walker who sank swims back up with lava physics and lands on the surface once above it).
+  Both sides (the client moves its own player; the enchantment registry, effects included, syncs). Flowing lava
+  (`LEVEL` ≠ 0): **agent decision** — also stands, through `@ModifyExpressionValue` on the `LEVEL` read in
+  `getCollisionShape` for a lava walker, since sinking at every flow edge reads as broken; recorded in decisions.md.
+- Standing at +0.5 puts the feet inside the lava block (source surface ≈ 0.89), so vanilla's `LavaFluid.entityInside`
+  burns them unaided (javap: `LAVA_IGNITE` + `lavaHurt`). The design guess "box above the lava, burn applied
+  explicitly" is wrong for this shape; the GameTest proves the burn.
+- Fall damage: landing goes through `checkFallDamage` → `Block.fallOn` on the lava block → `causeFallDamage` (Feather
+  Falling applies). `baseTick` halves `fallDistance` in lava, but on the landing tick the entity was still above it.
+- Snow Walker: `PowderSnowBlock.canEntityWalkOnPowderSnow(Entity)` (static: `#powder_snow_walkable_mobs` or leather
+  boots on FEET) → `@ModifyReturnValue`: also true for a LivingEntity wearing `enchanting2:powder_snow_walker`.
+  The collision shape already handles sneaking (`isDescending`) and the >2.5 fall case. Freezing:
+  `LivingEntity.canFreeze()` (`#freeze_immune_wearables` on any armor slot) → `@ModifyReturnValue`: false when worn.
+**Data:** `lava_walking.json`, `snow_walker.json` (I, feet, `#minecraft:enchantable/foot_armor`, weight 2, costs like
+Calm Gaze). `ModEnchantments` keys, `ModEffects` two unit components, `non_treasure` + `tooltip_order` tags, lang names
++ `.desc` + ceiling notes, `PricingTable` 10-rows, `LevelCeilings` soft 1 each, `NewEnchantmentsGameTest` rows.
+docs/ENCHANTMENTS.md boots rows, DESIGN §9 rows.
+**Tests (GameTest):**
+- Lava Walking: a zombie in Lava Walking boots placed over a source lava pool comes to rest standing at lava y + 0.5,
+  on fire (burning, hurt); one without boots sinks. A player-like sneaking check: `canStandOnFluid` true standing,
+  false sneaking (mock player `setShiftKeyDown`). Flowing lava stands too. A zombie dropped from 10 blocks onto lava in
+  the boots takes fall damage (health lost before any fire tick > 0, ~7); `travel` speed: `shouldTravelInFluid` false
+  on the surface.
+- Snow Walker: `canEntityWalkOnPowderSnow` false bare, true in iron boots with Snow Walker; a zombie with it placed
+  on powder snow stays on top; `canFreeze` false with it, true without.
+- Mutation run before commit: each hook off must fail its test.
+**Rollback:** one commit, `git revert <sha>`. No world data written.
+- ✅ 2026-10-12: 358 JUnit + 279 GameTests (`BootsGameTest`, six) + client GameTests green. Tested on husks (no
+  daylight burn, goals cleared, 100 health). Mutations: the stand hook and the powder snow hook off fail five tests; the
+  flow hook, the freeze hook and the sneak check off fail exactly their three; the sunk-depth check off fails the
+  "sunk walker swims" step. Changed from the plan: the fall test drops 5.5 blocks, not 10 (the 8-high test structure
+  has a ceiling); `AcquisitionGameTest`'s librarian test rolls until both price cases are seen 5 times (cap 1000)
+  instead of a fixed 100, since two new tradeable books shifted every seed's pick.
+  Owner `runClient`: walking across a lava lake and its flowing edge in Lava Walking boots (speed, burn, sneak to
+  sink, jumping out after sinking), a fall onto lava, powder snow in Snow Walker iron boots (walk, climb, sneak, no
+  freeze).
+
 ### Phase 10e — Curses (three stages, one commit each)
 **Goal:** five new curses, each with a GameTest that fails if its effect breaks, and a per-level curse discount.
 **Not doing:** Hunger on held items (owner: armor only); changing Binding/Vanishing (stay level 1, 10%); curses on

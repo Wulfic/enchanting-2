@@ -463,3 +463,23 @@ players, so `Phantom.canAttack(level, mockPlayer, DEFAULT)` is false bare-headed
 vacuously. It's also invulnerable (no exhaustion): set `getAbilities().invulnerable = false` for hunger tests.
 **Fix:** test targeting on a zombie when the hook reads only the target's equipment, and assert the bare case first.
 **Affects:** src/gametest/.../WornEnchantmentsGameTest.java
+
+## 2026-10-12 — Lava Walking: the strider's surface puts your feet in the lava
+**Trap:** DESIGN §9 assumed a lava walker's box sits above the lava, so the burn would need applying by hand.
+**Fact (javap 1.21.11):** `LiquidBlock.SHAPE_STABLE` is half a block, under a source's 8/9 surface, so a standing walker
+is `isInLava()` and `LavaFluid.entityInside` burns it unaided. The same `canStandOnFluid` answer also decides
+`shouldTravelInFluid`, so it must turn false once the walker has sunk (lava height > 0.5), or a sunk walker walks the
+lava floor at ground speed. `EntityCollisionContext.isAbove` doesn't read sneaking; check `isDescending()` yourself.
+**Affects:** effect/Footing
+
+## 2026-10-12 — GameTest: the empty test structure is 8 high with a ceiling
+**Symptom:** a husk spawned at relative y 9 "fell through" the lava; it was standing at y 10, on top of the structure.
+**Fix:** keep spawns and drops inside y 0..7 (a 5.5-block drop for the fall-damage test).
+**Affects:** src/gametest/
+
+## 2026-10-12 — Seeded sample tests break when an enchantment joins a pool
+**Symptom:** `AcquisitionGameTest.treasureOverrideDoublesOrHalvesTheLibrarianPrice` (100 seeded librarian rolls) saw no
+cheap treasure book once Lava Walking and Snow Walker became tradeable: every seed now picks a different book.
+**Fix:** roll until each case is seen a few times, with a cap, instead of a fixed count. Any later "N seeded rolls must
+include X" test needs the same shape, since every 10c stage adds tradeable enchantments.
+**Affects:** src/gametest/java/com/wulfnet/enchanting2/gametest/AcquisitionGameTest.java
