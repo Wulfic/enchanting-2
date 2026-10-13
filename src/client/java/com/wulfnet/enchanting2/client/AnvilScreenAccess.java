@@ -1,6 +1,5 @@
 package com.wulfnet.enchanting2.client;
 
-import com.wulfnet.enchanting2.screen.SidePanelLayout;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 
@@ -9,15 +8,12 @@ import org.jspecify.annotations.Nullable;
  * GameTest can check the real screen rather than a copy of its logic.
  */
 public interface AnvilScreenAccess {
-	/** @return null on a vanilla server (no panel, no tab) */
-	@Nullable
-	SidePanelLayout enchanting2$layout();
-
-	/** @return null on a vanilla server */
-	@Nullable
-	AnvilPanelTab enchanting2$tab();
+	/** @return the window is ours: wide, with the breakdown box; false on a vanilla server */
+	boolean enchanting2$wide();
 
 	int enchanting2$leftPos();
+
+	int enchanting2$imageWidth();
 
 	int enchanting2$nameBoxX();
 
@@ -28,9 +24,23 @@ public interface AnvilScreenAccess {
 	/** @return where the last label was drawn, relative to the window's left edge */
 	int enchanting2$labelX();
 
-	/** @return the panel's rows as drawn in the last frame (before wrapping); empty when the panel is hidden */
-	List<String> enchanting2$panelText();
+	/** @return the box's rows as drawn in the last frame (before wrapping); empty on a vanilla server */
+	List<String> enchanting2$boxText();
 
-	/** @return the panel's amounts with their units, as drawn in the last frame */
-	List<String> enchanting2$panelAmounts();
+	/** @return the box's amounts with their units, as drawn in the last frame */
+	List<String> enchanting2$boxAmounts();
+
+	/** @return the box's interior left edge on screen */
+	int enchanting2$boxLeft();
+
+	/** @return the box's interior top edge on screen */
+	int enchanting2$boxTop();
+
+	int enchanting2$scrollOffset();
+
+	int enchanting2$maxScroll();
+
+	int enchanting2$scrollBarX();
+
+	int enchanting2$thumbCenterY();
 }

@@ -5,20 +5,19 @@ import com.wulfnet.enchanting2.anvil.AnvilBridge;
 import com.wulfnet.enchanting2.anvil.AnvilOutcome.Entry;
 import com.wulfnet.enchanting2.anvil.AnvilOutcome.Status;
 import com.wulfnet.enchanting2.anvil.AnvilPreviewView;
-import com.wulfnet.enchanting2.client.AnvilPanelTab;
+import com.wulfnet.enchanting2.client.AnvilBox;
 import com.wulfnet.enchanting2.client.AnvilPreviewState;
 import com.wulfnet.enchanting2.client.AnvilScreenAccess;
 import com.wulfnet.enchanting2.client.ClientConfigState;
-import com.wulfnet.enchanting2.client.ClientSettings;
-import com.wulfnet.enchanting2.client.SidePanel;
+import com.wulfnet.enchanting2.client.CostLabel;
+import com.wulfnet.enchanting2.client.PanelTextResolver;
 import com.wulfnet.enchanting2.config.CostsSection;
 import com.wulfnet.enchanting2.cost.CostBreakdown;
 import com.wulfnet.enchanting2.network.AnvilPreviewPayload;
+import com.wulfnet.enchanting2.screen.ColumnWindow;
 import com.wulfnet.enchanting2.screen.PanelText.Label;
 import com.wulfnet.enchanting2.screen.PanelText.Msg;
 import com.wulfnet.enchanting2.screen.PanelText.Row;
-import com.wulfnet.enchanting2.screen.PanelText.Tone;
-import com.wulfnet.enchanting2.screen.SidePanelLayout;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -26,10 +25,14 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AnvilScreen;
 import net.minecraft.client.gui.screens.inventory.ItemCombinerScreen;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AnvilMenu;
+import net.minecraft.world.item.ItemStack;
 import org.jspecify.annotations.Nullable;
+import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -39,29 +42,14 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * DESIGN §6 Anvil, Stage 6D. On a server running our anvil: vanilla's cost label (40 cap, short-synced cost) is replaced
- * by one built from the server's preview, and a cost panel opens beside the window from a tab on its left edge. When
- * neither side of the screen has room, the window moves right to make it (owner, decisions.md 2026-10-07 "Anvil
- * screen"). On a vanilla server nothing here changes the screen.
+ * DESIGN §6 Anvil, in the window (TODO 10o; owner 2026-10-13, replacing Stage 6D's side panel and tab). On a server
+ * running our anvil the window is {@link ColumnWindow#EXTRA_WIDTH} wider: vanilla's part is untouched, and the cost
+ * breakdown fills a box running the full height of the new right column ({@link AnvilBox}). Vanilla's cost label (40
+ * cap, short-synced cost) is replaced by one built from the server's preview. The background is drawn by
+ * {@code ItemCombinerScreenMixin}. On a vanilla server nothing here changes the screen.
  */
 @Mixin(AnvilScreen.class)
 abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> implements AnvilScreenAccess {
-	/** Vanilla's label colours: affordable, and blocked or unaffordable. */
-	@Unique
-	private static final int LABEL_GOOD = 0xFF80FF20;
-	@Unique
-	private static final int LABEL_BAD = 0xFFFF6060;
-	/** Vanilla's translucent strip behind the cost label. */
-	@Unique
-	private static final int LABEL_BACKGROUND = 0x4F000000;
-	/** Where vanilla puts the rename box and the label, relative to the window. */
-	@Unique
-	private static final int NAME_BOX_X = 62;
-	@Unique
-	private static final int LABEL_Y = 69;
-	@Unique
-	private static final int TAB_Y = 4;
-
 	@Shadow
 	private EditBox name;
 	@Shadow
@@ -69,68 +57,46 @@ abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> implements
 	private Player player;
 
 	@Unique
-	private @Nullable SidePanelLayout enchanting2$layout;
+	private boolean enchanting2$wide;
 	@Unique
-	private @Nullable AnvilPanelTab enchanting2$tab;
-	@Unique
-	private @Nullable SidePanel enchanting2$panel;
+	private @Nullable AnvilBox enchanting2$box;
 	@Unique
 	private @Nullable String enchanting2$labelText;
 	@Unique
 	private int enchanting2$labelX;
+	/** The item the box's scroll position belongs to; a different one scrolls back to the top. */
+	@Unique
+	private ItemStack enchanting2$scrolledFor = ItemStack.EMPTY;
 
 	private AnvilScreenMixin() {
 		super(null, null, null, null);
 	}
 
+	/** Before {@code init} centres the window, so it centres the wide one. */
+	@Inject(method = "<init>", at = @At("TAIL"))
+	private void enchanting2$width(AnvilMenu menu, Inventory inventory, Component title, CallbackInfo ci) {
+		enchanting2$wide = AnvilBridge.clientServerIsOurs();
+		if (enchanting2$wide) {
+			imageWidth = ColumnWindow.WIDTH;
+		}
+	}
+
 	@Inject(method = "subInit", at = @At("TAIL"))
-	private void enchanting2$addTab(CallbackInfo ci) {
-		enchanting2$layout = null;
-		enchanting2$tab = null;
-		enchanting2$panel = null;
-		if (!AnvilBridge.clientServerIsOurs()) {
-			return;
-		}
-		enchanting2$panel = new SidePanel(font);
-		enchanting2$tab = addRenderableWidget(new AnvilPanelTab(0, topPos + TAB_Y,
-				ClientSettings.get().showAnvilPreviewPanel(), this::enchanting2$toggle));
-		enchanting2$applyLayout();
-	}
-
-	/** {@code subInit} placed the rename box from the centred window, so it moves with {@code leftPos}. */
-	@Unique
-	private void enchanting2$applyLayout() {
-		boolean show = ClientSettings.get().showAnvilPreviewPanel();
-		SidePanelLayout layout = SidePanelLayout.compute(width, imageWidth, AnvilPanelTab.WIDTH, show);
-		enchanting2$layout = layout;
-		leftPos = layout.leftPos();
-		name.setX(leftPos + NAME_BOX_X);
-		if (enchanting2$tab != null) {
-			enchanting2$tab.setX(layout.tabX());
-			enchanting2$tab.setOpen(show);
-		}
-	}
-
-	@Unique
-	private void enchanting2$toggle() {
-		ClientSettings.save(ClientSettings.get().withShowAnvilPreviewPanel(!ClientSettings.get().showAnvilPreviewPanel()));
-		enchanting2$applyLayout();
-		// Clicking the tab focused it; typing belongs in the rename box.
-		setFocused(name);
+	private void enchanting2$addBox(CallbackInfo ci) {
+		enchanting2$box = enchanting2$wide ? new AnvilBox(font) : null;
 	}
 
 	/** Vanilla's label reads the short-synced cost and caps at 40; ours is drawn at TAIL instead. */
 	@ModifyExpressionValue(method = "renderLabels", at = @At(value = "INVOKE",
 			target = "Lnet/minecraft/world/inventory/AnvilMenu;getCost()I"))
 	private int enchanting2$hideVanillaLabel(int cost) {
-		return enchanting2$layout != null ? 0 : cost;
+		return enchanting2$wide ? 0 : cost;
 	}
 
 	@Inject(method = "renderLabels", at = @At("TAIL"))
 	private void enchanting2$drawLabel(GuiGraphics graphics, int mouseX, int mouseY, CallbackInfo ci) {
 		enchanting2$labelText = null;
-		SidePanel panel = enchanting2$panel;
-		if (enchanting2$layout == null || panel == null) {
+		if (!enchanting2$wide) {
 			return;
 		}
 		Optional<AnvilPreviewPayload> preview = AnvilPreviewState.forContainer(menu.containerId);
@@ -141,53 +107,74 @@ abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> implements
 		}
 		// Vanilla's label runs from the right edge leftwards, on the "Inventory" label's row: stay clear of it.
 		int minX = inventoryLabelX + font.width(playerInventoryTitle) + 4;
-		int maxWidth = imageWidth - 8 - 2 - minX;
-		Component shown = null;
-		for (Msg form : label.get().forms()) {
-			shown = panel.text(form, menu.getSlot(0).getItem());
-			if (font.width(shown) <= maxWidth) {
-				break;
-			}
-		}
-		int x = imageWidth - 8 - font.width(shown) - 2;
-		graphics.fill(x - 2, LABEL_Y - 2, imageWidth - 8, LABEL_Y + 10, LABEL_BACKGROUND);
-		graphics.drawString(font, shown, x, LABEL_Y, label.get().tone() == Tone.GOOD ? LABEL_GOOD : LABEL_BAD);
-		enchanting2$labelText = shown.getString();
-		enchanting2$labelX = x;
+		CostLabel.Drawn drawn = CostLabel.draw(graphics, font, label.get(), this::enchanting2$text, minX);
+		enchanting2$labelText = drawn.text();
+		enchanting2$labelX = drawn.x();
 	}
 
-	/** Absolute coordinates, before slots and labels: the panel sits outside the window, under any tooltip. */
+	/** Absolute coordinates, before slots and labels: under any tooltip. */
 	@Inject(method = "renderBg", at = @At("TAIL"))
-	private void enchanting2$drawPanel(GuiGraphics graphics, float partialTick, int mouseX, int mouseY,
+	private void enchanting2$drawBox(GuiGraphics graphics, float partialTick, int mouseX, int mouseY,
 			CallbackInfo ci) {
-		SidePanelLayout layout = enchanting2$layout;
-		SidePanel panel = enchanting2$panel;
-		if (layout == null || panel == null) {
+		AnvilBox box = enchanting2$box;
+		if (box == null) {
 			return;
 		}
-		if (!layout.panelShown()) {
-			panel.clear();
-			return;
+		ItemStack target = menu.getSlot(AnvilMenu.INPUT_SLOT).getItem();
+		if (!ItemStack.isSameItemSameComponents(target, enchanting2$scrolledFor)) {
+			box.reset();
+			enchanting2$scrolledFor = target.copy();
 		}
 		Optional<AnvilPreviewPayload> preview = AnvilPreviewState.forContainer(menu.containerId);
 		List<Row> rows = AnvilPreviewView.panel(enchanting2$status(preview), enchanting2$breakdown(preview),
 				enchanting2$entries(preview), player.experienceLevel, enchanting2$maximumOperationCost());
-		panel.draw(graphics, Component.translatable(AnvilPreviewView.KEY + "panel.title"), rows,
-				menu.getSlot(0).getItem(), layout.panelX(), topPos, layout.panelWidth(),
-				height - topPos - SidePanelLayout.MARGIN);
+		box.draw(graphics, rows, this::enchanting2$text, leftPos, topPos);
 	}
 
-	/** A click on the panel or tab isn't "outside": vanilla would throw the carried item into the world. */
+	@Unique
+	private Component enchanting2$text(Msg msg) {
+		return PanelTextResolver.forScreen(msg, menu.getSlot(AnvilMenu.INPUT_SLOT).getItem());
+	}
+
+	/** The box takes every click inside it: the scroll bar scrolls, the rest does nothing. */
 	@Override
-	protected boolean hasClickedOutside(double mouseX, double mouseY, int left, int top) {
-		SidePanel panel = enchanting2$panel;
-		if (panel != null && panel.contains(mouseX, mouseY)) {
-			return false;
+	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+		AnvilBox box = enchanting2$box;
+		if (box != null && box.contains(event.x(), event.y())) {
+			if (event.button() == GLFW.GLFW_MOUSE_BUTTON_LEFT && box.overScrollBar(event.x(), event.y())) {
+				box.press(event.y());
+			}
+			return true;
 		}
-		if (enchanting2$tab != null && enchanting2$tab.isMouseOver(mouseX, mouseY)) {
-			return false;
+		return super.mouseClicked(event, doubleClick);
+	}
+
+	/** {@code AnvilScreen} doesn't declare it, so the mixin adds the override. */
+	@Override
+	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+		AnvilBox box = enchanting2$box;
+		if (box != null && box.contains(mouseX, mouseY)) {
+			box.scroll(scrollY);
+			return true;
 		}
-		return super.hasClickedOutside(mouseX, mouseY, left, top);
+		return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+	}
+
+	@Override
+	public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+		AnvilBox box = enchanting2$box;
+		if (box != null && box.drag(event.y())) {
+			return true;
+		}
+		return super.mouseDragged(event, dragX, dragY);
+	}
+
+	@Override
+	public boolean mouseReleased(MouseButtonEvent event) {
+		if (enchanting2$box != null) {
+			enchanting2$box.release();
+		}
+		return super.mouseReleased(event);
 	}
 
 	@Override
@@ -217,19 +204,21 @@ abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> implements
 				.map(c -> OptionalInt.of(c.maximumOperationCost())).orElse(OptionalInt.empty());
 	}
 
-	@Override
-	public @Nullable SidePanelLayout enchanting2$layout() {
-		return enchanting2$layout;
-	}
+	// --- AnvilScreenAccess, for ItemCombinerScreenMixin and the client GameTest ---
 
 	@Override
-	public @Nullable AnvilPanelTab enchanting2$tab() {
-		return enchanting2$tab;
+	public boolean enchanting2$wide() {
+		return enchanting2$wide;
 	}
 
 	@Override
 	public int enchanting2$leftPos() {
 		return leftPos;
+	}
+
+	@Override
+	public int enchanting2$imageWidth() {
+		return imageWidth;
 	}
 
 	@Override
@@ -248,12 +237,42 @@ abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> implements
 	}
 
 	@Override
-	public List<String> enchanting2$panelText() {
-		return enchanting2$panel != null ? enchanting2$panel.lastText() : List.of();
+	public List<String> enchanting2$boxText() {
+		return enchanting2$box != null ? enchanting2$box.lastText() : List.of();
 	}
 
 	@Override
-	public List<String> enchanting2$panelAmounts() {
-		return enchanting2$panel != null ? enchanting2$panel.lastAmounts() : List.of();
+	public List<String> enchanting2$boxAmounts() {
+		return enchanting2$box != null ? enchanting2$box.lastAmounts() : List.of();
+	}
+
+	@Override
+	public int enchanting2$boxLeft() {
+		return enchanting2$box != null ? enchanting2$box.left() : 0;
+	}
+
+	@Override
+	public int enchanting2$boxTop() {
+		return enchanting2$box != null ? enchanting2$box.top() : 0;
+	}
+
+	@Override
+	public int enchanting2$scrollOffset() {
+		return enchanting2$box != null ? enchanting2$box.scrollOffset() : 0;
+	}
+
+	@Override
+	public int enchanting2$maxScroll() {
+		return enchanting2$box != null ? enchanting2$box.maxScroll() : 0;
+	}
+
+	@Override
+	public int enchanting2$scrollBarX() {
+		return enchanting2$box != null ? enchanting2$box.scrollBarX() : 0;
+	}
+
+	@Override
+	public int enchanting2$thumbCenterY() {
+		return enchanting2$box != null ? enchanting2$box.thumbCenter() : 0;
 	}
 }

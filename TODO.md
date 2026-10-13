@@ -1597,6 +1597,12 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
         `ClientConfig` field, its `ConfigScreen` toggle and lang keys (`anvil.tab.*`, `anvil.panel.title`,
         `config.display.show_preview_panel*`); `ClientConfig` rejects an old `anvil.show_preview_panel` as "no longer
         used". DESIGN §2 (client.json5) + §6 anvil screen.
+        ✅ oB 2026-10-13: 407 JUnit (ClientConfigTest: two panel-toggle tests gone, retired-key test added, owner
+        approved), server GameTests and client GameTests green. `AnvilBox`, `CostLabel` (shared with oC),
+        `WindowBackground` (the table's band helper, moved), `PanelTextResolver.forScreen` (replaces `TableList.text`).
+        Screenshot review caught names split by the amount ("Renam/e", "Sharpness/V"): text now wraps at the full
+        width and the amount sits on its last line, or on a line of its own. Owner may prefer the table's "5 lvl" to
+        keep rows on one line.
       - oC grindstone: `GrindstoneScreenMixin` (width before `super.init()`, shift hack gone, background wrap, list,
         label, scroll input); client `GrindstoneList`; `GrindstonePanelView.label`. Deletes `SidePanel`,
         `SidePanelLayout` and `SidePanelLayoutTest` (owner approval needed: deleting a test). DESIGN §6 grindstone.

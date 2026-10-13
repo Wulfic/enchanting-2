@@ -5,18 +5,18 @@ import blue.endless.jankson.JsonPrimitive;
 
 /**
  * {@code config/enchanting2/client.json5}: display settings for this player only (DESIGN §2 Config). Never synced, never
- * read by a server. Written only by the anvil panel's tab and the config screen, both through
- * {@link ConfigFiles#saveWithBackup}.
+ * read by a server. Written only by the config screen, through {@link ConfigFiles#saveWithBackup}. The anvil panel's
+ * {@code anvil.show_preview_panel} went with the panel (TODO 10o); an old file's key is reported as no longer used.
  *
- * @param showAnvilPreviewPanel   the anvil's cost panel is open (decisions.md 2026-10-07 "Anvil screen")
  * @param enchantmentDescriptions holding Ctrl over an item shows what each enchantment does (DESIGN §6, Phase 10h)
  * @param showDescriptionHint     a "hold Ctrl" line under the enchantments while Ctrl isn't held
  */
-public record ClientConfig(boolean showAnvilPreviewPanel, boolean enchantmentDescriptions,
-		boolean showDescriptionHint) {
+public record ClientConfig(boolean enchantmentDescriptions, boolean showDescriptionHint) {
 	public static final String FILE_NAME = "client.json5";
 	public static final int SCHEMA_VERSION = 1;
-	public static final ClientConfig DEFAULTS = new ClientConfig(true, true, true);
+	public static final ClientConfig DEFAULTS = new ClientConfig(true, true);
+	/** The 6D anvil panel toggle, gone since 10o. */
+	static final String RETIRED_ANVIL_PANEL = "show_preview_panel";
 
 	public static final ConfigCodec<ClientConfig> CODEC = new ConfigCodec<>() {
 		@Override
@@ -36,19 +36,20 @@ public record ClientConfig(boolean showAnvilPreviewPanel, boolean enchantmentDes
 
 		@Override
 		public ClientConfig read(ConfigReader root) {
-			ConfigReader anvil = root.section("anvil");
+			if (root.has("anvil")) {
+				ConfigReader anvil = root.section("anvil");
+				if (anvil.has(RETIRED_ANVIL_PANEL)) {
+					anvil.reject(RETIRED_ANVIL_PANEL,
+							"no longer used: the anvil's cost breakdown is always in its window");
+				}
+			}
 			ConfigReader tooltips = root.section("tooltips");
-			return new ClientConfig(anvil.readBool("show_preview_panel", DEFAULTS.showAnvilPreviewPanel),
-					tooltips.readBool("enchantment_descriptions", DEFAULTS.enchantmentDescriptions),
+			return new ClientConfig(tooltips.readBool("enchantment_descriptions", DEFAULTS.enchantmentDescriptions),
 					tooltips.readBool("show_hint", DEFAULTS.showDescriptionHint));
 		}
 
 		@Override
 		public void write(ClientConfig value, JsonObject root) {
-			JsonObject anvil = new JsonObject();
-			anvil.put("show_preview_panel", JsonPrimitive.of(value.showAnvilPreviewPanel),
-					"Show the cost panel beside the anvil. The tab on the anvil window toggles it.");
-			root.put("anvil", anvil, "Anvil screen (only on servers running Enchanting 2).");
 			JsonObject tooltips = new JsonObject();
 			tooltips.put("enchantment_descriptions", JsonPrimitive.of(value.enchantmentDescriptions),
 					"Hold Ctrl over an item to see what each of its enchantments does.");
@@ -58,11 +59,7 @@ public record ClientConfig(boolean showAnvilPreviewPanel, boolean enchantmentDes
 		}
 	};
 
-	public ClientConfig withShowAnvilPreviewPanel(boolean show) {
-		return new ClientConfig(show, enchantmentDescriptions, showDescriptionHint);
-	}
-
 	public ClientConfig withTooltips(boolean descriptions, boolean hint) {
-		return new ClientConfig(showAnvilPreviewPanel, descriptions, hint);
+		return new ClientConfig(descriptions, hint);
 	}
 }

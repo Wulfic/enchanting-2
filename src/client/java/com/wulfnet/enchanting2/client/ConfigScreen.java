@@ -67,18 +67,10 @@ public final class ConfigScreen {
 		boolean editable = view.editable();
 		// This player's own file: editable whatever the gameplay config's mode.
 		ClientConfig client = ClientSettings.get();
-		boolean[] showPanel = {client.showAnvilPreviewPanel()};
 		boolean[] descriptions = {client.enchantmentDescriptions()};
 		boolean[] hint = {client.showDescriptionHint()};
 		ConfigCategory display = ConfigCategory.createBuilder()
 				.name(Component.translatable(KEY + "category.display"))
-				.option(Option.<Boolean>createBuilder()
-						.name(Component.translatable(KEY + "display.show_preview_panel"))
-						.description(description("display.show_preview_panel"))
-						.binding(ClientConfig.DEFAULTS.showAnvilPreviewPanel(), () -> showPanel[0],
-								v -> showPanel[0] = v)
-						.controller(TickBoxControllerBuilder::create)
-						.build())
 				.option(Option.<Boolean>createBuilder()
 						.name(Component.translatable(KEY + "display.enchantment_descriptions"))
 						.description(description("display.enchantment_descriptions"))
@@ -310,8 +302,7 @@ public final class ConfigScreen {
 					if (enchantmentsEditable && !edited.equals(enchantmentsOriginal)) {
 						ConfigEditing.saveEnchantments(edited);
 					}
-					ClientSettings.save(ClientSettings.get().withShowAnvilPreviewPanel(showPanel[0])
-							.withTooltips(descriptions[0], hint[0]));
+					ClientSettings.save(ClientSettings.get().withTooltips(descriptions[0], hint[0]));
 				})
 				.build();
 	}

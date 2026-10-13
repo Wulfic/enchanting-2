@@ -34,10 +34,8 @@ import org.junit.jupiter.api.Test;
  */
 class AnvilLangKeysTest {
 	/** Built in client code, which JUnit can't load; kept in step by hand. */
-	private static final List<String> CLIENT_KEYS = List.of(AnvilPreviewView.KEY + "panel.title",
-			AnvilPreviewView.KEY + "tab.show", AnvilPreviewView.KEY + "tab.hide", AnvilPreviewView.KEY + "target.empty",
-			"enchanting2.config.category.display", "enchanting2.config.display.show_preview_panel",
-			"enchanting2.config.display.show_preview_panel.desc");
+	private static final List<String> CLIENT_KEYS = List.of(AnvilPreviewView.KEY + "target.empty",
+			"enchanting2.config.category.display");
 	private static final Pattern PLACEHOLDER = Pattern.compile("%(?:(\\d+)\\$)?s");
 
 	private static JsonObject lang() throws Exception {

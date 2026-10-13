@@ -14,7 +14,10 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** {@code client.json5} (Stage 6D): the anvil panel toggle, saved by the tab through the GUI writer. */
+/**
+ * {@code client.json5}: the tooltip toggles (Phase 10h), saved by the config screen through the GUI writer. The anvil
+ * panel toggle (Stage 6D) went with the panel in 10o.
+ */
 class ClientConfigTest {
 	@TempDir
 	Path dir;
@@ -27,53 +30,49 @@ class ClientConfigTest {
 		return dir.resolve(ClientConfig.FILE_NAME);
 	}
 
-	@Test
-	void panelIsShownByDefault() {
-		assertTrue(ClientConfig.DEFAULTS.showAnvilPreviewPanel());
-	}
-
-	@Test
-	void bothValuesRoundTripWithZeroIssues() throws SyntaxError {
-		for (boolean show : new boolean[] {true, false}) {
-			ClientConfig config = ClientConfig.DEFAULTS.withShowAnvilPreviewPanel(show);
-			var parsed = parse(ConfigFiles.render(config, ClientConfig.CODEC));
-			assertEquals(config, parsed.config());
-			assertEquals(List.of(), parsed.issues());
-		}
-	}
-
-	/** Phase 10h: both tooltip toggles default on and every combination reads back, independent of the anvil one. */
+	/** Phase 10h: both tooltip toggles default on and every combination reads back with zero issues. */
 	@Test
 	void tooltipTogglesDefaultOnAndRoundTrip() throws SyntaxError {
 		assertTrue(ClientConfig.DEFAULTS.enchantmentDescriptions());
 		assertTrue(ClientConfig.DEFAULTS.showDescriptionHint());
 		for (boolean descriptions : new boolean[] {true, false}) {
 			for (boolean hint : new boolean[] {true, false}) {
-				ClientConfig config = ClientConfig.DEFAULTS.withShowAnvilPreviewPanel(false).withTooltips(descriptions, hint);
+				ClientConfig config = ClientConfig.DEFAULTS.withTooltips(descriptions, hint);
 				var parsed = parse(ConfigFiles.render(config, ClientConfig.CODEC));
 				assertEquals(config, parsed.config());
 				assertEquals(List.of(), parsed.issues());
 			}
 		}
-		var old = parse("{ schema_version: 1, anvil: { show_preview_panel: false } }");
-		assertEquals(ClientConfig.DEFAULTS.withShowAnvilPreviewPanel(false), old.config(), "a 6D file keeps the defaults");
-		assertEquals(List.of(), old.issues());
+		assertFalse(ConfigFiles.render(ClientConfig.DEFAULTS, ClientConfig.CODEC).contains("anvil"),
+				"the anvil section is no longer written");
+	}
+
+	/** TODO 10o: every 6D file has the panel key; it reads as no longer used, not as a typo, and changes nothing. */
+	@Test
+	void theRetiredAnvilPanelKeyIsReportedAsNoLongerUsed() throws SyntaxError {
+		var old = parse("{ schema_version: 1, anvil: { show_preview_panel: false }, tooltips: { show_hint: false } }");
+		assertEquals(ClientConfig.DEFAULTS.withTooltips(true, false), old.config(), "the rest of the file still reads");
+		assertEquals(1, old.issues().size(), old.issues().toString());
+		ConfigIssue issue = old.issues().getFirst();
+		assertEquals("anvil.show_preview_panel", issue.key());
+		assertTrue(issue.reason().startsWith("no longer used"), issue.reason());
+		assertEquals(List.of(), parse("{ schema_version: 1, anvil: {} }").issues(), "an empty anvil section is fine");
 	}
 
 	@Test
-	void badValueFallsBackToShownAndIsReported() throws SyntaxError {
-		var parsed = parse("{ schema_version: 1, anvil: { show_preview_panel: \"no\", extra: 1 } }");
+	void badValueFallsBackAndIsReported() throws SyntaxError {
+		var parsed = parse("{ schema_version: 1, tooltips: { enchantment_descriptions: \"no\", extra: 1 } }");
 		assertEquals(ClientConfig.DEFAULTS, parsed.config());
 		List<String> keys = parsed.issues().stream().map(ConfigIssue::key).toList();
-		assertTrue(keys.contains("anvil.show_preview_panel"), keys.toString());
-		assertTrue(keys.contains("anvil.extra"), keys.toString());
+		assertTrue(keys.contains("tooltips.enchantment_descriptions"), keys.toString());
+		assertTrue(keys.contains("tooltips.extra"), keys.toString());
 	}
 
 	@Test
 	void toggleSaveBacksUpAndRereads() throws IOException {
 		assertEquals(ConfigFiles.Source.CREATED, ConfigFiles.load(file(), ClientConfig.CODEC).source());
 		String before = Files.readString(file(), StandardCharsets.UTF_8);
-		ClientConfig hidden = ClientConfig.DEFAULTS.withShowAnvilPreviewPanel(false);
+		ClientConfig hidden = ClientConfig.DEFAULTS.withTooltips(false, true);
 
 		assertEquals(ConfigFiles.SaveOutcome.SAVED, ConfigFiles.saveWithBackup(file(), ClientConfig.CODEC, hidden));
 
@@ -86,7 +85,8 @@ class ClientConfigTest {
 	void unreadableFileIsNeverOverwrittenByTheToggle() throws IOException {
 		Files.writeString(file(), "{ not json5", StandardCharsets.UTF_8);
 		assertEquals(ConfigFiles.SaveOutcome.REFUSED_UNREADABLE,
-				ConfigFiles.saveWithBackup(file(), ClientConfig.CODEC, ClientConfig.DEFAULTS.withShowAnvilPreviewPanel(false)));
+				ConfigFiles.saveWithBackup(file(), ClientConfig.CODEC,
+						ClientConfig.DEFAULTS.withTooltips(false, false)));
 		assertEquals("{ not json5", Files.readString(file(), StandardCharsets.UTF_8));
 		assertFalse(Files.exists(file().resolveSibling(ClientConfig.FILE_NAME + ".bak")));
 	}

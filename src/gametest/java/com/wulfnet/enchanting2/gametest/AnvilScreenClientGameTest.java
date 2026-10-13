@@ -1,25 +1,23 @@
 package com.wulfnet.enchanting2.gametest;
 
-import com.wulfnet.enchanting2.client.AnvilPanelTab;
 import com.wulfnet.enchanting2.client.AnvilPreviewState;
 import com.wulfnet.enchanting2.client.AnvilScreenAccess;
-import com.wulfnet.enchanting2.client.ClientSettings;
-import com.wulfnet.enchanting2.config.ClientConfig;
 import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.config.ConfigFiles;
 import com.wulfnet.enchanting2.config.CostsSection;
 import com.wulfnet.enchanting2.config.LastStandSection;
 import com.wulfnet.enchanting2.config.ServerConfigs;
-import com.wulfnet.enchanting2.screen.SidePanelLayout.Placement;
-import com.wulfnet.enchanting2.screen.SidePanelLayout;
+import com.wulfnet.enchanting2.screen.ColumnWindow;
 import java.util.List;
 import java.util.function.Function;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.minecraft.client.gui.screens.inventory.AnvilScreen;
+import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleMenuProvider;
@@ -27,18 +25,20 @@ import net.minecraft.world.inventory.AnvilMenu;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import org.lwjgl.glfw.GLFW;
 
 /**
- * Stage 6D on the real client: the anvil screen's label and panel come from the server's preview, the tab saves
- * {@code client.json5}, the window shifts when the screen is narrow, and a click on the panel never throws the carried
- * item. Screenshots land in the client GameTest run dir for the owner to look at.
+ * The anvil screen on the real client (Stage 6D; in the window since TODO 10o): the window is wide and centred even on
+ * a small screen, the label and the breakdown box come from the server's preview, a long breakdown scrolls by wheel and
+ * by thumb, and a click in the box never throws the carried item. Screenshots land in the client GameTest run dir for
+ * the owner to look at.
  */
 public class AnvilScreenClientGameTest implements FabricClientGameTest {
-	/** 854x480 at GUI scale auto is 427 wide (scale 2): the window must shift. 1920x1080 at scale 4 is 480: left. */
+	/** 854x480 at GUI scale auto is 427 x 240 (scale 2): the 296 wide window fits. 1920x1080 at scale 4 is 480. */
 	private static final int NARROW_WIDTH = 854;
 	private static final int NARROW_HEIGHT = 480;
 	private static final int WIDE_WIDTH = 1920;
@@ -57,11 +57,11 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 			context.waitForScreen(AnvilScreen.class);
 			context.waitTick();
 
-			narrowScreenShiftsTheWindow(context);
+			wideWindowFitsTheSmallScreenCentred(context);
 			bookShowsPriceAndSkippedEntry(context, world);
 			unaffordableShowsCompactLabelAndFullReason(context, world);
-			panelClickKeepsTheCarriedItem(context, world);
-			tabHidesPanelAndSavesClientConfig(context);
+			longBreakdownScrolls(context, world);
+			boxClickKeepsTheCarriedItem(context, world);
 			totalPastShortRangeIsExact(context, world);
 			closingClearsThePreview(context);
 		}
@@ -99,21 +99,23 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 		}
 	}
 
-	private static void narrowScreenShiftsTheWindow(ClientGameTestContext context) {
-		SidePanelLayout layout = screen(context, AnvilScreenAccess::enchanting2$layout);
-		check(layout != null, "our server, but the screen has no layout (mixin not applied?)");
-		check(layout.placement() == Placement.SHIFTED, "427 wide should shift, got " + layout);
+	private static void wideWindowFitsTheSmallScreenCentred(ClientGameTestContext context) {
+		check(screen(context, AnvilScreenAccess::enchanting2$wide), "our server, but the window isn't wide (mixin?)");
+		check(screen(context, AnvilScreenAccess::enchanting2$imageWidth) == ColumnWindow.WIDTH, "296 wide");
 		int width = context.computeOnClient(client -> client.getWindow().getGuiScaledWidth());
-		check(layout.leftPos() > (width - 176) / 2, "window not moved right: " + layout);
-		check(layout.panelX() >= 0, "panel off screen: " + layout);
+		int height = context.computeOnClient(client -> client.getWindow().getGuiScaledHeight());
 		int leftPos = screen(context, AnvilScreenAccess::enchanting2$leftPos);
+		check(leftPos == (width - ColumnWindow.WIDTH) / 2 && leftPos >= 0, "centred at " + leftPos + " on " + width);
 		int nameX = screen(context, AnvilScreenAccess::enchanting2$nameBoxX);
-		check(leftPos == layout.leftPos(), "leftPos " + leftPos + " vs layout " + layout.leftPos());
 		check(nameX == leftPos + 62, "rename box at " + nameX + ", window at " + leftPos);
-		check(screen(context, AnvilScreenAccess::enchanting2$panelText)
+		int topPos = (height - ColumnWindow.HEIGHT) / 2;
+		check(screen(context, AnvilScreenAccess::enchanting2$boxLeft) == leftPos + ColumnWindow.ANVIL.left()
+				&& screen(context, AnvilScreenAccess::enchanting2$boxTop) == topPos + ColumnWindow.BOX_TOP,
+				"the box sits in the right column");
+		check(screen(context, AnvilScreenAccess::enchanting2$boxText)
 				.equals(List.of(Component.translatable("enchanting2.anvil.panel.empty").getString())),
-				"empty anvil panel: " + screen(context, AnvilScreenAccess::enchanting2$panelText));
-		context.takeScreenshot("enchanting2-anvil-shifted-empty");
+				"empty anvil box: " + screen(context, AnvilScreenAccess::enchanting2$boxText));
+		context.takeScreenshot("enchanting2-anvil-empty");
 	}
 
 	/** Sword + book (Sharpness V, Silk Touch): Sharpness is priced, Silk Touch isn't applicable and stays on the book. */
@@ -131,25 +133,24 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 			menu.getSlot(AnvilMenu.ADDITIONAL_SLOT).set(book);
 		});
 		context.waitTicks(2);
-		SidePanelLayout layout = screen(context, AnvilScreenAccess::enchanting2$layout);
-		check(layout != null && layout.placement() == Placement.LEFT, "1920x1080 should place the panel left: " + layout);
 		int total = total(context);
 		check(total > 0, "a priced preview arrived");
 		String label = screen(context, AnvilScreenAccess::enchanting2$labelText);
 		check(Component.translatable("container.repair.cost", total).getString().equals(label),
 				"label '" + label + "' for total " + total);
 		labelClearsTheInventoryLabel(context);
-		List<String> panel = screen(context, AnvilScreenAccess::enchanting2$panelText);
+		List<String> panel = screen(context, AnvilScreenAccess::enchanting2$boxText);
 		check(panel.stream().anyMatch(t -> t.contains("Silk Touch") && t.contains("Diamond Sword")),
 				"Silk Touch's reason names it and the item: " + panel);
 		check(panel.contains(Component.translatable("enchanting2.anvil.fate.keep_on_book").getString()),
 				"Silk Touch stays on the book: " + panel);
 		check(panel.stream().anyMatch(t -> t.startsWith("Sharpness")), "Sharpness line: " + panel);
 		// Owner, 2026-10-13: a bare number read as confusing; the total says "levels".
-		List<String> amounts = screen(context, AnvilScreenAccess::enchanting2$panelAmounts);
+		List<String> amounts = screen(context, AnvilScreenAccess::enchanting2$boxAmounts);
 		check(amounts.contains(Component.translatable("enchanting2.amount.levels", total).getString()),
 				"the total carries its unit: " + amounts);
-		context.takeScreenshot("enchanting2-anvil-panel-left");
+		check(screen(context, AnvilScreenAccess::enchanting2$maxScroll) == 0, "a short breakdown fits");
+		context.takeScreenshot("enchanting2-anvil-breakdown");
 	}
 
 	private static int total(ClientGameTestContext context) {
@@ -158,7 +159,7 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 				.flatMap(p -> p.breakdown()).map(b -> b.total()).orElse(-1));
 	}
 
-	/** The full sentence doesn't fit the label, so the label falls back to vanilla's red cost; the panel has it all. */
+	/** The full sentence doesn't fit the label, so the label falls back to vanilla's red cost; the box has it all. */
 	private static void unaffordableShowsCompactLabelAndFullReason(ClientGameTestContext context,
 			TestSingleplayerContext world) {
 		world.getServer().runCommand("xp set @a 0 levels");
@@ -168,24 +169,69 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 		check(Component.translatable("container.repair.cost", total).getString().equals(label),
 				"compact label '" + label + "'");
 		String insufficient = Component.translatable("enchanting2.anvil.label.insufficient", total, 0).getString();
-		List<String> panel = screen(context, AnvilScreenAccess::enchanting2$panelText);
-		check(panel.contains(insufficient), "panel says '" + insufficient + "': " + panel);
+		List<String> panel = screen(context, AnvilScreenAccess::enchanting2$boxText);
+		check(panel.contains(insufficient), "box says '" + insufficient + "': " + panel);
 		world.getServer().runCommand("xp set @a 30 levels");
 		context.waitTicks(2);
 	}
 
-	/** Vanilla would count a click beside the window as outside and throw the carried item; the panel isn't outside. */
-	private static void panelClickKeepsTheCarriedItem(ClientGameTestContext context, TestSingleplayerContext world) {
+	/**
+	 * A book of armour and tool enchantments on a sword: Sharpness applies, and each of the rest gets a reason and a
+	 * fate in the box, far more lines than it holds. The wheel scrolls to the end, the thumb drags back to the top.
+	 */
+	private static void longBreakdownScrolls(ClientGameTestContext context, TestSingleplayerContext world) {
+		world.getServer().runOnServer(server -> {
+			AnvilMenu menu = serverMenu(server);
+			Registry<Enchantment> registry = server.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
+			ItemEnchantments.Mutable stored = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
+			stored.set(registry.getOrThrow(Enchantments.SHARPNESS), 5);
+			for (ResourceKey<Enchantment> key : List.of(Enchantments.PROTECTION, Enchantments.FEATHER_FALLING,
+					Enchantments.RESPIRATION, Enchantments.AQUA_AFFINITY, Enchantments.DEPTH_STRIDER,
+					Enchantments.EFFICIENCY, Enchantments.SILK_TOUCH, Enchantments.POWER, Enchantments.LURE)) {
+				stored.set(registry.getOrThrow(key), 1);
+			}
+			ItemStack book = new ItemStack(Items.ENCHANTED_BOOK);
+			EnchantmentHelper.setEnchantments(book, stored.toImmutable());
+			player(server).getInventory().add(menu.getSlot(AnvilMenu.ADDITIONAL_SLOT).getItem().copy());
+			menu.getSlot(AnvilMenu.ADDITIONAL_SLOT).set(book);
+		});
+		context.waitTicks(2);
+		int max = screen(context, AnvilScreenAccess::enchanting2$maxScroll);
+		check(max > 0, "nine skipped entries don't fit: " + screen(context, AnvilScreenAccess::enchanting2$boxText));
+		check(screen(context, AnvilScreenAccess::enchanting2$scrollOffset) == 0, "starts at the top");
+
+		int boxLeft = screen(context, AnvilScreenAccess::enchanting2$boxLeft);
+		int boxTop = screen(context, AnvilScreenAccess::enchanting2$boxTop);
+		moveTo(context, boxLeft + 20, boxTop + 40);
+		for (int i = 0; i <= max / 10 && screen(context, AnvilScreenAccess::enchanting2$scrollOffset) < max; i++) {
+			context.getInput().scroll(-1);
+			context.waitTick();
+		}
+		check(screen(context, AnvilScreenAccess::enchanting2$scrollOffset) == max, "the wheel scrolled to the end");
+		context.takeScreenshot("enchanting2-anvil-scrolled");
+
+		int barX = screen(context, AnvilScreenAccess::enchanting2$scrollBarX) + ColumnWindow.SCROLLBAR_WIDTH / 2;
+		moveTo(context, barX, screen(context, AnvilScreenAccess::enchanting2$thumbCenterY));
+		context.getInput().holdMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+		context.waitTick();
+		moveTo(context, barX, boxTop - 20);
+		context.waitTicks(2);
+		context.getInput().releaseMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+		context.waitTick();
+		check(screen(context, AnvilScreenAccess::enchanting2$scrollOffset) == 0,
+				"the thumb dragged up to the top: " + screen(context, AnvilScreenAccess::enchanting2$scrollOffset));
+	}
+
+	/** The box is inside the window, so vanilla never counts a click on it as outside and throws the carried item. */
+	private static void boxClickKeepsTheCarriedItem(ClientGameTestContext context, TestSingleplayerContext world) {
 		world.getServer().runOnServer(server -> {
 			AnvilMenu menu = serverMenu(server);
 			menu.setCarried(new ItemStack(Items.DIAMOND, 3));
 			menu.broadcastChanges();
 		});
 		context.waitTicks(2);
-		SidePanelLayout layout = screen(context, AnvilScreenAccess::enchanting2$layout);
-		int top = context.computeOnClient(client -> (client.getWindow().getGuiScaledHeight() - 166) / 2);
-		// Inside the panel, below the title line.
-		click(context, layout.panelX() + 10, top + 30);
+		click(context, screen(context, AnvilScreenAccess::enchanting2$boxLeft) + 10,
+				screen(context, AnvilScreenAccess::enchanting2$boxTop) + 30);
 		context.waitTicks(2);
 		int carried = world.getServer().computeOnServer(server -> serverMenu(server).getCarried().getCount());
 		check(carried == 3, "the carried diamonds were thrown: " + carried + " left");
@@ -198,39 +244,14 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 		context.waitTicks(2);
 	}
 
-	private static void tabHidesPanelAndSavesClientConfig(ClientGameTestContext context) {
-		check(ClientSettings.get().showAnvilPreviewPanel(), "panel shown by default");
-		clickTab(context);
-		SidePanelLayout layout = screen(context, AnvilScreenAccess::enchanting2$layout);
-		int width = context.computeOnClient(client -> client.getWindow().getGuiScaledWidth());
-		check(layout.placement() == Placement.HIDDEN, "tab click hides the panel: " + layout);
-		check(layout.leftPos() == (width - 176) / 2, "hidden panel centres the window: " + layout);
-		check(screen(context, AnvilScreenAccess::enchanting2$nameBoxX) == layout.leftPos() + 62, "rename box moved back");
-		check(screen(context, AnvilScreenAccess::enchanting2$panelText).isEmpty(), "hidden panel draws nothing");
-		check(!ClientSettings.get().showAnvilPreviewPanel(), "setting is off");
-		ClientConfig onDisk = ConfigFiles.load(ClientSettings.file(), ClientConfig.CODEC).config();
-		check(!onDisk.showAnvilPreviewPanel(), "client.json5 says false");
-		AnvilPanelTab tab = screen(context, AnvilScreenAccess::enchanting2$tab);
-		check(tab != null && !tab.open(), "tab shows closed");
-		context.takeScreenshot("enchanting2-anvil-panel-hidden");
-
-		clickTab(context);
-		check(screen(context, AnvilScreenAccess::enchanting2$layout).panelShown(), "second click shows it again");
-		check(ConfigFiles.load(ClientSettings.file(), ClientConfig.CODEC).config().showAnvilPreviewPanel(),
-				"client.json5 says true again");
-	}
-
-	private static void clickTab(ClientGameTestContext context) {
-		AnvilPanelTab tab = screen(context, AnvilScreenAccess::enchanting2$tab);
-		check(tab != null, "our server, but no tab");
-		click(context, tab.getX() + tab.getWidth() / 2, tab.getY() + tab.getHeight() / 2);
-		context.waitTick();
-	}
-
 	/** {@code x, y} in GUI coordinates; the input API takes window pixels. */
-	private static void click(ClientGameTestContext context, int x, int y) {
+	private static void moveTo(ClientGameTestContext context, int x, int y) {
 		double scale = context.computeOnClient(client -> client.getWindow().getGuiScale());
 		context.getInput().setCursorPos((x + 0.5) * scale, (y + 0.5) * scale);
+	}
+
+	private static void click(ClientGameTestContext context, int x, int y) {
+		moveTo(context, x, y);
 		context.getInput().pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
 	}
 

@@ -5,9 +5,11 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.wulfnet.enchanting2.client.ClientConfigState;
+import com.wulfnet.enchanting2.client.PanelTextResolver;
 import com.wulfnet.enchanting2.client.TableList;
 import com.wulfnet.enchanting2.client.TablePreviewState;
 import com.wulfnet.enchanting2.client.TableScreenAccess;
+import com.wulfnet.enchanting2.client.WindowBackground;
 import com.wulfnet.enchanting2.config.CostsSection;
 import com.wulfnet.enchanting2.cost.CostBreakdown;
 import com.wulfnet.enchanting2.network.TablePreviewPayload;
@@ -16,7 +18,6 @@ import com.wulfnet.enchanting2.screen.PanelText.Msg;
 import com.wulfnet.enchanting2.screen.PanelText.Row;
 import com.wulfnet.enchanting2.screen.PanelText.Tone;
 import com.wulfnet.enchanting2.screen.PanelText.Zone;
-import com.wulfnet.enchanting2.screen.WindowPiece;
 import com.wulfnet.enchanting2.table.TableBridge;
 import com.wulfnet.enchanting2.table.TableListModel.Hit;
 import com.wulfnet.enchanting2.table.TableOutcome.Status;
@@ -138,23 +139,12 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 			return;
 		}
 		int split = TableWindow.SPLIT_ROW;
-		enchanting2$band(graphics, pipeline, texture, TableWindow.TOP, x, y, 0, split, split, textureWidth,
+		WindowBackground.band(graphics, pipeline, texture, TableWindow.TOP, x, y, 0, split, split, textureWidth,
 				textureHeight);
-		enchanting2$band(graphics, pipeline, texture, TableWindow.BAND, x, y + split, TableWindow.BAND_ROW, 1,
+		WindowBackground.band(graphics, pipeline, texture, TableWindow.BAND, x, y + split, TableWindow.BAND_ROW, 1,
 				TableWindow.EXTRA, textureWidth, textureHeight);
-		enchanting2$band(graphics, pipeline, texture, TableWindow.BOTTOM, x, y + split + TableWindow.EXTRA, split,
+		WindowBackground.band(graphics, pipeline, texture, TableWindow.BOTTOM, x, y + split + TableWindow.EXTRA, split,
 				TableWindow.VANILLA_HEIGHT - split, TableWindow.VANILLA_HEIGHT - split, textureWidth, textureHeight);
-	}
-
-	/** Texture rows {@code [v, v + vHeight)} drawn {@code height} tall at {@code y}, piece by piece across. */
-	@Unique
-	private static void enchanting2$band(GuiGraphics graphics, RenderPipeline pipeline, Identifier texture,
-			List<WindowPiece> pieces, int x, int y, int v, int vHeight, int height, int textureWidth,
-			int textureHeight) {
-		for (WindowPiece piece : pieces) {
-			graphics.blit(pipeline, texture, x + piece.x(), y, piece.u(), v, piece.width(), height, piece.uWidth(),
-					vHeight, textureWidth, textureHeight);
-		}
 	}
 
 	/** Vanilla's three offer rows and their level icons; the list takes their place. */
@@ -285,7 +275,7 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 
 	@Unique
 	private static Component enchanting2$text(Msg msg, ItemStack target) {
-		return TableList.text(msg, target);
+		return PanelTextResolver.forScreen(msg, target);
 	}
 
 	/** The list takes every click inside its box: entries pick and step, the scroll bar scrolls. */

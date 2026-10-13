@@ -6,6 +6,8 @@ import com.wulfnet.enchanting2.screen.PanelText.Msg;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
@@ -20,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Turns {@code PanelText} messages into components: enchantment names from the client's registry, numerals. */
-final class PanelTextResolver {
+public final class PanelTextResolver {
 	private static final Logger LOG = LoggerFactory.getLogger(Enchanting2.MOD_ID);
 	/** Vanilla ships {@code enchantment.level.1..10}; past that a level is plain digits. */
 	private static final int MAX_NUMERAL = 10;
@@ -32,6 +34,12 @@ final class PanelTextResolver {
 	}
 
 	private PanelTextResolver() {
+	}
+
+	/** A message as the player reads it on a screen acting on {@code target}, names from the client's level. */
+	public static Component forScreen(Msg msg, ItemStack target) {
+		ClientLevel level = Minecraft.getInstance().level;
+		return of(msg, new Context(level != null ? level.registryAccess() : null, target));
 	}
 
 	static Component of(Msg msg, Context context) {

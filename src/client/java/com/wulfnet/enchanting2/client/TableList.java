@@ -20,14 +20,11 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.Function;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
-import net.minecraft.world.item.ItemStack;
 
 /**
  * The enchanting table's list inside the window, in vanilla's offer box (TODO 10l, owner 2026-10-13 layout B). Rows are
@@ -51,13 +48,6 @@ public final class TableList {
 
 	public TableList(Font font) {
 		this.font = font;
-	}
-
-	/** A message as the player reads it, as the side panels resolve theirs. */
-	public static Component text(Msg msg, ItemStack target) {
-		ClientLevel level = Minecraft.getInstance().level;
-		return PanelTextResolver.of(msg, new PanelTextResolver.Context(level != null ? level.registryAccess() : null,
-				target));
 	}
 
 	public TableListModel model() {

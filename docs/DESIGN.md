@@ -85,9 +85,10 @@ of a rename across the whole codebase.
   `config/enchanting2/client.json5` (display only), and per-enchantment overrides keyed
   by enchantment ID.
 - `client.json5` (Stage 6D) is this player's own: never synced, never read by a server, always
-  editable (config screen "Display" category). Today it holds `anvil.show_preview_panel`
-  (default `true`). The anvil's panel tab saves it on click through the same backed-up writer
-  as the screen; a refused or failed save keeps the new value for the session and shows a toast.
+  editable (config screen "Display" category). It holds the two tooltip toggles (Phase 10h). The
+  6D `anvil.show_preview_panel` went with the anvil's side panel (10o): an old file's key is
+  reported as no longer used and otherwise ignored. A refused or failed save keeps the new values
+  for the session and shows a toast.
 - Every file has `schema_version`. Loading validates every value. An invalid value falls back
   to its default and logs a WARN naming the key, the bad value and the default.
 - Gameplay config syncs to clients on join (S2C packet). On a remote server, the client
@@ -412,13 +413,13 @@ later costs `max(30, ceil(0.15 × 17))` = 30.
 - **Screen** (only when the server runs Enchanting 2; on a vanilla server the screen is vanilla):
   the server sends a preview (the whole cost breakdown and every right-slot entry's verdict and
   fate). The cost label shows the exact total (vanilla syncs it as a short), "Too Expensive!",
-  "Insufficient levels", or the blocking reason, shortened to fit beside "Inventory". A cost
-  panel shows each price line, the total, and every entry that won't apply with its reason
-  (§5 Messages) and fate: stays on the book, already higher on the item, will be lost, or
-  blocks the result. The panel opens **left** of the window from a tab on the window's left
-  edge (recipe viewers use the right side); right if only that side has room; otherwise the
-  window shifts right to make room. Its width is fixed, so the window never moves as items
-  change. A click on the panel or tab never throws the carried item.
+  "Insufficient levels", or the blocking reason, shortened to fit beside "Inventory". The
+  window is 120 px wider (296 × 166, owner 2026-10-13): vanilla's part is untouched, and a box
+  running the full height of the new right column shows each price line, the total, and every
+  entry that won't apply with its reason (§5 Messages) and fate: stays on the book, already
+  higher on the item, will be lost, or blocks the result. The box scrolls (wheel or thumb) when
+  that's taller than the window. Nothing is drawn outside the window, so recipe viewers lay out
+  around it. (Until 10o this was a side panel with a show/hide tab.)
 
 ### Enchanting table
 Readable and not random. The vanilla three-random-offers screen is replaced by our own screen.
