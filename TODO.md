@@ -1977,7 +1977,7 @@ Mutation run.
   runs): the push, the durability, Speed's factor and the X cap each fail their test. Owner `runClient`: holding jump
   while gliding at I, III and V (does I feel too close to V?), climbing, the durability drain.
 
-#### 10cGC — Double Jump
+#### 10cGC — Double Jump  ✅ 2026-10-13
 **DESIGN §9:** boots, I; one extra air jump, reset on the ground; concerns: client input packet; water, lava, ladder,
 creative, vehicle; server validation.
 **Hooks (javap 1.21.11):** movement is the client's, so the client jumps and tells the server.
@@ -1998,6 +1998,12 @@ creative, vehicle; server validation.
 fall; a second air jump is refused; landing (the tick rule) allows it again; no boots, the ground, flying, riding or
 water refuse it. Client GameTest with real input: falling from 20 blocks up, one jump press makes the player rise; a second
 press in the same fall doesn't. Mutation run.
+- ✅ 2026-10-13: 366 JUnit + 323 GameTests (`DoubleJumpGameTest`, two) + 7 client GameTests (`DoubleJumpClientGameTest`:
+  real key holds; `pressKey` releases before the tick, so `holdKeyFor` 2) green. Mutations (six runs): the client hook,
+  the once-per-air-time flag, its reset on landing, and the flying, riding and water rules each fail their test; a
+  mutation that dropped the planned packet's server reset failed nothing, which is how the packet came out (above).
+  **Phase 10c complete.** Owner `runClient`: double jumps on land and off a cliff (no fall damage from the height
+  before it), none in water or on a ladder, and with an elytra (first press jumps, second takes off).
 
 ### Phase 10e — Curses (three stages, one commit each)
 **Goal:** five new curses, each with a GameTest that fails if its effect breaks, and a per-level curse discount.

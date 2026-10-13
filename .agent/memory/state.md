@@ -8,7 +8,7 @@
 **Branch:** main (commit straight to main and push; no CI; see decisions.md)
 
 ## Where we are
-Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA, CB, CC), 10cD (DA, DB), 10cE (EA, EB, EC), 10cF (FA, FB), 10cGA and 10cGB done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
+Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA, CB, CC), 10cD (DA, DB), 10cE (EA, EB, EC), 10cF (FA, FB) and 10cG (GA, GB, GC) done: Phase 10c complete (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
 - 3: `ExperienceCurve`, no level cap, exact XP points, counters saturate. 4: `MaxLevels` via `MODIFY` (restart to
   apply), `ConflictFamily` + `allow_together`, `EnchantRules`, Lure/Riptide 5 with safe caps.
 - 5: `cost/` (`CostModel`, `PricingTable`, curse discount, `cleanseCost`, `extractCost`).
@@ -81,12 +81,14 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
   `FireworkRocketEntityMixin` boost; capped at X).
 - 10cGB (2026-10-13): Flight (`elytra/Flight`: a share of the rocket step in the glide wrap, durability at
   `updateFallFlying` TAIL; jump from `isJumping()` / `getLastClientInput()`).
-- Tests: 366 JUnit + 321 GameTests (`./gradlew build`) + 6 client GameTests (`./gradlew runClientGameTest`).
+- 10cGC (2026-10-13): Double Jump (`movement/DoubleJump`, client `LocalPlayerMixin` wraps `tryToStartFallFlying`,
+  `PlayerMixin` air-jump flag; no packet).
+- Tests: 366 JUnit + 323 GameTests (`./gradlew build`) + 7 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Next: 10cGC Double Jump (owner order and answers: decisions.md "10c order and eight design answers"; TODO
-   "Phase 10c"). Each stage writes its plan first; each enchantment adds a `LevelCeilings` row, a `.desc` line, tags,
-   a price row if single-level, docs rows. Then 10d balance pass.
+1. Next: 10d balance pass (TODO "10d": every candidate REVIEW → INCLUDE/DEFER/REMOVE), best after the owner's
+   `runClient` checks below and answers to the open questions; a new enchantment still adds a `LevelCeilings` row, a
+   `.desc` line, tags, a price row if single-level, docs rows.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
    ~1,000,000) + 6D: panel look, config screen "Display" toggle, and a vanilla server keeping the vanilla anvil screen +
    6bC: grindstone panel look, and a vanilla server keeping the vanilla grindstone + 7D: table panel and window look
@@ -116,7 +118,8 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
    Strike V on zombies (double hits, no extra knockback), with Vampirism. + 10cFB: Last Stand in a fight (save,
    sound, HUD timer), with a totem in hand, the "Last Stand in PvP" toggle. + 10cGA: Speed V vs plain elytra over a
    long flat, a rocket boost, no rubber-banding. + 10cGB: Flight I / III / V held while gliding and climbing (is I
-   too close to V?), the durability drain.
+   too close to V?), the durability drain. + 10cGC: double jumps (land, cliff, none in water or on a ladder, elytra
+   takes off on the second press).
 
 ## Open questions / blockers
 - Owner: Magnetic and Ender Link share a tool (DESIGN §4: ours declare no exclusive set; ender chest first). DESIGN §9

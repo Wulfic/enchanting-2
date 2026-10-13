@@ -1185,3 +1185,14 @@ a level-scaled target with the full pull (brakes a coasting glider: I made you s
 add-only push along the look with a level-scaled target (good progression, but V climbs 2.5× harder than a rocket).
 If the owner wants levels to differ more in cruise, that last one plus a perpendicular damping is the next candidate.
 **Affects:** elytra/Flight, mixin/LivingEntityMixin
+
+## 2026-10-13 — Double Jump has no packet (agent, 10cGC)
+**Context:** DESIGN §9 listed "client input packet; server validation" as Double Jump's concerns, and the first build
+sent a `DoubleJumpPayload` whose server handler re-checked the rules and reset the fall distance.
+**Choice:** client-only: the client's fresh jump press in the air (where vanilla tries to start a glide) jumps, once
+per air time; no packet. A mutation that dropped the server reset failed nothing: vanilla's
+`Entity.checkFallDistanceAccumulation` caps the fall distance at 1 every tick the player isn't falling faster than 0.5
+blocks a tick, on both sides, so any upward jump already breaks the fall. Movement is the client's, so the server could
+never refuse the jump itself, only log it.
+**Rejected:** the payload (dead weight: a channel, a handler and a protocol question for no behavior).
+**Affects:** movement/DoubleJump, mixin/client/LocalPlayerMixin, mixin/PlayerMixin
