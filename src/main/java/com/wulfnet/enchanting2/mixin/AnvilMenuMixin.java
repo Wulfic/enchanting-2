@@ -1,11 +1,15 @@
 package com.wulfnet.enchanting2.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.anvil.AnvilBridge;
 import com.wulfnet.enchanting2.anvil.AnvilCalculator;
 import com.wulfnet.enchanting2.anvil.AnvilOutcome;
 import com.wulfnet.enchanting2.anvil.AnvilOutcomeHolder;
+import com.wulfnet.enchanting2.anvil.AnvilWear;
 import com.wulfnet.enchanting2.config.ServerConfigs;
 import com.wulfnet.enchanting2.cost.PricingTable;
 import com.wulfnet.enchanting2.network.AnvilPreviewHolder;
@@ -14,12 +18,15 @@ import java.util.List;
 import java.util.Optional;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AnvilMenu;
 import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.ItemCombinerMenu;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import org.jspecify.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -33,7 +40,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /**
  * DESIGN §6 Anvil. On the server, {@link AnvilCalculator} replaces vanilla's {@code createResult}: no 40 cap, no
  * prior-work penalty, book modes, and our prices. {@code onTake} keeps vanilla's body (anvil damage, the rename text
- * filter, other mods' hooks) and only changes what it charges and what goes back into the right slot. After each
+ * filter, other mods' hooks) and only changes what it charges, what goes back into the right slot, and whether the
+ * anvil takes the chip vanilla rolled ({@link AnvilWear}). After each
  * result the server sends an {@link AnvilPreviewPayload} for the screen's panel, when it changed.
  *
  * <p>On a client connected to our server, {@code createResult} does nothing: the server's result arrives through slot
@@ -168,5 +176,22 @@ abstract class AnvilMenuMixin extends ItemCombinerMenu implements AnvilOutcomeHo
 	@Inject(method = "onTake", at = @At("TAIL"))
 	private void enchanting2$endTake(Player player, ItemStack taken, CallbackInfo ci) {
 		enchanting2$taking = null;
+	}
+
+	/**
+	 * Phase 11c: vanilla rolled its 12% chip; {@link AnvilWear} decides whether it lands. The target is
+	 * {@code onTake}'s {@code access.execute} lambda, {@code method_24922(Player, Level, BlockPos)} (javap 1.21.11).
+	 * Keeping the state makes vanilla set the same block and play the plain use sound, as on a roll that missed.
+	 */
+	@WrapOperation(method = "method_24922", at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/world/level/block/AnvilBlock;damage(Lnet/minecraft/world/level/block/state/BlockState;)Lnet/minecraft/world/level/block/state/BlockState;"))
+	private static @Nullable BlockState enchanting2$wearOnUse(BlockState state, Operation<BlockState> original,
+			@Local(argsOnly = true) Level level) {
+		if (level instanceof ServerLevel server
+				&& !AnvilWear.takesChip(ServerConfigs.get(server.getServer()).anvil(),
+						server.getRandom()::nextDouble)) {
+			return state;
+		}
+		return original.call(state);
 	}
 }

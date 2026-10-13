@@ -50,7 +50,7 @@ Leave `schema_version` as it is; it lets newer versions read older files.
 | `allow_together` | Which of vanilla's mutually exclusive groups may share an item (all allowed by default) |
 | `costs` | Rename and repair costs, the "Too Expensive!" cap (off by default), free creative mode |
 | `curses` | The discount curses give, what removing one at the grindstone costs, Curse of Weight's slowdown cap |
-| `anvil` | What happens to a book's enchantments the item can't take |
+| `anvil` | What happens to a book's enchantments the item can't take; whether anvils wear out (never, by default) |
 | `table` | Whether treasure enchantments need a full 15 bookshelves |
 | `fortune` | Silk Touch and Fortune on the same tool |
 | `beheading`, `smelting`, `silk_touch`, `last_stand` | Options for those enchantments (player heads, Silk Touch vs Smelting, collecting spawners, Last Stand in PvP) |
@@ -113,6 +113,10 @@ Leave `schema_version` as it is; it lets newer versions read older files.
 	"anvil": {
 		// What a book's entries that the item can't take do. One of reject_all, apply_valid, strip_invalid. reject_all = no result; apply_valid = they stay on the book; strip_invalid = they are destroyed (the anvil shows which first).
 		"invalid_book_mode": "apply_valid",
+		// Anvils get chipped and damaged, and finally break, as in vanilla (a 12% chance per use, and when they fall). false = anvils never wear out.
+		"vanilla_durability": false,
+		// With vanilla_durability on: each chip is this many times rarer (1 to 100; 1 = vanilla, 2 = anvils last about twice as long).
+		"durability_multiplier": 1,
 	},
 	// Enchanting table behavior.
 	"table": {

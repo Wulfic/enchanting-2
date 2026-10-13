@@ -15,6 +15,7 @@
 			"com.wulfnet.enchanting2.gametest.MechanicLimitsGameTest",
 			"com.wulfnet.enchanting2.gametest.AnvilGameTest",
 			"com.wulfnet.enchanting2.gametest.AnvilPreviewGameTest",
+			"com.wulfnet.enchanting2.gametest.AnvilWearGameTest",
 			"com.wulfnet.enchanting2.gametest.GrindstoneCalculatorGameTest",
 			"com.wulfnet.enchanting2.gametest.GrindstoneGameTest",
 			"com.wulfnet.enchanting2.gametest.TableCalculatorGameTest",

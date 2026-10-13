@@ -192,6 +192,25 @@ public final class ConfigScreen {
 									KEY + "anvil.invalid_book_mode." + mode.name().toLowerCase(Locale.ROOT))))
 					.available(editable)
 					.build());
+			anvil.option(Option.<Boolean>createBuilder()
+					.name(Component.translatable(KEY + "anvil.vanilla_durability"))
+					.description(description("anvil.vanilla_durability"))
+					.binding(AnvilSection.DEFAULTS.vanillaDurability(), () -> draft.vanillaDurability,
+							v -> draft.vanillaDurability = v)
+					.controller(TickBoxControllerBuilder::create)
+					.available(editable)
+					.build());
+			anvil.option(Option.<Integer>createBuilder()
+					.name(Component.translatable(KEY + "anvil.durability_multiplier"))
+					.description(description("anvil.durability_multiplier"))
+					.binding(AnvilSection.DEFAULTS.durabilityMultiplier(), () -> draft.durabilityMultiplier,
+							v -> draft.durabilityMultiplier = v)
+					.controller(option -> IntegerSliderControllerBuilder.create(option)
+							.range(AnvilSection.MIN_DURABILITY_MULTIPLIER, AnvilSection.MAX_DURABILITY_MULTIPLIER)
+							.step(1)
+							.formatValue(v -> Component.translatable(KEY + "anvil.durability_multiplier.value", v)))
+					.available(editable)
+					.build());
 			table.option(Option.<Boolean>createBuilder()
 					.name(Component.translatable(KEY + "table.treasure_requires_full_power"))
 					.description(description("table.treasure_requires_full_power"))
@@ -378,6 +397,8 @@ public final class ConfigScreen {
 		int removalMinCost;
 		int weightMaxSlowdownPercent;
 		InvalidBookMode invalidBookMode;
+		boolean vanillaDurability;
+		int durabilityMultiplier;
 		boolean treasureRequiresFullPower;
 		SilkFortuneMode silkFortuneMode;
 		boolean playerHeads;
@@ -400,6 +421,8 @@ public final class ConfigScreen {
 			removalMinCost = from.curses().removalMinCost();
 			weightMaxSlowdownPercent = from.curses().weightMaxSlowdownPercent();
 			invalidBookMode = from.anvil().invalidBookMode();
+			vanillaDurability = from.anvil().vanillaDurability();
+			durabilityMultiplier = from.anvil().durabilityMultiplier();
 			treasureRequiresFullPower = from.table().treasureRequiresFullPower();
 			silkFortuneMode = from.fortune().silkFortuneMode();
 			playerHeads = from.beheading().playerHeads();
@@ -423,7 +446,7 @@ public final class ConfigScreen {
 					new CostsSection(renameCost, repairCostPerMaterial, repairCombineCost, maximumOperationCost,
 							creativeFree),
 					new CursesSection(maxDiscountPercent, removalMinCost, weightMaxSlowdownPercent),
-					new AnvilSection(invalidBookMode),
+					new AnvilSection(invalidBookMode, vanillaDurability, durabilityMultiplier),
 					new TableSection(treasureRequiresFullPower), new FortuneSection(silkFortuneMode),
 					new BeheadingSection(playerHeads), new SmeltingSection(smeltingSilkPriority),
 					new SilkTouchSection(collectSpawners), new LastStandSection(lastStandPvp),
