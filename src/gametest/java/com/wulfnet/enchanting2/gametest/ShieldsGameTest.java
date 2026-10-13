@@ -2,6 +2,7 @@ package com.wulfnet.enchanting2.gametest;
 
 import com.wulfnet.enchanting2.enchantment.ModEnchantments;
 import com.wulfnet.enchanting2.shield.BulwarkEffect;
+import com.wulfnet.enchanting2.shield.ShieldDeflect;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -19,15 +20,19 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.zombie.Husk;
+import net.minecraft.world.entity.projectile.ProjectileDeflection;
+import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
 import net.minecraft.world.entity.projectile.arrow.Arrow;
+import net.minecraft.world.entity.projectile.arrow.ThrownTrident;
 import net.minecraft.world.item.ItemCooldowns;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.BlocksAttacks;
 import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.phys.Vec3;
 
 /**
- * Phase 10cCA: Steadfast, Spiked, Bulwark and Riposte through vanilla's real blocking path ({@code hurtServer} →
+ * Phase 10cCA/CB: Steadfast, Spiked, Bulwark, Riposte and Deflect through vanilla's real blocking path ({@code hurtServer} →
  * {@code applyItemBlocking}). A no-AI husk raising a shield stands in for a player: blocking reads only the item in
  * use and the attacker's position, and a mock player is never ticked, so it would never get past the block delay.
  * Husks, as zombies burn in the test level's daylight. Every husk that takes damage has 0 armor, so the numbers are
@@ -186,6 +191,133 @@ public class ShieldsGameTest {
 			hit(helper, target, level.damageSources().mobAttack(blocker), 10.0F);
 			assertClose(helper, 10.0, lostBy(target), "a riposte 41 ticks old");
 			helper.succeed();
+		});
+	}
+
+	/** A player-shot arrow (pickup allowed) from {@code shooter} at {@code target}'s chest, in flight. */
+	private static Arrow shoot(GameTestHelper helper, Husk shooter, Husk target) {
+		Arrow arrow = new Arrow(helper.getLevel(), shooter, new ItemStack(Items.ARROW), null);
+		arrow.pickup = AbstractArrow.Pickup.ALLOWED;
+		Vec3 toward = target.position().add(0.0, target.getBbHeight() * 0.6, 0.0).subtract(arrow.position());
+		arrow.shoot(toward.x, toward.y, toward.z, 1.6F, 0.0F);
+		helper.getLevel().addFreshEntity(arrow);
+		return arrow;
+	}
+
+	/** An arrow from {@code shooter} hanging two blocks in front of {@code blocker}'s column {@code x}, never added. */
+	private static Arrow arrowInFront(GameTestHelper helper, Husk shooter, Husk blocker) {
+		Arrow arrow = new Arrow(helper.getLevel(), blocker.getX(), blocker.getEyeY(), blocker.getZ() + 2.0,
+				new ItemStack(Items.ARROW), null);
+		arrow.setOwner(shooter);
+		arrow.setDeltaMovement(0.0, 0.0, -1.6);
+		return arrow;
+	}
+
+	@GameTest(maxTicks = 60)
+	public void deflectSendsABlockedArrowBackAtItsShooterAsTheBlockers(GameTestHelper helper) {
+		Husk deflecting = blocker(helper, 1, shield(helper, ModEnchantments.DEFLECT, 3));
+		Husk plain = blocker(helper, 5, shield(helper, null, 0));
+		Husk shooter = husk(helper, 1, 6);
+		Husk other = husk(helper, 5, 6);
+		Arrow[] arrows = new Arrow[2];
+		helper.runAfterDelay(RAISED, () -> {
+			arrows[0] = shoot(helper, shooter, deflecting);
+			arrows[1] = shoot(helper, other, plain);
+		});
+		helper.runAfterDelay(RAISED + 6, () -> {
+			Arrow back = arrows[0];
+			check(helper, back.getOwner() == deflecting, "the deflected arrow isn't the blocker's: " + back.getOwner());
+			check(helper, back.pickup == AbstractArrow.Pickup.DISALLOWED, "a deflected arrow can be picked up");
+			check(helper, deflecting.getHealth() == HEALTH, "the blocker was hurt");
+			check(helper, arrows[1].getOwner() == other, "a plain shield took the arrow's ownership");
+		});
+		helper.runAfterDelay(RAISED + 30, () -> {
+			check(helper, shooter.getHealth() < HEALTH, "the arrow didn't come back to its shooter");
+			check(helper, shooter.getLastHurtByMob() == deflecting, "the shooter's last attacker isn't the blocker");
+			check(helper, other.getHealth() == HEALTH, "a plain shield sent the arrow back at its shooter");
+			helper.succeed();
+		});
+	}
+
+	/** Runs {@code check} once a Deflect {@code level} shield is raised, with a shooter two blocks to its side. */
+	private static void withDeflect(GameTestHelper helper, int level, DeflectCheck check) {
+		Husk blocker = blocker(helper, 1, shield(helper, ModEnchantments.DEFLECT, level));
+		Husk shooter = husk(helper, 3, 6);
+		helper.runAfterDelay(RAISED, () -> {
+			check.run(blocker, shooter);
+			helper.succeed();
+		});
+	}
+
+	@FunctionalInterface
+	private interface DeflectCheck {
+		void run(Husk blocker, Husk shooter);
+	}
+
+	/** At most once per projectile, so two Deflect shields can't bat one back and forth (owner). */
+	@GameTest(maxTicks = 40)
+	public void deflectRollsOncePerProjectile(GameTestHelper helper) {
+		withDeflect(helper, 3, (blocker, shooter) -> {
+			Arrow arrow = arrowInFront(helper, shooter, blocker);
+			helper.assertValueEqual(ShieldDeflect.AT_SHOOTER, blocker.deflection(arrow),
+					Component.literal("Deflect III on an arrow from in front"));
+			helper.assertValueEqual(ProjectileDeflection.NONE, blocker.deflection(arrow),
+					Component.literal("a second roll for the same arrow"));
+		});
+	}
+
+	/** Only what the shield would block: an arrow from behind passes, and keeps its roll for later. */
+	@GameTest(maxTicks = 40)
+	public void deflectOnlyTakesProjectilesFromInFront(GameTestHelper helper) {
+		withDeflect(helper, 3, (blocker, shooter) -> {
+			Arrow arrow = arrowInFront(helper, shooter, blocker);
+			arrow.setPos(blocker.getX(), blocker.getEyeY(), blocker.getZ() - 2.0);
+			helper.assertValueEqual(ProjectileDeflection.NONE, blocker.deflection(arrow),
+					Component.literal("an arrow from behind the shield"));
+			arrow.setPos(blocker.getX(), blocker.getEyeY(), blocker.getZ() + 2.0);
+			helper.assertValueEqual(ShieldDeflect.AT_SHOOTER, blocker.deflection(arrow),
+					Component.literal("the arrow from behind used up its roll"));
+		});
+	}
+
+	/** Agent, 2026-10-12: tridents stay out of the tag, as owning a thrower's Loyalty trident would steal it. */
+	@GameTest(maxTicks = 40)
+	public void deflectOnlyTakesTaggedProjectiles(GameTestHelper helper) {
+		withDeflect(helper, 3, (blocker, shooter) -> {
+			ThrownTrident trident = new ThrownTrident(EntityType.TRIDENT, helper.getLevel());
+			trident.setPos(blocker.getX(), blocker.getEyeY(), blocker.getZ() + 2.0);
+			trident.setOwner(shooter);
+			helper.assertValueEqual(ProjectileDeflection.NONE, blocker.deflection(trident),
+					Component.literal("a trident (not in #enchanting2:deflectable)"));
+		});
+	}
+
+	/** The shooter stands two blocks to the side of the line the arrow came in on: it's aimed at, not reversed. */
+	@GameTest(maxTicks = 40)
+	public void deflectAimsAtTheShooterAtTheSameSpeed(GameTestHelper helper) {
+		withDeflect(helper, 3, (blocker, shooter) -> {
+			Arrow arrow = arrowInFront(helper, shooter, blocker);
+			arrow.deflect(ShieldDeflect.AT_SHOOTER, blocker, null, false);
+			Vec3 toShooter = shooter.position().add(0.0, shooter.getBbHeight() * 0.5, 0.0).subtract(arrow.position());
+			Vec3 flight = arrow.getDeltaMovement();
+			assertClose(helper, 1.6, flight.length(), "a deflected arrow's speed");
+			check(helper, flight.normalize().dot(toShooter.normalize()) > 0.97,
+					"the deflected arrow isn't heading at its shooter: " + flight);
+			check(helper, arrow.getOwner() == blocker, "deflect() left the old owner on the arrow");
+		});
+	}
+
+	/** Owner: 33 / 66 / 100%. 300 rolls at I: mean 100, standard deviation about 8. */
+	@GameTest(maxTicks = 40)
+	public void deflectOneSendsBackAboutAThird(GameTestHelper helper) {
+		withDeflect(helper, 1, (blocker, shooter) -> {
+			int wins = 0;
+			for (int i = 0; i < 300; i++) {
+				if (blocker.deflection(arrowInFront(helper, shooter, blocker)) == ShieldDeflect.AT_SHOOTER) {
+					wins++;
+				}
+			}
+			check(helper, wins >= 60 && wins <= 140, "Deflect I sent back " + wins + " of 300 arrows");
 		});
 	}
 

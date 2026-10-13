@@ -59,6 +59,9 @@ public final class ModEffects {
 			BlockAbsorption.CODEC);
 	/** After a block, the next melee hit soon after deals more (Riposte, Phase 10c). */
 	public static final DataComponentType<RiposteBonus> RIPOSTE = register("riposte", RiposteBonus.CODEC);
+	/** Chance a projectile the raised shield would block flies back at its shooter instead (Deflect, Phase 10c). */
+	public static final DataComponentType<LevelBasedValue> DEFLECT_CHANCE = register("deflect_chance",
+			LevelBasedValue.CODEC);
 	/** Entity effect for {@code minecraft:projectile_spawned}: the arrow ignores gravity for a while (TrueShot Aura). */
 	public static final MapCodec<SuspendGravity> SUSPEND_GRAVITY = Registry.register(
 			BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE,
@@ -73,7 +76,7 @@ public final class ModEffects {
 				Stream.of(LIFESTEAL, HEAD_DROP_CHANCE, SMELT_DROPS, NIGHT_VISION, MOVEMENT_PENALTY, EXHAUSTION,
 						GAZE_DISGUISE, IGNORED_BY_PHANTOMS, SHORTEN_EFFECTS, EXHAUSTION_REDUCTION,
 						SPRINT_EXHAUSTION_REDUCTION, LAVA_WALKER, POWDER_SNOW_WALKER, SHIELD_DISABLE_REDUCTION,
-						BLOCK_RETALIATION, BLOCK_ABSORPTION, RIPOSTE).map(ModEffects::key).toList(),
+						BLOCK_RETALIATION, BLOCK_ABSORPTION, RIPOSTE, DEFLECT_CHANCE).map(ModEffects::key).toList(),
 				BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE.getKey(SUSPEND_GRAVITY));
 		SuspendGravity.register();
 	}

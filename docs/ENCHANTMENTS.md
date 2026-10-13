@@ -107,7 +107,7 @@ Cushion (chestplate table above) also fits elytra.
 
 | Enchantment | Max | Cost | Fits | What it does | Status |
 |---|---|---|---|---|---|
-| Deflect | 3 | 1/lvl | shields | blocked projectiles fly back at the shooter at full speed and damage, now yours (33 / 66 / 100%), once each | Planned |
+| Deflect | 3 | 1/lvl | shields | arrows, fireballs, wither skulls and llama spit your raised shield would block fly back at the shooter at full speed, now yours (33 / 66 / 100%), once each; not tridents | Built |
 | Shield Bash | 3 | 1/lvl | shields | attacking while blocking knocks the target back (Knockback I per level) and slows it hard for 0.5 s per level; then the shield rests 3 s | Planned |
 | Steadfast | 3 | 1/lvl | shields | an axe disables your shield for less time: 5 s → 3.35 s at I, 1.65 s at II, never at III | Built |
 | Spiked | 5 | 1/lvl | shields | a melee attacker whose hit your shield blocks takes 1 damage per level (Thorns for shields); never projectiles | Built |

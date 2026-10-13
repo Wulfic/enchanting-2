@@ -1104,3 +1104,22 @@ code for a rare case, and it would differ from the strider's half block).
 **Rejected:** an `enchantable` component on shields; vanilla Absorption (2 hearts per level); a transient
 max-absorption modifier with our own tick-based expiry (re-implements the effect system); saved timers.
 **Affects:** shield/*, effect/BlockAbsorption, effect/RiposteBonus, mixin/LivingEntityMixin, mixin/BlocksAttacksMixin
+
+## 2026-10-12 — Deflect: vanilla's pre-hit deflection, a tag of projectiles, no tridents (agent, 10cCB)
+**Context:** the owner set Deflect's ownership and once-per-projectile rule; the hook, which projectiles, and what a
+deflection costs were open.
+**Choice:**
+- Hook `Entity.deflection(projectile)`, which `Projectile.hitTargetOrDeflectSelf` asks before any hit (the breeze
+  path), so the projectile never hits, is never discarded, and every projectile class works the same. Server only (the
+  roll is random); the client gets the new velocity from the server.
+- Which projectiles: entity type tag `enchanting2:deflectable` = arrow, spectral arrow, small fireball, fireball,
+  wither skull, llama spit. Not tridents (the blocker would own a thrower's Loyalty trident, and it would return to
+  them), not shulker bullets (they home back to their target), nothing harmless (pearls would teleport the blocker,
+  potions, eggs, snowballs, fishing hooks, wind charges). Datapacks can add.
+- One roll per projectile, made only when the shield would block it (in front, not piercing, not bypassing).
+- A deflection counts as a block for the shield (its sound, 1 durability on a player's shield) but is not a blocked
+  hit, so Bulwark, Riposte and Spiked don't fire on it.
+- Aim: at the shooter's middle with the arrow's drop over that distance added; no shooter → straight back.
+**Rejected:** hooking each projectile class's hit (`AbstractArrow.onHitEntity` reverses at 20% speed; fireballs are
+discarded on hit); tridents in the default tag; a free deflection (no durability).
+**Affects:** shield/ShieldDeflect, mixin/EntityMixin, mixin/ProjectileMixin, data/enchanting2/tags/entity_type/deflectable.json

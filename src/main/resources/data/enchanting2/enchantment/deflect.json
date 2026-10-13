@@ -1,0 +1,31 @@
+{
+  "anvil_cost": 4,
+  "description": {
+    "translate": "enchantment.enchanting2.deflect"
+  },
+  "effects": {
+    "enchanting2:deflect_chance": {
+      "type": "minecraft:fraction",
+      "numerator": {
+        "type": "minecraft:linear",
+        "base": 1.0,
+        "per_level_above_first": 1.0
+      },
+      "denominator": 3.0
+    }
+  },
+  "max_cost": {
+    "base": 25,
+    "per_level_above_first": 8
+  },
+  "max_level": 3,
+  "min_cost": {
+    "base": 5,
+    "per_level_above_first": 8
+  },
+  "slots": [
+    "hand"
+  ],
+  "supported_items": "#enchanting2:enchantable/shield",
+  "weight": 2
+}

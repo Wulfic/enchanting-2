@@ -1669,7 +1669,42 @@ a player; attackers have 0 armor):**
   (it flinches and loses health), Bulwark III's yellow hearts and that they go after 5 s; an axe-wielding vindicator
   against Steadfast III.
 
-#### 10cCB — Deflect (detail before code)
+#### 10cCB — Deflect  ✅ 2026-10-12
+**Hook (javap 1.21.11):** before any projectile hits an entity, `Projectile.hitTargetOrDeflectSelf` asks
+`target.deflection(projectile)`; anything but `NONE` runs `projectile.deflect(d, target, its owner, false)` instead of
+the hit (no damage, no discard), the path breezes use. So `@ModifyReturnValue` on `Entity.deflection`, server only:
+our `ShieldDeflect.AT_SHOOTER` when the target is a LivingEntity blocking (`getItemBlockingWith`) with a shield whose
+`enchanting2:deflect_chance` (LevelBasedValue, level / 3) wins a roll, the projectile is in the entity type tag
+`enchanting2:deflectable`, hasn't rolled before (`@Unique` flag on `Projectile`, set on the first roll whether it wins
+or not: at most once per projectile, so two Deflect shields can't ping-pong), and vanilla would block it (not a
+piercing arrow, not `bypassed_by`, inside the shield's blocking angle, via `BlocksAttacks.resolveBlockedDamage` with an
+arrow or mob-projectile source).
+- `AT_SHOOTER`: same speed, aimed at the shooter's chest, with the arrow's drop over that distance added (its
+  `getGravity()`; 0 for fireballs); no shooter alive in that level → straight back. Rotation and `needsSync` like
+  vanilla's `REVERSE`.
+- `deflect` sets the owner back to the old one after the deflection runs, so `@Inject` at `Projectile.deflect` RETURN:
+  for `AT_SHOOTER` on the server, `setOwner(blocker)` and arrows `pickup = DISALLOWED` (owner: kill credit, not picked
+  up).
+- The deflection is a block: the shield's block sound (`BlocksAttacks.onBlocked`) and 1 durability for a player's
+  shield (`hurtAndBreak`, Unbreaking applies). **Agent decisions** (decisions.md): the default tag holds arrows,
+  spectral arrows, blaze and ghast fireballs, wither skulls, shulker bullets and llama spit; **not tridents** (owning a
+  thrower's Loyalty trident would steal it) and nothing harmless (pearls, potions, eggs, snowballs, fishing hooks,
+  wind charges). A deflected projectile isn't a blocked hit, so Bulwark and Riposte don't fire on it.
+**Data:** `deflect.json` (III, weight 2, Clarity costs), lang, `.desc`, tags, `LevelCeilings` soft 3 (III = always),
+`#enchanting2:deflectable`.
+**Tests (GameTest, husk blocker raising a Deflect III shield, a no-AI skeleton 6 blocks in front):**
+- an arrow the skeleton "shot" at the blocker turns back: owner the blocker, pickup disallowed, heading at the
+  skeleton, blocker unhurt; it hits the skeleton, whose last attacker is the blocker. A plain shield: the arrow keeps
+  its owner (vanilla bounce).
+- `deflection()` directly: a second call on the same arrow is `NONE`; a trident and a fishing-hook-like untagged
+  projectile `NONE`; an arrow from behind the blocker `NONE`; Deflect I over 300 fresh arrows wins 60..140 times.
+- Mutation run: each condition and the owner hook off fails a test.
+- ✅ 2026-10-12: 361 JUnit + 289 GameTests (six Deflect tests in `ShieldsGameTest`) + client GameTests green. Default tag
+  without shulker bullets (they home back onto their target, so a reversed one would turn around). The roll test was
+  split into one test per guard so a mutation run shows each one. Mutations: the owner hook, the once-per-projectile
+  flag, the blocking-angle check, the tag check, the aim and the chance each fail exactly their test (one run); the
+  pickup line fails the end-to-end test (second run). Owner `runClient`: a skeleton shooting at a Deflect III shield
+  (its arrows come back and hit it; none to pick up), a blaze's fireballs, a ghast's fireball ("Return to Sender").
 #### 10cCC — Steady Stance, Shield Bash (detail before code)
 
 ### Phase 10e — Curses (three stages, one commit each)

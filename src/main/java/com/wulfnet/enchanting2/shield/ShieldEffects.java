@@ -133,7 +133,8 @@ public final class ShieldEffects {
 		return (float) (seconds * WornMath.remaining(sum));
 	}
 
-	private static double sumOnItem(ItemStack stack, DataComponentType<LevelBasedValue> type) {
+	/** {@code type}'s value at each of {@code stack}'s enchantments, summed; 0 without any. */
+	static double sumOnItem(ItemStack stack, DataComponentType<LevelBasedValue> type) {
 		double[] total = {0.0};
 		EnchantmentHelper.runIterationOnItem(stack, (enchantment, level) -> {
 			LevelBasedValue value = enchantment.value().effects().get(type);
