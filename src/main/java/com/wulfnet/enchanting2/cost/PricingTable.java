@@ -49,6 +49,7 @@ public final class PricingTable {
 			Map.entry("enchanting2:phantom_ward", SINGLE_LEVEL),
 			Map.entry("enchanting2:lava_walking", SINGLE_LEVEL),
 			Map.entry("enchanting2:snow_walker", SINGLE_LEVEL),
+			Map.entry("enchanting2:steady_stance", SINGLE_LEVEL),
 			Map.entry("enchanting2:fragility", CURSE_15),
 			Map.entry("enchanting2:weight", CURSE_15),
 			Map.entry("enchanting2:greed", CURSE_15),

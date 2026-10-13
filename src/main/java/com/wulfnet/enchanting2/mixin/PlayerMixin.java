@@ -1,5 +1,7 @@
 package com.wulfnet.enchanting2.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.wulfnet.enchanting2.config.ExperienceSection;
 import com.wulfnet.enchanting2.curse.CurseEffects;
@@ -8,7 +10,10 @@ import com.wulfnet.enchanting2.effect.WornEffects;
 import com.wulfnet.enchanting2.experience.ExperienceCurve;
 import com.wulfnet.enchanting2.experience.ExperienceCurve.Position;
 import com.wulfnet.enchanting2.experience.PlayerExperience;
+import com.wulfnet.enchanting2.shield.ShieldBash;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -130,5 +135,18 @@ abstract class PlayerMixin {
 		}
 		return WornEffects.reduceExhaustion(self, ModEffects.EXHAUSTION_REDUCTION,
 				CurseEffects.scaleExhaustion(self, amount));
+	}
+
+	/**
+	 * Phase 10cCC, Shield Bash: an attack made with a Shield Bash shield raised (the client lets the click through) adds
+	 * the bash once the hit has landed.
+	 */
+	@WrapMethod(method = "attack")
+	private void enchanting2$shieldBash(Entity target, Operation<Void> original) {
+		LivingEntity living = target instanceof LivingEntity entity ? entity : null;
+		LivingEntity attackerBefore = living != null ? living.getLastHurtByMob() : null;
+		int stamp = living != null ? living.getLastHurtByMobTimestamp() : 0;
+		original.call(target);
+		ShieldBash.afterAttack((Player) (Object) this, target, attackerBefore, stamp);
 	}
 }

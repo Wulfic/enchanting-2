@@ -108,12 +108,12 @@ Cushion (chestplate table above) also fits elytra.
 | Enchantment | Max | Cost | Fits | What it does | Status |
 |---|---|---|---|---|---|
 | Deflect | 3 | 1/lvl | shields | arrows, fireballs, wither skulls and llama spit your raised shield would block fly back at the shooter at full speed, now yours (33 / 66 / 100%), once each; not tridents | Built |
-| Shield Bash | 3 | 1/lvl | shields | attacking while blocking knocks the target back (Knockback I per level) and slows it hard for 0.5 s per level; then the shield rests 3 s | Planned |
+| Shield Bash | 3 | 1/lvl | shields | you can attack with your shield raised: a hit knocks the target back (Knockback I per level) and slows it hard for 0.5 s per level; then the shield rests 3 s | Built |
 | Steadfast | 3 | 1/lvl | shields | an axe disables your shield for less time: 5 s → 3.35 s at I, 1.65 s at II, never at III | Built |
 | Spiked | 5 | 1/lvl | shields | a melee attacker whose hit your shield blocks takes 1 damage per level (Thorns for shields); never projectiles | Built |
 | Bulwark | 3 | 1/lvl | shields | a blocked hit gives 1 extra heart per level for 5 s, at most once every 10 s | Built |
 | Riposte | 5 | 1/lvl | shields | after a block, your next melee hit within 2 s deals +3% per level (V = +15%) | Built |
-| Steady Stance | 1 | 10 † | shields | no slowdown while blocking | Planned |
+| Steady Stance | 1 | 10 | shields | walk at full speed while blocking (blocking still stops a sprint) | Built |
 
 Shields take these from books on an anvil, like Unbreaking and Mending: vanilla shields can't go in the enchanting
 table. They work on modded shields in `#c:tools/shield`.

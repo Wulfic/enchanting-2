@@ -5,7 +5,9 @@
 	"client": [
 		"AnvilScreenMixin",
 		"EnchantmentScreenMixin",
-		"GrindstoneScreenMixin"
+		"GrindstoneScreenMixin",
+		"LocalPlayerMixin",
+		"MinecraftMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

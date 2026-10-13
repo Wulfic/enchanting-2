@@ -12,6 +12,9 @@
 		"MobAccessor",
 		"PhantomInvoker"
 	],
+	"client": [
+		"LocalPlayerInvoker"
+	],
 	"injectors": {
 		"defaultRequire": 1
 	}

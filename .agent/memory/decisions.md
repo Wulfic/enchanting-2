@@ -1123,3 +1123,16 @@ deflection costs were open.
 **Rejected:** hooking each projectile class's hit (`AbstractArrow.onHitEntity` reverses at 20% speed; fireballs are
 discarded on hit); tridents in the default tag; a free deflection (no durability).
 **Affects:** shield/ShieldDeflect, mixin/EntityMixin, mixin/ProjectileMixin, data/enchanting2/tags/entity_type/deflectable.json
+
+## 2026-10-12 — Steady Stance keeps the sprint rule; Shield Bash is the normal attack plus the bash (agent, 10cCC)
+**Context:** "no movement slowdown while blocking" and "attacking while blocking knocks back and stuns" left two
+readings each.
+**Choice:**
+- Steady Stance only lifts the use slowdown (`use_effects.speed_multiplier` → 1 for that shield); blocking still stops
+  sprinting, so it's walking at full speed with the shield up, not sprint-blocking.
+- Shield Bash lets the attack click through while the shield is up (crosshair on an entity only, so blocking never
+  mines) and the hit is the ordinary attack with whatever is in the main hand; the bash adds Knockback I per level,
+  Slowness IV 0.5 s per level and the 3 s shield cooldown once the hit landed. The cooldown lowers the shield the way
+  an axe's disable does (cooldown + `stopUsingItem`).
+**Rejected:** sprinting while blocking; a bash that replaces the attack (no weapon damage); bashing on a miss.
+**Affects:** shield/ShieldBash, mixin/PlayerMixin, mixin/client/LocalPlayerMixin, mixin/client/MinecraftMixin

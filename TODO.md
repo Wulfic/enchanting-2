@@ -1705,7 +1705,39 @@ arrow or mob-projectile source).
   flag, the blocking-angle check, the tag check, the aim and the chance each fail exactly their test (one run); the
   pickup line fails the end-to-end test (second run). Owner `runClient`: a skeleton shooting at a Deflect III shield
   (its arrows come back and hit it; none to pick up), a blaze's fireballs, a ghast's fireball ("Return to Sender").
-#### 10cCC — Steady Stance, Shield Bash (detail before code)
+#### 10cCC — Steady Stance, Shield Bash  ✅ 2026-10-12
+**Hooks (javap 1.21.11):**
+- Steady Stance: the use slowdown is the used item's `use_effects.speed_multiplier` (shield 0.2), read only by the
+  client's `LocalPlayer.itemUseSpeedMultiplier` in `modifyInput` (mobs aren't slowed by it; the server doesn't check
+  it beyond its loose moved-too-fast limit). Client `@ModifyReturnValue` there: 1.0 when the used item carries
+  `enchanting2:steady_stance` (unit). **Agent decision:** walking speed only; blocking still stops sprinting
+  (`isSlowDueToUsingItem` reads `can_sprint`), since sprint-blocking is more than "no slowdown".
+- Shield Bash, client: `Minecraft.handleKeybinds` swallows attack clicks while an item is in use (a
+  `keyAttack.consumeClick()` loop right after `releaseUsingItem`). Client `@WrapOperation` on that call (sliced from
+  `releaseUsingItem`): a click while using an item that carries `enchanting2:shield_bash`, with the crosshair on an
+  entity, runs vanilla's `startAttack()` (the normal attack packet). Other clicks stay swallowed (no block mining).
+- Shield Bash, server: nothing refuses an attack from a player using an item (javap: no `isUsingItem` in
+  `ServerGamePacketListenerImpl` or `Player.attack`). `@WrapMethod` on `Player.attack`: if the player is using a
+  shield with the component and the hit landed (the target's last-hurt-by timestamp moved to now, by this player), the
+  target gets `knockback(0.5 × level)` along the player's facing (Knockback I per level, as vanilla's attack applies
+  it) and Slowness IV for 10 ticks × level; the shield gets the cooldown (60 ticks) and the player stops using it, as
+  an axe's disable does. Component `enchanting2:shield_bash` {knockback, slowness (ticks), cooldown}.
+**Data:** `steady_stance.json` (I, `PricingTable` 10 row, soft 1), `shield_bash.json` (III, none), the shield tag,
+weight 2, lang + `.desc`, tags.
+**Tests:**
+- Server GameTest: a mock player using a Shield Bash III shield attacks a husk: Slowness IV, 30 ticks; more knockback
+  than the same attack with a plain raised shield; shield on cooldown for 60 ticks; no longer using it. A shield not
+  raised: no bash.
+- Client GameTest (new `ShieldClientGameTest`, real input): raise a plain shield (hold use) and click attack on a husk
+  in front: nothing hits it. With Steady Stance + Shield Bash: `itemUseSpeedMultiplier` is 1.0 (gametest client
+  invoker), the click lands a bash (Slowness on the server's husk) and the shield goes down on cooldown.
+- Mutation run: each hook off fails a test.
+- ✅ 2026-10-12: 361 JUnit + 291 GameTests (two new in `ShieldsGameTest`) + 6 client GameTests (new
+  `ShieldClientGameTest`: real "use" and "attack" input on a cow) green. The "landed" check also accepts this player
+  becoming the last attacker (a mob hit on its first tick keeps stamp 0). Mutations (two server runs, two client runs):
+  the `Player.attack` hook, the Steady Stance rule, the bash knockback, the `LocalPlayer` hook and the click hook each
+  fail their test. Phase 10cC complete. Owner `runClient`: walking with a Steady Stance shield up; bashing a zombie
+  with Shield Bash III (knockback, slow, shield down 3 s), and that a plain shield still can't attack while raised.
 
 ### Phase 10e — Curses (three stages, one commit each)
 **Goal:** five new curses, each with a GameTest that fails if its effect breaks, and a per-level curse discount.

@@ -62,6 +62,10 @@ public final class ModEffects {
 	/** Chance a projectile the raised shield would block flies back at its shooter instead (Deflect, Phase 10c). */
 	public static final DataComponentType<LevelBasedValue> DEFLECT_CHANCE = register("deflect_chance",
 			LevelBasedValue.CODEC);
+	/** No walking slowdown while this item is in use (Steady Stance, Phase 10c). */
+	public static final DataComponentType<Unit> STEADY_STANCE = register("steady_stance", Unit.CODEC);
+	/** An attack while this shield is raised knocks back and slows, then lowers it (Shield Bash, Phase 10c). */
+	public static final DataComponentType<BashEffect> SHIELD_BASH = register("shield_bash", BashEffect.CODEC);
 	/** Entity effect for {@code minecraft:projectile_spawned}: the arrow ignores gravity for a while (TrueShot Aura). */
 	public static final MapCodec<SuspendGravity> SUSPEND_GRAVITY = Registry.register(
 			BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE,
@@ -76,7 +80,8 @@ public final class ModEffects {
 				Stream.of(LIFESTEAL, HEAD_DROP_CHANCE, SMELT_DROPS, NIGHT_VISION, MOVEMENT_PENALTY, EXHAUSTION,
 						GAZE_DISGUISE, IGNORED_BY_PHANTOMS, SHORTEN_EFFECTS, EXHAUSTION_REDUCTION,
 						SPRINT_EXHAUSTION_REDUCTION, LAVA_WALKER, POWDER_SNOW_WALKER, SHIELD_DISABLE_REDUCTION,
-						BLOCK_RETALIATION, BLOCK_ABSORPTION, RIPOSTE, DEFLECT_CHANCE).map(ModEffects::key).toList(),
+						BLOCK_RETALIATION, BLOCK_ABSORPTION, RIPOSTE, DEFLECT_CHANCE, STEADY_STANCE,
+						SHIELD_BASH).map(ModEffects::key).toList(),
 				BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE.getKey(SUSPEND_GRAVITY));
 		SuspendGravity.register();
 	}

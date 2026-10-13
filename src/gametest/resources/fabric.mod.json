@@ -38,7 +38,8 @@
 			"com.wulfnet.enchanting2.gametest.GrindstoneScreenClientGameTest",
 			"com.wulfnet.enchanting2.gametest.TableScreenClientGameTest",
 			"com.wulfnet.enchanting2.gametest.ConfigScreenClientGameTest",
-			"com.wulfnet.enchanting2.gametest.TooltipClientGameTest"
+			"com.wulfnet.enchanting2.gametest.TooltipClientGameTest",
+			"com.wulfnet.enchanting2.gametest.ShieldClientGameTest"
 		]
 	},
 	"mixins": [

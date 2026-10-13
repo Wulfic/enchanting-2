@@ -2,6 +2,7 @@ package com.wulfnet.enchanting2.gametest;
 
 import com.wulfnet.enchanting2.enchantment.ModEnchantments;
 import com.wulfnet.enchanting2.shield.BulwarkEffect;
+import com.wulfnet.enchanting2.shield.ShieldBash;
 import com.wulfnet.enchanting2.shield.ShieldDeflect;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
@@ -16,6 +17,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -319,6 +321,63 @@ public class ShieldsGameTest {
 			}
 			check(helper, wins >= 60 && wins <= 140, "Deflect I sent back " + wins + " of 300 arrows");
 		});
+	}
+
+	/** A mock player at column {@code x}, row 1, facing a husk two blocks south, {@code shield} in its off hand. */
+	private static ServerPlayer basher(GameTestHelper helper, int x, ItemStack shield, boolean raised) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		player.setPos(helper.absoluteVec(new Vec3(x + 0.5, 1.0, 1.5)));
+		player.setYRot(0.0F);
+		player.setYHeadRot(0.0F);
+		player.setItemSlot(EquipmentSlot.OFFHAND, shield);
+		if (raised) {
+			player.startUsingItem(InteractionHand.OFF_HAND);
+		}
+		return player;
+	}
+
+	private static double horizontalSpeed(Husk husk) {
+		return husk.getDeltaMovement().horizontalDistance();
+	}
+
+	/** Owner: Knockback I and Slowness IV for 0.5 s per level, then a 3 s shield cooldown. */
+	@GameTest(maxTicks = 40)
+	public void shieldBashKnocksBackSlowsAndLowersTheShield(GameTestHelper helper) {
+		Husk bashed = husk(helper, 1, 3);
+		Husk plainHit = husk(helper, 4, 3);
+		Husk lowered = husk(helper, 7, 3);
+		helper.runAfterDelay(5, () -> {
+			ItemStack bashShield = shield(helper, ModEnchantments.SHIELD_BASH, 3);
+			ServerPlayer basher = basher(helper, 1, bashShield, true);
+			ServerPlayer plain = basher(helper, 4, shield(helper, null, 0), true);
+			ServerPlayer down = basher(helper, 7, shield(helper, ModEnchantments.SHIELD_BASH, 3), false);
+			basher.attack(bashed);
+			plain.attack(plainHit);
+			down.attack(lowered);
+
+			check(helper, bashed.getHealth() < HEALTH && plainHit.getHealth() < HEALTH && lowered.getHealth() < HEALTH,
+					"an attack didn't land");
+			MobEffectInstance slowness = bashed.getEffect(MobEffects.SLOWNESS);
+			check(helper, slowness != null && slowness.getAmplifier() == 3 && slowness.getDuration() == 30,
+					"Shield Bash III's Slowness: " + slowness);
+			check(helper, horizontalSpeed(bashed) > horizontalSpeed(plainHit) + 0.2, "no extra knockback: "
+					+ horizontalSpeed(bashed) + " vs " + horizontalSpeed(plainHit));
+			check(helper, !basher.isUsingItem() && basher.getCooldowns().isOnCooldown(bashShield),
+					"the shield is still up after the bash");
+			helper.assertValueEqual(60, ticksDisabled(basher, bashShield), Component.literal("the bash cooldown"));
+
+			check(helper, !plainHit.hasEffect(MobEffects.SLOWNESS) && plain.isUsingItem(), "a plain shield bashed");
+			check(helper, !lowered.hasEffect(MobEffects.SLOWNESS), "a Shield Bash shield that wasn't raised bashed");
+			helper.succeed();
+		});
+	}
+
+	@GameTest
+	public void steadyStanceTakesAwayTheUseSlowdown(GameTestHelper helper) {
+		assertClose(helper, 1.0, ShieldBash.useSpeedMultiplier(shield(helper, ModEnchantments.STEADY_STANCE, 1), 0.2F),
+				"a Steady Stance shield");
+		assertClose(helper, 0.2F, ShieldBash.useSpeedMultiplier(shield(helper, null, 0), 0.2F), "a plain shield");
+		helper.succeed();
 	}
 
 	/** Ticks until {@code player}'s cooldowns let {@code shield} be raised again. */
