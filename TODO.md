@@ -2627,9 +2627,11 @@ the next load with a vanilla WARN. Nothing outside the repo is touched.
       **Not doing:** screenshots/GIFs in the README, a wiki, other languages, Modrinth/CurseForge pages (11.3 / later).
       **Blast radius:** README.md overwritten (template placeholder line, in git). Otherwise additive.
       **Rollback:** `git revert <sha>`.
-- [ ] 11.2 Version tag + build artifact (tag push is outward-facing, so the owner confirms). Owner 2026-10-13: 1.0.0.
+- [~] 11.2 Version tag + build artifact (tag push is outward-facing, so the owner confirms). Owner 2026-10-13: 1.0.0.
       `gradle.properties` `mod_version=1.0.0`, `./gradlew build`, jar from `build/libs/`; tag `v1.0.0` local, push
       only on the owner's word. No GitHub release (nothing published).
+      ✅ 2026-10-13: 1.0.0 built (`build/libs/enchanting2-1.0.0.jar`, 758 KB, Jankson nested), tag `v1.0.0` local.
+      Open: push the tag (owner). Undo a local tag: `git tag -d v1.0.0`.
 - [ ] 11.3 Plan the 26.x port as a new roadmap entry. Public release is a later decision.
 
 ---

@@ -97,7 +97,7 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
 - Tests: 402 JUnit + 329 GameTests (`./gradlew build`) + 7 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Next: 11.2 (`mod_version=1.0.0`, jar, local tag `v1.0.0`; pushing the tag waits for the owner's word), then 11.3. The owner's
+1. Next: 11.2 done locally (1.0.0 jar, tag `v1.0.0` not pushed: waits for the owner's word), then 11.3 (26.x port plan). The owner's
    `runClient` look at the 10o windows is still open (screenshots `enchanting2-anvil-*`, `enchanting2-grindstone-*`). A new enchantment still adds a `LevelCeilings` row, a `.desc` line, tags, a
    price row if single-level, docs rows.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
