@@ -1,6 +1,10 @@
 package com.wulfnet.enchanting2.gametest;
 
+import com.wulfnet.enchanting2.client.TallTooltips;
 import com.wulfnet.enchanting2.enchantment.ModEnchantments;
+import com.wulfnet.enchanting2.tooltip.DescriptionPlan;
+import com.wulfnet.enchanting2.tooltip.TooltipFit;
+import java.util.Comparator;
 import java.util.List;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
@@ -9,6 +13,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
@@ -62,8 +67,111 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 			check(released.stream().noneMatch(line -> line.contains(sharpness)),
 					"a description shows without Ctrl: " + released);
 			assertBelow(released, "Sharpness V", hint);
+
+			// Owner, 2026-10-13: many enchantments must not run off the screen. 1080p at GUI scale 3 is 640 x 360.
 			context.runOnClient(client -> client.setScreen(null));
+			context.getInput().resizeWindow(1920, 1080);
+			context.runOnClient(client -> {
+				client.options.guiScale().set(3);
+				client.resizeDisplay();
+			});
+			context.waitTick();
+			manyEnchantmentsGoOnTheirNamesLinesWithCtrl(context);
+			everyEnchantmentIsTooTallAndTheWheelScrollsIt(context, world);
+			context.runOnClient(client -> {
+				client.options.guiScale().set(0);
+				client.resizeDisplay();
+				client.setScreen(null);
+			});
 		}
+	}
+
+	/**
+	 * Sixteen described enchantments under their names would be taller than 360: each description goes on its name's
+	 * line instead. (The GameTest-only enchantments have no description, so they're left out.)
+	 */
+	private static void manyEnchantmentsGoOnTheirNamesLinesWithCtrl(ClientGameTestContext context) {
+		int height = context.computeOnClient(client -> client.getWindow().getGuiScaledHeight());
+		check(height == 360, "GUI scale 3 at 1080p is 360 tall, got " + height);
+		ItemStack pickaxe = context.computeOnClient(client -> withEnchantments(client.level.registryAccess()
+				.lookupOrThrow(Registries.ENCHANTMENT), Items.DIAMOND_PICKAXE, 16, true));
+		List<String> names = fullNames(context, pickaxe);
+		context.getInput().holdKey(GLFW.GLFW_KEY_LEFT_CONTROL);
+		context.waitTick();
+		List<String> lines = tooltip(context, pickaxe);
+		context.getInput().releaseKey(GLFW.GLFW_KEY_LEFT_CONTROL);
+		context.waitTick();
+		for (String name : names) {
+			check(lines.stream().anyMatch(line -> line.startsWith(name + ": ")),
+					"\"" + name + ": <description>\" on one line: " + lines);
+			check(!lines.contains(name), "no bare \"" + name + "\" line left: " + lines);
+		}
+		String scroll = I18n.get("enchanting2.tooltip.scroll_more");
+		check(TooltipFit.fits(lines.size(), height) != lines.contains(scroll),
+				"the scroll line shows exactly when it's still too tall (" + lines.size() + " lines): " + lines);
+	}
+
+	/**
+	 * Every enchantment at once is too tall even compact: the scroll line sits under the item's name, the tooltip starts
+	 * at its top in the real inventory, and the wheel moves it.
+	 */
+	private static void everyEnchantmentIsTooTallAndTheWheelScrollsIt(ClientGameTestContext context,
+			TestSingleplayerContext world) {
+		int height = context.computeOnClient(client -> client.getWindow().getGuiScaledHeight());
+		ItemStack all = context.computeOnClient(client -> withEnchantments(client.level.registryAccess()
+				.lookupOrThrow(Registries.ENCHANTMENT), Items.DIAMOND_PICKAXE, Integer.MAX_VALUE, false));
+		List<String> plain = tooltip(context, all);
+		check(!TooltipFit.fits(plain.size(), height), "every enchantment is taller than the screen: " + plain.size());
+		check(plain.get(1).equals(I18n.get("enchanting2.tooltip.scroll_more")),
+				"the scroll line is under the name: " + plain.subList(0, 3));
+
+		world.getServer().runOnServer(server -> server.getPlayerList().getPlayers().getFirst().getInventory().setItem(0,
+				withEnchantments(server.registryAccess().lookupOrThrow(Registries.ENCHANTMENT), Items.DIAMOND_PICKAXE,
+						Integer.MAX_VALUE, false)));
+		context.waitTicks(2);
+		context.runOnClient(client -> client.setScreen(new InventoryScreen(client.player)));
+		context.waitTick();
+		hoverHotbarSlot(context);
+		context.waitTicks(2);
+		check(TallTooltips.offset() == 0, "starts at the top: " + TallTooltips.offset());
+		context.takeScreenshot("enchanting2-tooltip-tall-top");
+		context.getInput().scroll(-1);
+		context.waitTick();
+		check(TallTooltips.offset() > 0, "one notch down scrolled it: " + TallTooltips.offset());
+		for (int i = 0; i < 100; i++) {
+			context.getInput().scroll(-1);
+		}
+		context.waitTicks(2);
+		context.takeScreenshot("enchanting2-tooltip-tall-bottom");
+		int bottom = TallTooltips.offset();
+		context.getInput().scroll(1);
+		context.waitTick();
+		check(TallTooltips.offset() < bottom, "and back up: " + TallTooltips.offset() + " from " + bottom);
+	}
+
+	/** The first {@code count} enchantments by ID (only ones with a description, if {@code described}), each at I. */
+	private static ItemStack withEnchantments(HolderLookup.RegistryLookup<Enchantment> registry, Item item, int count,
+			boolean described) {
+		ItemStack stack = new ItemStack(item);
+		ItemEnchantments.Mutable enchantments = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
+		registry.listElements().sorted(Comparator.comparing(holder -> holder.key().identifier().toString()))
+				.filter(holder -> !described || I18n.exists(DescriptionPlan.key(holder.key().identifier().toString())))
+				.limit(count).forEach(holder -> enchantments.set(holder, 1));
+		EnchantmentHelper.setEnchantments(stack, enchantments.toImmutable());
+		return stack;
+	}
+
+	private static List<String> fullNames(ClientGameTestContext context, ItemStack stack) {
+		return context.computeOnClient(client -> stack.getEnchantments().entrySet().stream()
+				.map(e -> Enchantment.getFullname(e.getKey(), e.getIntValue()).getString()).toList());
+	}
+
+	private static void hoverHotbarSlot(ClientGameTestContext context) {
+		int[] slot = context.computeOnClient(client -> new int[] {
+				(client.getWindow().getGuiScaledWidth() - 176) / 2 + 8 + 8,
+				(client.getWindow().getGuiScaledHeight() - 166) / 2 + 142 + 8});
+		double scale = context.computeOnClient(client -> client.getWindow().getGuiScale());
+		context.getInput().setCursorPos(slot[0] * scale, slot[1] * scale);
 	}
 
 	private static ItemStack enchanted(ClientGameTestContext context, Item item, ResourceKey<Enchantment> key) {

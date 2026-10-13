@@ -13,8 +13,9 @@ enchantment is kept, 49 new ones are added, and almost everything can be configu
   There is no level cap.
 
 **Enchanting table**
-- Lists every enchantment that fits the item. Pick as many as you like, choose each level, and see the XP and lapis
-  totals before you click Enchant. No random offers.
+- Lists every enchantment that fits the item. Pick as many as you like (each starts at level I; the arrows raise it),
+  and see the XP and lapis totals before you click Enchant. No random offers.
+- Your armor and offhand slots are in the window, so worn gear can go straight onto the table (shift-click works).
 - Bookshelves work as in vanilla: 15 shelves unlock every enchantment's top level, fewer shelves cap the levels.
   Mending and Frost Walker are offered too, with all 15 shelves.
 - Accepts already-enchanted items and books, so you can add to them or raise their levels.
@@ -48,7 +49,8 @@ enchantment is kept, 49 new ones are added, and almost everything can be configu
   Keep on Death for anything durable, and five curses that give a discount.
 - Axes take Knockback, Looting and Fire Aspect. Crossbows take Flame and Infinity. Silk Touch picks up spawners.
   Infinity on a water or lava bucket gives 256 uses.
-- Hold **Ctrl** over an item to see what each of its enchantments does.
+- Hold **Ctrl** over an item to see what each of its enchantments does. On an item with many enchantments the
+  descriptions go beside the names to save room, and a tooltip taller than the screen scrolls with the mouse wheel.
 
 **Other**
 - An optional health multiplier for every mob (1x to 100x, off by default).

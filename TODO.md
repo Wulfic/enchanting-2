@@ -2657,15 +2657,20 @@ tooltip loses its top (the item name and first enchantments).
 - [x] B. Pick at level I: BODY picks `currentLevel + 1`; JUnit in `TablePanelViewTest`; client GameTest picks adjust.
 - [x] C. Row tooltip: description only with Ctrl (and `tooltips.enchantment_descriptions`), else the hint (if
       `show_hint`), through `DescriptionPlan.of`; client GameTest asserts both.
-- [ ] D. Compact Ctrl layout: when the full layout (descriptions under names, 200 px) would be taller than the screen,
+- [x] D. Compact Ctrl layout: when the full layout (descriptions under names, 200 px) would be taller than the screen,
       each description goes on its name's line, wrapped wider. Pure capacity/fit maths in `tooltip/TooltipFit`
       (JUnit); client GameTest on an item with many enchantments.
-- [ ] E. Scroll: a tooltip taller than the screen starts at its top (y 4) and the mouse wheel scrolls it while it is
+- [x] E. Scroll: a tooltip taller than the screen starts at its top (y 4) and the mouse wheel scrolls it while it is
       shown. Pure state in `tooltip/TooltipScroll` (JUnit: no overflow = vanilla y, clamp, reset on a new tooltip or a
       stale one); client `GuiGraphicsMixin` wraps `positionTooltip` in `renderTooltip`, `MouseHandlerMixin` wraps
       `Screen.mouseScrolled` in `onScroll`. "Scroll for more" line after the item name when our hook sees overflow.
-- [ ] F. Docs (CHANGELOG, README, ENCHANTMENTS/CONFIG unaffected unless keys change), decisions.md, state.md; build,
+- [x] F. Docs (CHANGELOG, README, ENCHANTMENTS/CONFIG unaffected unless keys change), decisions.md, state.md; build,
       client GameTests, commit per unit.
+      ✅ 2026-10-13: 410 JUnit (+7 `TooltipFit`/`TooltipScroll`, +1 layout), 330 GameTests (+1), 7 client GameTests
+      (table: slots, level I, Ctrl row tooltip; tooltip: 16 described enchantments go compact at 640×360, every
+      enchantment overflows → scroll line under the name, wheel scrolls in the real inventory). Owner checks in
+      `runClient`: the slot look, a tall tooltip in the creative tab (the wheel scrolls the tooltip, not the grid,
+      while it's shown), and whether "Name: description" reads well.
 **Not doing:** a config toggle for scrolling, multi-column tooltips, moving shift-click armor into armor slots,
 changes to the anvil/grindstone windows.
 **Blast radius:** no destructive steps (all edits to tracked files; rollback `git revert <sha>` per commit). The

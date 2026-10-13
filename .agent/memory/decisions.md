@@ -1313,3 +1313,22 @@ vanilla's rule (anything not on the table goes onto it), so worn armor shift-cli
 table back into the armor slot (vanilla's index ranges stay as they are).
 **Affects:** table/TableEquipmentSlot, TableWindow, mixin/EnchantmentMenuMixin, EnchantmentScreenMixin,
 TablePanelView.click, client/TableList, network/NetworkProtocol
+
+## 2026-10-13 — Tall tooltips: compact Ctrl layout, then scrolling (owner, Phase 11b D–E)
+**Context:** owner: with Ctrl, a tool with many enchantments got a tooltip taller than the screen. Vanilla's
+`DefaultTooltipPositioner` moves a tall tooltip up until its bottom fits (`y = screenH - h - 3`, no floor), so the
+item's name and first enchantments are what get cut.
+**Choice (owner: "compact + scroll"):** with Ctrl, if descriptions under their names won't fit, every description goes
+on its name's line ("Name: description", lang key `enchanting2.tooltip.inline_description`), wrapped at half the
+screen less 24 (200–320 px). If the tooltip still doesn't fit (with or without Ctrl, any item), it starts at y 4 and
+the wheel scrolls it 30 px a notch while it's shown; our hook adds "Scroll to see the rest" under the item's name for
+enchanted items. **(agent):** pure `tooltip/TooltipFit` + `TooltipScroll`; `GuiGraphicsMixin` wraps only the
+positioner's result (a tooltip that fits is placed exactly as vanilla places it); `MouseHandlerMixin` wraps
+`Screen.mouseScrolled` inside `onScroll`, so it is ahead of every screen (creative tab grid included) and uses
+vanilla's sensitivity. A new tooltip (different width/height) or one not drawn for 200 ms starts at the top again.
+**Why:** compact keeps every description readable at once where it can; scrolling covers what no layout can fit.
+**Rejected:** scroll only (owner); compact only (a 90-enchantment item still can't fit); multi-column tooltips (needs a
+custom tooltip component and a mixin into tooltip building, for little gain over scrolling); a config toggle (it only
+changes tooltips that were broken).
+**Affects:** tooltip/TooltipFit, tooltip/TooltipScroll, client/TallTooltips, client/EnchantmentDescriptions,
+mixin/client/GuiGraphicsMixin, mixin/client/MouseHandlerMixin, lang en_us

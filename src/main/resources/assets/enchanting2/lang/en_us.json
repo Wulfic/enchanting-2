@@ -143,6 +143,8 @@
 	"enchantment.minecraft.vanishing_curse.desc": "Destroyed when you die.",
 	"enchantment.minecraft.lunge.desc": "A spear's piercing attack lunges you forward. Costs hunger.",
 	"enchanting2.tooltip.hold_ctrl": "Hold Ctrl for enchantment descriptions",
+	"enchanting2.tooltip.inline_description": "%s: %s",
+	"enchanting2.tooltip.scroll_more": "Scroll to see the rest",
 	"enchanting2.ceiling.minecraft.protection": "Stops adding at 20: all armor enchantment protection caps at 20 points (80% less damage), and Protection gives 1 point per level on each piece.",
 	"enchanting2.ceiling.minecraft.fire_protection": "Stops adding at 10: 2 points per level toward the 20-point protection cap. Burning time is gone from VII.",
 	"enchanting2.ceiling.minecraft.blast_protection": "Stops adding at 10: 2 points per level toward the 20-point protection cap. Explosion knockback is gone from VII.",

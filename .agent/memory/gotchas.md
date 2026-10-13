@@ -542,3 +542,11 @@ textures.
 **Fix:** one `ColumnWindow.BOX` at x 173 for both screens; `ColumnWindowTest` now asserts the frame clears the
 inventory grid. Measure a texture over the rows the overlay actually covers. And never let an in-window box overlap
 a slot: vanilla's release handling acts on the slot under the mouse whatever the click handler did.
+
+## 2026-10-13 — The GameTest run's enchantment registry has test-only entries with no description
+**Symptom:** a client GameTest that put "the first 16 enchantments by ID" on a pickaxe expected each to get a Ctrl
+description and failed on "High Level (GameTest) I" and "Third Party (GameTest)".
+**Cause:** the gametest source set registers its own enchantments (data under src/gametest/resources), which have no
+`.desc` lang line; `EnchantmentDescriptionLangTest` only covers real ones.
+**Fix:** filter by `I18n.exists(DescriptionPlan.key(id))` when a test needs described enchantments.
+**Affects:** src/gametest/java/com/wulfnet/enchanting2/gametest/TooltipClientGameTest.java

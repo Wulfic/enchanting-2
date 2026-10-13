@@ -6,9 +6,11 @@
 		"AnvilScreenMixin",
 		"EnchantmentScreenMixin",
 		"GrindstoneScreenMixin",
+		"GuiGraphicsMixin",
 		"ItemCombinerScreenMixin",
 		"LocalPlayerMixin",
-		"MinecraftMixin"
+		"MinecraftMixin",
+		"MouseHandlerMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

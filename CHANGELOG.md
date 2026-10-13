@@ -3,6 +3,22 @@
 All notable changes to Enchanting 2. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- **Enchanting table:** a picked enchantment starts at level I (one above the item's own level when upgrading)
+  instead of the highest level the table sells. The level arrows still go up to it.
+- **Enchanting table:** the list's hover tooltips show an enchantment's description only while Ctrl is held, as item
+  tooltips do.
+- Network protocol 5: a 1.0.0 client can't join a server running this version, or the reverse (the table window's
+  slots changed).
+
+### Added
+- **Enchanting table:** the player's armor and offhand slots, beside the inventory.
+- **Tooltips:** with Ctrl held on an item with many enchantments, each description goes on its enchantment's line
+  when the usual layout wouldn't fit the screen. A tooltip taller than the screen (any item) now starts at its top
+  instead of cutting off the item's name, says "Scroll to see the rest", and scrolls with the mouse wheel.
+
 ## [1.0.0] - 2026-10-13
 
 First release, for Minecraft 1.21.11 (Fabric). Needed on both the server and the client.
