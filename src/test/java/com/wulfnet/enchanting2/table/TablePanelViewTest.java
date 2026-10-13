@@ -116,11 +116,15 @@ class TablePanelViewTest {
 		Entry efficiency = entries.get(0);
 		assertTrue(efficiency.selected() && efficiency.clickable());
 		assertEquals(OptionalLong.of(5), efficiency.row().amount(), "its own enchant line");
+		assertEquals(Optional.empty(), efficiency.priceNote(), "no surcharge, no note");
 		assertEquals(Optional.of(new Stepper(Msg.of(K + "row.level", new Arg.Level(5)), true, false)),
 				efficiency.stepper(), "at the top it only goes down");
 		assertEquals(Optional.of(new Stepper(Msg.of(K + "row.level", new Arg.Level(1)), false, false)),
 				entries.get(1).stepper(), "Mending has nowhere to go");
-		assertEquals(OptionalLong.of(2), entries.get(1).row().amount(), "the surcharge is a footer line, not the row's");
+		// Owner 2026-10-13: Mending's row shows its true cost with the other picks, not just its own 2.
+		assertEquals(OptionalLong.of(12), entries.get(1).row().amount(), "2 + 10 surcharge for Efficiency V");
+		assertEquals(Optional.of(Msg.of(K + "tooltip.surcharge", new Arg.Num(10), new Arg.Num(5))),
+				entries.get(1).priceNote(), "the tooltip says how much is for the other levels");
 
 		Entry middle = TablePanelView.entries(List.of(row(EFFICIENCY, 2, 5, 5, 3, TableRow.Status.OK)),
 				Optional.empty()).getFirst();
@@ -168,22 +172,32 @@ class TablePanelViewTest {
 
 	// --- footer ---
 
+	/** Mending already on the item, Efficiency V added: no Mending row to put its 10 in, so the footer has it. */
 	@Test
-	void footerHasTheSurchargeTotalsAndStatus() {
+	void anUnpickedEnchantmentsSurchargeIsAFooterLine() {
+		CostBreakdown cost = new CostBreakdown(List.of(new CostBreakdown.Line(Kind.ENCHANT, EFFICIENCY, 0, 5, 5),
+				new CostBreakdown.Line(Kind.SURCHARGE, MENDING, 0, 5, 10)), 15, 15, 15, false, false);
+		List<Row> footer = TablePanelView.footer(Status.OK, List.of(), Optional.empty(), Optional.of(cost), 20, 64,
+				OptionalInt.empty());
+		assertEquals(new Row(Msg.of(K + "line.surcharge", new Arg.Ench(MENDING)), OptionalLong.of(10), Tone.NORMAL,
+				false), footer.getFirst());
+	}
+
+	@Test
+	void footerHasTheTotalsAndStatusButNotTheSurchargeAlreadyInItsRow() {
 		List<Row> footer = TablePanelView.footer(Status.OK, List.of(), Optional.empty(),
 				Optional.of(seventeen(false, false)), 20, 64, OptionalInt.empty());
 		assertEquals(List.of(
-				new Row(Msg.of(K + "line.surcharge", new Arg.Ench(MENDING)), OptionalLong.of(10), Tone.NORMAL, false),
 				new Row(Msg.of(K + "total.levels"), OptionalLong.of(17), Tone.NORMAL, false),
 				new Row(Msg.of(K + "total.lapis"), OptionalLong.of(17), Tone.NORMAL, false, PanelText.Unit.LAPIS),
 				Row.of(Msg.of(K + "status.ready"), Tone.GOOD)), footer);
 
 		List<Row> poor = TablePanelView.footer(Status.OK, List.of(), Optional.empty(),
 				Optional.of(seventeen(false, false)), 3, 2, OptionalInt.empty());
-		assertEquals(Tone.BAD, poor.get(1).tone(), "levels short");
-		assertEquals(Tone.BAD, poor.get(2).tone(), "lapis short");
+		assertEquals(Tone.BAD, poor.get(0).tone(), "levels short");
+		assertEquals(Tone.BAD, poor.get(1).tone(), "lapis short");
 		assertEquals(Row.of(Msg.of(K + "status.insufficient_levels", new Arg.Num(17), new Arg.Num(3)), Tone.BAD),
-				poor.get(3), "levels are reported first");
+				poor.get(2), "levels are reported first");
 	}
 
 	@Test

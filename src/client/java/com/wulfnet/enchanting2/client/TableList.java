@@ -170,7 +170,7 @@ public final class TableList {
 
 	/**
 	 * Full name, the description (with Ctrl held, as on item tooltips; owner 2026-10-13) or the "hold Ctrl" hint, why it
-	 * can't be picked, and its price when picked.
+	 * can't be picked, and its price when picked (with how much of it is the surcharge for the other levels).
 	 */
 	private List<Component> tooltip(Entry entry, Function<Msg, Component> text) {
 		List<Component> lines = new ArrayList<>();
@@ -188,6 +188,7 @@ public final class TableList {
 		entry.reason().ifPresent(reason -> lines.add(text.apply(reason).copy().withStyle(ChatFormatting.RED)));
 		entry.row().amountText().ifPresent(amount -> lines.add(Component.translatable(TablePanelView.KEY
 				+ "tooltip.cost", text.apply(amount)).withStyle(ChatFormatting.GREEN)));
+		entry.priceNote().ifPresent(note -> lines.add(text.apply(note).copy().withStyle(ChatFormatting.GRAY)));
 		return lines;
 	}
 

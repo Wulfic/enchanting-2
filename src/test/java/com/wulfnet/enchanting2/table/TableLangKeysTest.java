@@ -58,18 +58,22 @@ class TableLangKeysTest {
 				rows.add(new TableRow("minecraft:e" + n++, current, 5, 4, current + 1, status, with));
 			}
 		}
-		CostBreakdown.Line[] all = {new CostBreakdown.Line(Kind.ENCHANT, "minecraft:e0", 0, 4, 4),
-				new CostBreakdown.Line(Kind.SURCHARGE, "minecraft:e0", 0, 4, 8),
+		// e1 is the first picked row, so its price (and surcharge note) shows.
+		CostBreakdown.Line[] all = {new CostBreakdown.Line(Kind.ENCHANT, "minecraft:e1", 0, 4, 4),
+				new CostBreakdown.Line(Kind.SURCHARGE, "minecraft:e1", 0, 4, 8),
+				// On the item already, so its surcharge has no picked row and is a footer line.
+				new CostBreakdown.Line(Kind.SURCHARGE, "minecraft:on_item", 3, 7, 4),
 				new CostBreakdown.Line(Kind.CURSE_DISCOUNT, "", 10, 10, -2)};
 		List<Optional<CostBreakdown>> costs = List.of(Optional.empty(),
-				Optional.of(new CostBreakdown(List.of(all), 10, 10, 10, false, false)),
-				Optional.of(new CostBreakdown(List.of(all), 10, 10, 10, true, false)),
-				Optional.of(new CostBreakdown(List.of(all), 10, 10, 10, false, true)));
+				Optional.of(new CostBreakdown(List.of(all), 14, 14, 14, false, false)),
+				Optional.of(new CostBreakdown(List.of(all), 14, 14, 14, true, false)),
+				Optional.of(new CostBreakdown(List.of(all), 14, 14, 14, false, true)));
 		List<Msg> messages = new ArrayList<>();
 		TablePanelView.entries(rows, costs.get(1)).stream().map(Entry::row).forEach(r -> messages.add(r.text()));
 		TablePanelView.entries(rows, costs.get(1)).forEach(e -> {
 			e.stepper().ifPresent(s -> messages.add(s.label()));
 			e.reason().ifPresent(messages::add);
+			e.priceNote().ifPresent(messages::add);
 		});
 		for (Status status : Status.values()) {
 			List<Optional<Invalid>> invalids = new ArrayList<>();
@@ -139,7 +143,8 @@ class TableLangKeysTest {
 	@Test
 	void theWalkReachesEveryStatusAndReason() {
 		Map<String, Integer> messages = everyMessage();
-		for (String key : List.of("row.name", "row.current", "row.level", "line.surcharge", "line.curse_discount",
+		for (String key : List.of("row.name", "row.current", "row.level", "tooltip.surcharge", "line.surcharge",
+				"line.curse_discount",
 				"total.levels", "total.lapis", "total.free_creative", "status.empty", "status.nothing", "status.pick",
 				"status.invalid", "status.too_expensive", "status.insufficient_levels", "status.insufficient_lapis",
 				"status.ready", "reason.needs_shelves", "reason.conflict", "reason.maxed", "reason.already_at_level",

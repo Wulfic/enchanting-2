@@ -371,6 +371,7 @@
 	"enchanting2.grindstone.tooltip.cost": "Costs %s",
 	"enchanting2.grindstone.status.insufficient": "Insufficient levels: requires %1$s (you have %2$s)",
 	"enchanting2.table.tooltip.cost": "Costs %s",
+	"enchanting2.table.tooltip.surcharge": "Includes %1$s for the %2$s other enchantment levels",
 	"enchanting2.amount.level": "%s level",
 	"enchanting2.amount.levels": "%s levels",
 	"enchanting2.amount.lapis": "%s lapis",

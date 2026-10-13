@@ -26,8 +26,9 @@ import java.util.function.Function;
  * What the enchanting table's list says about the server's preview (DESIGN §6, decisions.md 2026-10-07 "Enchanting
  * table", 2026-10-13 "table screen rework"): one entry per offered enchantment (picked ones with a level stepper and
  * their price, unpickable ones with the reason for their tooltip), and the breakdown behind the Enchant button: the
- * surcharge and curse lines, the totals and a status line. Pure, so every status is unit-tested; the client only draws
- * it and sends what a click changes.
+ * curse line, the totals and a status line. A picked row's price includes its own {@code other_levels_surcharge}, so
+ * Mending shows what it really costs with everything else picked (owner 2026-10-13, Phase 11c). Pure, so every status
+ * is unit-tested; the client only draws it and sends what a click changes.
  *
  * <p>Whether the player can enchant is re-derived from the price and the client's own levels and lapis
  * ({@link #ready}), not the server's status: the player may have gained levels or added lapis since it was sent. The
@@ -49,16 +50,26 @@ public final class TablePanelView {
 	 * @param selected picked in the server's selection
 	 * @param stepper  the level picker, on picked entries only
 	 * @param reason   why it can't be picked, or its pick is refused; shown in its tooltip
+	 * @param priceNote how much of its price is the surcharge for the item's other levels; shown in its tooltip
 	 */
-	public record Entry(String id, Row row, boolean selected, Optional<Stepper> stepper, Optional<Msg> reason) {
+	public record Entry(String id, Row row, boolean selected, Optional<Stepper> stepper, Optional<Msg> reason,
+			Optional<Msg> priceNote) {
 		public Entry {
 			Objects.requireNonNull(id, "id");
 			Objects.requireNonNull(row, "row");
 			Objects.requireNonNull(stepper, "stepper");
 			Objects.requireNonNull(reason, "reason");
+			Objects.requireNonNull(priceNote, "priceNote");
 			if (stepper.isPresent() && !selected) {
 				throw new IllegalArgumentException("only a picked entry has a stepper");
 			}
+			if (priceNote.isPresent() && row.amount().isEmpty()) {
+				throw new IllegalArgumentException("a price note needs a price");
+			}
+		}
+
+		public Entry(String id, Row row, boolean selected, Optional<Stepper> stepper, Optional<Msg> reason) {
+			this(id, row, selected, stepper, reason, Optional.empty());
 		}
 
 		/** A click acts on it: it picks, or (picked) unpicks. */
@@ -131,8 +142,14 @@ public final class TablePanelView {
 				Stepper stepper = new Stepper(Msg.of(KEY + "row.level", new Arg.Level(row.selectedLevel())),
 						row.selectedLevel() > row.currentLevel() + 1, row.selectedLevel() < row.maxSelectable());
 				Tone tone = row.ok() ? Tone.NORMAL : Tone.BAD;
-				entries.add(new Entry(row.id(), new Row(text, lineAmount(cost, row.id()), tone, false), true,
-						Optional.of(stepper), reason));
+				Optional<CostBreakdown.Line> surcharge = line(cost, CostBreakdown.Kind.SURCHARGE, row.id());
+				OptionalLong amount = line(cost, CostBreakdown.Kind.ENCHANT, row.id())
+						.map(l -> OptionalLong.of(l.amount() + surcharge.map(CostBreakdown.Line::amount).orElse(0L)))
+						.orElse(OptionalLong.empty());
+				Optional<Msg> note = amount.isPresent() ? surcharge.map(l -> Msg.of(KEY + "tooltip.surcharge",
+						new Arg.Num(l.amount()), new Arg.Num(l.to()))) : Optional.empty();
+				entries.add(new Entry(row.id(), new Row(text, amount, tone, false), true, Optional.of(stepper), reason,
+						note));
 			} else {
 				entries.add(new Entry(row.id(), Row.of(text, row.ok() ? Tone.NORMAL : Tone.MUTED), false,
 						Optional.empty(), reason));
@@ -142,7 +159,8 @@ public final class TablePanelView {
 	}
 
 	/**
-	 * The breakdown behind the Enchant button: surcharge and curse lines, the totals, and what happens on Enchant.
+	 * The breakdown behind the Enchant button: the curse line, the totals, and what happens on Enchant. A picked
+	 * enchantment's surcharge is in its row's price; one already on the item gets a line here.
 	 *
 	 * @param playerLevel          the player's XP level now
 	 * @param lapisCount           lapis in the table's slot now
@@ -156,12 +174,18 @@ public final class TablePanelView {
 			CostBreakdown price = cost.get();
 			for (CostBreakdown.Line line : price.lines()) {
 				switch (line.kind()) {
-					case SURCHARGE -> footer.add(new Row(Msg.of(KEY + "line.surcharge", new Arg.Ench(line.id())),
-							OptionalLong.of(line.amount()), Tone.NORMAL, false));
+					// Only an enchantment already on the item (Mending, when something else is added) has a surcharge
+					// with no picked row to show it in.
+					case SURCHARGE -> {
+						if (line(cost, CostBreakdown.Kind.ENCHANT, line.id()).isEmpty()) {
+							footer.add(new Row(Msg.of(KEY + "line.surcharge", new Arg.Ench(line.id())),
+									OptionalLong.of(line.amount()), Tone.NORMAL, false));
+						}
+					}
 					case CURSE_DISCOUNT -> footer.add(new Row(Msg.of(KEY + "line.curse_discount",
 							new Arg.Num(line.to())), OptionalLong.of(line.amount()), Tone.GOOD, false));
 					case ENCHANT, RENAME, REPAIR -> {
-						// Enchant lines are on their rows; the table never renames or repairs.
+						// Enchant lines are in their rows' prices; the table never renames or repairs.
 					}
 				}
 			}
@@ -252,9 +276,7 @@ public final class TablePanelView {
 		return Msg.of(KEY + "reason." + status.name().toLowerCase(Locale.ROOT));
 	}
 
-	private static OptionalLong lineAmount(Optional<CostBreakdown> cost, String id) {
-		return cost.flatMap(c -> c.lines().stream()
-				.filter(l -> l.kind() == CostBreakdown.Kind.ENCHANT && l.id().equals(id)).findFirst())
-				.map(l -> OptionalLong.of(l.amount())).orElse(OptionalLong.empty());
+	private static Optional<CostBreakdown.Line> line(Optional<CostBreakdown> cost, CostBreakdown.Kind kind, String id) {
+		return cost.flatMap(c -> c.lines().stream().filter(l -> l.kind() == kind && l.id().equals(id)).findFirst());
 	}
 }
