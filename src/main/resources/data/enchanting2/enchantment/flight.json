@@ -1,0 +1,27 @@
+{
+  "anvil_cost": 4,
+  "description": {
+    "translate": "enchantment.enchanting2.flight"
+  },
+  "effects": {
+    "enchanting2:flight_thrust": {
+      "type": "minecraft:linear",
+      "base": 0.2,
+      "per_level_above_first": 0.2
+    }
+  },
+  "max_cost": {
+    "base": 25,
+    "per_level_above_first": 8
+  },
+  "max_level": 5,
+  "min_cost": {
+    "base": 5,
+    "per_level_above_first": 8
+  },
+  "slots": [
+    "chest"
+  ],
+  "supported_items": "#enchanting2:enchantable/elytra",
+  "weight": 2
+}

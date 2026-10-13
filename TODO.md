@@ -1949,6 +1949,34 @@ the look; Speed XX's glide is X's. JUnit: the drag mapping and cap, the price. M
   green. Mutations (two runs): the glide hook, the rocket hook and the X cap each fail their tests. Owner `runClient`:
   gliding with Speed V vs a plain elytra over a long flat, a rocket boost, and that the server never pulls you back.
 
+#### 10cGB — Flight  ✅ 2026-10-13
+**Owner (decisions.md "10c order and eight design answers"):** while gliding, holding jump gives steady forward
+thrust growing per level (V ≈ one rocket); 1 elytra durability per second of thrust; Speed scales it; takeoff vanilla.
+**Hooks (javap 1.21.11):** no new packet: 1.21.2+ sends the client's input, so the server reads
+`ServerPlayer.getLastClientInput().jump()`, and the client's `LivingEntity.isJumping()` is the jump key
+(`LocalPlayer.aiStep`).
+- Thrust (both sides, in the glide): the existing wrap on `updateFallFlyingMovement`'s drag adds look × thrust before
+  the drag when a player holds jump: `enchanting2:flight_thrust` (LevelBasedValue 0.0034/level, so V settles near a
+  rocket's 1.7 blocks/tick: a × 0.99 / 0.01). Speed's eased drag multiplies it for free.
+- Durability (server): `@Inject` at `LivingEntity.updateFallFlying` TAIL (vanilla's server-side elytra tick): while
+  still gliding with jump held and a Flight item worn, a `@Unique` counter; every 20 such ticks, 1 durability off that
+  item (`hurtAndBreak`, Unbreaking applies), on top of vanilla's own 1 per second.
+**Data:** `flight.json` (V, `#enchanting2:enchantable/elytra`, chest, weight 2, Clarity costs), ceiling none (thrust
+keeps adding; Speed's cap doesn't bound it: **agent**, soft 10 to keep it inside the movement check, recorded), tags,
+lang.
+**Tests (GameTest, mock players, vanilla's own methods through invokers):** level flight for 2000 glide ticks: Flight V
+holding jump settles between 1.4 and 2.2 blocks/tick and well above the same glide without jump; Speed V + Flight V
+settles about 1.5× faster than Flight V alone; 40 server elytra ticks holding jump cost 2 durability, without jump 0.
+Mutation run.
+- ✅ 2026-10-13: 366 JUnit + 321 GameTests (`ElytraGameTest`, four) + client GameTests green. **Changed from the plan:**
+  a constant force can't be "about a rocket": it overshot level flight (3.19 vs a rocket's 1.67 blocks a tick) and
+  couldn't climb (0.71 vs 1.53 at 20°), because a rocket is a velocity pull, not a force. Flight is now a share of the
+  rocket's own step per tick (0.2 × level), V exactly a rocket; worked through in a scratch simulation of vanilla's glide
+  and recorded in decisions.md with the alternatives. The test climbs at 20° (Flight V 1.66, like a rocket; a glide
+  alone 0.38). The durability test needed a survival mock player (`hurtAndBreak` skips creative). Mutations (three
+  runs): the push, the durability, Speed's factor and the X cap each fail their test. Owner `runClient`: holding jump
+  while gliding at I, III and V (does I feel too close to V?), climbing, the durability drain.
+
 ### Phase 10e — Curses (three stages, one commit each)
 **Goal:** five new curses, each with a GameTest that fails if its effect breaks, and a per-level curse discount.
 **Not doing:** Hunger on held items (owner: armor only); changing Binding/Vanishing (stay level 1, 10%); curses on

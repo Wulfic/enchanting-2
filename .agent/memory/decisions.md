@@ -1172,3 +1172,16 @@ for the HUD; an anvil-land "clang" plays on a save.
 **Rejected:** Absorption II like the totem (owner said brief); letting the cooldown reach 0; a players-only rule; a
 transient cooldown (a relog would reset it).
 **Affects:** combat/LastStand, combat/LastStandClock, effect/LastStandEffect, config/LastStandSection, client/LastStandHud
+
+## 2026-10-13 — Flight is a share of a rocket's step per tick, not a constant force (agent, 10cGB; owner to confirm)
+**Context:** owner: "steady forward thrust growing per level, V ≈ one rocket". A scratch simulation of vanilla's glide
+(`updateFallFlyingMovement`) and rocket step (pull toward 1.5 × look by half the gap, + 0.1 × look) settled numbers:
+level flight: glide alone 1.52, rocket 1.67 blocks/tick; climbing at 20°: glide alone 0.38, rocket 1.66.
+**Choice:** each tick with jump held, Flight applies 0.2 × level of the rocket's own step (V = exactly a rocket; Speed
+scales the target like a rocket's; capped at X, where share 2 reaches the target in one tick). Results: V 1.67 level,
+1.66 climbing; I reaches nearly the same cruise (1.62 level, 1.50 climbing) but more slowly.
+**Rejected:** a constant push along the look (V: 3.19 in level flight, only 1.04 climbing at 10°: neither is a rocket);
+a level-scaled target with the full pull (brakes a coasting glider: I made you slower than not thrusting); an
+add-only push along the look with a level-scaled target (good progression, but V climbs 2.5× harder than a rocket).
+If the owner wants levels to differ more in cruise, that last one plus a perpendicular damping is the next candidate.
+**Affects:** elytra/Flight, mixin/LivingEntityMixin

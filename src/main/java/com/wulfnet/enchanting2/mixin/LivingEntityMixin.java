@@ -12,6 +12,7 @@ import com.wulfnet.enchanting2.drops.DropRedirect;
 import com.wulfnet.enchanting2.effect.Footing;
 import com.wulfnet.enchanting2.effect.Lifesteal;
 import com.wulfnet.enchanting2.effect.WornEffects;
+import com.wulfnet.enchanting2.elytra.Flight;
 import com.wulfnet.enchanting2.elytra.GlideMath;
 import com.wulfnet.enchanting2.elytra.GlideSpeed;
 import com.wulfnet.enchanting2.shield.ShieldEffects;
@@ -180,14 +181,30 @@ abstract class LivingEntityMixin implements ShieldState {
 
 	/**
 	 * Phase 10cGA, Speed: the glide's horizontal air drag sets its top speed, so easing it by the Speed factor raises
-	 * that top speed by the same factor; the vertical drag, and so dives, stay vanilla. Both sides.
+	 * that top speed by the same factor; the vertical drag, and so dives, stay vanilla. Phase 10cGB, Flight: holding
+	 * jump pushes along the look before the drag, so Speed scales the thrust too. Both sides.
 	 */
 	@WrapOperation(method = "updateFallFlyingMovement", at = @At(value = "INVOKE",
 			target = "Lnet/minecraft/world/phys/Vec3;multiply(DDD)Lnet/minecraft/world/phys/Vec3;"))
 	private Vec3 enchanting2$glideSpeed(Vec3 velocity, double x, double y, double z, Operation<Vec3> original) {
-		double factor = GlideSpeed.factor((LivingEntity) (Object) this);
-		return factor == 1.0 ? original.call(velocity, x, y, z)
-				: original.call(velocity, GlideMath.drag(x, factor), y, GlideMath.drag(z, factor));
+		LivingEntity self = (LivingEntity) (Object) this;
+		Vec3 pushed = Flight.push(self, velocity);
+		double factor = GlideSpeed.factor(self);
+		return factor == 1.0 ? original.call(pushed, x, y, z)
+				: original.call(pushed, GlideMath.drag(x, factor), y, GlideMath.drag(z, factor));
+	}
+
+	/** Thrust ticks so far, for Flight's 1 durability per second (Phase 10cGB). */
+	@Unique
+	private int enchanting2$thrustTicks;
+
+	/** Phase 10cGB, Flight: vanilla's server-side elytra tick; thrusting costs the elytra a point per second too. */
+	@Inject(method = "updateFallFlying", at = @At("TAIL"))
+	private void enchanting2$flightDurability(CallbackInfo ci) {
+		LivingEntity self = (LivingEntity) (Object) this;
+		if (Flight.thrusting(self)) {
+			Flight.wear(self, ++enchanting2$thrustTicks);
+		}
 	}
 
 	/**

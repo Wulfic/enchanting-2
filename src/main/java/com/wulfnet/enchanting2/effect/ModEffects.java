@@ -92,6 +92,9 @@ public final class ModEffects {
 	/** Extra elytra flight speed as a fraction, gliding and rocket boosts (Speed, Phase 10c). */
 	public static final DataComponentType<LevelBasedValue> GLIDE_SPEED = register("glide_speed",
 			LevelBasedValue.CODEC);
+	/** Share of a firework rocket's boost each tick while gliding with jump held, 1 = a rocket (Flight, Phase 10c). */
+	public static final DataComponentType<LevelBasedValue> FLIGHT_THRUST = register("flight_thrust",
+			LevelBasedValue.CODEC);
 	/** Entity effect for {@code minecraft:projectile_spawned}: the arrow ignores gravity for a while (TrueShot Aura). */
 	public static final MapCodec<SuspendGravity> SUSPEND_GRAVITY = Registry.register(
 			BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE,
@@ -109,7 +112,7 @@ public final class ModEffects {
 						BLOCK_RETALIATION, BLOCK_ABSORPTION, RIPOSTE, DEFLECT_CHANCE, STEADY_STANCE,
 						SHIELD_BASH, DROPS_TO_INVENTORY, DROPS_TO_ENDER_CHEST, EXPERIENCE_TO_PLAYER, KEEP_ON_DEATH,
 						AREA_MINING, REPLANT, TILL_RADIUS, EXTRA_HIT_CHANCE,
-						LAST_STAND, GLIDE_SPEED)
+						LAST_STAND, GLIDE_SPEED, FLIGHT_THRUST)
 						.map(ModEffects::key).toList(),
 				BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE.getKey(SUSPEND_GRAVITY));
 		SuspendGravity.register();
