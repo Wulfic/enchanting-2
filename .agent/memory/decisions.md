@@ -1055,3 +1055,10 @@ distance only; Clarity players-only or capping infinite effects at I/II; Flight 
 hover; Keep on Death costing durability or one use; Quick Strike at half damage or as a full second hit; Last Stand
 off in PvP.
 **Affects:** docs/DESIGN.md §9, TODO 10c
+
+## 2026-10-12 — Lava Walking: fall damage on landing, normal speed on the surface (owner, 10cB)
+**Context:** DESIGN §9 said falling onto lava "lands on the surface" without saying what the landing or walking costs.
+**Choice (owner):** the surface is a floor: landing on it from a height takes normal fall damage (Feather Falling
+applies), then the usual lava burn; walking on it is normal ground speed.
+**Rejected:** lava cushioning a fall like water; a soul-sand-like slowdown on the surface.
+**Affects:** docs/DESIGN.md §9, TODO 10cB
