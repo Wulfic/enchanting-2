@@ -91,14 +91,12 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
   right at x 173): client `AnvilBox`, `GrindstoneList`, `CostLabel`; shared `ScrollModel`, `PickerStyle`, `ScrollBar`,
   `WindowBackground`; `ItemCombinerScreenMixin` draws the anvil background. `SidePanel`, `SidePanelLayout`,
   `AnvilPanelTab` and client.json5 `anvil.show_preview_panel` gone. Table 10l v2 accepted by the owner.
+- 10oD (2026-10-13): owner keeps the anvil's wrap; grindstone picks wrap onto more lines instead of "…".
 - Tests: 399 JUnit + 329 GameTests (`./gradlew build`) + 7 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Next: the owner's look at the anvil and grindstone windows in `runClient` (10o; screenshots
-   `enchanting2-anvil-*`, `enchanting2-grindstone-*` in `build/run/clientGameTest/screenshots/`). Open for the owner:
-   the anvil's amounts drop under a row's text when they don't fit beside it ("5 lvl" like the table would keep one
-   line); grindstone rows cut long names ("Disenchant (XP ba…") with the full text in the tooltip. Then Phase 11
-   (README is still the template line). A new enchantment still adds a `LevelCeilings` row, a `.desc` line, tags, a
+1. Next: Phase 11 (owner 2026-10-13: README for players and modpack makers, version 1.0.0). The owner's
+   `runClient` look at the 10o windows is still open (screenshots `enchanting2-anvil-*`, `enchanting2-grindstone-*`). A new enchantment still adds a `LevelCeilings` row, a `.desc` line, tags, a
    price row if single-level, docs rows.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
    ~1,000,000) + 6D: panel look, config screen "Display" toggle, and a vanilla server keeping the vanilla anvil screen +

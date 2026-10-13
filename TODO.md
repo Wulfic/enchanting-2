@@ -1629,6 +1629,22 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       Each stage is one commit on main → `git revert <sha>` (oB and oC revert independently; reverting oA needs oB and
       oC reverted first). client.json5: nothing rewrites it on load; a config-screen save after oB drops the old
       `anvil` section, `.bak` written first; reverted code reads the missing key as its default (`true`).
+- [x] 10oD Grindstone picks wrap (owner 2026-10-13: "Wrap to two lines" over cut + tooltip; anvil keeps its wrap).
+      ✅ 2026-10-13: build + client GameTests green; new step `longPicksWrap` (Disenchant, the curse note with a book,
+      Sharpness V stays one line); screenshot `enchanting2-grindstone-wrapped`. The price's column narrows every line,
+      so "Curse of Vanishing" with a price takes two.
+      **Goal:** a pick whose name doesn't fit beside its price wraps onto more 10 px lines instead of ending in "…".
+      **Approach:** `GrindstoneList` places each pick at `TEXT_Y + lines × TEXT_LINE` tall (one line = today's 12),
+      split by `font.split` at the width left of the price; price on the first line; hover, click and `rowCenterY` use
+      the placed height. Headings keep `fit` (all short). No line cap: most long picks take two lines, the curse note
+      ("… (a curse: can't be extracted)") may take three.
+      - [x] 1. `client/GrindstoneList`: variable pick height, wrapped name lines, `pickLines(choice)` for the test.
+      - [x] 2. `GrindstoneScreenAccess` + `GrindstoneScreenMixin`: `enchanting2$pickLines(choice)`.
+      - [x] 3. `GrindstoneScreenClientGameTest`: the Disenchant pick ("Disenchant (XP back)", cut today) draws on 2+
+            lines, together its full text, and no pick line ends in "…"; the curse-note pick with a book wraps too.
+      - [x] 4. `./gradlew build` + `./gradlew runClientGameTest`; DESIGN §6 grindstone line; state.md.
+      **Not doing:** anvil (owner keeps its wrap), headings, the table, a config option, server code.
+      **Blast radius:** none: client drawing only, additive. **Rollback:** `git revert <sha>`.
 - [x] 10d Balance pass: every candidate moves from REVIEW to INCLUDE/DEFER/REMOVE  ✅ 2026-10-13 (owner ruled R1, R2, R3,
       R5 as drafted and R4 for Health and Last Stand only; everything else INCLUDE. New GameTests: the two treasure ones
       tagged like Mending and needing 15 shelves; JUnit Flight 6/level; the tag JUnit failed red before its update)

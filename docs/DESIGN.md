@@ -496,8 +496,8 @@ pick with its price:
 - The window is 296 × 166 like the anvil's (10o, owner 2026-10-13): vanilla's part untouched,
   the picker in a box running the full height of the new right column, rows in the enchanting
   table's style (beige, pink when picked, dark for a curse or a book's only entry, which can only
-  be refused), "5 lvl" prices, a scroll bar, and hover tooltips with the enchantment's
-  description and price. The price of the pick (cost, free, gives XP back, insufficient, too
+  be refused), "5 lvl" prices, a long name wrapped onto more lines rather than cut (10oD, owner
+  2026-10-13), a scroll bar, and hover tooltips with the enchantment's description and price. The price of the pick (cost, free, gives XP back, insufficient, too
   expensive) is drawn where the anvil's cost label is; what to do next ("Pick an action above.")
   is the list's last line. Vanilla's red X shows only when the server refuses something, not
   while it waits for a pick.

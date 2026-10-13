@@ -257,6 +257,11 @@ abstract class GrindstoneScreenMixin extends AbstractContainerScreen<GrindstoneM
 	}
 
 	@Override
+	public List<String> enchanting2$pickLines(GrindstoneChoice choice) {
+		return enchanting2$list != null ? enchanting2$list.pickLines(choice) : List.of();
+	}
+
+	@Override
 	public int enchanting2$listLeft() {
 		return enchanting2$list != null ? enchanting2$list.left() : 0;
 	}

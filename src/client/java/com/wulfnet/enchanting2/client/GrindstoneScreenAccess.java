@@ -23,6 +23,9 @@ public interface GrindstoneScreenAccess {
 	/** Screen Y of the row that picks {@code choice}, as last drawn; empty when it isn't in view. */
 	OptionalInt enchanting2$rowY(GrindstoneChoice choice);
 
+	/** The lines the row that picks {@code choice} wraps onto, as last drawn; empty when it isn't in the list. */
+	List<String> enchanting2$pickLines(GrindstoneChoice choice);
+
 	/** @return the list's interior left edge on screen */
 	int enchanting2$listLeft();
 

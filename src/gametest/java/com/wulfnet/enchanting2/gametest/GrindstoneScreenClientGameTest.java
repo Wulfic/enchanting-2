@@ -69,6 +69,7 @@ public class GrindstoneScreenClientGameTest implements FabricClientGameTest {
 			context.waitTick();
 			extractThroughTheList(context, world);
 			cursedItemGetsACleanseRow(context, world);
+			longPicksWrap(context, world);
 			listClickKeepsTheCarriedItem(context, world);
 			closingClearsThePanel(context);
 		}
@@ -229,6 +230,36 @@ public class GrindstoneScreenClientGameTest implements FabricClientGameTest {
 				.map(GrindstoneOption::cost).orElse(-1));
 		check(cost == 30, "Cleanse costs removal_min_cost 30, got " + cost);
 		context.takeScreenshot("enchanting2-grindstone-cleanse");
+	}
+
+	/**
+	 * The cursed sword from {@link #cursedItemGetsACleanseRow}: "Disenchant (XP back)" and, with a book in, the curse's
+	 * "(a curse: can't be extracted)" note don't fit one 108 px line, so they wrap whole instead of ending in "…" (10oD).
+	 */
+	private static void longPicksWrap(ClientGameTestContext context, TestSingleplayerContext world) {
+		checkWraps(context, GrindstoneChoice.of(GrindstoneAction.DISENCHANT),
+				Component.translatable("enchanting2.grindstone.row.disenchant").getString());
+		context.takeScreenshot("enchanting2-grindstone-wrapped");
+
+		world.getServer().runOnServer(server -> serverMenu(server).getSlot(GrindstoneMenu.ADDITIONAL_SLOT)
+				.set(new ItemStack(Items.BOOK)));
+		context.waitTicks(2);
+		checkWraps(context, GrindstoneChoice.of(GrindstoneAction.EXTRACT, "minecraft:vanishing_curse"),
+				Component.translatable("enchanting2.grindstone.row.curse", "Curse of Vanishing").getString());
+		List<String> sharpness = screen(context, access -> access.enchanting2$pickLines(EXTRACT_SHARPNESS));
+		check(sharpness.equals(List.of("Sharpness V")), "a short pick keeps one line: " + sharpness);
+		world.getServer().runOnServer(server -> serverMenu(server).getSlot(GrindstoneMenu.ADDITIONAL_SLOT)
+				.set(ItemStack.EMPTY));
+		context.waitTicks(2);
+	}
+
+	private static void checkWraps(ClientGameTestContext context, GrindstoneChoice choice, String full) {
+		List<String> lines = screen(context, access -> access.enchanting2$pickLines(choice));
+		check(lines.size() >= 2, "'" + full + "' wraps: " + lines);
+		check(lines.stream().noneMatch(line -> line.endsWith("…")), "no line is cut: " + lines);
+		check(String.join("", lines).replace(" ", "").equals(full.replace(" ", "")),
+				"the lines hold all of '" + full + "': " + lines);
+		check(screen(context, access -> access.enchanting2$rowY(choice)).isPresent(), "'" + full + "' is in view");
 	}
 
 	/** The list is inside the window, so vanilla never counts a click on it as outside and throws the carried item. */

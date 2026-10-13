@@ -24,14 +24,14 @@ import net.minecraft.util.FormattedCharSequence;
 /**
  * The grindstone's picker in the window's right column (TODO 10o; replaces Stage 6bC's side panel): headings in tan,
  * one row per pick in the enchanting table's row style ({@link PickerStyle}: beige, pink when picked, dark when it can
- * only be refused), and the instruction at the bottom, wrapped. Scrolls when it's taller than the window; hovering a
- * pick shows its full text, what the enchantment does and its price.
+ * only be refused), a long pick wrapped onto more lines (10oD), and the instruction at the bottom, wrapped. Scrolls
+ * when it's taller than the window; hovering a pick shows its full text, what the enchantment does and its price.
  */
 public final class GrindstoneList {
 	private static final ColumnWindow.Box BOX = ColumnWindow.BOX;
-	/** A heading or a pick. */
+	/** A heading or a one-line pick. */
 	private static final int ROW = 12;
-	/** A wrapped instruction line. */
+	/** A wrapped pick or instruction line. */
 	private static final int TEXT_LINE = 10;
 	private static final int PADDING = 4;
 	private static final int TEXT_Y = 2;
@@ -44,7 +44,7 @@ public final class GrindstoneList {
 		STATUS
 	}
 
-	/** An item's place in the whole list, before scrolling; {@code lines} only for the status. */
+	/** An item's place in the whole list, before scrolling; {@code lines} for a pick's name and the status. */
 	private record Placed(int index, Kind kind, int top, int height, List<FormattedCharSequence> lines) {
 		/** A muted pick (a curse to extract, the only entry on a book) can only be refused, so it isn't offered. */
 		boolean clickable(Item item) {
@@ -83,8 +83,11 @@ public final class GrindstoneList {
 			Component component = text.apply(item.row().text());
 			texts.add(component.getString());
 			if (item.choice().isPresent()) {
-				next.add(new Placed(i, Kind.PICK, y, ROW, List.of()));
-				y += ROW;
+				List<FormattedCharSequence> lines = font.split(Component.literal(component.getString()),
+						pickTextWidth(item));
+				int height = TEXT_Y + lines.size() * TEXT_LINE;
+				next.add(new Placed(i, Kind.PICK, y, height, lines));
+				y += height;
 			} else if (i < items.size() - 1) {
 				next.add(new Placed(i, Kind.HEADING, y, ROW, List.of()));
 				y += ROW;
@@ -120,8 +123,7 @@ public final class GrindstoneList {
 						lineY += TEXT_LINE;
 					}
 				}
-				case PICK -> drawPick(graphics, p, item, texts.get(p.index()), rowY,
-						hovered.equals(OptionalInt.of(p.index())));
+				case PICK -> drawPick(graphics, p, item, rowY, hovered.equals(OptionalInt.of(p.index())));
 			}
 		}
 		graphics.disableScissor();
@@ -139,33 +141,43 @@ public final class GrindstoneList {
 		}
 	}
 
-	/** One pick: its name, cut to fit, and its price at the right ("5 lvl", as the table's rows). */
-	private void drawPick(GuiGraphics graphics, Placed p, Item item, String name, int y, boolean hover) {
+	/** One pick: its name, wrapped, and its price at the right of the first line ("5 lvl", as the table's rows). */
+	private void drawPick(GuiGraphics graphics, Placed p, Item item, int y, boolean hover) {
 		boolean clickable = p.clickable(item);
 		PickerStyle.Palette palette = item.selected() ? PickerStyle.PICKED
 				: !clickable ? PickerStyle.DISABLED
 				: hover ? PickerStyle.HOVERED
 				: PickerStyle.NORMAL;
 		int right = left + BOX.rowWidth();
-		PickerStyle.row(graphics, palette, left, y, right, ROW);
-		int nameRight = right - PADDING;
-		if (item.row().amount().isPresent()) {
-			String cost = Component.translatable(GrindstonePanelView.KEY + "row.cost", item.row().amount().getAsLong())
-					.getString();
-			int costX = right - PADDING - font.width(cost);
-			graphics.drawString(font, cost, costX, y + TEXT_Y, item.row().tone() == Tone.BAD ? PickerStyle.BAD
-					: PickerStyle.PRICE, true);
-			nameRight = costX - PADDING;
-		}
+		PickerStyle.row(graphics, palette, left, y, right, p.height());
+		costText(item).ifPresent(cost -> graphics.drawString(font, cost, right - PADDING - font.width(cost), y + TEXT_Y,
+				item.row().tone() == Tone.BAD ? PickerStyle.BAD : PickerStyle.PRICE, true));
 		int color = item.row().tone() == Tone.BAD ? PickerStyle.BAD
 				: !clickable ? PickerStyle.LABEL_DISABLED
 				: item.selected() ? PickerStyle.LABEL_HOVERED
 				: PickerStyle.LABEL;
-		graphics.drawString(font, fit(name, nameRight - left - PADDING), left + PADDING, y + TEXT_Y, color,
-				item.selected());
+		int lineY = y + TEXT_Y;
+		for (FormattedCharSequence line : p.lines()) {
+			graphics.drawString(font, line, left + PADDING, lineY, color, item.selected());
+			lineY += TEXT_LINE;
+		}
 		if (hover && clickable) {
 			graphics.requestCursor(CursorTypes.POINTING_HAND);
 		}
+	}
+
+	/** The price drawn at a pick's right ("5 lvl"), if it has one. */
+	private static Optional<String> costText(Item item) {
+		return item.row().amount().isPresent()
+				? Optional.of(Component.translatable(GrindstonePanelView.KEY + "row.cost", item.row().amount().getAsLong())
+						.getString())
+				: Optional.empty();
+	}
+
+	/** The width a pick's name wraps at: the row less its padding and, on every line, the price's column. */
+	private int pickTextWidth(Item item) {
+		int width = BOX.rowWidth() - 2 * PADDING;
+		return costText(item).map(cost -> width - font.width(cost) - PADDING).orElse(width);
 	}
 
 	/** Full text, what the enchantment does, and the price. */
@@ -268,11 +280,30 @@ public final class GrindstoneList {
 		for (Placed p : placed) {
 			if (p.kind() == Kind.PICK && items.get(p.index()).choice().equals(Optional.of(choice))) {
 				int viewTop = p.top() - scrolling.scroll();
-				return viewTop >= 0 && viewTop + ROW <= ColumnWindow.BOX_HEIGHT
-						? OptionalInt.of(top + viewTop + ROW / 2) : OptionalInt.empty();
+				return viewTop >= 0 && viewTop + p.height() <= ColumnWindow.BOX_HEIGHT
+						? OptionalInt.of(top + viewTop + p.height() / 2) : OptionalInt.empty();
 			}
 		}
 		return OptionalInt.empty();
+	}
+
+	/** The lines the pick for {@code choice} was drawn on, as last drawn; empty when it isn't in the list. */
+	public List<String> pickLines(GrindstoneChoice choice) {
+		for (Placed p : placed) {
+			if (p.kind() == Kind.PICK && items.get(p.index()).choice().equals(Optional.of(choice))) {
+				return p.lines().stream().map(GrindstoneList::plain).toList();
+			}
+		}
+		return List.of();
+	}
+
+	private static String plain(FormattedCharSequence line) {
+		StringBuilder text = new StringBuilder();
+		line.accept((index, style, codePoint) -> {
+			text.appendCodePoint(codePoint);
+			return true;
+		});
+		return text.toString();
 	}
 
 	public int left() {
