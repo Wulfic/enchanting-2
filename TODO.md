@@ -1924,6 +1924,31 @@ cooling down. Mutation run.
   Phase 10cF complete. Owner `runClient`: a Last Stand chestplate in a fight (the save, the sound, the HUD timer), a
   totem in hand (fires first), the "Last Stand in PvP" toggle.
 
+### Stage 10cG — elytra and boots movement: Speed (GA), Flight (GB), Double Jump (GC); one commit each
+
+#### 10cGA — Speed  ✅ 2026-10-13
+**Owner (DESIGN §9, 2026-10-10):** elytra, V; +10% flight speed per level (V +50%), gliding and firework boosts; costs
+6 per level.
+**Hooks (javap 1.21.11):** both run on the client for its own player (and on the server for anything else), so the
+enchantment's synced data drives both sides.
+- Glide: `LivingEntity.updateFallFlyingMovement` ends with `multiply(0.99, 0.98, 0.99)`, the air drag that sets the
+  top speed (v* ∝ d / (1 − d)). `@WrapOperation` on that call: horizontal drag `1 − (1 − d) / k`, k = 1 + the worn
+  `enchanting2:glide_speed` sum, so the top horizontal glide speed scales by k; vertical untouched (dives stay vanilla).
+- Rockets: `FireworkRocketEntity.tick` sets its flyer's velocity to `v + look × 0.1 + (look × 1.5 − v) × 0.5`, which
+  settles at 1.7 blocks/tick along the look. `@ModifyArg` on that `setDeltaMovement`: + look × 0.85 × (k − 1), so it
+  settles at 1.7 × k.
+- The bonus stops adding at +100% (level X, double speed; soft ceiling 10), so a raised max level stays far inside
+  the server's moved-too-quickly check for gliders (√300 ≈ 17 blocks in one tick). **Agent**, recorded.
+**Data:** `speed.json` (V, new item tag `enchanting2:enchantable/elytra` = `minecraft:elytra`, chest slot, weight 2,
+Clarity costs, `glide_speed` linear 0.1/level), `PricingTable` row `Pricing(0, 6, LEVEL_DIFFERENCE, 0, 10)` (owner;
+JUnit: V = 30, II → V = 18), `LevelCeilings` soft 10, tags, lang.
+**Tests:** GameTest: 400 ticks of the real glide formula (invoker) from rest at a shallow dive, Speed V's horizontal
+speed is 1.5× the plain elytra's within 2%; one rocket tick on a gliding mock player gives 0.85 × 1.5 vs 0.85 along
+the look; Speed XX's glide is X's. JUnit: the drag mapping and cap, the price. Mutation run.
+- ✅ 2026-10-13: 366 JUnit (`GlideMathTest`, Speed's price) + 319 GameTests (`ElytraGameTest`, two) + client GameTests
+  green. Mutations (two runs): the glide hook, the rocket hook and the X cap each fail their tests. Owner `runClient`:
+  gliding with Speed V vs a plain elytra over a long flat, a rocket boost, and that the server never pulls you back.
+
 ### Phase 10e — Curses (three stages, one commit each)
 **Goal:** five new curses, each with a GameTest that fails if its effect breaks, and a per-level curse discount.
 **Not doing:** Hunger on held items (owner: armor only); changing Binding/Vanishing (stay level 1, 10%); curses on

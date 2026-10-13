@@ -35,6 +35,7 @@ public final class PricingTable {
 	static final Map<String, Pricing> BUILT_IN = Map.ofEntries(
 			Map.entry("minecraft:mending", new Pricing(2, 0, UpgradeMode.LEVEL_DIFFERENCE, 2, 10)),
 			Map.entry("minecraft:frost_walker", new Pricing(0, 2, UpgradeMode.LEVEL_DIFFERENCE, 0, 10)),
+			Map.entry("enchanting2:speed", new Pricing(0, 6, UpgradeMode.LEVEL_DIFFERENCE, 0, 10)),
 			Map.entry("minecraft:aqua_affinity", SINGLE_LEVEL),
 			Map.entry("minecraft:silk_touch", SINGLE_LEVEL),
 			Map.entry("minecraft:flame", SINGLE_LEVEL),

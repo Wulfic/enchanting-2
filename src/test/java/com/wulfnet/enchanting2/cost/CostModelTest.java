@@ -93,6 +93,13 @@ class CostModelTest {
 		assertEquals(10, CostModel.extractCost(SILK_TOUCH, 1, PricingTable.builtIn(), IS_CURSE));
 	}
 
+	/** Owner, 2026-10-10: Speed V costs 30, an upgrade from II to V 18. */
+	@Test
+	void speedSixPerLevel() {
+		assertEquals(30, cost(Map.of(), Map.of("enchanting2:speed", 5)));
+		assertEquals(18, cost(Map.of("enchanting2:speed", 2), Map.of("enchanting2:speed", 5)));
+	}
+
 	@Test
 	void frostWalkerTwoPerLevel() {
 		assertEquals(10, cost(Map.of(), Map.of(FROST_WALKER, 5)));

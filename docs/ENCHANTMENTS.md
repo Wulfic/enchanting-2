@@ -97,7 +97,7 @@ The four protections can all share one piece in this mod (vanilla allows only on
 | Enchantment | Max | Cost | Fits | What it does | Status |
 |---|---|---|---|---|---|
 | Flight | 5 | 1/lvl | elytra | powered flight without fireworks | Planned |
-| Speed | 5 | 6/lvl | elytra | +10% elytra flight speed per level (V = +50%), gliding and firework boosts | Planned |
+| Speed | 5 | 6/lvl | elytra | +10% elytra flight speed per level (V = +50%), gliding and firework boosts; dives stay vanilla; stops adding at X (double speed) | Built |
 
 Cushion (chestplate table above) also fits elytra.
 

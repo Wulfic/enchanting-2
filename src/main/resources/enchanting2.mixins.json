@@ -19,6 +19,7 @@
 		"ExperienceOrbMixin",
 		"EndermanLeaveBlockGoalMixin",
 		"FallingBlockEntityMixin",
+		"FireworkRocketEntityMixin",
 		"FuelValuesMixin",
 		"GrindstoneInputSlotMixin",
 		"GrindstoneMenuInvoker",

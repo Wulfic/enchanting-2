@@ -38,7 +38,8 @@
 			"com.wulfnet.enchanting2.gametest.ReplantGameTest",
 			"com.wulfnet.enchanting2.gametest.TillerGameTest",
 			"com.wulfnet.enchanting2.gametest.QuickStrikeGameTest",
-			"com.wulfnet.enchanting2.gametest.LastStandGameTest"
+			"com.wulfnet.enchanting2.gametest.LastStandGameTest",
+			"com.wulfnet.enchanting2.gametest.ElytraGameTest"
 		],
 		"fabric-client-gametest": [
 			"com.wulfnet.enchanting2.gametest.AnvilScreenClientGameTest",

@@ -12,6 +12,8 @@ import com.wulfnet.enchanting2.drops.DropRedirect;
 import com.wulfnet.enchanting2.effect.Footing;
 import com.wulfnet.enchanting2.effect.Lifesteal;
 import com.wulfnet.enchanting2.effect.WornEffects;
+import com.wulfnet.enchanting2.elytra.GlideMath;
+import com.wulfnet.enchanting2.elytra.GlideSpeed;
 import com.wulfnet.enchanting2.shield.ShieldEffects;
 import com.wulfnet.enchanting2.shield.ShieldState;
 import java.util.Map;
@@ -27,6 +29,7 @@ import net.minecraft.world.item.component.BlocksAttacks;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -173,6 +176,18 @@ abstract class LivingEntityMixin implements ShieldState {
 	private float enchanting2$riposte(float amount, @Local(argsOnly = true) ServerLevel level,
 			@Local(argsOnly = true) DamageSource source) {
 		return ShieldEffects.riposte(level, source, amount);
+	}
+
+	/**
+	 * Phase 10cGA, Speed: the glide's horizontal air drag sets its top speed, so easing it by the Speed factor raises
+	 * that top speed by the same factor; the vertical drag, and so dives, stay vanilla. Both sides.
+	 */
+	@WrapOperation(method = "updateFallFlyingMovement", at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/world/phys/Vec3;multiply(DDD)Lnet/minecraft/world/phys/Vec3;"))
+	private Vec3 enchanting2$glideSpeed(Vec3 velocity, double x, double y, double z, Operation<Vec3> original) {
+		double factor = GlideSpeed.factor((LivingEntity) (Object) this);
+		return factor == 1.0 ? original.call(velocity, x, y, z)
+				: original.call(velocity, GlideMath.drag(x, factor), y, GlideMath.drag(z, factor));
 	}
 
 	/**
