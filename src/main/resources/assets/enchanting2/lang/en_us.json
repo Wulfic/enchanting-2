@@ -368,6 +368,7 @@
 	"enchanting2.grindstone.status.free": "Free",
 	"enchanting2.grindstone.status.insufficient": "Insufficient levels: requires %1$s (you have %2$s)",
 	"enchanting2.table.tooltip.cost": "Costs %s levels",
+	"enchanting2.table.row.cost": "%s lvl",
 	"enchanting2.table.window.levels": "%s levels",
 	"enchanting2.table.window.lapis": "%s lapis",
 	"enchanting2.table.window.enchant": "Enchant",

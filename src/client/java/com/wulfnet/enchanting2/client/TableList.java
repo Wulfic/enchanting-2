@@ -67,7 +67,6 @@ public final class TableList {
 	private static final int INTERIOR = 0xFF51493A;
 	private static final int TRACK = 0xFF211D17;
 	private static final String ELLIPSIS = "…";
-	private static final int TEXT_X = 4;
 	private static final int TEXT_Y = 2;
 
 	private final Font font;
@@ -129,12 +128,12 @@ public final class TableList {
 		graphics.enableScissor(left, top, left + TableWindow.ROW_WIDTH, bottom);
 		for (Placed placed : model.placed()) {
 			int y = top + placed.top() - model.scroll();
-			if (y + placed.height() <= top || y >= bottom) {
+			if (y + TableWindow.LINE <= top || y >= bottom) {
 				continue;
 			}
 			Entry entry = drawnEntries.get(placed.id());
 			boolean hover = hovered.isPresent() && hovered.get().id().equals(placed.id());
-			drawEntry(graphics, entry, text, y, placed.height(), hover, hovered.map(Hit::zone));
+			drawEntry(graphics, entry, text, y, hover, hovered.map(Hit::zone));
 			if (hover && entry.clickable()) {
 				graphics.requestCursor(CursorTypes.POINTING_HAND);
 			}
@@ -158,8 +157,10 @@ public final class TableList {
 		});
 	}
 
-	private void drawEntry(GuiGraphics graphics, Entry entry, Function<Msg, Component> text, int y, int height,
-			boolean hover, Optional<Zone> zone) {
+	/** One line: the name, then (picked) {@code < V >}, then the cost at the right. */
+	private void drawEntry(GuiGraphics graphics, Entry entry, Function<Msg, Component> text, int y, boolean hover,
+			Optional<Zone> zone) {
+		int height = TableWindow.LINE;
 		Palette palette = entry.selected() ? PICKED
 				: !entry.clickable() ? DISABLED
 				: hover ? HOVERED
@@ -176,16 +177,17 @@ public final class TableList {
 				: !entry.clickable() ? LABEL_DISABLED
 				: entry.selected() ? LABEL_HOVERED
 				: LABEL;
-		String amount = entry.row().amount().isPresent() ? Long.toString(entry.row().amount().getAsLong()) : "";
-		int amountWidth = amount.isEmpty() ? 0 : font.width(amount) + TEXT_X;
-		String name = fit(drawnNames.get(entry.id()), TableWindow.ROW_WIDTH - 2 * TEXT_X - amountWidth);
-		graphics.drawString(font, name, x + TEXT_X, y + TEXT_Y, color, entry.selected());
-		if (!amount.isEmpty()) {
-			graphics.drawString(font, amount, right - TEXT_X - font.width(amount), y + TEXT_Y, PRICE, true);
+		int nameRight = entry.stepper().isPresent() ? TableWindow.NAME_RIGHT : TableWindow.COST_RIGHT;
+		String name = fit(drawnNames.get(entry.id()), nameRight - TableWindow.NAME_LEFT);
+		graphics.drawString(font, name, x + TableWindow.NAME_LEFT, y + TEXT_Y, color, entry.selected());
+		if (entry.row().amount().isPresent()) {
+			String cost = fit(Component.translatable(TablePanelView.KEY + "row.cost", entry.row().amount().getAsLong())
+					.getString(), TableWindow.COST_WIDTH);
+			graphics.drawString(font, cost, x + TableWindow.COST_RIGHT - font.width(cost), y + TEXT_Y, PRICE, true);
 		}
 		if (entry.stepper().isPresent()) {
 			Stepper stepper = entry.stepper().get();
-			int lineY = y + TableWindow.LINE + TEXT_Y;
+			int lineY = y + TEXT_Y;
 			boolean overDecrease = hover && zone.equals(Optional.of(Zone.DECREASE));
 			boolean overIncrease = hover && zone.equals(Optional.of(Zone.INCREASE));
 			drawArrow(graphics, "<", x + TableWindow.DECREASE_LEFT, TableWindow.LEVEL_LEFT - TableWindow.DECREASE_LEFT,
@@ -301,7 +303,7 @@ public final class TableList {
 				: OptionalInt.empty();
 	}
 
-	/** The middle of a picked entry's arrow on screen; its line is {@link #rowCenterY} + one line. */
+	/** The middle of a picked entry's arrow on screen, on its line ({@link #rowCenterY}). */
 	public OptionalInt arrowCenterX(String id, Zone zone) {
 		Entry entry = drawnEntries.get(id);
 		if (entry == null || entry.stepper().isEmpty() || zone == Zone.BODY) {

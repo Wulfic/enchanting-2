@@ -52,12 +52,12 @@ class TableListModelTest {
 	}
 
 	@Test
-	void entriesStackOneLineEachAndTwoWhenPicked() {
+	void everyEntryIsOneLinePickedOrNot() {
 		TableListModel model = model(entries(3, 1));
-		assertEquals(List.of(new TableListModel.Placed("e0", 0, LINE), new TableListModel.Placed("e1", LINE, 2 * LINE),
-				new TableListModel.Placed("e2", 3 * LINE, LINE)), model.placed());
-		assertEquals(4 * LINE, model.contentHeight());
-		assertEquals(0, model.maxScroll(), "four lines fit in nine");
+		assertEquals(List.of(new TableListModel.Placed("e0", 0, false), new TableListModel.Placed("e1", LINE, true),
+				new TableListModel.Placed("e2", 2 * LINE, false)), model.placed());
+		assertEquals(3 * LINE, model.contentHeight());
+		assertEquals(0, model.maxScroll(), "three lines fit in nine");
 	}
 
 	@Test
@@ -73,68 +73,43 @@ class TableListModelTest {
 	}
 
 	@Test
-	void aShorterListPullsTheScrollBackInside() {
+	void aShorterListPullsTheScrollBackInsideAndANewItemGoesToTheTop() {
 		TableListModel model = model(entries(20));
 		model.scrollBy(-100);
 		model.update(entries(12));
 		assertEquals(12 * LINE - VIEW, model.scroll());
 		model.update(entries(3));
 		assertEquals(0, model.scroll());
-	}
-
-	/** Owner, 2026-10-13: picking the last visible entry adds its stepper line below the view; the list follows it. */
-	@Test
-	void aClickedEntryStaysInViewWhenItsPickAddsALine() {
-		TableListModel model = model(entries(20));
-		String last = "e8";
-		assertEquals(OptionalInt.of(8 * LINE), model.viewTop(last), "the ninth line is the last one shown");
-		model.keep(last);
-		model.update(entries(20, 8));
-		assertEquals(LINE, model.scroll(), "scrolled one line so both of its lines show");
-		assertEquals(OptionalInt.of(7 * LINE), model.viewTop(last));
-
-		model.update(entries(20, 8));
-		assertEquals(LINE, model.scroll(), "a repeat update doesn't move it again");
-	}
-
-	@Test
-	void aKeptEntryAboveTheViewScrollsUpToIt() {
-		TableListModel model = model(entries(20));
-		model.scrollBy(-5);
-		model.keep("e2");
-		model.update(entries(20, 2));
-		assertEquals(2 * LINE, model.scroll());
-	}
-
-	@Test
-	void scrollingDraggingOrANewItemEndKeeping() {
-		TableListModel model = model(entries(20));
-		model.keep("e8");
-		model.scrollBy(1);
-		assertTrue(model.kept().isEmpty(), "the wheel");
-		model.keep("e8");
-		model.dragThumb(0, 0);
-		assertTrue(model.kept().isEmpty(), "the thumb");
-		model.keep("e8");
+		model.update(entries(20));
 		model.scrollBy(-3);
-		model.keep("e8");
 		model.reset();
-		assertTrue(model.kept().isEmpty(), "a new item");
 		assertEquals(0, model.scroll());
 	}
 
+	/** Owner, 2026-10-13: the stepper sits on the row, so picking the last visible row moves nothing. */
 	@Test
-	void aPickedEntryHasItsBodyAndArrowsAndNothingBetween() {
+	void pickingTheLastVisibleRowKeepsItInPlace() {
+		TableListModel model = model(entries(20));
+		assertEquals(OptionalInt.of(8 * LINE), model.viewTop("e8"), "the ninth line is the last one shown");
+		model.update(entries(20, 8));
+		assertEquals(0, model.scroll());
+		assertEquals(OptionalInt.of(8 * LINE), model.viewTop("e8"));
+	}
+
+	@Test
+	void aPickedRowHasItsNameAndArrowsAndNothingElse() {
 		TableListModel model = model(entries(3, 1));
-		assertEquals(Optional.of(new Hit("e0", Zone.BODY)), model.hit(50, 5));
-		assertEquals(Optional.of(new Hit("e1", Zone.BODY)), model.hit(50, LINE + 5), "the picked entry's name line");
-		int stepper = 2 * LINE + 5;
-		assertEquals(Optional.of(new Hit("e1", Zone.DECREASE)), model.hit(TableWindow.DECREASE_LEFT, stepper));
-		assertEquals(Optional.of(new Hit("e1", Zone.INCREASE)), model.hit(TableWindow.INCREASE_RIGHT - 1, stepper));
-		assertEquals(Optional.empty(), model.hit(TableWindow.LEVEL_LEFT + 5, stepper), "the level label");
-		assertEquals(Optional.empty(), model.hit(80, stepper), "the rest of the stepper line never unpicks");
-		assertEquals(Optional.of(new Hit("e2", Zone.BODY)), model.hit(50, 3 * LINE));
-		assertEquals(Optional.empty(), model.hit(50, 4 * LINE), "below the last entry");
+		int y = LINE + 5;
+		assertEquals(Optional.of(new Hit("e0", Zone.BODY)), model.hit(TableWindow.DECREASE_LEFT, 5),
+				"an unpicked row is all body");
+		assertEquals(Optional.of(new Hit("e0", Zone.BODY)), model.hit(TableWindow.ROW_WIDTH - 1, 5));
+		assertEquals(Optional.of(new Hit("e1", Zone.BODY)), model.hit(TableWindow.NAME_LEFT, y), "the picked name");
+		assertEquals(Optional.of(new Hit("e1", Zone.DECREASE)), model.hit(TableWindow.DECREASE_LEFT, y));
+		assertEquals(Optional.of(new Hit("e1", Zone.INCREASE)), model.hit(TableWindow.INCREASE_RIGHT - 1, y));
+		assertEquals(Optional.empty(), model.hit(TableWindow.LEVEL_LEFT + 5, y), "the level label");
+		assertEquals(Optional.empty(), model.hit(TableWindow.COST_RIGHT - 5, y), "the cost never unpicks");
+		assertEquals(Optional.of(new Hit("e2", Zone.BODY)), model.hit(50, 2 * LINE));
+		assertEquals(Optional.empty(), model.hit(50, 3 * LINE), "below the last entry");
 		assertEquals(Optional.empty(), model.hit(TableWindow.ROW_WIDTH, 5), "the scroll bar isn't a row");
 		assertEquals(Optional.empty(), model.hit(-1, 5));
 	}

@@ -10,25 +10,22 @@ import java.util.OptionalInt;
 
 /**
  * The table list's scrolling and hit-testing (TODO 10l), in list-interior pixels: {@code y} 0 is the interior's top
- * edge, {@code x} 0 its left edge. An entry is one {@link TableWindow#LINE} tall, two when picked (its stepper line).
- * The scroll position is in pixels and always inside {@code [0, maxScroll]}.
- *
- * <p>After a click the clicked entry is "kept": every update scrolls it fully into view, because picking it adds its
- * stepper line and can push it under the bottom edge (owner, 2026-10-13). The player scrolling, dragging or a
- * different item ends that.
+ * edge, {@code x} 0 the rows' left edge. Every entry is one {@link TableWindow#LINE}; a picked one carries its level
+ * stepper on that line (owner, 2026-10-13), so picking never moves anything. The scroll position is in pixels and
+ * always inside {@code [0, maxScroll]}.
  */
 public final class TableListModel {
 	/** Mouse-wheel distance per notch. */
 	public static final int NOTCH = TableWindow.LINE;
 
 	/** An entry's place in the whole list, before scrolling. */
-	public record Placed(String id, int top, int height) {
+	public record Placed(String id, int top, boolean picked) {
 		public Placed {
 			Objects.requireNonNull(id, "id");
 		}
 
 		public int bottom() {
-			return top + height;
+			return top + TableWindow.LINE;
 		}
 	}
 
@@ -43,7 +40,6 @@ public final class TableListModel {
 	private final int viewHeight;
 	private List<Placed> placed = List.of();
 	private int scroll;
-	private Optional<String> kept = Optional.empty();
 
 	public TableListModel() {
 		this(TableWindow.LIST_HEIGHT);
@@ -56,18 +52,14 @@ public final class TableListModel {
 		this.viewHeight = viewHeight;
 	}
 
-	/** New entries from the server's preview: re-places them, keeps the scroll inside the list, and the kept entry in view. */
+	/** New entries from the server's preview: re-places them and keeps the scroll inside the list. */
 	public void update(List<Entry> entries) {
 		List<Placed> next = new ArrayList<>(entries.size());
-		int top = 0;
-		for (Entry entry : entries) {
-			int height = entry.stepper().isPresent() ? 2 * TableWindow.LINE : TableWindow.LINE;
-			next.add(new Placed(entry.id(), top, height));
-			top += height;
+		for (int i = 0; i < entries.size(); i++) {
+			next.add(new Placed(entries.get(i).id(), i * TableWindow.LINE, entries.get(i).stepper().isPresent()));
 		}
 		placed = List.copyOf(next);
 		scroll = clamp(scroll);
-		kept.flatMap(this::find).ifPresent(p -> scroll = clamp(Math.min(p.top(), Math.max(scroll, p.bottom() - viewHeight))));
 	}
 
 	public List<Placed> placed() {
@@ -79,64 +71,54 @@ public final class TableListModel {
 	}
 
 	public int contentHeight() {
-		return placed.isEmpty() ? 0 : placed.getLast().bottom();
+		return placed.size() * TableWindow.LINE;
 	}
 
 	public int maxScroll() {
 		return Math.max(0, contentHeight() - viewHeight);
 	}
 
-	/** The mouse wheel: positive {@code notches} scroll up, as vanilla reports them. Ends any kept entry. */
+	/** The mouse wheel: positive {@code notches} scroll up, as vanilla reports them. */
 	public void scrollBy(double notches) {
-		kept = Optional.empty();
 		scroll = clamp((int) Math.round(scroll - notches * NOTCH));
 	}
 
-	/** A different item: back to the top, nothing kept. */
+	/** A different item: back to the top. */
 	public void reset() {
-		kept = Optional.empty();
 		scroll = 0;
 	}
 
-	/** The player clicked {@code id}: keep it in view through the updates that follow. */
-	public void keep(String id) {
-		kept = Optional.of(Objects.requireNonNull(id, "id"));
-	}
-
-	public Optional<String> kept() {
-		return kept;
-	}
-
-	/**
-	 * The entry and zone at a point in the rows' area ({@code x} from the rows' left edge). A picked entry's first line
-	 * is its body (unpick); its second line is {@code <} or {@code >}, and the rest of that line does nothing, so a
-	 * near miss of an arrow never drops the pick.
-	 */
-	public Optional<Hit> hit(double x, double y) {
+	/** The entry under a point in the view, if any. */
+	public Optional<Placed> at(double x, double y) {
 		if (x < 0 || x >= TableWindow.ROW_WIDTH || y < 0 || y >= viewHeight) {
 			return Optional.empty();
 		}
-		int contentY = (int) Math.floor(y) + scroll;
-		for (Placed p : placed) {
-			if (contentY >= p.top() && contentY < p.bottom()) {
-				if (contentY < p.top() + TableWindow.LINE) {
-					return Optional.of(new Hit(p.id(), Zone.BODY));
-				}
-				if (x >= TableWindow.DECREASE_LEFT && x < TableWindow.LEVEL_LEFT) {
-					return Optional.of(new Hit(p.id(), Zone.DECREASE));
-				}
-				if (x >= TableWindow.INCREASE_LEFT && x < TableWindow.INCREASE_RIGHT) {
-					return Optional.of(new Hit(p.id(), Zone.INCREASE));
-				}
-				return Optional.empty();
-			}
-		}
-		return Optional.empty();
+		int index = ((int) Math.floor(y) + scroll) / TableWindow.LINE;
+		return index < placed.size() ? Optional.of(placed.get(index)) : Optional.empty();
 	}
 
-	/** Where {@code id}'s first line starts in the view, if all of that line is visible. */
+	/**
+	 * The entry and zone at a point. An unpicked entry is all body (pick). A picked entry's name is its body (unpick),
+	 * its arrows step the level, and its level and cost do nothing, so a near miss of an arrow never drops the pick.
+	 */
+	public Optional<Hit> hit(double x, double y) {
+		return at(x, y).flatMap(p -> {
+			if (!p.picked() || x < TableWindow.DECREASE_LEFT) {
+				return Optional.of(new Hit(p.id(), Zone.BODY));
+			}
+			if (x < TableWindow.LEVEL_LEFT) {
+				return Optional.of(new Hit(p.id(), Zone.DECREASE));
+			}
+			if (x >= TableWindow.INCREASE_LEFT && x < TableWindow.INCREASE_RIGHT) {
+				return Optional.of(new Hit(p.id(), Zone.INCREASE));
+			}
+			return Optional.empty();
+		});
+	}
+
+	/** Where {@code id}'s line starts in the view, if all of it is visible. */
 	public OptionalInt viewTop(String id) {
-		Optional<Placed> p = find(id);
+		Optional<Placed> p = placed.stream().filter(e -> e.id().equals(id)).findFirst();
 		if (p.isEmpty()) {
 			return OptionalInt.empty();
 		}
@@ -156,11 +138,9 @@ public final class TableListModel {
 
 	/**
 	 * Drags the thumb so its top sits at {@code y − grab}, {@code grab} being where in the thumb the press landed. A
-	 * press on the track outside the thumb passes half the thumb's height, which centres it on the mouse. Ends any kept
-	 * entry.
+	 * press on the track outside the thumb passes half the thumb's height, which centres it on the mouse.
 	 */
 	public void dragThumb(double y, double grab) {
-		kept = Optional.empty();
 		int max = maxScroll();
 		if (max == 0) {
 			return;
@@ -175,9 +155,5 @@ public final class TableListModel {
 
 	private int clamp(int value) {
 		return Math.max(0, Math.min(maxScroll(), value));
-	}
-
-	private Optional<Placed> find(String id) {
-		return placed.stream().filter(p -> p.id().equals(id)).findFirst();
 	}
 }

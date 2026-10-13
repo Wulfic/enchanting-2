@@ -84,16 +84,27 @@ abstract class EnchantmentMenuMixin extends AbstractContainerMenu implements Tab
 	}
 
 	/**
-	 * On a client connected to our server the window is {@link TableWindow#EXTRA} taller (TODO 10l), so the player's
-	 * inventory slots move down with it. Only the client reads slot positions; the server's menu keeps vanilla's.
+	 * On a client connected to our server the window is {@link TableWindow#EXTRA} taller and
+	 * {@link TableWindow#EXTRA_WIDTH} wider (TODO 10l), so the player's inventory slots move with its grid. Only the
+	 * client reads slot positions; the server's menu keeps vanilla's.
 	 */
+	@ModifyArg(method = "<init>(ILnet/minecraft/world/entity/player/Inventory;Lnet/minecraft/world/inventory/ContainerLevelAccess;)V",
+			at = @At(value = "INVOKE", target = "Lnet/minecraft/world/inventory/EnchantmentMenu;"
+					+ "addStandardInventorySlots(Lnet/minecraft/world/Container;II)V"), index = 1)
+	private int enchanting2$inventoryX(int vanillaX, @Local(argsOnly = true) Inventory inventory) {
+		return enchanting2$movesInventory(inventory) ? TableWindow.inventorySlotX(vanillaX) : vanillaX;
+	}
+
 	@ModifyArg(method = "<init>(ILnet/minecraft/world/entity/player/Inventory;Lnet/minecraft/world/inventory/ContainerLevelAccess;)V",
 			at = @At(value = "INVOKE", target = "Lnet/minecraft/world/inventory/EnchantmentMenu;"
 					+ "addStandardInventorySlots(Lnet/minecraft/world/Container;II)V"), index = 2)
 	private int enchanting2$inventoryY(int vanillaY, @Local(argsOnly = true) Inventory inventory) {
-		return inventory.player.level().isClientSide() && TableBridge.clientServerIsOurs()
-				? TableWindow.inventorySlotY(vanillaY)
-				: vanillaY;
+		return enchanting2$movesInventory(inventory) ? TableWindow.inventorySlotY(vanillaY) : vanillaY;
+	}
+
+	@Unique
+	private static boolean enchanting2$movesInventory(Inventory inventory) {
+		return inventory.player.level().isClientSide() && TableBridge.clientServerIsOurs();
 	}
 
 	@Inject(method = "<init>(ILnet/minecraft/world/entity/player/Inventory;Lnet/minecraft/world/inventory/ContainerLevelAccess;)V",

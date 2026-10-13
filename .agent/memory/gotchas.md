@@ -520,3 +520,12 @@ rounded that down one time in ten million. A latent 10eB bug, caught by a long r
 **Trap:** `TestInput.pressKey` presses and releases before the tick runs, so anything read through `KeyMapping.isDown()`
 (jump, sneak, sprint) never sees it; click-counted keys (attack, use via `consumeClick`) do.
 **Fix:** `holdKeyFor(options -> options.keyJump, 2)`. Affects: DoubleJumpClientGameTest
+
+## 2026-10-13 — Client GameTest flake: "Network synchronizer in invalid state"
+**Symptom:** `runClientGameTest` fails once with `AssertionError: Network synchronizer in invalid state` and
+"Detected interfacing with packets at a lower level" from fabric-client-gametest-api, during a later test world
+(after the tooltip test, before the Last Stand HUD shot); every table/anvil/grindstone test had already passed.
+**Cause:** not found; no code in that area changed, and the next run was green. Fabric's synchronizer tracks packets
+between the client and integrated server per tick.
+**Fix:** rerun once. If it repeats, look at which test touches packets outside the API (the shield/Double Jump client
+tests drive real input) before suspecting the change under test.

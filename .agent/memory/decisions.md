@@ -1225,3 +1225,17 @@ Flight V cost 5 while Speed V cost 30.
 **Rejected:** treasure for Keep on Death (owner); keeping the side panel.
 **Affects:** data/enchanting2/enchantment/{attack_speed,vampirism,reach}.json, enchantment tags, cost/PricingTable,
 client table screen (EnchantmentScreenMixin, TablePanelView)
+
+## 2026-10-13 — Table wider with one-line rows; mob health multiplier; cost units (owner)
+**Context:** owner, after the first in-window table (10l): "make the enchant screen wider", arrows beside the name
+instead of under it; a config mob health multiplier; the anvil's bare "40000" read as confusing (that screenshot is the
+40,000-level rename stress test, but every panel amount is a bare number).
+**Choice (owner):** (1) Window 72 px wider (176 → 248), list 180 wide, one 12 px line per entry: name, `< V >`, cost;
+inventory grid centred. (2) `mobs.health_multiplier` 1–100 (whole x), default 1, slider in the config screen; every
+non-player living entity, bosses included; applied to mobs already in the world too (on load and on config reload),
+current health scaled with it. (3) Units on every cost number in the anvil, grindstone and table panels and rows
+("5 levels"); vanilla's anvil label "Enchantment Cost: 5" stays as is.
+**Why:** owner preference after seeing it; one-line rows make the stepper read as part of the row.
+**Rejected:** +40 px, a resolution-dependent width; hostile-only or boss-excluding scope; new-spawns-only.
+**Affects:** table/TableWindow, client/TableList, EnchantmentScreenMixin, config (common.json5 + ConfigScreen),
+mob health hook, PanelText amounts in SidePanel/TableList

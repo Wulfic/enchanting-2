@@ -1532,6 +1532,23 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
       vanilla); other languages; `SidePanel` itself (anvil and grindstone still use it).
       **Blast radius / rollback:** client screen + one client-only slot offset; no data, config or world changes.
       `git revert` the commit.
+      **10l v2 (owner 2026-10-13 after the first build, committed as 3a59d2c):** window 72 wider (248), list 180 wide
+      (rows 173 + gap + scroll bar), one 12 px line per entry: name (cut with "…"), then `< V >`, then the cost, right
+      to left; no two-line entries. Background: left 0–88, a stretched column band, right 88–176 (the inventory grid
+      drawn centred, slots +36 x on the client). `TableListModel` loses the second line; hit zones by x from the
+      row's right edge. Tests follow.
+      ✅ v2 2026-10-13: JUnit (band pieces contiguous, grid centred, row zones), client GameTest (wider window fits
+      854x480, slot moved in x and y, stepper on the row, last visible row picked in place). Keep-in-view logic removed:
+      one-line rows never move on a pick.
+- [ ] 10m Mob health multiplier (owner 2026-10-13): `mobs.health_multiplier` in common.json5, whole numbers 1–100,
+      default 1, an integer slider in the config screen. Every non-player `LivingEntity` (bosses too). A transient
+      `max_health` modifier `enchanting2:health_multiplier` (`add_multiplied_total`, multiplier − 1) put on at entity
+      load / spawn (server) and re-applied to every loaded mob on config reload; health keeps its fraction of max.
+      At 1 the modifier is removed. JUnit: parse/clamp/defaults; GameTest: a zombie at 3x has 60 max and full health,
+      back to 1x restores 20, a half-health one stays half, players untouched.
+- [ ] 10n Cost units (owner 2026-10-13): every cost amount in the anvil, grindstone and table panels, table rows and
+      tooltips reads "N levels" (lang key, singular "1 level"); vanilla's anvil label unchanged. Lang test + the
+      client GameTests' expected texts move.
 - [x] 10d Balance pass: every candidate moves from REVIEW to INCLUDE/DEFER/REMOVE  ✅ 2026-10-13 (owner ruled R1, R2, R3,
       R5 as drafted and R4 for Health and Last Stand only; everything else INCLUDE. New GameTests: the two treasure ones
       tagged like Mending and needing 15 shelves; JUnit Flight 6/level; the tag JUnit failed red before its update)

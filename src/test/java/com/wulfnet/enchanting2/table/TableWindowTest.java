@@ -3,6 +3,7 @@ package com.wulfnet.enchanting2.table;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /** The layout's numbers have to line up with vanilla's texture and with each other (TODO 10l). */
@@ -11,8 +12,8 @@ class TableWindowTest {
 	private static final int VANILLA_BOX_BOTTOM = 14 + 3 * 19;
 
 	@Test
-	void theListIsVanillasOfferBoxStretchedByTheExtraHeight() {
-		assertEquals(108, TableWindow.LIST_WIDTH, "vanilla's offer width");
+	void theListIsVanillasOfferBoxGrownByTheExtraSize() {
+		assertEquals(108 + TableWindow.EXTRA_WIDTH, TableWindow.LIST_WIDTH, "vanilla's offer width, widened with the window");
 		assertEquals(VANILLA_BOX_BOTTOM + TableWindow.EXTRA, TableWindow.LIST_Y + TableWindow.LIST_HEIGHT,
 				"the box grows by exactly the window's extra height");
 		assertEquals(0, TableWindow.LIST_HEIGHT % TableWindow.LINE, "whole lines");
@@ -22,9 +23,43 @@ class TableWindowTest {
 	void rowsGapAndScrollBarFillTheInterior() {
 		assertEquals(TableWindow.LIST_X + TableWindow.LIST_WIDTH, TableWindow.SCROLLBAR_X + TableWindow.SCROLLBAR_WIDTH,
 				"the scroll bar ends at the interior's right edge");
-		assertTrue(TableWindow.INCREASE_RIGHT < TableWindow.ROW_WIDTH, "the stepper fits in a row");
-		assertTrue(TableWindow.DECREASE_LEFT < TableWindow.LEVEL_LEFT && TableWindow.LEVEL_LEFT < TableWindow.INCREASE_LEFT,
-				"arrows and label in order");
+		assertTrue(TableWindow.LIST_X + TableWindow.LIST_WIDTH + 1 <= TableWindow.WIDTH - 6,
+				"the box's frame clears the window's right border");
+	}
+
+	/** Name, then {@code < V >}, then the cost, left to right with no overlap (owner, 2026-10-13). */
+	@Test
+	void aRowHoldsNameStepperAndCostSideBySide() {
+		assertTrue(TableWindow.NAME_LEFT < TableWindow.NAME_RIGHT);
+		assertTrue(TableWindow.NAME_RIGHT < TableWindow.DECREASE_LEFT);
+		assertTrue(TableWindow.DECREASE_LEFT < TableWindow.LEVEL_LEFT && TableWindow.LEVEL_LEFT < TableWindow.INCREASE_LEFT
+				&& TableWindow.INCREASE_LEFT < TableWindow.INCREASE_RIGHT);
+		assertTrue(TableWindow.INCREASE_RIGHT <= TableWindow.COST_RIGHT - TableWindow.COST_WIDTH);
+		assertTrue(TableWindow.COST_RIGHT < TableWindow.ROW_WIDTH);
+		assertTrue(TableWindow.NAME_RIGHT - TableWindow.NAME_LEFT >= 95, "room for most names beside the stepper");
+	}
+
+	@Test
+	void eachBackgroundBandCoversTheWholeWidthOnce() {
+		for (List<TableWindow.Piece> band : List.of(TableWindow.TOP, TableWindow.BAND, TableWindow.BOTTOM)) {
+			int x = 0;
+			for (TableWindow.Piece piece : band) {
+				assertEquals(x, piece.x(), "pieces are contiguous: " + band);
+				assertTrue(piece.u() + piece.uWidth() <= TableWindow.VANILLA_WIDTH, "inside the texture: " + piece);
+				x += piece.width();
+			}
+			assertEquals(TableWindow.WIDTH, x, "the band ends at the window's edge: " + band);
+		}
+	}
+
+	/** The inventory grid is drawn unstretched and centred; its slots move by the same amount. */
+	@Test
+	void theInventoryGridIsCentred() {
+		TableWindow.Piece grid = TableWindow.BOTTOM.stream().filter(p -> p.uWidth() == p.width() && p.width() > 100)
+				.findFirst().orElseThrow();
+		assertEquals(TableWindow.inventorySlotX(8) - 8, grid.x() - grid.u(), "slots move with the grid");
+		assertEquals(grid.x(), TableWindow.WIDTH - (grid.x() + grid.width()), "the same grey on both sides");
+		assertEquals(TableWindow.inventorySlotX(8), TableWindow.INVENTORY_LABEL_X);
 	}
 
 	@Test
@@ -47,10 +82,11 @@ class TableWindowTest {
 				"the label is under the list");
 	}
 
-	/** 1080p at GUI scale 4 is 270 pixels tall: the window still fits. */
+	/** 1080p at GUI scale 4 is 480 x 270: the window still fits. */
 	@Test
 	void theWindowFitsAt1080pGuiScaleFour() {
 		assertTrue(TableWindow.HEIGHT <= 1080 / 4);
+		assertTrue(TableWindow.WIDTH <= 1920 / 4);
 	}
 
 	@Test

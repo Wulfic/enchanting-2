@@ -101,7 +101,9 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 	@Inject(method = "init", at = @At("HEAD"))
 	private void enchanting2$height(CallbackInfo ci) {
 		if (TableBridge.clientServerIsOurs()) {
+			imageWidth = TableWindow.WIDTH;
 			imageHeight = TableWindow.HEIGHT;
+			inventoryLabelX = TableWindow.INVENTORY_LABEL_X;
 			inventoryLabelY = TableWindow.INVENTORY_LABEL_Y;
 		}
 	}
@@ -122,8 +124,9 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 	}
 
 	/**
-	 * Vanilla's background in three pieces: the top with the slots and the offer box's frame, its plain grey row
-	 * stretched over the extra height, and the inventory part moved down.
+	 * Vanilla's background in three bands, each from {@link TableWindow}'s pieces: the top (title, book, slots) with a
+	 * plain grey column stretched over the old offer box, a plain grey row stretched over the extra height, and the
+	 * inventory part moved down with its grid centred.
 	 */
 	@WrapOperation(method = "renderBg", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;"
 			+ "blit(Lcom/mojang/blaze3d/pipeline/RenderPipeline;Lnet/minecraft/resources/Identifier;IIFFIIII)V"))
@@ -134,11 +137,23 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 			return;
 		}
 		int split = TableWindow.SPLIT_ROW;
-		graphics.blit(pipeline, texture, x, y, 0, 0, width, split, textureWidth, textureHeight);
-		graphics.blit(pipeline, texture, x, y + split, 0, TableWindow.BAND_ROW, width, TableWindow.EXTRA, width, 1,
-				textureWidth, textureHeight);
-		graphics.blit(pipeline, texture, x, y + split + TableWindow.EXTRA, 0, split, width,
-				TableWindow.VANILLA_HEIGHT - split, textureWidth, textureHeight);
+		enchanting2$band(graphics, pipeline, texture, TableWindow.TOP, x, y, 0, split, split, textureWidth,
+				textureHeight);
+		enchanting2$band(graphics, pipeline, texture, TableWindow.BAND, x, y + split, TableWindow.BAND_ROW, 1,
+				TableWindow.EXTRA, textureWidth, textureHeight);
+		enchanting2$band(graphics, pipeline, texture, TableWindow.BOTTOM, x, y + split + TableWindow.EXTRA, split,
+				TableWindow.VANILLA_HEIGHT - split, TableWindow.VANILLA_HEIGHT - split, textureWidth, textureHeight);
+	}
+
+	/** Texture rows {@code [v, v + vHeight)} drawn {@code height} tall at {@code y}, piece by piece across. */
+	@Unique
+	private static void enchanting2$band(GuiGraphics graphics, RenderPipeline pipeline, Identifier texture,
+			List<TableWindow.Piece> pieces, int x, int y, int v, int vHeight, int height, int textureWidth,
+			int textureHeight) {
+		for (TableWindow.Piece piece : pieces) {
+			graphics.blit(pipeline, texture, x + piece.x(), y, piece.u(), v, piece.width(), height, piece.uWidth(),
+					vHeight, textureWidth, textureHeight);
+		}
 	}
 
 	/** Vanilla's three offer rows and their level icons; the list takes their place. */
@@ -304,9 +319,6 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 		}
 		TableSelection next = TablePanelView.click(preview.get().selection(), row.get(), hit.zone());
 		if (!next.equals(preview.get().selection())) {
-			if (enchanting2$list != null) {
-				enchanting2$list.model().keep(hit.id());
-			}
 			TablePreviewState.sendSelect(menu.containerId, next);
 			Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK,
 					1.0F));

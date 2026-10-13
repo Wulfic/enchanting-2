@@ -36,10 +36,10 @@ import org.lwjgl.glfw.GLFW;
 
 /**
  * The table in the window on the real client (TODO 10l; Stage 7D's flows kept): a real table with 15 bookshelves. The
- * window is taller with the inventory moved down, the list in the offer box shows the server's rows, clicks pick and
+ * window is wider and taller with the inventory moved, the list in the offer box shows the server's rows, clicks pick and
  * step levels on the server, the column under the slots shows the price, the Enchant button charges exactly that, a
  * row's tooltip carries its description, a book's long list scrolls by wheel and by dragging the thumb, a pick on the
- * last visible row stays in view, and a click on the list never drops the carried item. Screenshots land in the client
+ * last visible row stays in place, and a click on the list never drops the carried item. Screenshots land in the client
  * GameTest run dir for the owner to look at.
  */
 public class TableScreenClientGameTest implements FabricClientGameTest {
@@ -68,7 +68,7 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 			context.waitForScreen(EnchantmentScreen.class);
 			context.waitTick();
 
-			theWindowIsTallerWithTheInventoryMoved(context);
+			theWindowIsBiggerWithTheInventoryMoved(context);
 			context.getInput().resizeWindow(WIDE_WIDTH, WIDE_HEIGHT);
 			context.waitTick();
 			enchantThroughTheList(context, world);
@@ -213,12 +213,17 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		return Component.translatable(key, args).getString();
 	}
 
-	private static void theWindowIsTallerWithTheInventoryMoved(ClientGameTestContext context) {
+	private static void theWindowIsBiggerWithTheInventoryMoved(ClientGameTestContext context) {
 		check(screen(context, TableScreenAccess::enchanting2$ours), "our server, but the screen is vanilla's");
 		check(screen(context, TableScreenAccess::enchanting2$imageHeight) == TableWindow.HEIGHT,
 				"the window is " + TableWindow.HEIGHT + " tall");
+		int slotX = context.computeOnClient(client -> client.player.containerMenu.getSlot(FIRST_INVENTORY_SLOT).x);
 		int slotY = context.computeOnClient(client -> client.player.containerMenu.getSlot(FIRST_INVENTORY_SLOT).y);
-		check(slotY == TableWindow.inventorySlotY(84), "the inventory moved down with it: " + slotY);
+		check(slotX == TableWindow.inventorySlotX(8) && slotY == TableWindow.inventorySlotY(84),
+				"the inventory moved with the grid: " + slotX + ", " + slotY);
+		int width = context.computeOnClient(client -> client.getWindow().getGuiScaledWidth());
+		int left = screen(context, TableScreenAccess::enchanting2$leftPos);
+		check(left >= 0 && left + TableWindow.WIDTH <= width, "the window fits " + width + " wide: left " + left);
 		int height = context.computeOnClient(client -> client.getWindow().getGuiScaledHeight());
 		int top = screen(context, TableScreenAccess::enchanting2$topPos);
 		check(top >= 0 && top + TableWindow.HEIGHT <= height, "the window fits " + height + " high: top " + top);
@@ -279,13 +284,13 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		context.takeScreenshot("enchanting2-table-enchanted");
 	}
 
-	/** The arrows are on the picked entry's second line. */
+	/** The arrows are on the picked entry's own line, right of its name. */
 	private static void clickArrow(ClientGameTestContext context, String id, Zone zone) {
 		OptionalInt arrow = screen(context, access -> access.enchanting2$arrowX(id, zone));
 		OptionalInt rowY = screen(context, access -> access.enchanting2$rowY(id));
 		check(arrow.isPresent() && rowY.isPresent(), "the picked row has a stepper: row " + rowY + ", arrow " + arrow
 				+ ", scroll " + screen(context, TableScreenAccess::enchanting2$scrollOffset));
-		click(context, arrow.getAsInt(), rowY.getAsInt() + TableWindow.LINE);
+		click(context, arrow.getAsInt(), rowY.getAsInt());
 		context.waitTicks(3);
 	}
 
@@ -302,7 +307,7 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		check(held(world).equals(TableSelection.EMPTY), "clicking a picked row unpicks it: " + held(world));
 	}
 
-	/** Owner, 2026-10-13: picking the last visible row adds its stepper line; the list scrolls so both lines show. */
+	/** Owner, 2026-10-13: the stepper sits on the row, so picking the last visible row leaves it where it was. */
 	private static void aPickOnTheLastVisibleRowStaysInView(ClientGameTestContext context,
 			TestSingleplayerContext world) {
 		setSlots(world, new ItemStack(Items.BOOK), 64);
@@ -318,10 +323,11 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		context.waitTicks(3);
 		check(held(world).levels().containsKey(last), last + " picked: " + held(world));
 		OptionalInt after = screen(context, access -> access.enchanting2$rowY(last));
-		check(after.isPresent() && after.getAsInt() + TableWindow.LINE / 2 + TableWindow.LINE <= listBottom,
-				"its name and stepper lines are both in view: " + after + ", list bottom " + listBottom);
-		check(screen(context, TableScreenAccess::enchanting2$scrollOffset) > 0, "the list scrolled to show it");
-		context.takeScreenshot("enchanting2-table-kept-in-view");
+		check(after.equals(OptionalInt.of(lastY)), "it stays in place: " + after + ", was " + lastY);
+		check(screen(context, TableScreenAccess::enchanting2$scrollOffset) == 0, "nothing scrolled");
+		check(screen(context, access -> access.enchanting2$arrowX(last, Zone.INCREASE)).isPresent(),
+				"its stepper is on its line");
+		context.takeScreenshot("enchanting2-table-picked-last-row");
 		clickRow(context, last);
 		check(held(world).equals(TableSelection.EMPTY), "unpicked again: " + held(world));
 	}
