@@ -6,6 +6,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.wulfnet.enchanting2.Enchanting2;
+import com.wulfnet.enchanting2.combat.LastStand;
 import com.wulfnet.enchanting2.curse.CurseEffects;
 import com.wulfnet.enchanting2.drops.DropRedirect;
 import com.wulfnet.enchanting2.effect.Footing;
@@ -172,6 +173,16 @@ abstract class LivingEntityMixin implements ShieldState {
 	private float enchanting2$riposte(float amount, @Local(argsOnly = true) ServerLevel level,
 			@Local(argsOnly = true) DamageSource source) {
 		return ShieldEffects.riposte(level, source, amount);
+	}
+
+	/**
+	 * Phase 10cFB, Last Stand: once health hits 0, vanilla asks the totem and dies unless it saved; Last Stand asks
+	 * second, so a totem fires first and leaves its cooldown alone.
+	 */
+	@WrapOperation(method = "hurtServer", at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/world/entity/LivingEntity;checkTotemDeathProtection(Lnet/minecraft/world/damagesource/DamageSource;)Z"))
+	private boolean enchanting2$lastStand(LivingEntity self, DamageSource source, Operation<Boolean> original) {
+		return original.call(self, source) || LastStand.trySave(self, source);
 	}
 
 	/**

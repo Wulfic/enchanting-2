@@ -144,6 +144,7 @@ public final class LevelCeilings {
 		t.put("enchanting2:replant", soft(1));
 		t.put("enchanting2:tiller", soft(8));
 		t.put("enchanting2:quick_strike", soft(20));
+		t.put("enchanting2:last_stand", soft(5));
 		TABLE = Map.copyOf(t);
 	}
 

@@ -14,6 +14,7 @@ import com.wulfnet.enchanting2.config.EnchantmentNumbersDraft;
 import com.wulfnet.enchanting2.config.EnchantmentOverrides;
 import com.wulfnet.enchanting2.config.ExperienceSection;
 import com.wulfnet.enchanting2.config.FortuneSection;
+import com.wulfnet.enchanting2.config.LastStandSection;
 import com.wulfnet.enchanting2.config.SilkTouchSection;
 import com.wulfnet.enchanting2.config.SmeltingSection;
 import com.wulfnet.enchanting2.config.TableSection;
@@ -228,6 +229,13 @@ public final class ConfigScreen {
 					.controller(TickBoxControllerBuilder::create)
 					.available(editable)
 					.build());
+			effects.option(Option.<Boolean>createBuilder()
+					.name(Component.translatable(KEY + "last_stand.pvp"))
+					.description(description("last_stand.pvp"))
+					.binding(LastStandSection.DEFAULTS.pvp(), () -> draft.lastStandPvp, v -> draft.lastStandPvp = v)
+					.controller(TickBoxControllerBuilder::create)
+					.available(editable)
+					.build());
 		}
 
 		ConfigView<EnchantmentOverrides> enchantmentsView = ConfigEditing.currentEnchantmentsView();
@@ -369,6 +377,7 @@ public final class ConfigScreen {
 		boolean playerHeads;
 		SmeltingSilkPriority smeltingSilkPriority;
 		boolean collectSpawners;
+		boolean lastStandPvp;
 
 		Draft(CommonConfig from) {
 			enabled = from.experience().enabled();
@@ -389,6 +398,7 @@ public final class ConfigScreen {
 			playerHeads = from.beheading().playerHeads();
 			smeltingSilkPriority = from.smelting().silkPriority();
 			collectSpawners = from.silkTouch().collectSpawners();
+			lastStandPvp = from.lastStand().pvp();
 		}
 
 		void setAllowed(ConflictFamily family, boolean value) {
@@ -408,7 +418,7 @@ public final class ConfigScreen {
 					new AnvilSection(invalidBookMode),
 					new TableSection(treasureRequiresFullPower), new FortuneSection(silkFortuneMode),
 					new BeheadingSection(playerHeads), new SmeltingSection(smeltingSilkPriority),
-					new SilkTouchSection(collectSpawners));
+					new SilkTouchSection(collectSpawners), new LastStandSection(lastStandPvp));
 		}
 	}
 }

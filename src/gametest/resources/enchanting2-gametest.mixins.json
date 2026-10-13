@@ -10,6 +10,7 @@
 		"FishingHookAccessor",
 		"LivingEntityInvoker",
 		"MobAccessor",
+		"PacketListenerInvoker",
 		"PhantomInvoker"
 	],
 	"client": [

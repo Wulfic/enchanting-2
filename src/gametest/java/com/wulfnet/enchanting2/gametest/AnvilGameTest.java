@@ -10,6 +10,7 @@ import com.wulfnet.enchanting2.config.AllowTogetherSection;
 import com.wulfnet.enchanting2.config.AnvilSection;
 import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.config.CostsSection;
+import com.wulfnet.enchanting2.config.LastStandSection;
 import com.wulfnet.enchanting2.config.ServerConfigHolder;
 import com.wulfnet.enchanting2.config.ServerConfigs;
 import com.wulfnet.enchanting2.cost.PricingTable;
@@ -111,7 +112,7 @@ public class AnvilGameTest {
 	private static CommonConfig config(InvalidBookMode mode, AllowTogetherSection allowTogether, CostsSection costs) {
 		CommonConfig d = CommonConfig.defaults();
 		return new CommonConfig(d.experience(), allowTogether, costs, d.curses(), new AnvilSection(mode), d.table(),
-				d.fortune(), d.beheading(), d.smelting(), d.silkTouch());
+				d.fortune(), d.beheading(), d.smelting(), d.silkTouch(), LastStandSection.DEFAULTS);
 	}
 
 	private static CommonConfig mode(InvalidBookMode mode) {

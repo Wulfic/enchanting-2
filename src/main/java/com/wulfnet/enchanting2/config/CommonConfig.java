@@ -9,7 +9,7 @@ import java.util.Objects;
  */
 public record CommonConfig(ExperienceSection experience, AllowTogetherSection allowTogether, CostsSection costs,
 		CursesSection curses, AnvilSection anvil, TableSection table, FortuneSection fortune, BeheadingSection beheading,
-		SmeltingSection smelting, SilkTouchSection silkTouch) {
+		SmeltingSection smelting, SilkTouchSection silkTouch, LastStandSection lastStand) {
 	public static final String FILE_NAME = "common.json5";
 	public static final int SCHEMA_VERSION = 1;
 
@@ -36,7 +36,8 @@ public record CommonConfig(ExperienceSection experience, AllowTogetherSection al
 					CursesSection.read(root.section("curses")), AnvilSection.read(root.section("anvil")),
 					TableSection.read(root.section("table")), FortuneSection.read(root.section("fortune")),
 					BeheadingSection.read(root.section("beheading")), SmeltingSection.read(root.section("smelting")),
-					SilkTouchSection.read(root.section("silk_touch")));
+					SilkTouchSection.read(root.section("silk_touch")),
+					LastStandSection.read(root.section("last_stand")));
 		}
 
 		@Override
@@ -52,6 +53,7 @@ public record CommonConfig(ExperienceSection experience, AllowTogetherSection al
 			root.put("beheading", value.beheading.write(), "The Beheading enchantment.");
 			root.put("smelting", value.smelting.write(), "The Smelting enchantment.");
 			root.put("silk_touch", value.silkTouch.write(), "Silk Touch on mob spawners.");
+			root.put("last_stand", value.lastStand.write(), "The Last Stand enchantment.");
 		}
 	};
 
@@ -66,11 +68,12 @@ public record CommonConfig(ExperienceSection experience, AllowTogetherSection al
 		Objects.requireNonNull(beheading, "beheading");
 		Objects.requireNonNull(smelting, "smelting");
 		Objects.requireNonNull(silkTouch, "silkTouch");
+		Objects.requireNonNull(lastStand, "lastStand");
 	}
 
 	public static CommonConfig defaults() {
 		return new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS, CostsSection.DEFAULTS,
 				CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS, FortuneSection.DEFAULTS,
-				BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS);
+				BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS, LastStandSection.DEFAULTS);
 	}
 }

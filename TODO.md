@@ -1890,7 +1890,39 @@ durability, not 2. Mutation run.
   an attack path, so it can't roll). Owner `runClient`: a Quick Strike V sword on zombies (an occasional double hit
   sound, no extra knockback), with Vampirism.
 
-#### 10cFB — Last Stand (detail before code)
+#### 10cFB — Last Stand  ✅ 2026-10-13
+**Owner (DESIGN §9, decisions.md "10c order..."):** chestplate, III; once per cooldown a lethal hit leaves you at 1 HP
+with brief absorption; cooldown 10 / 8 / 6 min; a Totem of Undying fires first and doesn't use the cooldown; HUD
+cooldown indicator; on in PvP by default, a config toggle turns it off.
+**Hooks (javap 1.21.11):** `LivingEntity.hurtServer` runs the private `checkTotemDeathProtection(source)` once health
+hits 0 and dies unless it returns true. `@WrapOperation` on that call: when the totem didn't save, `combat/LastStand`
+tries: not a `#bypasses_invulnerability` source (void, /kill), a worn `enchanting2:last_stand` component
+{cooldown LevelBasedValue ticks, absorption amplifier, absorption ticks}, ready (attachment
+`enchanting2:last_stand_ready_at`, a game tick: persistent, copied on death, synced to its own player), and not a
+player-on-player hit when `last_stand.pvp` is off → health 1, Absorption I for 5 s (**agent**: "brief"), ready again
+after the cooldown, a sound. Any living entity can wear it, as with a totem.
+- Cooldown: linear 12000 − 2400 per level (I 10 min, II 8, III 6); never under 2400 (V's 2 min) in code, with a soft
+  ceiling at 5: VI would reach 0 and make the wearer unkillable (**agent**, recorded).
+- Config: new `last_stand` section, `pvp` (default true) in `common.json5`, the config screen's "Enchantment effects"
+  category, lang name + description.
+- HUD (client): `HudElementRegistry` after the hotbar: while the worn chestplate has Last Stand and the synced ready
+  tick is ahead, "Last Stand m:ss" to the right of the hotbar. Formatting in common `combat/LastStandClock` (JUnit).
+**Data:** `last_stand.json` (III, `#minecraft:enchantable/chest_armor`, chest, weight 2, Clarity costs), tags, lang.
+**Tests:** GameTest: a husk in a Last Stand I chestplate survives a 100-damage hit at 1 health with Absorption, its
+ready tick is now + 12000, and the next lethal hit kills it; with a totem in hand the totem fires and the cooldown
+stays unused; void damage kills through it; III's cooldown is 7200 and X's is clamped to 2400; a player hit by a
+player is saved with `pvp` on and dies with it off (config swapped and restored within the test). JUnit: the clock
+format, the config section (default, round trip, a bad value reported). Client GameTest screenshot of the HUD while
+cooling down. Mutation run.
+- ✅ 2026-10-13: 364 JUnit + 317 GameTests (`LastStandGameTest`, five) + 6 client GameTests (`ShieldClientGameTest` now
+  also checks the synced cooldown and screenshots the HUD: "Last Stand 4:32" right of the hotbar) green. Mutations
+  (three server/JUnit runs, one client run): the hook, the void check, the PvP check, the cooldown check, the totem
+  order, the 2-minute clamp and the attachment sync each fail their test. Two finds on the way: a mock player is
+  invulnerable until its connection is marked loaded (`ServerPlayer.isInvulnerableTo`; gametest invoker
+  `PacketListenerInvoker`), and `CursesGameTest`'s Greed V check failed once on float error (4 × 0.49999997 rounded
+  down at random); `StochasticRounding` now treats values within 1e-5 of a whole number as whole (JUnit first).
+  Phase 10cF complete. Owner `runClient`: a Last Stand chestplate in a fight (the save, the sound, the HUD timer), a
+  totem in hand (fires first), the "Last Stand in PvP" toggle.
 
 ### Phase 10e — Curses (three stages, one commit each)
 **Goal:** five new curses, each with a GameTest that fails if its effect breaks, and a per-level curse discount.

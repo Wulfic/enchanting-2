@@ -1160,3 +1160,15 @@ it on the discarded old player. Items: `supported_items` = tag `enchanting2:ench
 **Rejected:** a side stash on the old player (lost if the player logs out while dead); a config-screen item list
 without the owner asking (big UI for a rare setting); dropping a kept item when its slot is taken.
 **Affects:** drops/KeepOnDeath, mixin/InventoryMixin
+
+## 2026-10-13 — Last Stand: Absorption I for 5 s, a 2-minute floor, any wearer (agent, 10cFB)
+**Context:** the owner set the cooldowns (10/8/6 min), the totem order, the HUD and the PvP toggle; "brief
+absorption" and raised max levels were open.
+**Choice:** Absorption I (2 hearts) for 5 s, as data in the component; the cooldown formula (12000 − 2400/level) never
+goes below level V's 2400 ticks, with a soft ceiling at 5, because VI reaches 0 and the wearer could never die; void and
+/kill (`#bypasses_invulnerability`) go through it, like a totem; any living entity can wear it, like a totem; the ready
+tick is a persistent attachment copied through death (dying another way doesn't reset it) and synced to its own player
+for the HUD; an anvil-land "clang" plays on a save.
+**Rejected:** Absorption II like the totem (owner said brief); letting the cooldown reach 0; a players-only rule; a
+transient cooldown (a relog would reset it).
+**Affects:** combat/LastStand, combat/LastStandClock, effect/LastStandEffect, config/LastStandSection, client/LastStandHud

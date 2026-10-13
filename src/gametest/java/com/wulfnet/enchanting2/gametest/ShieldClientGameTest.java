@@ -1,5 +1,6 @@
 package com.wulfnet.enchanting2.gametest;
 
+import com.wulfnet.enchanting2.combat.LastStand;
 import com.wulfnet.enchanting2.enchantment.ModEnchantments;
 import com.wulfnet.enchanting2.gametest.mixin.LocalPlayerInvoker;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
@@ -19,7 +20,8 @@ import net.minecraft.world.phys.HitResult;
 /**
  * Phase 10cCC on the real client with real input: holding "use" raises a shield and clicking "attack" on a cow in
  * front. With a plain shield vanilla swallows the click; with Shield Bash the click attacks and the server bashes, and
- * Steady Stance takes away the walking slowdown the client applies. A cow, as the test world may be peaceful.
+ * Steady Stance takes away the walking slowdown the client applies. A cow, as the test world may be peaceful. Then
+ * Last Stand's cooldown, set on the server, reaching the client's HUD (Phase 10cFB).
  */
 public class ShieldClientGameTest implements FabricClientGameTest {
 	@Override
@@ -65,7 +67,26 @@ public class ShieldClientGameTest implements FabricClientGameTest {
 			}), "the shield is still up after the bash");
 			context.getInput().releaseKey(options -> options.keyUse);
 			context.waitTick();
+
+			lastStandCooldownReachesTheHud(context, world);
 		}
+	}
+
+	/** Phase 10cFB: a Last Stand cooldown set on the server reaches the client's player, which the HUD draws. */
+	private static void lastStandCooldownReachesTheHud(ClientGameTestContext context, TestSingleplayerContext world) {
+		world.getServer().runOnServer(server -> {
+			ServerPlayer player = player(server);
+			ItemStack chestplate = new ItemStack(Items.IRON_CHESTPLATE);
+			chestplate.enchant(server.registryAccess().lookupOrThrow(Registries.ENCHANTMENT)
+					.getOrThrow(ModEnchantments.LAST_STAND), 1);
+			player.setItemSlot(EquipmentSlot.CHEST, chestplate);
+			player.setAttached(LastStand.READY_AT, player.level().getGameTime() + 5432);
+		});
+		context.waitTicks(3);
+		long remaining = context.computeOnClient(client -> LastStand.remaining(client.player,
+				client.level.getGameTime()));
+		check(remaining > 5000 && remaining <= 5432, "the client's Last Stand cooldown: " + remaining);
+		context.takeScreenshot("enchanting2-last-stand-hud");
 	}
 
 	/** Holds "use" until the shield is past its block delay, with the crosshair on the cow. */

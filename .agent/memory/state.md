@@ -8,7 +8,7 @@
 **Branch:** main (commit straight to main and push; no CI; see decisions.md)
 
 ## Where we are
-Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA, CB, CC), 10cD (DA, DB), 10cE (EA, EB, EC) and 10cFA done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
+Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA, CB, CC), 10cD (DA, DB), 10cE (EA, EB, EC) and 10cF (FA, FB) done (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
 - 3: `ExperienceCurve`, no level cap, exact XP points, counters saturate. 4: `MaxLevels` via `MODIFY` (restart to
   apply), `ConflictFamily` + `allow_together`, `EnchantRules`, Lure/Riptide 5 with safe caps.
 - 5: `cost/` (`CostModel`, `PricingTable`, curse discount, `cleanseCost`, `extractCost`).
@@ -75,11 +75,12 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
 - 10cEC (2026-10-13): Tiller (`tool/Tiller` from `HoeItemMixin.useOn`; radius capped at 8).
 - 10cFA (2026-10-13): Quick Strike (`combat/QuickStrike` after the damage call in `PlayerMixin.attack` and
   `MobMixin.doHurtTarget`; `Lifesteal` skips the repeat).
-- Tests: 361 JUnit + 312 GameTests (`./gradlew build`) + 6 client GameTests (`./gradlew runClientGameTest`).
+- 10cFB (2026-10-13): Last Stand (`combat/LastStand` after `checkTotemDeathProtection`; attachment
+  `last_stand_ready_at`; `config/LastStandSection` `pvp`; client `LastStandHud`). `StochasticRounding` snaps float error.
+- Tests: 364 JUnit + 317 GameTests (`./gradlew build`) + 6 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Next: 10cFB Last Stand, then
-   G Speed/Flight/Double Jump (owner order and answers: decisions.md "10c order and eight design answers"; TODO
+1. Next: 10cG Speed, Flight, Double Jump (owner order and answers: decisions.md "10c order and eight design answers"; TODO
    "Phase 10c"). Each stage writes its plan first; each enchantment adds a `LevelCeilings` row, a `.desc` line, tags,
    a price row if single-level, docs rows. Then 10d balance pass.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
@@ -108,7 +109,8 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
    Keep on Death gear (back in place), with keepInventory on (no doubles), with Vanishing on it (gone). + 10cEA: Area
    Mining through stone with ores (ores stay), a wall vs a floor, sneaking, a shovel in dirt. + 10cEB: Replant on a
    wheat field and on cocoa. + 10cEC: Tiller III on grass (7×7), blocks under tall grass staying. + 10cFA: Quick
-   Strike V on zombies (double hits, no extra knockback), with Vampirism.
+   Strike V on zombies (double hits, no extra knockback), with Vampirism. + 10cFB: Last Stand in a fight (save,
+   sound, HUD timer), with a totem in hand, the "Last Stand in PvP" toggle.
 
 ## Open questions / blockers
 - Owner: Magnetic and Ender Link share a tool (DESIGN §4: ours declare no exclusive set; ender chest first). DESIGN §9

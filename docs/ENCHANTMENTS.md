@@ -51,7 +51,7 @@ change needs a restart. See DESIGN §8.
 | Enchantment | Max | Cost | Fits | What it does | Status |
 |---|---|---|---|---|---|
 | Cushion | 3 | 1/lvl | chestplates, elytra | less damage from flying into walls | Built |
-| Last Stand | 3 | 1/lvl | chestplates | once per cooldown (10 / 8 / 6 min), a lethal hit leaves you at 1 HP with brief absorption; a Totem fires first | Planned |
+| Last Stand | 3 | 1/lvl | chestplates | once per cooldown (10 / 8 / 6 min), a hit that would kill you leaves you at half a heart with Absorption I for 5 s; a Totem of Undying goes first and leaves the cooldown alone; not against the void or /kill; works in PvP unless the server turns it off; the cooldown shows right of the hotbar | Built |
 
 ### Leggings
 | Enchantment | Max | Cost | Fits | What it does | Status |

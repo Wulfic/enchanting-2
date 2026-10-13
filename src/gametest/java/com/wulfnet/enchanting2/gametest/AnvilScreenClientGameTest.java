@@ -8,6 +8,7 @@ import com.wulfnet.enchanting2.config.ClientConfig;
 import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.config.ConfigFiles;
 import com.wulfnet.enchanting2.config.CostsSection;
+import com.wulfnet.enchanting2.config.LastStandSection;
 import com.wulfnet.enchanting2.config.ServerConfigs;
 import com.wulfnet.enchanting2.screen.SidePanelLayout.Placement;
 import com.wulfnet.enchanting2.screen.SidePanelLayout;
@@ -239,7 +240,7 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 		CommonConfig huge = new CommonConfig(defaults.experience(), defaults.allowTogether(),
 				new CostsSection(HUGE_RENAME_COST, c.repairCostPerMaterial(), c.repairCombineCost(),
 						c.maximumOperationCost(), c.creativeFree()), defaults.curses(), defaults.anvil(),
-				defaults.table(), defaults.fortune(), defaults.beheading(), defaults.smelting(), defaults.silkTouch());
+				defaults.table(), defaults.fortune(), defaults.beheading(), defaults.smelting(), defaults.silkTouch(), LastStandSection.DEFAULTS);
 		check(ConfigFiles.saveWithBackup(ServerConfigs.commonFile(), CommonConfig.CODEC, huge)
 				== ConfigFiles.SaveOutcome.SAVED, "test config written");
 		try {

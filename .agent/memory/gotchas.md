@@ -500,3 +500,18 @@ seconds are ≤ 0. Steadfast I on a 5 s axe is 67 ticks, II 33, III none.
 **Cause:** weapon attribute modifiers apply in `detectEquipmentUpdates` on tick, and a mock player is never ticked; its
 attack strength is also at 0, so a hit does about 0.2.
 **Fix:** give the target almost no health (0.01), or tick-independent damage. Affects: DropsGameTest
+
+## 2026-10-13 — A mock player can't be hurt until its client "loads"
+**Symptom:** a lethal `hurtServer` on a survival mock player left it at 20 health.
+**Cause (javap 1.21.11):** `ServerPlayer.isInvulnerableTo` is true while `connection.hasClientLoaded()` is false, and a
+mock player's connection never loads. (`die()` directly still works, which is how Keep on Death's test kills.)
+**Fix:** `((PacketListenerInvoker) player.connection).e2test$markClientLoaded()` (gametest invoker).
+**Affects:** LastStandGameTest
+
+## 2026-10-13 — Float error made stochastic XP rounding drop a point
+**Symptom:** `CursesGameTest`'s Greed V check (4 block XP → exactly 2) failed once: it got 1.
+**Cause:** Greed V's factor is 0.9f + 4 × −0.1f = 0.49999997, so 4 × factor = 1.9999999, and `StochasticRounding`
+rounded that down one time in ten million. A latent 10eB bug, caught by a long run of builds.
+**Fix:** values within 1e-5 (relative) of a whole number count as whole and draw no roll. JUnit
+`floatErrorNextToAWholeValueIsNotAFraction`.
+**Affects:** enchantment/StochasticRounding

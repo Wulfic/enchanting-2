@@ -8,6 +8,9 @@ import java.util.function.DoubleSupplier;
  * make XP Boost I–III a no-op on a 5 XP mob (decisions.md "Phase 10a").
  */
 public final class StochasticRounding {
+	/** How close to a whole value counts as that value: far above float error, far below any real XP fraction. */
+	static final double WHOLE_TOLERANCE = 1.0E-5;
+
 	private StochasticRounding() {
 	}
 
@@ -19,6 +22,11 @@ public final class StochasticRounding {
 	public static int round(float value, DoubleSupplier roll) {
 		if (!Float.isFinite(value)) {
 			throw new IllegalArgumentException("not a finite value: " + value);
+		}
+		double nearest = Math.rint(value);
+		if (Math.abs(value - nearest) <= WHOLE_TOLERANCE * Math.max(1.0, Math.abs(nearest))) {
+			// Float error next to a whole value (Greed V: 4 × 0.49999997), not a fraction worth a roll.
+			return (int) nearest;
 		}
 		double floor = Math.floor(value);
 		double fraction = value - floor;

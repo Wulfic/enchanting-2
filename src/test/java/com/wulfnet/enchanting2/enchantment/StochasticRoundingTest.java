@@ -31,6 +31,19 @@ class StochasticRoundingTest {
 	}
 
 	/** Negative values floor: −0.5 is −1 or 0, never −2 or 1, so the average stays −0.5. */
+	/**
+	 * Greed V on 4 block XP is 4 × (0.9f − 4 × 0.1f) = 1.9999999 in float: float error, not a fraction. Rounding it at
+	 * random gave 1 XP once in ten million breaks (CursesGameTest caught it).
+	 */
+	@Test
+	void floatErrorNextToAWholeValueIsNotAFraction() {
+		float greedFive = 4.0F * (0.9F + -0.1F * 4);
+		assertTrue(greedFive < 2.0F, "the float error this guards against: " + greedFive);
+		assertEquals(2, StochasticRounding.round(greedFive, NO_ROLL));
+		assertEquals(3, StochasticRounding.round(3.0000002F, NO_ROLL));
+		assertEquals(1, StochasticRounding.round(1.0001F, () -> 0.5), "a real fraction still rolls");
+	}
+
 	@Test
 	void negativeValuesFloorThenRoundUp() {
 		assertEquals(0, StochasticRounding.round(-0.5F, () -> 0.1));

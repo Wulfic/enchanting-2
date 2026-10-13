@@ -6,6 +6,7 @@ import com.wulfnet.enchanting2.config.AllowTogetherSection;
 import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.config.CostsSection;
 import com.wulfnet.enchanting2.config.EnchantmentOverrides;
+import com.wulfnet.enchanting2.config.LastStandSection;
 import com.wulfnet.enchanting2.config.TableSection;
 import com.wulfnet.enchanting2.cost.CostBreakdown;
 import com.wulfnet.enchanting2.cost.PricingTable;
@@ -124,7 +125,7 @@ public class TableCalculatorGameTest {
 
 	private static CommonConfig config(AllowTogetherSection allowTogether, CostsSection costs, TableSection table) {
 		CommonConfig d = CommonConfig.defaults();
-		return new CommonConfig(d.experience(), allowTogether, costs, d.curses(), d.anvil(), table, d.fortune(), d.beheading(), d.smelting(), d.silkTouch());
+		return new CommonConfig(d.experience(), allowTogether, costs, d.curses(), d.anvil(), table, d.fortune(), d.beheading(), d.smelting(), d.silkTouch(), LastStandSection.DEFAULTS);
 	}
 
 	private static CostsSection maximum(int maximum, boolean creativeFree) {

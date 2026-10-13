@@ -42,7 +42,7 @@ class ConfigParseTest {
 	void nonDefaultValuesRoundTrip() throws SyntaxError {
 		var custom = new CommonConfig(new ExperienceSection(false, 0, 1), AllowTogetherSection.DEFAULTS,
 				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
-				FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS);
+				FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS, LastStandSection.DEFAULTS);
 		assertEquals(custom, common(ConfigFiles.render(custom, CommonConfig.CODEC)).config());
 	}
 
@@ -53,14 +53,14 @@ class ConfigParseTest {
 			allowed.remove(off);
 			var custom = new CommonConfig(ExperienceSection.DEFAULTS, new AllowTogetherSection(allowed),
 					CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
-					FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS);
+					FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS, LastStandSection.DEFAULTS);
 			var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 			assertEquals(custom, parsed.config(), off.key());
 			assertEquals(List.of(), parsed.issues());
 		}
 		var none = new CommonConfig(ExperienceSection.DEFAULTS, new AllowTogetherSection(Set.of()),
 				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
-				FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS);
+				FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS, LastStandSection.DEFAULTS);
 		assertEquals(none, common(ConfigFiles.render(none, CommonConfig.CODEC)).config());
 	}
 
@@ -298,7 +298,7 @@ class ConfigParseTest {
 	void strictRenderIsCommentFreeAndRoundTrips() throws SyntaxError {
 		var config = new CommonConfig(new ExperienceSection(false, 12, 345), AllowTogetherSection.DEFAULTS,
 				CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
-				FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS);
+				FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS, LastStandSection.DEFAULTS);
 		String json = ConfigFiles.renderStrict(config, CommonConfig.CODEC);
 		assertFalse(json.contains("//") || json.contains("/*"), json);
 		assertFalse(json.contains("\n"), json);
@@ -346,7 +346,7 @@ class ConfigParseTest {
 				new CostsSection(0, 3, 5, 0, false), new CursesSection(95, 0, 100),
 				new AnvilSection(InvalidBookMode.STRIP_INVALID), new TableSection(false),
 				new FortuneSection(SilkFortuneMode.FORTUNE_MULTIPLIES_SILK), BeheadingSection.DEFAULTS,
-				SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS);
+				SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS, LastStandSection.DEFAULTS);
 		var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 		assertEquals(custom, parsed.config());
 		assertEquals(List.of(), parsed.issues());
@@ -404,7 +404,7 @@ class ConfigParseTest {
 		for (InvalidBookMode mode : InvalidBookMode.values()) {
 			var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
 					CostsSection.DEFAULTS, CursesSection.DEFAULTS, new AnvilSection(mode), TableSection.DEFAULTS,
-					FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS);
+					FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS, LastStandSection.DEFAULTS);
 			var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 			assertEquals(custom, parsed.config(), mode.name());
 			assertEquals(List.of(), parsed.issues(), mode.name());
@@ -457,7 +457,7 @@ class ConfigParseTest {
 		for (SilkFortuneMode mode : SilkFortuneMode.values()) {
 			var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
 					CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
-					new FortuneSection(mode), BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS);
+					new FortuneSection(mode), BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS, SilkTouchSection.DEFAULTS, LastStandSection.DEFAULTS);
 			var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 			assertEquals(custom, parsed.config(), mode.name());
 			assertEquals(List.of(), parsed.issues(), mode.name());
@@ -489,7 +489,7 @@ class ConfigParseTest {
 				var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
 						CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
 						FortuneSection.DEFAULTS, new BeheadingSection(playerHeads), new SmeltingSection(priority),
-						SilkTouchSection.DEFAULTS);
+						SilkTouchSection.DEFAULTS, LastStandSection.DEFAULTS);
 				var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 				assertEquals(custom, parsed.config(), priority + " " + playerHeads);
 				assertEquals(List.of(), parsed.issues(), priority + " " + playerHeads);
@@ -517,7 +517,7 @@ class ConfigParseTest {
 			var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
 					CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
 					FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS,
-					new SilkTouchSection(collect));
+					new SilkTouchSection(collect), LastStandSection.DEFAULTS);
 			var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
 			assertEquals(custom, parsed.config(), "collect_spawners " + collect);
 			assertEquals(List.of(), parsed.issues(), "collect_spawners " + collect);
@@ -527,6 +527,26 @@ class ConfigParseTest {
 		assertEquals(List.of("silk_touch.collect_spawners"), keys(bad.issues()));
 		var missing = common("{ schema_version: 1, experience: { enabled: true } }");
 		assertEquals(SilkTouchSection.DEFAULTS, missing.config().silkTouch());
+		assertEquals(List.of(), missing.issues());
+	}
+
+	@Test
+	void lastStandWorksInPvpByDefaultAndIsRead() throws SyntaxError {
+		assertTrue(CommonConfig.defaults().lastStand().pvp(), "owner, 2026-10-12: on in PvP by default");
+		for (boolean pvp : new boolean[] { false, true }) {
+			var custom = new CommonConfig(ExperienceSection.DEFAULTS, AllowTogetherSection.DEFAULTS,
+					CostsSection.DEFAULTS, CursesSection.DEFAULTS, AnvilSection.DEFAULTS, TableSection.DEFAULTS,
+					FortuneSection.DEFAULTS, BeheadingSection.DEFAULTS, SmeltingSection.DEFAULTS,
+					SilkTouchSection.DEFAULTS, new LastStandSection(pvp));
+			var parsed = common(ConfigFiles.render(custom, CommonConfig.CODEC));
+			assertEquals(custom, parsed.config(), "last_stand.pvp " + pvp);
+			assertEquals(List.of(), parsed.issues(), "last_stand.pvp " + pvp);
+		}
+		var bad = common("{ schema_version: 1, last_stand: { pvp: 3 } }");
+		assertEquals(LastStandSection.DEFAULTS, bad.config().lastStand());
+		assertEquals(List.of("last_stand.pvp"), keys(bad.issues()));
+		var missing = common("{ schema_version: 1, experience: { enabled: true } }");
+		assertEquals(LastStandSection.DEFAULTS, missing.config().lastStand());
 		assertEquals(List.of(), missing.issues());
 	}
 

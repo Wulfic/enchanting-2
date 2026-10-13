@@ -2,6 +2,7 @@ package com.wulfnet.enchanting2;
 
 import com.wulfnet.enchanting2.acquisition.Acquisition;
 import com.wulfnet.enchanting2.bucket.InfiniteBuckets;
+import com.wulfnet.enchanting2.combat.LastStand;
 import com.wulfnet.enchanting2.config.ServerConfigs;
 import com.wulfnet.enchanting2.drops.KeepOnDeath;
 import com.wulfnet.enchanting2.effect.HeadDrops;
@@ -27,6 +28,7 @@ public final class Enchanting2 implements ModInitializer {
 		ModEffects.register();
 		BulwarkEffect.register();
 		KeepOnDeath.register();
+		LastStand.register();
 		CollectedSpawners.register();
 		InfiniteBuckets.register();
 		ServerNetworking.registerPayloads();

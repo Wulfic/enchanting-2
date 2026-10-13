@@ -62,6 +62,7 @@ public final class ModEnchantments {
 	public static final ResourceKey<Enchantment> REPLANT = key("replant");
 	public static final ResourceKey<Enchantment> TILLER = key("tiller");
 	public static final ResourceKey<Enchantment> QUICK_STRIKE = key("quick_strike");
+	public static final ResourceKey<Enchantment> LAST_STAND = key("last_stand");
 
 	public static final List<ResourceKey<Enchantment>> KEYS = List.of(
 			WITHERING, POISONING, FREEZING, ATTACK_SPEED, CRITICAL_STRIKE, REACH, XP_BOOST, TOUGHNESS, HEALTH,
@@ -69,7 +70,8 @@ public final class ModEnchantments {
 			SURE_FOOTING, CALM_GAZE, PHANTOM_WARD, CLARITY, SUSTENANCE, ENDURANCE, FRAGILITY, GREED, FUMBLING, WEIGHT,
 			HUNGER, LAVA_WALKING, SNOW_WALKER, STEADFAST, SPIKED, BULWARK, RIPOSTE,
 			DEFLECT, STEADY_STANCE, SHIELD_BASH, MAGNETIC, ENDER_LINK,
-			KEEP_ON_DEATH, AREA_MINING, REPLANT, TILLER, QUICK_STRIKE);
+			KEEP_ON_DEATH, AREA_MINING, REPLANT, TILLER, QUICK_STRIKE,
+			LAST_STAND);
 
 	/**
 	 * Our curses (DESIGN §5a, Phase 10e), a subset of {@link #KEYS}. They're tagged like vanilla's Binding and

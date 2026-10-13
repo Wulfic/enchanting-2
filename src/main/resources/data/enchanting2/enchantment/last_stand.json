@@ -1,0 +1,31 @@
+{
+  "anvil_cost": 4,
+  "description": {
+    "translate": "enchantment.enchanting2.last_stand"
+  },
+  "effects": {
+    "enchanting2:last_stand": {
+      "cooldown": {
+        "type": "minecraft:linear",
+        "base": 12000.0,
+        "per_level_above_first": -2400.0
+      },
+      "absorption_amplifier": 0,
+      "absorption_ticks": 100
+    }
+  },
+  "max_cost": {
+    "base": 25,
+    "per_level_above_first": 8
+  },
+  "max_level": 3,
+  "min_cost": {
+    "base": 5,
+    "per_level_above_first": 8
+  },
+  "slots": [
+    "chest"
+  ],
+  "supported_items": "#minecraft:enchantable/chest_armor",
+  "weight": 2
+}
