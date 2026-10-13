@@ -2,7 +2,9 @@ package com.wulfnet.enchanting2.mixin;
 
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
+import com.wulfnet.enchanting2.combat.QuickStrike;
 import com.wulfnet.enchanting2.config.ExperienceSection;
 import com.wulfnet.enchanting2.curse.CurseEffects;
 import com.wulfnet.enchanting2.effect.ModEffects;
@@ -12,6 +14,7 @@ import com.wulfnet.enchanting2.experience.ExperienceCurve.Position;
 import com.wulfnet.enchanting2.experience.PlayerExperience;
 import com.wulfnet.enchanting2.shield.ShieldBash;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -135,6 +138,19 @@ abstract class PlayerMixin {
 		}
 		return WornEffects.reduceExhaustion(self, ModEffects.EXHAUSTION_REDUCTION,
 				CurseEffects.scaleExhaustion(self, amount));
+	}
+
+	/** Phase 10cFA, Quick Strike for a player's melee hit: the one damage call in {@code attack}. */
+	@WrapOperation(method = "attack", at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/world/entity/Entity;hurtOrSimulate(Lnet/minecraft/world/damagesource/DamageSource;F)Z"))
+	private boolean enchanting2$quickStrike(Entity target, DamageSource source, float amount,
+			Operation<Boolean> original) {
+		boolean landed = original.call(target, source, amount);
+		Player self = (Player) (Object) this;
+		if (self.level() instanceof ServerLevel level) {
+			QuickStrike.afterHit(self, target, level, source, amount, landed);
+		}
+		return landed;
 	}
 
 	/**

@@ -34,6 +34,7 @@
 		"LivingEntityMixin",
 		"MappedRegistryMixin",
 		"MinecraftServerMixin",
+		"MobMixin",
 		"PhantomMixin",
 		"PistonBaseBlockMixin",
 		"PlayerMixin",

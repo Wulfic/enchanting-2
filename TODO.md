@@ -1863,6 +1863,35 @@ dirt (vanilla turns them to dirt, not farmland).
   and the durability each fail their test. Phase 10cE complete. Owner `runClient`: Tiller III on a grass field
   (7×7, sound, durability), and that blocks under tall grass stay (not air above).
 
+### Stage 10cF — Quick Strike (FA), Last Stand (FB); one commit each
+
+#### 10cFA — Quick Strike  ✅ 2026-10-13
+**Owner (decisions.md "10c order and eight design answers"):** 5%/level chance of a second hit (max 25% at V); the
+second hit repeats the damage only, ignoring i-frames: no Fire Aspect/Knockback/Vampirism/on-hit effects/Critical
+Strike roll/durability, and it never chains.
+**Hooks (javap 1.21.11):** the hit lands in `Player.attack` (`target.hurtOrSimulate(source, damage)`) and
+`Mob.doHurtTarget` (`target.hurtServer(level, source, damage)`); everything else (post-attack enchantment effects such
+as Fire Aspect and Thorns, extra knockback, durability, Critical Strike's `damage` effect) happens outside that call.
+`@WrapOperation` on each: after a landed hit, `combat/QuickStrike.afterHit` rolls the attacker's weapon
+`enchanting2:extra_hit_chance` (LevelBasedValue 0.05/level); on a win, with a thread-local "repeating" flag, clears the
+victim's i-frames, calls `hurtServer(level, source, damage)` again with the same source and amount, and puts the
+victim's velocity back (no second knockback). While repeating: Quick Strike doesn't roll (no chains), Vampirism's
+`Lifesteal.afterHurt` and the shield effects (Spiked, Bulwark, Riposte arming) skip it.
+**Data:** `quick_strike.json` (V, `#enchanting2:enchantable/melee`, mainhand, weight 2, Clarity costs), `LevelCeilings`
+soft 20 (100% at XX), tags, lang + `.desc`. No price row (multi-level).
+**Tests (GameTest):** husks hitting armorless husks through `doHurtTarget` (ticked, so the sword's damage applies):
+Quick Strike XX (chance 1) takes exactly twice a plain sword's damage, leaves the same velocity, and with Vampirism V
+heals only for the first hit; a mock player's `attack` with Quick Strike XX doubles the loss and costs the sword 1
+durability, not 2. Mutation run.
+- ✅ 2026-10-13: 361 JUnit + 312 GameTests (`QuickStrikeGameTest`, three) + client GameTests green. Mutations (two
+  runs): both attack hooks, the velocity restore and Vampirism's skip each fail their test. Changed from the plan: the
+  shield effects' skip and a "no chain" check in `afterHit` were dropped as untestable (a blocked repeat's Spiked is
+  eaten by the attacker's i-frames, Bulwark by its cooldown, Riposte re-arms the same; the repeat never goes through
+  an attack path, so it can't roll). Owner `runClient`: a Quick Strike V sword on zombies (an occasional double hit
+  sound, no extra knockback), with Vampirism.
+
+#### 10cFB — Last Stand (detail before code)
+
 ### Phase 10e — Curses (three stages, one commit each)
 **Goal:** five new curses, each with a GameTest that fails if its effect breaks, and a per-level curse discount.
 **Not doing:** Hunger on held items (owner: armor only); changing Binding/Vanishing (stay level 1, 10%); curses on

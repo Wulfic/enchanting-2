@@ -162,7 +162,7 @@ throws normally.
 | Vampirism | 5 | 1/lvl | melee | heals 4%/level of the health the target lost, direct hits only | Built |
 | Beheading | 5 | 1/lvl | melee | 2%/level chance of a mob head on a player's melee kill | Built |
 | Attack Speed | 5 | 1/lvl | melee | faster attacks | Built |
-| Quick Strike | 5 | 1/lvl | melee | 5%/level chance of a second hit | Planned |
+| Quick Strike | 5 | 1/lvl | melee | 5% chance per level (25% at V) that a hit lands again at once: the damage only (no knockback, Fire Aspect or other on-hit effects, Vampirism, crit roll or durability), never a third | Built |
 
 ### Melee or ranged
 | Enchantment | Max | Cost | Fits | What it does | Status |

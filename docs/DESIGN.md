@@ -757,7 +757,7 @@ enchantment falls in one of three groups, shown in the config screen next to its
 | Freezing | 5 | melee, ranged | Slowness on hit | D | same |
 | Attack Speed | 5 | melee | `attack_speed` attribute | D | |
 | Critical Strike | 5 | all weapons | 5%/level chance of +50% damage (max 25%) | D | `damage` + `random_chance` |
-| Quick Strike | 5 | melee | 5%/level chance of a second hit (max 25%); the second hit repeats the damage only, ignoring i-frames: no on-hit effects, Vampirism, Critical Strike roll or durability, never chains (owner, 2026-10-12) | M | i-frames, effect/crit duplication, Vampirism, durability, PvP |
+| Quick Strike | 5 | melee | 5%/level chance of a second hit (max 25%); the second hit repeats the damage only, ignoring i-frames: no on-hit effects, Vampirism, Critical Strike roll or durability, never chains (owner, 2026-10-12) | M | built 10cFA: after the damage call in `Player.attack` and `Mob.doHurtTarget`, the same source and amount through `hurtServer` again, i-frames cleared, velocity put back; on-hit effects, crit and durability are outside that call; Vampirism skips the repeat; PvP |
 | TrueShot Aura | 1 | bow, crossbow (crossbow: owner, 2026-10-10, Phase 10g) | arrows ignore gravity for 5 s, then fall normally (owner, 2026-10-09) | E | despawn as normal arrows; the countdown survives a save |
 | Toughness | 5 | armor | `armor_toughness` attribute | D | |
 | Health | 5 | armor | `max_health` attribute | D | health clamping on unequip |

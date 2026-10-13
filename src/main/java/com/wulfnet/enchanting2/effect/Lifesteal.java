@@ -2,6 +2,7 @@ package com.wulfnet.enchanting2.effect;
 
 import com.mojang.datafixers.util.Pair;
 import com.wulfnet.enchanting2.Enchanting2;
+import com.wulfnet.enchanting2.combat.QuickStrike;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -19,7 +20,8 @@ public final class Lifesteal {
 
 	/** {@code lost} is the victim's health + absorption before the hit minus after it. Never throws. */
 	public static void afterHurt(LivingEntity victim, DamageSource source, float lost) {
-		if (!(lost > 0) || !source.isDirect() || !(source.getEntity() instanceof LivingEntity attacker)
+		if (!(lost > 0) || QuickStrike.isRepeating() || !source.isDirect()
+				|| !(source.getEntity() instanceof LivingEntity attacker)
 				|| attacker == victim || !attacker.isAlive()) {
 			return;
 		}
