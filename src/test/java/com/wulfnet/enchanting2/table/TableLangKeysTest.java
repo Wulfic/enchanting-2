@@ -13,7 +13,7 @@ import com.wulfnet.enchanting2.screen.PanelText.Msg;
 import com.wulfnet.enchanting2.screen.PanelText.Row;
 import com.wulfnet.enchanting2.table.TableOutcome.Invalid;
 import com.wulfnet.enchanting2.table.TableOutcome.Status;
-import com.wulfnet.enchanting2.table.TablePanelView.Item;
+import com.wulfnet.enchanting2.table.TablePanelView.Entry;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
  */
 class TableLangKeysTest {
 	/** Built in client code, which JUnit can't load; kept in step by hand. */
-	private static final List<String> CLIENT_KEYS = List.of(TablePanelView.KEY + "panel.title",
+	private static final List<String> CLIENT_KEYS = List.of(TablePanelView.KEY + "tooltip.cost",
 			TablePanelView.KEY + "window.levels", TablePanelView.KEY + "window.lapis",
 			TablePanelView.KEY + "window.enchant");
 	private static final Pattern PLACEHOLDER = Pattern.compile("%(?:(\\d+)\\$)?s");
@@ -66,8 +66,11 @@ class TableLangKeysTest {
 				Optional.of(new CostBreakdown(List.of(all), 10, 10, 10, true, false)),
 				Optional.of(new CostBreakdown(List.of(all), 10, 10, 10, false, true)));
 		List<Msg> messages = new ArrayList<>();
-		TablePanelView.body(rows, costs.get(1)).stream().map(Item::row).forEach(r -> messages.add(r.text()));
-		TablePanelView.body(rows, costs.get(1)).forEach(i -> i.stepper().ifPresent(s -> messages.add(s.label())));
+		TablePanelView.entries(rows, costs.get(1)).stream().map(Entry::row).forEach(r -> messages.add(r.text()));
+		TablePanelView.entries(rows, costs.get(1)).forEach(e -> {
+			e.stepper().ifPresent(s -> messages.add(s.label()));
+			e.reason().ifPresent(messages::add);
+		});
 		for (Status status : Status.values()) {
 			List<Optional<Invalid>> invalids = new ArrayList<>();
 			if (status == Status.INVALID_PICK) {

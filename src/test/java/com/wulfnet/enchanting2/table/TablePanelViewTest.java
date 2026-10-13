@@ -3,6 +3,7 @@ package com.wulfnet.enchanting2.table;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.wulfnet.enchanting2.cost.CostBreakdown;
@@ -15,7 +16,7 @@ import com.wulfnet.enchanting2.screen.PanelText.Tone;
 import com.wulfnet.enchanting2.screen.PanelText.Zone;
 import com.wulfnet.enchanting2.table.TableOutcome.Invalid;
 import com.wulfnet.enchanting2.table.TableOutcome.Status;
-import com.wulfnet.enchanting2.table.TablePanelView.Item;
+import com.wulfnet.enchanting2.table.TablePanelView.Entry;
 import com.wulfnet.enchanting2.table.TablePanelView.Ready;
 import java.text.Collator;
 import java.util.ArrayList;
@@ -78,62 +79,70 @@ class TablePanelViewTest {
 		assertEquals(SILK, rows.getFirst().id());
 	}
 
-	// --- body ---
+	// --- entries ---
 
 	@Test
-	void unpickedRowsAreClickableOrMutedWithTheReason() {
-		List<Item> items = TablePanelView.body(List.of(
+	void unpickedEntriesArePickableOrMutedWithTheReason() {
+		List<Entry> entries = TablePanelView.entries(List.of(
 				row(EFFICIENCY, 0, 5, 5, 0, TableRow.Status.OK),
 				row("minecraft:unbreaking", 2, 5, 2, 0, TableRow.Status.NEEDS_POWER),
 				row(MENDING, 0, 1, 1, 0, TableRow.Status.NEEDS_FULL_POWER),
 				row(FORTUNE, 5, 5, 5, 0, TableRow.Status.MAXED),
 				new TableRow(SILK, 0, 1, 1, 0, TableRow.Status.CONFLICT, Optional.of(FORTUNE))), Optional.empty());
 
-		assertEquals(new Item(Row.of(Msg.of(K + "row.name", new Arg.Ench(EFFICIENCY)), Tone.NORMAL),
-				Optional.of(EFFICIENCY), false, Optional.empty()), items.get(0), "pickable");
+		assertEquals(5, entries.size(), "one entry per row; reasons live in the tooltip, not the list");
+		assertEquals(new Entry(EFFICIENCY, Row.of(Msg.of(K + "row.name", new Arg.Ench(EFFICIENCY)), Tone.NORMAL), false,
+				Optional.empty(), Optional.empty()), entries.get(0), "pickable");
+		assertTrue(entries.get(0).clickable());
+		Entry unbreaking = entries.get(1);
 		assertEquals(Msg.of(K + "row.current", new Arg.Ench("minecraft:unbreaking"), new Arg.Level(2)),
-				items.get(1).row().text(), "shows the current level");
-		assertEquals(Tone.MUTED, items.get(1).row().tone());
-		assertTrue(items.get(1).enchantment().isEmpty(), "an unpickable row isn't clickable");
-		assertEquals(Msg.of(K + "reason.needs_shelves", new Arg.Num(8)), items.get(2).row().text(),
+				unbreaking.row().text(), "shows the current level");
+		assertEquals(Tone.MUTED, unbreaking.row().tone());
+		assertFalse(unbreaking.clickable(), "an unpickable entry isn't clickable");
+		assertEquals(Optional.of(Msg.of(K + "reason.needs_shelves", new Arg.Num(8))), unbreaking.reason(),
 				"Unbreaking III needs 8 shelves");
-		assertTrue(items.get(2).row().indent());
-		assertEquals(Msg.of(K + "reason.needs_shelves", new Arg.Num(15)), items.get(4).row().text(), "treasure");
-		assertEquals(Msg.of(K + "reason.maxed"), items.get(6).row().text());
-		assertEquals(Msg.of(K + "reason.conflict", new Arg.Ench(FORTUNE)), items.get(8).row().text());
-		assertEquals(9, items.size(), "one row each, plus a reason under the four that can't be picked");
+		assertEquals(Optional.of(Msg.of(K + "reason.needs_shelves", new Arg.Num(15))), entries.get(2).reason(),
+				"treasure");
+		assertEquals(Optional.of(Msg.of(K + "reason.maxed")), entries.get(3).reason());
+		assertEquals(Optional.of(Msg.of(K + "reason.conflict", new Arg.Ench(FORTUNE))), entries.get(4).reason());
 	}
 
 	@Test
-	void pickedRowsHaveAStepperAndTheirPrice() {
-		List<Item> items = TablePanelView.body(List.of(
+	void pickedEntriesHaveAStepperAndTheirPrice() {
+		List<Entry> entries = TablePanelView.entries(List.of(
 				row(EFFICIENCY, 0, 5, 5, 5, TableRow.Status.OK),
 				row(MENDING, 0, 1, 1, 1, TableRow.Status.OK)), Optional.of(seventeen(false, false)));
-		Item efficiency = items.get(0);
-		assertTrue(efficiency.selected());
+		Entry efficiency = entries.get(0);
+		assertTrue(efficiency.selected() && efficiency.clickable());
 		assertEquals(OptionalLong.of(5), efficiency.row().amount(), "its own enchant line");
 		assertEquals(Optional.of(new Stepper(Msg.of(K + "row.level", new Arg.Level(5)), true, false)),
 				efficiency.stepper(), "at the top it only goes down");
 		assertEquals(Optional.of(new Stepper(Msg.of(K + "row.level", new Arg.Level(1)), false, false)),
-				items.get(1).stepper(), "Mending has nowhere to go");
-		assertEquals(OptionalLong.of(2), items.get(1).row().amount(), "the surcharge is a footer line, not the row's");
+				entries.get(1).stepper(), "Mending has nowhere to go");
+		assertEquals(OptionalLong.of(2), entries.get(1).row().amount(), "the surcharge is a footer line, not the row's");
 
-		Item middle = TablePanelView.body(List.of(row(EFFICIENCY, 2, 5, 5, 3, TableRow.Status.OK)), Optional.empty())
-				.getFirst();
-		assertEquals(Optional.of(new Stepper(Msg.of(K + "row.level", new Arg.Level(3)), false, true)), middle.stepper(),
-				"never down to the current level");
+		Entry middle = TablePanelView.entries(List.of(row(EFFICIENCY, 2, 5, 5, 3, TableRow.Status.OK)),
+				Optional.empty()).getFirst();
+		assertEquals(Optional.of(new Stepper(Msg.of(K + "row.level", new Arg.Level(3)), false, true)),
+				middle.stepper(), "never down to the current level");
 		assertEquals(OptionalLong.empty(), middle.row().amount(), "no price without a cost");
 	}
 
 	@Test
 	void anInvalidPickIsRedWithTheReasonAndStillClickable() {
-		List<Item> items = TablePanelView.body(List.of(row(MENDING, 0, 1, 1, 1, TableRow.Status.NEEDS_FULL_POWER)),
-				Optional.empty());
-		assertEquals(Tone.BAD, items.get(0).row().tone());
-		assertTrue(items.get(0).selected() && items.get(0).enchantment().isPresent(), "clicking it unpicks it");
-		assertTrue(items.get(1).enchantment().isEmpty(), "the reason line isn't a row of its own");
-		assertEquals(Tone.BAD, items.get(1).row().tone());
-		assertEquals(Msg.of(K + "reason.needs_shelves", new Arg.Num(15)), items.get(1).row().text());
+		Entry mending = TablePanelView.entries(List.of(row(MENDING, 0, 1, 1, 1, TableRow.Status.NEEDS_FULL_POWER)),
+				Optional.empty()).getFirst();
+		assertEquals(Tone.BAD, mending.row().tone());
+		assertTrue(mending.selected() && mending.clickable(), "clicking it unpicks it");
+		assertEquals(Optional.of(Msg.of(K + "reason.needs_shelves", new Arg.Num(15))), mending.reason());
+	}
+
+	@Test
+	void onlyAPickedEntryHasAStepper() {
+		Stepper stepper = new Stepper(Msg.of(K + "row.level", new Arg.Level(1)), false, false);
+		Row row = Row.of(Msg.of(K + "row.name", new Arg.Ench(MENDING)), Tone.NORMAL);
+		assertThrows(IllegalArgumentException.class,
+				() -> new Entry(MENDING, row, false, Optional.of(stepper), Optional.empty()));
 	}
 
 	// --- ready ---

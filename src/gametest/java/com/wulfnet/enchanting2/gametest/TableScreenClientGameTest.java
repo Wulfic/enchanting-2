@@ -4,11 +4,10 @@ import com.wulfnet.enchanting2.client.TablePreviewState;
 import com.wulfnet.enchanting2.client.TableScreenAccess;
 import com.wulfnet.enchanting2.network.TablePreviewPayload;
 import com.wulfnet.enchanting2.screen.PanelText.Zone;
-import com.wulfnet.enchanting2.screen.SidePanelLayout;
-import com.wulfnet.enchanting2.screen.SidePanelLayout.Placement;
 import com.wulfnet.enchanting2.table.TableMenuAccess;
 import com.wulfnet.enchanting2.table.TableRow;
 import com.wulfnet.enchanting2.table.TableSelection;
+import com.wulfnet.enchanting2.table.TableWindow;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.function.Function;
@@ -36,15 +35,17 @@ import net.minecraft.world.level.block.EnchantingTableBlock;
 import org.lwjgl.glfw.GLFW;
 
 /**
- * Stage 7D on the real client: a real table with 15 bookshelves. The panel lists the server's rows, clicks pick and
- * step levels on the server, the window shows the price, Enchant charges exactly that, a plain book takes several
- * enchantments, a book's long list scrolls to its last row, and a click on the panel never throws the carried item.
- * Screenshots land in the client GameTest run dir for the owner to look at.
+ * The table in the window on the real client (TODO 10l; Stage 7D's flows kept): a real table with 15 bookshelves. The
+ * window is taller with the inventory moved down, the list in the offer box shows the server's rows, clicks pick and
+ * step levels on the server, the column under the slots shows the price, the Enchant button charges exactly that, a
+ * row's tooltip carries its description, a book's long list scrolls by wheel and by dragging the thumb, a pick on the
+ * last visible row stays in view, and a click on the list never drops the carried item. Screenshots land in the client
+ * GameTest run dir for the owner to look at.
  */
 public class TableScreenClientGameTest implements FabricClientGameTest {
-	/** 854x480 at GUI scale auto is 427 wide: neither side fits the panel, so the window shifts. */
-	private static final int NARROW_WIDTH = 854;
-	private static final int NARROW_HEIGHT = 480;
+	/** 854x480 at GUI scale auto is 240 tall: the taller window still fits. */
+	private static final int SMALL_WIDTH = 854;
+	private static final int SMALL_HEIGHT = 480;
 	private static final int WIDE_WIDTH = 1920;
 	private static final int WIDE_HEIGHT = 1080;
 	private static final int LEVELS = 40;
@@ -53,10 +54,8 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 	private static final String EFFICIENCY = "minecraft:efficiency";
 	/** First in a book's list, so it's on screen before any scrolling. */
 	private static final String AQUA_AFFINITY = "minecraft:aqua_affinity";
-	/** Vanilla's table window and its third offer row, where Enchant is. */
-	private static final int IMAGE_HEIGHT = 166;
-	private static final int BUTTON_X = 60 + 54;
-	private static final int BUTTON_Y = 14 + 2 * 19 + 9;
+	/** The first player-inventory slot: vanilla puts it at y 84. */
+	private static final int FIRST_INVENTORY_SLOT = 2;
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
@@ -64,19 +63,20 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 			world.getClientWorld().waitForChunksRender();
 			world.getServer().runCommand("gamemode survival @a");
 			world.getServer().runCommand("xp set @a " + LEVELS + " levels");
-			context.getInput().resizeWindow(NARROW_WIDTH, NARROW_HEIGHT);
+			context.getInput().resizeWindow(SMALL_WIDTH, SMALL_HEIGHT);
 			world.getServer().runOnServer(TableScreenClientGameTest::openTable);
 			context.waitForScreen(EnchantmentScreen.class);
 			context.waitTick();
 
-			narrowScreenShiftsTheWindow(context);
+			theWindowIsTallerWithTheInventoryMoved(context);
 			context.getInput().resizeWindow(WIDE_WIDTH, WIDE_HEIGHT);
 			context.waitTick();
-			enchantThroughThePanel(context, world);
+			enchantThroughTheList(context, world);
 			stepperChangesTheLevel(context, world);
+			aPickOnTheLastVisibleRowStaysInView(context, world);
 			bookTakesSeveralAndItsListScrolls(context, world);
-			panelClickKeepsTheCarriedItem(context, world);
-			closingClearsThePanel(context);
+			listClickKeepsTheCarriedItem(context, world);
+			closingClearsTheList(context);
 		}
 	}
 
@@ -151,50 +151,53 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		context.getInput().pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
 	}
 
-	private static int topPos(ClientGameTestContext context) {
-		int height = context.computeOnClient(client -> client.getWindow().getGuiScaledHeight());
-		return (height - IMAGE_HEIGHT) / 2;
+	private static int listTop(ClientGameTestContext context) {
+		return screen(context, TableScreenAccess::enchanting2$topPos) + TableWindow.LIST_Y;
 	}
 
-	/** Scrolls the panel list one step at a time with the mouse over it; negative {@code steps} scroll down. */
-	private static void scrollPanel(ClientGameTestContext context, int steps) {
-		SidePanelLayout layout = screen(context, TableScreenAccess::enchanting2$layout);
-		moveTo(context, layout.panelX() + 20, topPos(context) + 40);
+	private static int rowsX(ClientGameTestContext context) {
+		return screen(context, TableScreenAccess::enchanting2$rowsX);
+	}
+
+	/** Scrolls the list one notch at a time with the mouse over it; negative {@code steps} scroll down. */
+	private static void scrollList(ClientGameTestContext context, int steps) {
+		moveTo(context, rowsX(context) + 20, listTop(context) + 40);
 		for (int i = 0; i < Math.abs(steps); i++) {
 			context.getInput().scroll(Integer.signum(steps));
 			context.waitTick();
 		}
 	}
 
+	private static int notches(ClientGameTestContext context) {
+		return screen(context, TableScreenAccess::enchanting2$maxScroll) / TableWindow.LINE + 1;
+	}
+
 	private static void scrollToTop(ClientGameTestContext context) {
-		scrollPanel(context, screen(context, TableScreenAccess::enchanting2$scrollOffset));
+		scrollList(context, notches(context));
 		check(screen(context, TableScreenAccess::enchanting2$scrollOffset) == 0, "scrolled to the top");
 	}
 
-	/**
-	 * From the top, scrolls down until {@code id}'s row is drawn. Rows are in ID order, so which ones start in view
-	 * depends on what else is registered (our own {@code enchanting2:} rows come first).
-	 */
+	/** From the top, scrolls down until {@code id}'s first line is drawn. */
 	private static void scrollIntoView(ClientGameTestContext context, String id) {
 		scrollToTop(context);
-		int max = screen(context, TableScreenAccess::enchanting2$maxScroll);
-		for (int i = 0; i < max && screen(context, access -> access.enchanting2$rowY(id)).isEmpty(); i++) {
-			scrollPanel(context, -1);
+		int notches = notches(context);
+		for (int i = 0; i < notches && screen(context, access -> access.enchanting2$rowY(id)).isEmpty(); i++) {
+			scrollList(context, -1);
 		}
 	}
 
 	private static void clickRow(ClientGameTestContext context, String id) {
 		scrollIntoView(context, id);
-		SidePanelLayout layout = screen(context, TableScreenAccess::enchanting2$layout);
 		OptionalInt rowY = screen(context, access -> access.enchanting2$rowY(id));
-		check(rowY.isPresent(), id + " is drawn: " + screen(context, TableScreenAccess::enchanting2$panelText));
-		click(context, layout.panelX() + 10, rowY.getAsInt());
+		check(rowY.isPresent(), id + " is drawn: " + screen(context, TableScreenAccess::enchanting2$listText));
+		click(context, rowsX(context) + 30, rowY.getAsInt());
 		context.waitTicks(3);
 	}
 
 	private static void clickEnchant(ClientGameTestContext context) {
-		int leftPos = screen(context, TableScreenAccess::enchanting2$leftPos);
-		click(context, leftPos + BUTTON_X, topPos(context) + BUTTON_Y);
+		click(context, screen(context, TableScreenAccess::enchanting2$leftPos) + TableWindow.BUTTON_X
+				+ TableWindow.BUTTON_WIDTH / 2, screen(context, TableScreenAccess::enchanting2$topPos)
+						+ TableWindow.BUTTON_Y + TableWindow.BUTTON_HEIGHT / 2);
 		context.waitTicks(3);
 	}
 
@@ -210,47 +213,57 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		return Component.translatable(key, args).getString();
 	}
 
-	private static void narrowScreenShiftsTheWindow(ClientGameTestContext context) {
-		SidePanelLayout layout = screen(context, TableScreenAccess::enchanting2$layout);
-		check(layout != null, "our server, but the screen has no layout (mixin not applied?)");
-		check(layout.placement() == Placement.SHIFTED, "427 wide should shift, got " + layout);
-		int width = context.computeOnClient(client -> client.getWindow().getGuiScaledWidth());
-		int leftPos = screen(context, TableScreenAccess::enchanting2$leftPos);
-		check(leftPos == layout.leftPos() && leftPos > (width - 176) / 2, "window not moved right: " + layout);
-		check(layout.panelX() >= 0 && layout.panelX() + layout.panelWidth() + SidePanelLayout.GAP <= leftPos,
-				"panel on screen, left of the window: " + layout);
+	private static void theWindowIsTallerWithTheInventoryMoved(ClientGameTestContext context) {
+		check(screen(context, TableScreenAccess::enchanting2$ours), "our server, but the screen is vanilla's");
+		check(screen(context, TableScreenAccess::enchanting2$imageHeight) == TableWindow.HEIGHT,
+				"the window is " + TableWindow.HEIGHT + " tall");
+		int slotY = context.computeOnClient(client -> client.player.containerMenu.getSlot(FIRST_INVENTORY_SLOT).y);
+		check(slotY == TableWindow.inventorySlotY(84), "the inventory moved down with it: " + slotY);
+		int height = context.computeOnClient(client -> client.getWindow().getGuiScaledHeight());
+		int top = screen(context, TableScreenAccess::enchanting2$topPos);
+		check(top >= 0 && top + TableWindow.HEIGHT <= height, "the window fits " + height + " high: top " + top);
 		List<String> window = screen(context, TableScreenAccess::enchanting2$windowText);
 		check(window.equals(List.of(text("enchanting2.table.status.empty"), text("enchanting2.table.window.enchant"))),
 				"empty table window: " + window);
-		context.takeScreenshot("enchanting2-table-shifted-empty");
+		check(!screen(context, TableScreenAccess::enchanting2$buttonActive), "Enchant is off with nothing picked");
+		context.takeScreenshot("enchanting2-table-empty");
 	}
 
-	/** Sword + 64 lapis at 15 shelves: pick Sharpness V and Mending on the panel, Enchant for 17 and 17. */
-	private static void enchantThroughThePanel(ClientGameTestContext context, TestSingleplayerContext world) {
+	/** Sword + 64 lapis at 15 shelves: pick Sharpness V and Mending in the list, Enchant for 17 and 17. */
+	private static void enchantThroughTheList(ClientGameTestContext context, TestSingleplayerContext world) {
 		setSlots(world, new ItemStack(Items.DIAMOND_SWORD), 64);
 		context.waitTicks(3);
-		SidePanelLayout layout = screen(context, TableScreenAccess::enchanting2$layout);
-		check(layout != null && layout.panelShown(), "panel shown at 1920x1080: " + layout);
 		int shelves = context.computeOnClient(client -> TablePreviewState
 				.forContainer(client.player.containerMenu.containerId).map(TablePreviewPayload::shelves).orElse(-1));
 		check(shelves == 15, "15 shelves counted, got " + shelves);
-		List<String> panel = screen(context, TableScreenAccess::enchanting2$panelText);
-		check(panel.contains("Sharpness") && panel.contains("Mending") && !panel.contains("Efficiency"),
-				"the sword's rows: " + panel);
-		check(panel.contains(text("enchanting2.table.status.pick")), "asks for a pick: " + panel);
+		List<String> list = screen(context, TableScreenAccess::enchanting2$listText);
+		check(list.contains("Sharpness") && list.contains("Mending") && !list.contains("Efficiency"),
+				"the sword's rows: " + list);
+		check(screen(context, TableScreenAccess::enchanting2$windowText).contains(text("enchanting2.table.status.pick")),
+				"asks for a pick");
 		context.takeScreenshot("enchanting2-table-rows");
 
+		scrollIntoView(context, SHARPNESS);
+		moveTo(context, rowsX(context) + 30, screen(context, access -> access.enchanting2$rowY(SHARPNESS)).orElseThrow());
+		context.waitTicks(2);
+		List<String> tooltip = screen(context, TableScreenAccess::enchanting2$rowTooltip);
+		check(tooltip.contains(text("enchantment.minecraft.sharpness.desc")),
+				"the row's tooltip has its description: " + tooltip);
+		context.takeScreenshot("enchanting2-table-tooltip");
+
 		clickRow(context, SHARPNESS);
-		check(held(world).equals(TableSelection.EMPTY.with(SHARPNESS, 5)), "the click picked Sharpness V on the server: "
-				+ held(world));
+		check(held(world).equals(TableSelection.EMPTY.with(SHARPNESS, 5)),
+				"the click picked Sharpness V on the server: " + held(world));
 		clickRow(context, MENDING);
 		TableSelection both = TableSelection.EMPTY.with(SHARPNESS, 5).with(MENDING, 1);
 		check(held(world).equals(both), "and Mending: " + held(world));
 		List<String> window = screen(context, TableScreenAccess::enchanting2$windowText);
 		check(window.contains(text("enchanting2.table.window.levels", 17))
 				&& window.contains(text("enchanting2.table.window.lapis", 17)), "17 levels and 17 lapis: " + window);
-		check(screen(context, TableScreenAccess::enchanting2$panelText)
-				.contains(text("enchanting2.table.status.ready")), "ready");
+		check(screen(context, TableScreenAccess::enchanting2$buttonActive), "Enchant is on");
+		List<String> breakdown = screen(context, TableScreenAccess::enchanting2$buttonTooltip);
+		check(breakdown.contains(text("enchanting2.table.status.ready")), "the button's breakdown says ready: "
+				+ breakdown);
 		context.takeScreenshot("enchanting2-table-picked");
 
 		clickEnchant(context);
@@ -266,29 +279,51 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		context.takeScreenshot("enchanting2-table-enchanted");
 	}
 
+	/** The arrows are on the picked entry's second line. */
+	private static void clickArrow(ClientGameTestContext context, String id, Zone zone) {
+		OptionalInt arrow = screen(context, access -> access.enchanting2$arrowX(id, zone));
+		OptionalInt rowY = screen(context, access -> access.enchanting2$rowY(id));
+		check(arrow.isPresent() && rowY.isPresent(), "the picked row has a stepper: row " + rowY + ", arrow " + arrow
+				+ ", scroll " + screen(context, TableScreenAccess::enchanting2$scrollOffset));
+		click(context, arrow.getAsInt(), rowY.getAsInt() + TableWindow.LINE);
+		context.waitTicks(3);
+	}
+
 	private static void stepperChangesTheLevel(ClientGameTestContext context, TestSingleplayerContext world) {
 		setSlots(world, new ItemStack(Items.IRON_SWORD), 64);
 		context.waitTicks(3);
 		clickRow(context, SHARPNESS);
 		check(held(world).equals(TableSelection.EMPTY.with(SHARPNESS, 5)), "picked at V: " + held(world));
-		// A pick adds footer lines, which can push a row near the bottom out of view (the sword's list scrolls since
-		// Magnetic and Ender Link, Phase 10cD): bring it back before using its stepper.
-		scrollIntoView(context, SHARPNESS);
-		OptionalInt down = screen(context, access -> access.enchanting2$arrowX(SHARPNESS, Zone.DECREASE));
-		OptionalInt rowY = screen(context, access -> access.enchanting2$rowY(SHARPNESS));
-		check(down.isPresent() && rowY.isPresent(), "the picked row has a stepper: row " + rowY + ", arrow " + down
-				+ ", scroll " + screen(context, TableScreenAccess::enchanting2$scrollOffset) + ", panel "
-				+ screen(context, TableScreenAccess::enchanting2$panelText));
-		click(context, down.getAsInt(), rowY.getAsInt());
-		context.waitTicks(3);
+		clickArrow(context, SHARPNESS, Zone.DECREASE);
 		check(held(world).equals(TableSelection.EMPTY.with(SHARPNESS, 4)), "stepped down to IV: " + held(world));
-		scrollIntoView(context, SHARPNESS);
-		OptionalInt up = screen(context, access -> access.enchanting2$arrowX(SHARPNESS, Zone.INCREASE));
-		click(context, up.orElseThrow(), screen(context, access -> access.enchanting2$rowY(SHARPNESS)).orElseThrow());
-		context.waitTicks(3);
+		clickArrow(context, SHARPNESS, Zone.INCREASE);
 		check(held(world).equals(TableSelection.EMPTY.with(SHARPNESS, 5)), "and back up to V: " + held(world));
 		clickRow(context, SHARPNESS);
 		check(held(world).equals(TableSelection.EMPTY), "clicking a picked row unpicks it: " + held(world));
+	}
+
+	/** Owner, 2026-10-13: picking the last visible row adds its stepper line; the list scrolls so both lines show. */
+	private static void aPickOnTheLastVisibleRowStaysInView(ClientGameTestContext context,
+			TestSingleplayerContext world) {
+		setSlots(world, new ItemStack(Items.BOOK), 64);
+		context.waitTicks(3);
+		scrollToTop(context);
+		int listBottom = listTop(context) + TableWindow.LIST_HEIGHT;
+		String last = screen(context, access -> access.enchanting2$rowIds().stream()
+				.filter(id -> access.enchanting2$rowY(id).isPresent())
+				.reduce((first, second) -> second).orElseThrow());
+		int lastY = screen(context, access -> access.enchanting2$rowY(last)).orElseThrow();
+		check(lastY + TableWindow.LINE > listBottom, last + " is the last line in view: " + lastY);
+		click(context, rowsX(context) + 30, lastY);
+		context.waitTicks(3);
+		check(held(world).levels().containsKey(last), last + " picked: " + held(world));
+		OptionalInt after = screen(context, access -> access.enchanting2$rowY(last));
+		check(after.isPresent() && after.getAsInt() + TableWindow.LINE / 2 + TableWindow.LINE <= listBottom,
+				"its name and stepper lines are both in view: " + after + ", list bottom " + listBottom);
+		check(screen(context, TableScreenAccess::enchanting2$scrollOffset) > 0, "the list scrolled to show it");
+		context.takeScreenshot("enchanting2-table-kept-in-view");
+		clickRow(context, last);
+		check(held(world).equals(TableSelection.EMPTY), "unpicked again: " + held(world));
 	}
 
 	private static void bookTakesSeveralAndItsListScrolls(ClientGameTestContext context,
@@ -315,12 +350,22 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		String last = drawn.getLast();
 		scrollToTop(context);
 		check(screen(context, access -> access.enchanting2$rowY(last)).isEmpty(), "the last row starts out of view");
-		for (int i = 0; i < max && screen(context, TableScreenAccess::enchanting2$scrollOffset) < max; i++) {
-			scrollPanel(context, -1);
-		}
-		check(screen(context, TableScreenAccess::enchanting2$scrollOffset) == max, "scrolled to the end");
+		scrollList(context, -notches(context));
+		check(screen(context, TableScreenAccess::enchanting2$scrollOffset) == max, "the wheel scrolled to the end");
 		check(screen(context, access -> access.enchanting2$rowY(last)).isPresent(), last + " is now drawn");
 		context.takeScreenshot("enchanting2-table-book-scrolled");
+
+		// Drag the thumb back up, past the top of the track.
+		int barX = screen(context, TableScreenAccess::enchanting2$scrollBarX) + TableWindow.SCROLLBAR_WIDTH / 2;
+		moveTo(context, barX, screen(context, TableScreenAccess::enchanting2$thumbCenterY));
+		context.getInput().holdMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+		context.waitTick();
+		moveTo(context, barX, listTop(context) - 20);
+		context.waitTicks(2);
+		context.getInput().releaseMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+		context.waitTick();
+		check(screen(context, TableScreenAccess::enchanting2$scrollOffset) == 0,
+				"dragging the thumb up scrolled to the top: " + screen(context, TableScreenAccess::enchanting2$scrollOffset));
 
 		clickEnchant(context);
 		world.getServer().runOnServer(server -> {
@@ -330,20 +375,18 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		});
 	}
 
-	/** Vanilla would count a click beside the window as outside and throw the carried item; the panel isn't outside. */
-	private static void panelClickKeepsTheCarriedItem(ClientGameTestContext context, TestSingleplayerContext world) {
+	/** A click on the list's frame is the list's: it does nothing, and the carried item stays carried. */
+	private static void listClickKeepsTheCarriedItem(ClientGameTestContext context, TestSingleplayerContext world) {
 		world.getServer().runOnServer(server -> {
 			EnchantmentMenu menu = serverMenu(server);
 			menu.setCarried(new ItemStack(Items.DIAMOND, 7));
 			menu.broadcastChanges();
 		});
 		context.waitTicks(2);
-		SidePanelLayout layout = screen(context, TableScreenAccess::enchanting2$layout);
-		// The title line: on the panel, not a row.
-		click(context, layout.panelX() + 10, topPos(context) + 6);
+		click(context, rowsX(context) - 1, listTop(context) + 40);
 		context.waitTicks(3);
 		ItemStack carried = world.getServer().computeOnServer(server -> serverMenu(server).getCarried().copy());
-		check(carried.is(Items.DIAMOND) && carried.getCount() == 7, "the carried diamonds were thrown: " + carried);
+		check(carried.is(Items.DIAMOND) && carried.getCount() == 7, "the carried diamonds were dropped: " + carried);
 		world.getServer().runOnServer(server -> {
 			EnchantmentMenu menu = serverMenu(server);
 			player(server).getInventory().add(menu.getCarried().copy());
@@ -353,13 +396,13 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		context.waitTicks(2);
 	}
 
-	private static void closingClearsThePanel(ClientGameTestContext context) {
+	private static void closingClearsTheList(ClientGameTestContext context) {
 		int containerId = context.computeOnClient(client -> client.player.containerMenu.containerId);
 		check(context.computeOnClient(client -> TablePreviewState.forContainer(containerId).isPresent()),
-				"a panel is held while open");
+				"a preview is held while open");
 		context.runOnClient(client -> client.player.closeContainer());
 		context.waitForScreen(null);
 		check(context.computeOnClient(client -> TablePreviewState.forContainer(containerId).isEmpty()),
-				"closing the table cleared its panel");
+				"closing the table cleared its preview");
 	}
 }

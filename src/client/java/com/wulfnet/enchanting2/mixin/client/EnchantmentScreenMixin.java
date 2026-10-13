@@ -1,10 +1,11 @@
 package com.wulfnet.enchanting2.mixin.client;
 
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.platform.cursor.CursorTypes;
 import com.wulfnet.enchanting2.client.ClientConfigState;
-import com.wulfnet.enchanting2.client.SidePanel;
+import com.wulfnet.enchanting2.client.TableList;
 import com.wulfnet.enchanting2.client.TablePreviewState;
 import com.wulfnet.enchanting2.client.TableScreenAccess;
 import com.wulfnet.enchanting2.config.CostsSection;
@@ -13,15 +14,17 @@ import com.wulfnet.enchanting2.network.TablePreviewPayload;
 import com.wulfnet.enchanting2.screen.PanelText.Arg;
 import com.wulfnet.enchanting2.screen.PanelText.Msg;
 import com.wulfnet.enchanting2.screen.PanelText.Row;
+import com.wulfnet.enchanting2.screen.PanelText.Tone;
 import com.wulfnet.enchanting2.screen.PanelText.Zone;
-import com.wulfnet.enchanting2.screen.SidePanelLayout;
 import com.wulfnet.enchanting2.table.TableBridge;
+import com.wulfnet.enchanting2.table.TableListModel.Hit;
 import com.wulfnet.enchanting2.table.TableOutcome.Status;
 import com.wulfnet.enchanting2.table.TablePanelView;
-import com.wulfnet.enchanting2.table.TablePanelView.Item;
+import com.wulfnet.enchanting2.table.TablePanelView.Entry;
 import com.wulfnet.enchanting2.table.TablePanelView.Ready;
 import com.wulfnet.enchanting2.table.TableRow;
 import com.wulfnet.enchanting2.table.TableSelection;
+import com.wulfnet.enchanting2.table.TableWindow;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,12 +33,14 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.EnchantmentScreen;
 import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.FormattedCharSequence;
@@ -52,54 +57,32 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * DESIGN §6 enchanting table, Stage 7D. On a server running our table, vanilla's three random offers are gone. Their
- * area shows the price (XP levels and lapis, or why there's none) and an Enchant button drawn with vanilla's own offer
- * sprites. The list of enchantments is a scrolling panel beside the window, placed like the grindstone's (decisions.md
- * 2026-10-07 "Enchanting table"). A click on a row picks or unpicks it, its arrows step the level, and every change sends
- * the whole selection. Enchant sends the numbers shown, which the server checks against its own. On a vanilla server
- * nothing here changes the screen.
+ * DESIGN §6 enchanting table, in the window (TODO 10l; owner 2026-10-13, layout B, replacing Stage 7D's side panel). On
+ * a server running our table, vanilla's three random offers are gone and the window is {@link TableWindow#EXTRA}
+ * taller: the list of enchantments fills vanilla's offer box ({@link TableList}), and the price and an Enchant button sit
+ * under the item and lapis slots. A click on an entry picks or unpicks it, its arrows step the level, and every change
+ * sends the whole selection. Enchant sends the numbers shown, which the server checks against its own. On a vanilla
+ * server nothing here changes the screen.
  */
 @Mixin(EnchantmentScreen.class)
 abstract class EnchantmentScreenMixin extends AbstractContainerScreen<EnchantmentMenu> implements TableScreenAccess {
+	/** Readable on the window's grey: the side panels' green, red and label grey. */
 	@Unique
-	private static final Identifier SLOT = Identifier.withDefaultNamespace("container/enchanting_table/enchantment_slot");
+	private static final int GOOD = 0xFF1E7B1E;
 	@Unique
-	private static final Identifier SLOT_HIGHLIGHTED = Identifier.withDefaultNamespace(
-			"container/enchanting_table/enchantment_slot_highlighted");
+	private static final int BAD = 0xFFAA0000;
 	@Unique
-	private static final Identifier SLOT_DISABLED = Identifier.withDefaultNamespace(
-			"container/enchanting_table/enchantment_slot_disabled");
-	/** Vanilla's offer area: three 108x19 rows from (60, 14). The first two show the price, the third is Enchant. */
-	@Unique
-	private static final int AREA_X = 60;
-	@Unique
-	private static final int AREA_Y = 14;
-	@Unique
-	private static final int AREA_WIDTH = 108;
-	@Unique
-	private static final int ROW_HEIGHT = 19;
-	/** Vanilla's offer colours: the cost number, its name text, and the hovered name. */
-	@Unique
-	private static final int AFFORDABLE = 0xFF80FF20;
-	@Unique
-	private static final int UNAFFORDABLE = 0xFFFF6060;
-	@Unique
-	private static final int LABEL = 0xFF685E4A;
-	@Unique
-	private static final int LABEL_HOVERED = 0xFFFFFF80;
-	@Unique
-	private static final int LABEL_DISABLED = 0xFF342F25;
+	private static final int NORMAL = 0xFF404040;
 
 	@Unique
-	private @Nullable SidePanelLayout enchanting2$layout;
+	private @Nullable TableList enchanting2$list;
 	@Unique
-	private @Nullable SidePanel enchanting2$panel;
-	/** The rows as last drawn, so a click maps back to the row the player saw. */
-	@Unique
-	private List<Item> enchanting2$items = List.of();
+	private @Nullable Button enchanting2$button;
 	@Unique
 	private List<String> enchanting2$windowText = List.of();
-	/** The item the panel's scroll position belongs to; a different one scrolls back to the top. */
+	@Unique
+	private List<String> enchanting2$buttonTooltip = List.of();
+	/** The item the list's scroll position belongs to; a different one scrolls back to the top. */
 	@Unique
 	private ItemStack enchanting2$scrolledFor = ItemStack.EMPTY;
 	/** {@link #enchanting2$sorted}'s cache: the payload list and language it last sorted. */
@@ -114,43 +97,62 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 		super(null, null, null);
 	}
 
+	/** Before vanilla centres the window, so {@code topPos} is computed for the taller one. */
+	@Inject(method = "init", at = @At("HEAD"))
+	private void enchanting2$height(CallbackInfo ci) {
+		if (TableBridge.clientServerIsOurs()) {
+			imageHeight = TableWindow.HEIGHT;
+			inventoryLabelY = TableWindow.INVENTORY_LABEL_Y;
+		}
+	}
+
 	@Inject(method = "init", at = @At("TAIL"))
 	private void enchanting2$init(CallbackInfo ci) {
-		enchanting2$layout = null;
-		enchanting2$panel = null;
-		enchanting2$items = List.of();
+		enchanting2$list = null;
+		enchanting2$button = null;
 		enchanting2$windowText = List.of();
 		if (!TableBridge.clientServerIsOurs()) {
 			return;
 		}
-		enchanting2$panel = new SidePanel(font);
-		SidePanelLayout layout = SidePanelLayout.compute(width, imageWidth, 0, true, TablePanelView.PANEL_WIDTH);
-		enchanting2$layout = layout;
-		leftPos = layout.leftPos();
+		enchanting2$list = new TableList(font);
+		enchanting2$button = addRenderableWidget(Button.builder(Component.translatable(TablePanelView.KEY
+				+ "window.enchant"), button -> enchanting2$enchant()).bounds(leftPos + TableWindow.BUTTON_X,
+						topPos + TableWindow.BUTTON_Y, TableWindow.BUTTON_WIDTH, TableWindow.BUTTON_HEIGHT).build());
+		enchanting2$button.active = false;
 	}
 
 	/**
-	 * Vanilla draws at the centred X, not {@code leftPos}; this is that X ({@code k}), so the background, the book and
-	 * the slots' frame all move with the window. A pose translation wouldn't move the book: it's drawn as a separate
-	 * picture at absolute coordinates.
+	 * Vanilla's background in three pieces: the top with the slots and the offer box's frame, its plain grey row
+	 * stretched over the extra height, and the inventory part moved down.
 	 */
-	@ModifyVariable(method = "renderBg", at = @At("STORE"), index = 5)
-	private int enchanting2$windowX(int centered) {
-		return enchanting2$layout != null ? leftPos : centered;
+	@WrapOperation(method = "renderBg", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;"
+			+ "blit(Lcom/mojang/blaze3d/pipeline/RenderPipeline;Lnet/minecraft/resources/Identifier;IIFFIIII)V"))
+	private void enchanting2$background(GuiGraphics graphics, RenderPipeline pipeline, Identifier texture, int x, int y,
+			float u, float v, int width, int height, int textureWidth, int textureHeight, Operation<Void> original) {
+		if (enchanting2$list == null) {
+			original.call(graphics, pipeline, texture, x, y, u, v, width, height, textureWidth, textureHeight);
+			return;
+		}
+		int split = TableWindow.SPLIT_ROW;
+		graphics.blit(pipeline, texture, x, y, 0, 0, width, split, textureWidth, textureHeight);
+		graphics.blit(pipeline, texture, x, y + split, 0, TableWindow.BAND_ROW, width, TableWindow.EXTRA, width, 1,
+				textureWidth, textureHeight);
+		graphics.blit(pipeline, texture, x, y + split + TableWindow.EXTRA, 0, split, width,
+				TableWindow.VANILLA_HEIGHT - split, textureWidth, textureHeight);
 	}
 
-	/** Vanilla's three offer rows and their level icons; our price and Enchant button take their place. */
+	/** Vanilla's three offer rows and their level icons; the list takes their place. */
 	@WrapWithCondition(method = "renderBg", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;"
 			+ "blitSprite(Lcom/mojang/blaze3d/pipeline/RenderPipeline;Lnet/minecraft/resources/Identifier;IIII)V"))
 	private boolean enchanting2$vanillaOffers(GuiGraphics graphics, RenderPipeline pipeline, Identifier sprite, int x,
 			int y, int w, int h) {
-		return enchanting2$layout == null;
+		return enchanting2$list == null;
 	}
 
 	/** The book opens when there's something to pick, as vanilla's opens when it has offers. */
 	@ModifyVariable(method = "tickBook", at = @At("LOAD"), ordinal = 0)
 	private boolean enchanting2$bookOpen(boolean vanillaHasOffers) {
-		if (enchanting2$layout == null) {
+		if (enchanting2$list == null) {
 			return vanillaHasOffers;
 		}
 		return TablePreviewState.forContainer(menu.containerId).map(p -> !p.rows().isEmpty()).orElse(false);
@@ -160,38 +162,28 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 	@Inject(method = "renderBg", at = @At("TAIL"))
 	private void enchanting2$drawTable(GuiGraphics graphics, float partialTick, int mouseX, int mouseY,
 			CallbackInfo ci) {
-		SidePanelLayout layout = enchanting2$layout;
-		SidePanel panel = enchanting2$panel;
-		if (layout == null || panel == null) {
+		TableList list = enchanting2$list;
+		if (list == null) {
 			return;
 		}
 		ItemStack target = menu.getSlot(0).getItem();
 		if (!ItemStack.isSameItemSameComponents(target, enchanting2$scrolledFor)) {
-			panel.resetScroll();
+			list.model().reset();
 			enchanting2$scrolledFor = target.copy();
 		}
 		Optional<TablePreviewPayload> preview = TablePreviewState.forContainer(menu.containerId);
 		Status status = preview.map(TablePreviewPayload::status).orElse(Status.NONE);
-		List<TableRow> rows = enchanting2$sorted(panel, preview.map(TablePreviewPayload::rows).orElse(List.of()), target);
+		List<TableRow> rows = enchanting2$sorted(preview.map(TablePreviewPayload::rows).orElse(List.of()), target);
 		Optional<CostBreakdown> cost = preview.flatMap(TablePreviewPayload::cost);
 		int playerLevel = enchanting2$playerLevel();
 		int lapis = menu.getGoldCount();
-		enchanting2$drawWindowArea(graphics, preview, status, rows, cost, playerLevel, lapis, mouseX, mouseY);
 
-		if (!layout.panelShown()) {
-			panel.clear();
-			enchanting2$items = List.of();
-			return;
-		}
-		List<Item> items = TablePanelView.body(rows, cost);
-		enchanting2$items = items;
-		List<Row> footer = TablePanelView.footer(status, rows, preview.flatMap(TablePreviewPayload::invalid), cost,
-				playerLevel, lapis, enchanting2$maximumOperationCost());
-		panel.drawList(graphics, Component.translatable(TablePanelView.KEY + "panel.title"),
-				items.stream().map(i -> new SidePanel.Entry(i.row(), i.enchantment().isPresent(), i.selected(),
-						i.stepper())).toList(),
-				footer, target, layout.panelX(), topPos, layout.panelWidth(), height - topPos - SidePanelLayout.MARGIN,
+		list.draw(graphics, TablePanelView.entries(rows, cost), msg -> enchanting2$text(msg, target), leftPos, topPos,
 				mouseX, mouseY);
+		List<Row> breakdown = TablePanelView.footer(status, rows, preview.flatMap(TablePreviewPayload::invalid), cost,
+				playerLevel, lapis, enchanting2$maximumOperationCost());
+		enchanting2$drawColumn(graphics, status, breakdown, cost, playerLevel, lapis, target);
+		enchanting2$updateButton(TablePanelView.ready(status, cost, playerLevel, lapis), breakdown, target);
 	}
 
 	/**
@@ -199,11 +191,11 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 	 * payload's list is replaced, never mutated, so identity is enough).
 	 */
 	@Unique
-	private List<TableRow> enchanting2$sorted(SidePanel panel, List<TableRow> rows, ItemStack target) {
+	private List<TableRow> enchanting2$sorted(List<TableRow> rows, ItemStack target) {
 		String language = Minecraft.getInstance().getLanguageManager().getSelected();
 		if (rows != enchanting2$sortedFrom || !language.equals(enchanting2$sortedLanguage)) {
 			Collator collator = Collator.getInstance(Locale.forLanguageTag(language.replace('_', '-')));
-			enchanting2$sortedRows = TablePanelView.sortedByName(rows, id -> panel.text(
+			enchanting2$sortedRows = TablePanelView.sortedByName(rows, id -> enchanting2$text(
 					Msg.of(TablePanelView.KEY + "row.name", new Arg.Ench(id)), target).getString(), collator);
 			enchanting2$sortedFrom = rows;
 			enchanting2$sortedLanguage = language;
@@ -211,109 +203,113 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 		return enchanting2$sortedRows;
 	}
 
-	/** The price in the first two offer rows (or why there's none), and the Enchant button in the third. */
+	/**
+	 * Under the slots: the price (levels and lapis, green when there's enough) or, with no price, the status line,
+	 * wrapped to the column.
+	 */
 	@Unique
-	private void enchanting2$drawWindowArea(GuiGraphics graphics, Optional<TablePreviewPayload> preview, Status status,
-			List<TableRow> rows, Optional<CostBreakdown> cost, int playerLevel, int lapis, int mouseX, int mouseY) {
-		int x = leftPos + AREA_X;
-		int y = topPos + AREA_Y;
-		List<String> text = new ArrayList<>();
-		graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT_DISABLED, x, y, AREA_WIDTH, ROW_HEIGHT);
-		graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT_DISABLED, x, y + ROW_HEIGHT, AREA_WIDTH, ROW_HEIGHT);
-		Ready ready = TablePanelView.ready(status, cost, playerLevel, lapis);
-		if (status.priced() && cost.isPresent()) {
+	private void enchanting2$drawColumn(GuiGraphics graphics, Status status, List<Row> breakdown,
+			Optional<CostBreakdown> cost, int playerLevel, int lapis, ItemStack target) {
+		List<Component> lines = new ArrayList<>();
+		List<Integer> colors = new ArrayList<>();
+		if (status.priced() && cost.isPresent() && !cost.get().tooExpensive() && !cost.get().free()) {
 			CostBreakdown price = cost.get();
-			if (price.tooExpensive()) {
-				enchanting2$priceLine(graphics, text, Component.translatable(TablePanelView.VANILLA_TOO_EXPENSIVE), x, y,
-						UNAFFORDABLE);
-			} else if (price.free()) {
-				enchanting2$priceLine(graphics, text, Component.translatable(TablePanelView.KEY + "total.free_creative"),
-						x, y, AFFORDABLE);
-			} else {
-				enchanting2$priceLine(graphics, text, Component.translatable(TablePanelView.KEY + "window.levels",
-						price.levelsCharged()), x, y, playerLevel >= price.levelsCharged() ? AFFORDABLE : UNAFFORDABLE);
-				enchanting2$priceLine(graphics, text, Component.translatable(TablePanelView.KEY + "window.lapis",
-						price.lapisCharged()), x, y + ROW_HEIGHT, lapis >= price.lapisCharged() ? AFFORDABLE
-								: UNAFFORDABLE);
-			}
+			lines.add(Component.translatable(TablePanelView.KEY + "window.levels", price.levelsCharged()));
+			colors.add(playerLevel >= price.levelsCharged() ? GOOD : BAD);
+			lines.add(Component.translatable(TablePanelView.KEY + "window.lapis", price.lapisCharged()));
+			colors.add(lapis >= price.lapisCharged() ? GOOD : BAD);
 		} else {
-			// No price: the panel's own status line, wrapped over both rows.
-			Row line = TablePanelView.status(status, rows, preview.flatMap(TablePreviewPayload::invalid), cost,
-					playerLevel, lapis, enchanting2$maximumOperationCost()).getFirst();
-			Component message = enchanting2$panel != null
-					? enchanting2$panel.text(line.text(), menu.getSlot(0).getItem())
-					: Component.empty();
-			List<FormattedCharSequence> wrapped = font.split(message, AREA_WIDTH - 8);
-			for (int i = 0; i < Math.min(2, wrapped.size()); i++) {
-				graphics.drawString(font, wrapped.get(i), x + 4, y + 6 + i * ROW_HEIGHT, LABEL, false);
+			Row line = breakdown.getLast();
+			lines.add(enchanting2$text(line.text(), target));
+			colors.add(line.tone() == Tone.BAD ? BAD : line.tone() == Tone.GOOD ? GOOD : NORMAL);
+		}
+		List<String> text = new ArrayList<>();
+		int x = leftPos + TableWindow.COLUMN_X;
+		int y = topPos + TableWindow.PRICE_Y;
+		int drawn = 0;
+		for (int i = 0; i < lines.size(); i++) {
+			text.add(lines.get(i).getString());
+			for (FormattedCharSequence part : font.split(lines.get(i), TableWindow.COLUMN_WIDTH)) {
+				if (drawn == TableWindow.STATUS_LINES) {
+					break;
+				}
+				graphics.drawString(font, part, x + (TableWindow.COLUMN_WIDTH - font.width(part)) / 2,
+						y + drawn * TableWindow.TEXT_LINE, colors.get(i), false);
+				drawn++;
 			}
-			text.add(message.getString());
 		}
-
-		boolean hovered = enchanting2$overButton(mouseX, mouseY);
-		boolean enabled = ready == Ready.READY;
-		int buttonY = y + 2 * ROW_HEIGHT;
-		graphics.blitSprite(RenderPipelines.GUI_TEXTURED, !enabled ? SLOT_DISABLED : hovered ? SLOT_HIGHLIGHTED : SLOT,
-				x, buttonY, AREA_WIDTH, ROW_HEIGHT);
-		if (enabled && hovered) {
-			graphics.requestCursor(CursorTypes.POINTING_HAND);
-		}
-		Component label = Component.translatable(TablePanelView.KEY + "window.enchant");
-		graphics.drawString(font, label, x + (AREA_WIDTH - font.width(label)) / 2, buttonY + 6,
-				!enabled ? LABEL_DISABLED : hovered ? LABEL_HOVERED : LABEL, false);
-		text.add(label.getString());
+		text.add(Component.translatable(TablePanelView.KEY + "window.enchant").getString());
 		enchanting2$windowText = List.copyOf(text);
 	}
 
+	/** Active only when the client thinks it can pay; its tooltip is the whole breakdown. */
 	@Unique
-	private void enchanting2$priceLine(GuiGraphics graphics, List<String> text, Component line, int x, int y,
-			int color) {
-		graphics.drawString(font, line, x + AREA_WIDTH - 4 - font.width(line), y + 6, color);
-		text.add(line.getString());
+	private void enchanting2$updateButton(Ready ready, List<Row> breakdown, ItemStack target) {
+		Button button = enchanting2$button;
+		if (button == null) {
+			return;
+		}
+		button.active = ready == Ready.READY;
+		List<String> lines = new ArrayList<>();
+		MutableComponent tooltip = Component.empty();
+		for (Row row : breakdown) {
+			MutableComponent line = enchanting2$text(row.text(), target).copy();
+			if (row.amount().isPresent()) {
+				line.append(": " + row.amount().getAsLong());
+			}
+			lines.add(line.getString());
+			if (!tooltip.getSiblings().isEmpty()) {
+				tooltip.append("\n");
+			}
+			tooltip.append(line);
+		}
+		if (!lines.equals(enchanting2$buttonTooltip)) {
+			enchanting2$buttonTooltip = List.copyOf(lines);
+			button.setTooltip(Tooltip.create(tooltip));
+		}
 	}
 
-	/** The panel takes its own clicks; the offer area takes all of its clicks, and the button sends Enchant. */
+	@Unique
+	private static Component enchanting2$text(Msg msg, ItemStack target) {
+		return TableList.text(msg, target);
+	}
+
+	/** The list takes every click inside its box: entries pick and step, the scroll bar scrolls. */
 	@Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
 	private void enchanting2$mouseClicked(MouseButtonEvent event, boolean doubleClick,
 			CallbackInfoReturnable<Boolean> cir) {
-		if (enchanting2$layout == null) {
+		TableList list = enchanting2$list;
+		if (list == null || !list.contains(event.x(), event.y())) {
 			return;
 		}
-		boolean left = event.button() == GLFW.GLFW_MOUSE_BUTTON_LEFT;
-		SidePanel panel = enchanting2$panel;
-		if (panel != null && panel.contains(event.x(), event.y())) {
-			if (left) {
-				panel.hitAt(event.x(), event.y()).ifPresent(this::enchanting2$clickRow);
+		if (event.button() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+			if (list.overScrollBar(event.x(), event.y())) {
+				list.press(event.y());
+			} else {
+				list.hit(event.x(), event.y()).ifPresent(this::enchanting2$click);
 			}
-			cir.setReturnValue(true);
-			return;
 		}
-		if (enchanting2$overArea(event.x(), event.y())) {
-			if (left && enchanting2$overButton(event.x(), event.y())) {
-				enchanting2$enchant();
-			}
-			cir.setReturnValue(true);
-		}
+		cir.setReturnValue(true);
 	}
 
 	@Unique
-	private void enchanting2$clickRow(SidePanel.Hit hit) {
-		if (hit.row() >= enchanting2$items.size()) {
-			return;
-		}
-		Optional<String> id = enchanting2$items.get(hit.row()).enchantment();
+	private void enchanting2$click(Hit hit) {
 		Optional<TablePreviewPayload> preview = TablePreviewState.forContainer(menu.containerId);
-		if (id.isEmpty() || preview.isEmpty()) {
+		if (preview.isEmpty()) {
 			return;
 		}
-		Optional<TableRow> row = preview.get().rows().stream().filter(r -> r.id().equals(id.get())).findFirst();
+		Optional<TableRow> row = preview.get().rows().stream().filter(r -> r.id().equals(hit.id())).findFirst();
 		if (row.isEmpty()) {
 			return;
 		}
 		TableSelection next = TablePanelView.click(preview.get().selection(), row.get(), hit.zone());
 		if (!next.equals(preview.get().selection())) {
+			if (enchanting2$list != null) {
+				enchanting2$list.model().keep(hit.id());
+			}
 			TablePreviewState.sendSelect(menu.containerId, next);
-			enchanting2$clickSound();
+			Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK,
+					1.0F));
 		}
 	}
 
@@ -329,50 +325,40 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 		CostBreakdown price = preview.get().cost().get();
 		TablePreviewState.sendEnchant(menu.containerId, preview.get().selection(), price.levelsCharged(),
 				price.lapisCharged());
-		enchanting2$clickSound();
 	}
 
 	/** {@code EnchantmentScreen} doesn't declare it, so the mixin adds the override. */
 	@Override
 	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-		SidePanel panel = enchanting2$panel;
-		if (panel != null && panel.scroll(mouseX, mouseY, scrollY)) {
+		TableList list = enchanting2$list;
+		if (list != null && list.contains(mouseX, mouseY)) {
+			list.scroll(scrollY);
 			return true;
 		}
 		return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
 	}
 
-	/** A click on the panel isn't "outside": vanilla would throw the carried item into the world. */
 	@Override
-	protected boolean hasClickedOutside(double mouseX, double mouseY, int left, int top) {
-		SidePanel panel = enchanting2$panel;
-		if (panel != null && panel.contains(mouseX, mouseY)) {
-			return false;
+	public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+		TableList list = enchanting2$list;
+		if (list != null && list.drag(event.y())) {
+			return true;
 		}
-		return super.hasClickedOutside(mouseX, mouseY, left, top);
+		return super.mouseDragged(event, dragX, dragY);
+	}
+
+	@Override
+	public boolean mouseReleased(MouseButtonEvent event) {
+		if (enchanting2$list != null) {
+			enchanting2$list.release();
+		}
+		return super.mouseReleased(event);
 	}
 
 	@Override
 	public void removed() {
 		super.removed();
 		TablePreviewState.clear(menu.containerId);
-	}
-
-	@Unique
-	private boolean enchanting2$overArea(double mouseX, double mouseY) {
-		return mouseX >= leftPos + AREA_X && mouseX < leftPos + AREA_X + AREA_WIDTH && mouseY >= topPos + AREA_Y
-				&& mouseY < topPos + AREA_Y + 3 * ROW_HEIGHT;
-	}
-
-	@Unique
-	private boolean enchanting2$overButton(double mouseX, double mouseY) {
-		int buttonY = topPos + AREA_Y + 2 * ROW_HEIGHT;
-		return enchanting2$overArea(mouseX, mouseY) && mouseY >= buttonY;
-	}
-
-	@Unique
-	private static void enchanting2$clickSound() {
-		Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
 	}
 
 	@Unique
@@ -386,9 +372,11 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 				.map(c -> OptionalInt.of(c.maximumOperationCost())).orElse(OptionalInt.empty());
 	}
 
+	// --- TableScreenAccess, for the client GameTest ---
+
 	@Override
-	public @Nullable SidePanelLayout enchanting2$layout() {
-		return enchanting2$layout;
+	public boolean enchanting2$ours() {
+		return enchanting2$list != null;
 	}
 
 	@Override
@@ -397,8 +385,18 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 	}
 
 	@Override
-	public List<String> enchanting2$panelText() {
-		return enchanting2$panel != null ? enchanting2$panel.lastText() : List.of();
+	public int enchanting2$topPos() {
+		return topPos;
+	}
+
+	@Override
+	public int enchanting2$imageHeight() {
+		return imageHeight;
+	}
+
+	@Override
+	public List<String> enchanting2$listText() {
+		return enchanting2$list != null ? enchanting2$list.names() : List.of();
 	}
 
 	@Override
@@ -407,41 +405,57 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 	}
 
 	@Override
+	public List<String> enchanting2$buttonTooltip() {
+		return enchanting2$buttonTooltip;
+	}
+
+	@Override
+	public boolean enchanting2$buttonActive() {
+		return enchanting2$button != null && enchanting2$button.active;
+	}
+
+	@Override
+	public List<String> enchanting2$rowTooltip() {
+		return enchanting2$list != null ? enchanting2$list.lastTooltip() : List.of();
+	}
+
+	@Override
 	public List<String> enchanting2$rowIds() {
-		return enchanting2$items.stream().flatMap(item -> item.enchantment().stream()).toList();
+		return enchanting2$list != null ? enchanting2$list.ids() : List.of();
+	}
+
+	@Override
+	public int enchanting2$rowsX() {
+		return enchanting2$list != null ? enchanting2$list.rowsX() : 0;
 	}
 
 	@Override
 	public OptionalInt enchanting2$rowY(String id) {
-		OptionalInt index = enchanting2$rowIndex(id);
-		return index.isPresent() && enchanting2$panel != null ? enchanting2$panel.rowCenterY(index.getAsInt())
-				: OptionalInt.empty();
+		return enchanting2$list != null ? enchanting2$list.rowCenterY(id) : OptionalInt.empty();
 	}
 
 	@Override
 	public OptionalInt enchanting2$arrowX(String id, Zone zone) {
-		OptionalInt index = enchanting2$rowIndex(id);
-		return index.isPresent() && enchanting2$panel != null ? enchanting2$panel.arrowCenterX(index.getAsInt(), zone)
-				: OptionalInt.empty();
+		return enchanting2$list != null ? enchanting2$list.arrowCenterX(id, zone) : OptionalInt.empty();
 	}
 
 	@Override
 	public int enchanting2$scrollOffset() {
-		return enchanting2$panel != null ? enchanting2$panel.scrollOffset() : 0;
+		return enchanting2$list != null ? enchanting2$list.model().scroll() : 0;
 	}
 
 	@Override
 	public int enchanting2$maxScroll() {
-		return enchanting2$panel != null ? enchanting2$panel.maxScroll() : 0;
+		return enchanting2$list != null ? enchanting2$list.model().maxScroll() : 0;
 	}
 
-	@Unique
-	private OptionalInt enchanting2$rowIndex(String id) {
-		for (int i = 0; i < enchanting2$items.size(); i++) {
-			if (enchanting2$items.get(i).enchantment().equals(Optional.of(id))) {
-				return OptionalInt.of(i);
-			}
-		}
-		return OptionalInt.empty();
+	@Override
+	public int enchanting2$scrollBarX() {
+		return enchanting2$list != null ? enchanting2$list.scrollBarX() : 0;
+	}
+
+	@Override
+	public int enchanting2$thumbCenterY() {
+		return enchanting2$list != null ? enchanting2$list.thumbCenter() : 0;
 	}
 }

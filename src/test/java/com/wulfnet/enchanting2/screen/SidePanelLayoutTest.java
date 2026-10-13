@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.wulfnet.enchanting2.screen.SidePanelLayout.Placement;
-import com.wulfnet.enchanting2.table.TablePanelView;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -114,10 +113,10 @@ class SidePanelLayoutTest {
 		assertEquals(MARGIN + PANEL_WIDTH + GAP, shifted.leftPos());
 	}
 
-	/** The enchanting table: no tab and a wider panel, under the same rules; only a shifted panel can be narrower. */
+	/** A wider panel (the table's was 160 before it moved into its window) follows the same rules; only a shifted one can be narrower. */
 	@Test
 	void aWiderPanelFollowsTheSameRules() {
-		int wide = TablePanelView.PANEL_WIDTH;
+		int wide = 160;
 		for (int screen = 320; screen <= 2000; screen++) {
 			SidePanelLayout layout = SidePanelLayout.compute(screen, IMAGE, 0, true, wide);
 			String at = "width " + screen + ": " + layout;

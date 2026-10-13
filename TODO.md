@@ -1495,6 +1495,43 @@ reports as unknown keys and ignores. Nothing outside the repo is touched.
         than one dirt over a seeded run, a placed one exactly one; natural leaves with a Fortune hoe multiply.
         DESIGN §6 table + docs/ENCHANTMENTS.md Fortune row.
       - Table panel rows sorted by translated name (client, `TablePanelView`), JUnit on the sort, DESIGN §7.
+- [ ] 10l Table screen in the window (owner, 2026-10-13; decisions.md "10d rulings and the table screen rework"):
+      the side panel "feels janky". Layout B (owner pick): window 51 px taller, book kept, the list in vanilla's offer
+      box, price + Enchant under the item/lapis slots. Client only, plus one client-side slot offset. One commit, then
+      the owner looks at it in `runClient` before it's final. Anvil/grindstone: decided after this (owner).
+      **Geometry** (GUI px from the window's top-left; MC-free `table/TableWindow` constants + JUnit):
+      - `EXTRA` 51 → `imageHeight` 217 (fits 1080p at GUI scale 4: 270 tall). Background in three blits from vanilla's
+        texture: rows 0–72, row 76 (plain grey band) stretched to 51 px, rows 72–166 moved down 51.
+      - List box: frame x 59–169, y 13–122 (vanilla's inset colours), interior 108 × 108 = 9 lines of 12. Rows x
+        60–160, scroll bar x 162–167 (dark track, vanilla's 6×27 villager scroller sprite; disabled sprite when it all
+        fits). Rows drawn with fills in vanilla's offer palette: beige normal, pink (the highlighted sprite's colours)
+        picked, dark (disabled sprite's) unpickable, yellow name text under the mouse. Clipped with a scissor.
+      - Entry per offered enchantment, sorted by name as now: one 12 px line (name, current level, "(has III)"), a
+        picked one two lines (name + price; then `<  V  >`). Name cut with "…" to fit; the full name is in the tooltip.
+        Reason lines leave the list for the tooltip.
+      - Left column x 7–57: price lines at y 66 and 76 ("17 levels" / "17 lapis", green or red), or the status
+        wrapped to 50 px (up to 3 lines); a vanilla `Button` "Enchant" at (8, 100) 48×20, active only when READY.
+      - Player inventory slots +51 on the client (`EnchantmentMenuMixin` `@ModifyArg` on `addStandardInventorySlots`'s
+        y, client side and our server only; server-side positions are never read); inventory label y 123.
+      **Behaviour:** wheel scrolls 12 px a notch; the thumb drags; clicks map to entry + zone (body, `<`, `>`); after
+      a pick or step, the clicked entry is scrolled fully into view (owner: the picked row stayed hidden) until the
+      player scrolls or the item changes. Hover a row → tooltip: full name, its `.desc` description, the reason it
+      can't be picked (red), its price if picked. Hover Enchant → the breakdown: surcharge, curse discount, totals,
+      status (`TablePanelView.footer`'s rows).
+      **Code:** `table/TableListModel` (MC-free: entries' heights, content height, max scroll, clamp, keep-in-view,
+      hit test, thumb position and drag) + JUnit; `TablePanelView.entries(rows, cost)` replaces `body` (one entry per
+      row with its reason) and `PANEL_WIDTH` goes; client `client/TableList` draws and hit-tests; `EnchantmentScreenMixin`
+      loses `SidePanelLayout`/`SidePanel`, gains the height, background wrap, button, tooltips, drag; `TableScreenAccess`
+      reports list/entry/button positions instead of the layout.
+      **Tests:** JUnit `TableListModelTest`, `TablePanelViewTest` and `TableLangKeysTest` on `entries`.
+      `TableScreenClientGameTest` rewritten for the window: taller window + moved inventory slot, pick / step /
+      unpick through the list, Enchant button charges 17 and 17, a book's list scrolls by wheel and by thumb drag, a
+      pick on the last visible row stays in view, a row's tooltip carries its description, a list click keeps the
+      carried item; screenshots `enchanting2-table-*` for the owner.
+      **Not doing:** anvil or grindstone panels; server logic, payloads or protocol; the vanilla-server screen (stays
+      vanilla); other languages; `SidePanel` itself (anvil and grindstone still use it).
+      **Blast radius / rollback:** client screen + one client-only slot offset; no data, config or world changes.
+      `git revert` the commit.
 - [x] 10d Balance pass: every candidate moves from REVIEW to INCLUDE/DEFER/REMOVE  ✅ 2026-10-13 (owner ruled R1, R2, R3,
       R5 as drafted and R4 for Health and Last Stand only; everything else INCLUDE. New GameTests: the two treasure ones
       tagged like Mending and needing 15 shelves; JUnit Flight 6/level; the tag JUnit failed red before its update)

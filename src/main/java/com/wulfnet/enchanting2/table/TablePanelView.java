@@ -22,10 +22,11 @@ import java.util.OptionalLong;
 import java.util.function.Function;
 
 /**
- * What the enchanting table's panel says about the server's preview (DESIGN §6, decisions.md 2026-10-07 "Enchanting
- * table"): one row per offered enchantment (picked ones with a level stepper and their price, unpickable ones with the
- * reason), then a footer with the surcharge and curse lines, the totals and a status line. Pure, so every status is
- * unit-tested; the client only draws it and sends what a click changes.
+ * What the enchanting table's list says about the server's preview (DESIGN §6, decisions.md 2026-10-07 "Enchanting
+ * table", 2026-10-13 "table screen rework"): one entry per offered enchantment (picked ones with a level stepper and
+ * their price, unpickable ones with the reason for their tooltip), and the breakdown behind the Enchant button: the
+ * surcharge and curse lines, the totals and a status line. Pure, so every status is unit-tested; the client only draws
+ * it and sends what a click changes.
  *
  * <p>Whether the player can enchant is re-derived from the price and the client's own levels and lapis
  * ({@link #ready}), not the server's status: the player may have gained levels or added lapis since it was sent. The
@@ -35,34 +36,33 @@ public final class TablePanelView {
 	public static final String KEY = "enchanting2.table.";
 	/** Vanilla's own texts, so the common cases read exactly like the anvil. */
 	public static final String VANILLA_TOO_EXPENSIVE = "container.repair.expensive";
-	/**
-	 * Wider than the anvil's: an enchantment name, a level stepper and a price on one line. At 1080p with GUI scale 4 it
-	 * still fits left of the window after a 12-pixel shift.
-	 */
-	public static final int PANEL_WIDTH = 160;
 
 	private TablePanelView() {
 	}
 
 	/**
-	 * One drawn body row.
+	 * One offered enchantment in the list.
 	 *
-	 * @param enchantment what a click acts on; empty for a reason line under a row
-	 * @param selected    picked in the server's selection
-	 * @param stepper     the level picker, on picked rows only
+	 * @param row      its name line: the text, its own price when picked, and its tone (muted when it can't be picked,
+	 *                 bad when it's picked but refused)
+	 * @param selected picked in the server's selection
+	 * @param stepper  the level picker, on picked entries only
+	 * @param reason   why it can't be picked, or its pick is refused; shown in its tooltip
 	 */
-	public record Item(Row row, Optional<String> enchantment, boolean selected, Optional<Stepper> stepper) {
-		public Item {
+	public record Entry(String id, Row row, boolean selected, Optional<Stepper> stepper, Optional<Msg> reason) {
+		public Entry {
+			Objects.requireNonNull(id, "id");
 			Objects.requireNonNull(row, "row");
-			Objects.requireNonNull(enchantment, "enchantment");
 			Objects.requireNonNull(stepper, "stepper");
-			if ((selected || stepper.isPresent()) && enchantment.isEmpty()) {
-				throw new IllegalArgumentException("only an enchantment row can be picked or stepped");
+			Objects.requireNonNull(reason, "reason");
+			if (stepper.isPresent() && !selected) {
+				throw new IllegalArgumentException("only a picked entry has a stepper");
 			}
 		}
 
-		static Item text(Row row) {
-			return new Item(row, Optional.empty(), false, Optional.empty());
+		/** A click acts on it: it picks, or (picked) unpicks. */
+		public boolean clickable() {
+			return selected || reason.isEmpty();
 		}
 	}
 
@@ -116,37 +116,32 @@ public final class TablePanelView {
 				.thenComparing(TableRow::id)).toList();
 	}
 
-	/** The scrolling part: every row, a reason line under each one that can't be picked as it stands. */
-	public static List<Item> body(List<TableRow> rows, Optional<CostBreakdown> cost) {
+	/** The list: one entry per row, in the order given. */
+	public static List<Entry> entries(List<TableRow> rows, Optional<CostBreakdown> cost) {
 		Objects.requireNonNull(cost, "cost");
-		List<Item> items = new ArrayList<>();
+		List<Entry> entries = new ArrayList<>();
 		for (TableRow row : rows) {
 			Arg name = new Arg.Ench(row.id());
 			Msg text = row.currentLevel() > 0
 					? Msg.of(KEY + "row.current", name, new Arg.Level(row.currentLevel()))
 					: Msg.of(KEY + "row.name", name);
+			Optional<Msg> reason = row.ok() ? Optional.empty() : Optional.of(reason(row));
 			if (row.selected()) {
-				OptionalLong amount = lineAmount(cost, row.id());
 				Stepper stepper = new Stepper(Msg.of(KEY + "row.level", new Arg.Level(row.selectedLevel())),
 						row.selectedLevel() > row.currentLevel() + 1, row.selectedLevel() < row.maxSelectable());
 				Tone tone = row.ok() ? Tone.NORMAL : Tone.BAD;
-				items.add(new Item(new Row(text, amount, tone, false), Optional.of(row.id()), true,
-						Optional.of(stepper)));
-				if (!row.ok()) {
-					items.add(Item.text(new Row(reason(row), OptionalLong.empty(), Tone.BAD, true)));
-				}
-			} else if (row.ok()) {
-				items.add(new Item(Row.of(text, Tone.NORMAL), Optional.of(row.id()), false, Optional.empty()));
+				entries.add(new Entry(row.id(), new Row(text, lineAmount(cost, row.id()), tone, false), true,
+						Optional.of(stepper), reason));
 			} else {
-				items.add(Item.text(Row.of(text, Tone.MUTED)));
-				items.add(Item.text(new Row(reason(row), OptionalLong.empty(), Tone.MUTED, true)));
+				entries.add(new Entry(row.id(), Row.of(text, row.ok() ? Tone.NORMAL : Tone.MUTED), false,
+						Optional.empty(), reason));
 			}
 		}
-		return items;
+		return entries;
 	}
 
 	/**
-	 * The pinned part under the rows: surcharge and curse lines, the totals, and what happens on Enchant.
+	 * The breakdown behind the Enchant button: surcharge and curse lines, the totals, and what happens on Enchant.
 	 *
 	 * @param playerLevel          the player's XP level now
 	 * @param lapisCount           lapis in the table's slot now

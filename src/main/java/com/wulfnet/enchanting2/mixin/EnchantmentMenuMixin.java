@@ -14,6 +14,8 @@ import com.wulfnet.enchanting2.table.TableOutcome;
 import com.wulfnet.enchanting2.table.TablePool;
 import com.wulfnet.enchanting2.table.TablePower;
 import com.wulfnet.enchanting2.table.TableSelection;
+import com.wulfnet.enchanting2.table.TableWindow;
+import com.llamalad7.mixinextras.sugar.Local;
 import java.util.List;
 import java.util.Optional;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -42,6 +44,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -78,6 +81,19 @@ abstract class EnchantmentMenuMixin extends AbstractContainerMenu implements Tab
 
 	private EnchantmentMenuMixin() {
 		super(null, 0);
+	}
+
+	/**
+	 * On a client connected to our server the window is {@link TableWindow#EXTRA} taller (TODO 10l), so the player's
+	 * inventory slots move down with it. Only the client reads slot positions; the server's menu keeps vanilla's.
+	 */
+	@ModifyArg(method = "<init>(ILnet/minecraft/world/entity/player/Inventory;Lnet/minecraft/world/inventory/ContainerLevelAccess;)V",
+			at = @At(value = "INVOKE", target = "Lnet/minecraft/world/inventory/EnchantmentMenu;"
+					+ "addStandardInventorySlots(Lnet/minecraft/world/Container;II)V"), index = 2)
+	private int enchanting2$inventoryY(int vanillaY, @Local(argsOnly = true) Inventory inventory) {
+		return inventory.player.level().isClientSide() && TableBridge.clientServerIsOurs()
+				? TableWindow.inventorySlotY(vanillaY)
+				: vanillaY;
 	}
 
 	@Inject(method = "<init>(ILnet/minecraft/world/entity/player/Inventory;Lnet/minecraft/world/inventory/ContainerLevelAccess;)V",

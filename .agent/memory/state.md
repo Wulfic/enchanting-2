@@ -88,7 +88,7 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
 
 ## What's next
 1. Next: the table screen rework (owner 2026-10-13, layout B: taller window, book kept, the list in the offer area with
-   a scroll bar and hover descriptions, price + Enchant under the slots); plan in TODO "Phase 10l". Then run the
+   a scroll bar and hover descriptions, price + Enchant under the slots); plan in TODO "10l". Then run the
    client for the owner's look. Anvil/grindstone: decide after. 10d is done; a new enchantment still adds a `LevelCeilings` row, a
    `.desc` line, tags, a price row if single-level, docs rows.
 2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
