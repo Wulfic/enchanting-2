@@ -11,6 +11,7 @@ import com.wulfnet.enchanting2.enchantment.MaxLevelHook;
 import com.wulfnet.enchanting2.fortune.FortuneDrops;
 import com.wulfnet.enchanting2.fortune.PlacedBlocks;
 import com.wulfnet.enchanting2.network.ServerNetworking;
+import com.wulfnet.enchanting2.shield.BulwarkEffect;
 import com.wulfnet.enchanting2.spawner.CollectedSpawners;
 import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
@@ -23,6 +24,7 @@ public final class Enchanting2 implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		ModEffects.register();
+		BulwarkEffect.register();
 		CollectedSpawners.register();
 		InfiniteBuckets.register();
 		ServerNetworking.registerPayloads();

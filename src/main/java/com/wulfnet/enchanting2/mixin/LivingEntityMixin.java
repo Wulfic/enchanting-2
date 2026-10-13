@@ -3,25 +3,33 @@ package com.wulfnet.enchanting2.mixin;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.curse.CurseEffects;
 import com.wulfnet.enchanting2.effect.Footing;
 import com.wulfnet.enchanting2.effect.Lifesteal;
 import com.wulfnet.enchanting2.effect.WornEffects;
+import com.wulfnet.enchanting2.shield.ShieldEffects;
+import com.wulfnet.enchanting2.shield.ShieldState;
 import java.util.Map;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.BlocksAttacks;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.storage.ValueInput;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
@@ -31,7 +39,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * the first equipment update has run. Only a value the load actually cut is kept.
  */
 @Mixin(LivingEntity.class)
-abstract class LivingEntityMixin {
+abstract class LivingEntityMixin implements ShieldState {
 	/** The saved health the load clamped, until the first equipment update; NaN when there's nothing to restore. */
 	@Unique
 	private float enchanting2$clampedSavedHealth = Float.NaN;
@@ -110,6 +118,59 @@ abstract class LivingEntityMixin {
 	@ModifyReturnValue(method = "canFreeze", at = @At("RETURN"))
 	private boolean enchanting2$snowWalker(boolean freezes) {
 		return freezes && !Footing.walksOnPowderSnow((LivingEntity) (Object) this);
+	}
+
+	/** Riposte's bonus for the next melee hit, live until {@link #enchanting2$riposteUntil} (Phase 10cC). */
+	@Unique
+	private double enchanting2$riposteBonus;
+	@Unique
+	private long enchanting2$riposteUntil;
+	/** The game time Bulwark can grant absorption again (Phase 10cC). */
+	@Unique
+	private long enchanting2$bulwarkReadyAt;
+
+	@Override
+	public void enchanting2$setRiposte(double bonus, long until) {
+		enchanting2$riposteBonus = bonus;
+		enchanting2$riposteUntil = until;
+	}
+
+	@Override
+	public double enchanting2$useRiposte(long now) {
+		double bonus = now < enchanting2$riposteUntil ? enchanting2$riposteBonus : 0.0;
+		enchanting2$riposteBonus = 0.0;
+		return bonus;
+	}
+
+	@Override
+	public long enchanting2$bulwarkReadyAt() {
+		return enchanting2$bulwarkReadyAt;
+	}
+
+	@Override
+	public void enchanting2$setBulwarkReadyAt(long tick) {
+		enchanting2$bulwarkReadyAt = tick;
+	}
+
+	/**
+	 * Phase 10cC, Spiked, Bulwark and Riposte: vanilla damages the shield here whether or not anything was blocked, and
+	 * the hit can break it, so its enchantments are read first and acted on after.
+	 */
+	@WrapOperation(method = "applyItemBlocking", at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/world/item/component/BlocksAttacks;hurtBlockingItem(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/InteractionHand;F)V"))
+	private void enchanting2$shieldBlocked(BlocksAttacks blocksAttacks, Level level, ItemStack shield,
+			LivingEntity blocker, InteractionHand hand, float blocked, Operation<Void> original,
+			@Local(argsOnly = true) ServerLevel serverLevel, @Local(argsOnly = true) DamageSource source) {
+		ShieldEffects.Snapshot effects = ShieldEffects.read(shield);
+		original.call(blocksAttacks, level, shield, blocker, hand, blocked);
+		ShieldEffects.afterBlock(blocker, serverLevel, source, blocked, effects);
+	}
+
+	/** Phase 10cC, Riposte: the attacker's next melee hit after a block deals more, and uses the bonus up. */
+	@ModifyVariable(method = "hurtServer", at = @At("HEAD"), argsOnly = true)
+	private float enchanting2$riposte(float amount, @Local(argsOnly = true) ServerLevel level,
+			@Local(argsOnly = true) DamageSource source) {
+		return ShieldEffects.riposte(level, source, amount);
 	}
 
 	/**

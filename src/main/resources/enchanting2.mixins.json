@@ -6,6 +6,7 @@
 		"AbstractArrowMixin",
 		"AnvilMenuMixin",
 		"BlockItemMixin",
+		"BlocksAttacksMixin",
 		"BucketDispenseBehaviorMixin",
 		"EnchantBookForEmeraldsMixin",
 		"EnchantRandomlyFunctionMixin",

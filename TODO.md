@@ -1610,6 +1610,68 @@ docs/ENCHANTMENTS.md boots rows, DESIGN §9 rows.
   sink, jumping out after sinking), a fall onto lava, powder snow in Snow Walker iron boots (walk, climb, sneak, no
   freeze).
 
+### Stage 10cC — the seven shields, in three commits (owner answers: decisions.md 2026-10-12 "Shield Bash, Deflect...")
+**Split:** CA server-side block hooks (Steadfast, Spiked, Bulwark, Riposte) → CB Deflect (projectile flight and
+ownership) → CC Steady Stance + Shield Bash (client input). Each writes its detail here before code.
+**Not doing (all three):** shields at the enchanting table (vanilla shields have no `enchantable` component; these come
+on books + anvil, as Unbreaking does on shields today); Quick Guard, Parry, Arrow Catcher (owner: not picked).
+**Items:** new tag `enchanting2:enchantable/shield` = `minecraft:shield` + optional `#c:tools/shield` (modded shields
+carry `blocks_attacks`, so the hooks work on them). Slots `hand`. Every hook reads the blocking stack itself, not
+equipment, so a second shield in the other hand never adds.
+**Rollback:** one commit per sub-stage, `git revert <sha>`. CA registers one mob effect (`enchanting2:bulwark`); a world
+saved with it running drops the unknown effect on load without the mod, nothing else.
+
+#### 10cCA — Steadfast, Spiked, Bulwark, Riposte  ✅ 2026-10-12
+**Hooks (javap 1.21.11):** `LivingEntity.applyItemBlocking(ServerLevel, DamageSource, float)` resolves the blocked
+amount, then always calls `BlocksAttacks.hurtBlockingItem(level, stack, this, hand, blocked)` (which may break the
+shield), then for blocked > 0, a non-projectile source and a LivingEntity direct attacker, `blockUsingItem` (vanilla's
+0.5 knockback; `Player` adds the axe's `BlocksAttacks.disable`, which calls `stopUsingItem`). So the blocking stack is
+only safe to read before `hurtBlockingItem`:
+- `@WrapOperation` on that `hurtBlockingItem` call: read the stack's components (`EnchantmentHelper.runIterationOnItem`,
+  the stack only), call the original, then `shield/ShieldEffects.afterBlock(self, level, source, blocked, values)`:
+  - Spiked (`enchanting2:block_retaliation`, LevelBasedValue damage, linear 1/level): blocked > 0, source not
+    `#is_projectile`, direct entity a LivingEntity and not the thorns type → that attacker takes the damage from
+    `damageSources().thorns(self)` (owner: melee only; no extra shield durability). Thorns-typed hits never trigger it,
+    so two Spiked shields can't loop.
+  - Bulwark (`enchanting2:block_absorption` {amount LevelBasedValue 2/level, duration 100, cooldown 200}): blocked > 0
+    and the game time ≥ the blocker's `@Unique` ready tick → mob effect `enchanting2:bulwark` at amplifier
+    `round(amount) − 1`, hidden (no icon or particles; the yellow hearts show it). The effect is vanilla's Absorption
+    at 1 health per amplifier step: `MAX_ABSORPTION` +1 per (amplifier + 1), absorption raised to that on start, gone
+    when it runs out or ends. Ready tick = now + cooldown (owner: 5 s, every 10 s).
+  - Riposte (`enchanting2:riposte` {damage_bonus LevelBasedValue 0.03/level, window 40}): blocked > 0 → the blocker's
+    `@Unique` bonus and expiry tick are set (a later block overwrites them).
+- Riposte's hit: `LivingEntity.hurtServer` HEAD, `@ModifyVariable` on the amount: when the source's entity is its
+  direct entity, the type is `player_attack`/`mob_attack`/`mob_attack_no_aggro`, and that attacker has a live
+  riposte, amount × (1 + bonus) and the riposte is used up (owner: next melee hit within 2 s). Read through a duck
+  interface on the attacker (`shield/RiposteHolder`). Thorns and projectiles never use it.
+- Steadfast (`enchanting2:shield_disable_reduction`, LevelBasedValue fraction level / 3): `BlocksAttacks.disable`
+  HEAD, `@ModifyVariable` on the seconds: × (1 − sum for that stack, clamped [0, 1]); vanilla skips the cooldown at 0
+  ticks, so III never disables (owner).
+**Data:** `steadfast.json` (III), `spiked.json` (V), `bulwark.json` (III), `riposte.json` (V); weight 2; costs like
+Clarity (min 5 / +8, max 25 / +8); `#enchanting2:enchantable/shield`; `ModEnchantments`, `ModEffects` four
+components, tags, lang names + `.desc` + `effect.enchanting2.bulwark`, `LevelCeilings`: Steadfast soft 3, the rest
+none. No `PricingTable` rows (multi-level).
+**Tests (GameTest; a no-AI zombie raising a shield with `startUsingItem(OFF_HAND)`, facing the attacker, stands in for
+a player; attackers have 0 armor):**
+- Steadfast: `disable(level, mockPlayer, 5, shield)` cooldown ticks: bare 100, I 66, II 33, III none.
+- Spiked V: a blocked mob attack takes the attacker from 20 to 15; a blocked arrow hurts nobody; a bare shield hurts
+  nobody; a thorns-typed blocked hit doesn't retaliate.
+- Bulwark II: a blocked hit gives 4 absorption; a second within 10 s gives nothing; at 101 ticks the absorption and the
+  effect are gone; after 200 ticks a block grants again.
+- Riposte V: block, then the blocker's mob attack for 10 on an armorless target deals 11.5; the next deals 10; a
+  riposte 41 ticks old deals 10; a thorns hit doesn't use it.
+- JUnit: the bulwark amplifier rounding; the Steadfast clamp. Mutation run: each hook off fails its test.
+- ✅ 2026-10-12: 361 JUnit (`ShieldMathTest`) + 283 GameTests (`ShieldsGameTest`, four) + client GameTests green.
+  Husks, not zombies (zombies burn in the test level's daylight and lost health on their own). Steadfast I is 67 ticks,
+  not 66: vanilla rounds `disableBlockingForTicks`. Mutations (two runs): the Steadfast hook, the thorns guard, the
+  Bulwark cooldown, the Riposte expiry, the Riposte hit hook, the Spiked call and the Bulwark grant each fail exactly
+  their test. Owner `runClient`: the four names and descriptions on a shield's tooltip; blocking a zombie with Spiked V
+  (it flinches and loses health), Bulwark III's yellow hearts and that they go after 5 s; an axe-wielding vindicator
+  against Steadfast III.
+
+#### 10cCB — Deflect (detail before code)
+#### 10cCC — Steady Stance, Shield Bash (detail before code)
+
 ### Phase 10e — Curses (three stages, one commit each)
 **Goal:** five new curses, each with a GameTest that fails if its effect breaks, and a per-level curse discount.
 **Not doing:** Hunger on held items (owner: armor only); changing Binding/Vanishing (stay level 1, 10%); curses on

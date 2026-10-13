@@ -1,0 +1,30 @@
+{
+  "anvil_cost": 4,
+  "description": {
+    "translate": "enchantment.enchanting2.riposte"
+  },
+  "effects": {
+    "enchanting2:riposte": {
+      "damage_bonus": {
+        "type": "minecraft:linear",
+        "base": 0.03,
+        "per_level_above_first": 0.03
+      },
+      "window": 40
+    }
+  },
+  "max_cost": {
+    "base": 25,
+    "per_level_above_first": 8
+  },
+  "max_level": 5,
+  "min_cost": {
+    "base": 5,
+    "per_level_above_first": 8
+  },
+  "slots": [
+    "hand"
+  ],
+  "supported_items": "#enchanting2:enchantable/shield",
+  "weight": 2
+}

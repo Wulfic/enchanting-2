@@ -1087,3 +1087,20 @@ may not burn.
 **Rejected:** source-only, as striders (feels broken at edges); a new collision shape following the flow's height (more
 code for a rare case, and it would differ from the strider's half block).
 **Affects:** mixin/LiquidBlockMixin, effect/Footing, BootsGameTest
+
+## 2026-10-12 — Shield enchantments: book-only, Bulwark as a hidden mob effect, transient timers (agent, 10cCA)
+**Context:** 10cC needed choices DESIGN §9 left open.
+**Choice:**
+- Shields stay out of the enchanting table: vanilla shields have no `enchantable` component, and adding one would
+  change vanilla shields everywhere. Shield enchantments come on books + anvil, as Unbreaking/Mending already do.
+  `enchanting2:enchantable/shield` = `minecraft:shield` + optional `#c:tools/shield`.
+- Bulwark is a registered, hidden mob effect (`enchanting2:bulwark`): vanilla Absorption at 1 health per amplifier
+  step, since vanilla's 4 per step can't give 1 heart per level. The effect system then handles expiry, milk, save and
+  load, and dropping the hearts when it ends.
+- Riposte's window and Bulwark's cooldown are `@Unique` fields on `LivingEntity`, not saved (2 s and 10 s).
+- Durations live in the components (`block_absorption.duration/cooldown`, `riposte.window`), so a datapack can retune
+  them without a config option.
+- Spiked uses the thorns damage type and ignores thorns-typed hits, so two Spiked shields can't trade damage forever.
+**Rejected:** an `enchantable` component on shields; vanilla Absorption (2 hearts per level); a transient
+max-absorption modifier with our own tick-based expiry (re-implements the effect system); saved timers.
+**Affects:** shield/*, effect/BlockAbsorption, effect/RiposteBonus, mixin/LivingEntityMixin, mixin/BlocksAttacksMixin

@@ -90,7 +90,11 @@ public class NewEnchantmentsGameTest {
 			Map.entry(ModEnchantments.WEIGHT, 5),
 			Map.entry(ModEnchantments.HUNGER, 5),
 			Map.entry(ModEnchantments.LAVA_WALKING, 1),
-			Map.entry(ModEnchantments.SNOW_WALKER, 1));
+			Map.entry(ModEnchantments.SNOW_WALKER, 1),
+			Map.entry(ModEnchantments.STEADFAST, 3),
+			Map.entry(ModEnchantments.SPIKED, 5),
+			Map.entry(ModEnchantments.BULWARK, 3),
+			Map.entry(ModEnchantments.RIPOSTE, 5));
 
 	/** The vanilla source tags (owner 2026-10-09: everywhere), plus our table pool. */
 	private static final List<TagKey<Enchantment>> SOURCES = List.of(EnchantmentTags.NON_TREASURE,
@@ -245,7 +249,15 @@ public class NewEnchantmentsGameTest {
 				new Case(ModEnchantments.LAVA_WALKING, Items.NETHERITE_BOOTS, true),
 				new Case(ModEnchantments.LAVA_WALKING, Items.NETHERITE_LEGGINGS, false),
 				new Case(ModEnchantments.SNOW_WALKER, Items.LEATHER_BOOTS, true),
-				new Case(ModEnchantments.SNOW_WALKER, Items.LEATHER_HELMET, false));
+				new Case(ModEnchantments.SNOW_WALKER, Items.LEATHER_HELMET, false),
+				new Case(ModEnchantments.STEADFAST, Items.SHIELD, true),
+				new Case(ModEnchantments.STEADFAST, Items.IRON_AXE, false),
+				new Case(ModEnchantments.SPIKED, Items.SHIELD, true),
+				new Case(ModEnchantments.SPIKED, Items.IRON_CHESTPLATE, false),
+				new Case(ModEnchantments.BULWARK, Items.SHIELD, true),
+				new Case(ModEnchantments.BULWARK, Items.DIAMOND_SWORD, false),
+				new Case(ModEnchantments.RIPOSTE, Items.SHIELD, true),
+				new Case(ModEnchantments.RIPOSTE, Items.BOOK, false));
 		for (Case c : cases) {
 			boolean actual = get(helper, c.key()).value().isSupportedItem(new ItemStack(c.item()));
 			helper.assertValueEqual(c.supported(), actual,

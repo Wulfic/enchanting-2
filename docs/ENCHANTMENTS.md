@@ -107,13 +107,16 @@ Cushion (chestplate table above) also fits elytra.
 
 | Enchantment | Max | Cost | Fits | What it does | Status |
 |---|---|---|---|---|---|
-| Deflect | 3 | 1/lvl | shields | blocked projectiles bounce back at the shooter (33 / 66 / 100%) | Planned |
-| Shield Bash | 3 | 1/lvl | shields | attacking while blocking knocks the target back and briefly stuns it | Planned |
-| Steadfast | 3 | 1/lvl | shields | an axe disables your shield for less time (−33% per level, III = never) | Planned |
-| Spiked | 5 | 1/lvl | shields | melee attackers whose hit you block take damage (Thorns for shields) | Planned |
-| Bulwark | 3 | 1/lvl | shields | a blocked hit gives brief absorption, 1 heart per level | Planned |
-| Riposte | 5 | 1/lvl | shields | after a block, your next melee hit within 2 s deals +3% per level (V = +15%) | Planned |
+| Deflect | 3 | 1/lvl | shields | blocked projectiles fly back at the shooter at full speed and damage, now yours (33 / 66 / 100%), once each | Planned |
+| Shield Bash | 3 | 1/lvl | shields | attacking while blocking knocks the target back (Knockback I per level) and slows it hard for 0.5 s per level; then the shield rests 3 s | Planned |
+| Steadfast | 3 | 1/lvl | shields | an axe disables your shield for less time: 5 s → 3.35 s at I, 1.65 s at II, never at III | Built |
+| Spiked | 5 | 1/lvl | shields | a melee attacker whose hit your shield blocks takes 1 damage per level (Thorns for shields); never projectiles | Built |
+| Bulwark | 3 | 1/lvl | shields | a blocked hit gives 1 extra heart per level for 5 s, at most once every 10 s | Built |
+| Riposte | 5 | 1/lvl | shields | after a block, your next melee hit within 2 s deals +3% per level (V = +15%) | Built |
 | Steady Stance | 1 | 10 † | shields | no slowdown while blocking | Planned |
+
+Shields take these from books on an anvil, like Unbreaking and Mending: vanilla shields can't go in the enchanting
+table. They work on modded shields in `#c:tools/shield`.
 
 ---
 

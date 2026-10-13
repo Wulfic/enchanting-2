@@ -483,3 +483,14 @@ cheap treasure book once Lava Walking and Snow Walker became tradeable: every se
 **Fix:** roll until each case is seen a few times, with a cap, instead of a fixed count. Any later "N seeded rolls must
 include X" test needs the same shape, since every 10c stage adds tradeable enchantments.
 **Affects:** src/gametest/java/com/wulfnet/enchanting2/gametest/AcquisitionGameTest.java
+
+## 2026-10-12 — GameTest: zombies burn in the test level's daylight
+**Symptom:** shield GameTests saw a zombie lose 1 health from "nothing" (a plain shield "hurt" the attacker; a 10 hit
+took 11).
+**Fix:** use husks (no sunburn) for any test that reads health or fire. `BootsGameTest` and `ShieldsGameTest` do.
+**Affects:** src/gametest/
+
+## 2026-10-12 — `BlocksAttacks.disableBlockingForTicks` rounds
+**Fact (javap 1.21.11):** `Math.round(seconds × disable_cooldown_scale × 20)`, and nothing at all when the scaled
+seconds are ≤ 0. Steadfast I on a 5 s axe is 67 ticks, II 33, III none.
+**Affects:** ShieldsGameTest

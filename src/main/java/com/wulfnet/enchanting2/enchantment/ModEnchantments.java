@@ -48,12 +48,16 @@ public final class ModEnchantments {
 	public static final ResourceKey<Enchantment> HUNGER = key("hunger");
 	public static final ResourceKey<Enchantment> LAVA_WALKING = key("lava_walking");
 	public static final ResourceKey<Enchantment> SNOW_WALKER = key("snow_walker");
+	public static final ResourceKey<Enchantment> STEADFAST = key("steadfast");
+	public static final ResourceKey<Enchantment> SPIKED = key("spiked");
+	public static final ResourceKey<Enchantment> BULWARK = key("bulwark");
+	public static final ResourceKey<Enchantment> RIPOSTE = key("riposte");
 
 	public static final List<ResourceKey<Enchantment>> KEYS = List.of(
 			WITHERING, POISONING, FREEZING, ATTACK_SPEED, CRITICAL_STRIKE, REACH, XP_BOOST, TOUGHNESS, HEALTH,
 			SWIFTNESS, CUSHION, VAMPIRISM, BEHEADING, SMELTING, TRUE_SHOT_AURA, VISION, STEP_ASSIST, ANCHORED,
 			SURE_FOOTING, CALM_GAZE, PHANTOM_WARD, CLARITY, SUSTENANCE, ENDURANCE, FRAGILITY, GREED, FUMBLING, WEIGHT,
-			HUNGER, LAVA_WALKING, SNOW_WALKER);
+			HUNGER, LAVA_WALKING, SNOW_WALKER, STEADFAST, SPIKED, BULWARK, RIPOSTE);
 
 	/**
 	 * Our curses (DESIGN §5a, Phase 10e), a subset of {@link #KEYS}. They're tagged like vanilla's Binding and
