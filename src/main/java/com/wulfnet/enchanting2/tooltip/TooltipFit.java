@@ -1,8 +1,8 @@
 package com.wulfnet.enchanting2.tooltip;
 
 /**
- * Whether a text tooltip fits the screen, and which description layout to use when it doesn't (owner 2026-10-13: a
- * tool with many enchantments got a Ctrl tooltip taller than the screen). The numbers are vanilla's
+ * Whether a text tooltip fits the screen, and how wide Ctrl descriptions wrap (owner 2026-10-13: a tool with many
+ * enchantments got a Ctrl tooltip taller than the screen). The numbers are vanilla's
  * ({@code GuiGraphics.renderTooltip} and {@code DefaultTooltipPositioner}, javap 1.21.11), so this stays MC-free.
  */
 public final class TooltipFit {
@@ -12,17 +12,11 @@ public final class TooltipFit {
 	private static final int LINE = 10;
 	/** A lone line is 8 tall: vanilla starts the sum at -2 for one line. */
 	private static final int SINGLE_LINE_TRIM = 2;
-	/** The full layout's wrap width ({@code EnchantmentDescriptions.WRAP_WIDTH}); compact is never narrower. */
+	/** The table and grindstone lists' wrap width ({@code EnchantmentDescriptions.WRAP_WIDTH}); never narrower. */
 	public static final int MIN_COMPACT_WIDTH = 200;
 	public static final int MAX_COMPACT_WIDTH = 320;
 	/** Vanilla puts a tooltip 12 right of the cursor and flips it 24 left of that; 24 covers either side. */
 	private static final int CURSOR_ROOM = 24;
-
-	/** Descriptions under their names, or on their names' lines. */
-	public enum Layout {
-		FULL,
-		COMPACT
-	}
 
 	private TooltipFit() {
 	}
@@ -46,12 +40,7 @@ public final class TooltipFit {
 		return overflow(height(lines), screenHeight) == 0;
 	}
 
-	/** Full while it fits; compact when it doesn't and compact is shorter (the rest is scrolled). */
-	public static Layout choose(int fullLines, int compactLines, int screenHeight) {
-		return fits(fullLines, screenHeight) || compactLines >= fullLines ? Layout.FULL : Layout.COMPACT;
-	}
-
-	/** The compact layout's wrap width: what fits beside the cursor on either side, within readable bounds. */
+	/** The "Name: description" lines' wrap width: what fits beside the cursor on either side, within bounds. */
 	public static int compactWidth(int screenWidth) {
 		return Math.clamp(screenWidth / 2 - CURSOR_ROOM, MIN_COMPACT_WIDTH, MAX_COMPACT_WIDTH);
 	}

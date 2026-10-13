@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.wulfnet.enchanting2.tooltip.TooltipFit.Layout;
 import org.junit.jupiter.api.Test;
 
 /** Owner, 2026-10-13: a tool with many enchantments must not get a tooltip taller than the screen. */
@@ -29,17 +28,8 @@ class TooltipFitTest {
 	}
 
 	@Test
-	void compactOnlyWhenTheFullLayoutOverflowsAndCompactIsShorter() {
-		int screen = 240;
-		assertEquals(Layout.FULL, TooltipFit.choose(20, 12, screen), "20 lines fit, so descriptions stay under names");
-		assertEquals(Layout.COMPACT, TooltipFit.choose(40, 22, screen), "40 don't, 22 do");
-		assertEquals(Layout.COMPACT, TooltipFit.choose(80, 45, screen), "still too tall, but shorter: scrolling does the rest");
-		assertEquals(Layout.FULL, TooltipFit.choose(40, 40, screen), "no shorter on a narrow screen: keep the readable one");
-	}
-
-	@Test
 	void compactWrapIsWiderOnWideScreensWithinBounds() {
-		assertEquals(TooltipFit.MIN_COMPACT_WIDTH, TooltipFit.compactWidth(320), "never narrower than the full layout");
+		assertEquals(TooltipFit.MIN_COMPACT_WIDTH, TooltipFit.compactWidth(320), "never narrower than the lists'");
 		assertEquals(296, TooltipFit.compactWidth(640), "half the screen beside the cursor, less the offset and frame");
 		assertEquals(TooltipFit.MAX_COMPACT_WIDTH, TooltipFit.compactWidth(1920), "long lines are hard to read");
 	}

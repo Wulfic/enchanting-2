@@ -5,7 +5,6 @@ import com.wulfnet.enchanting2.config.ClientConfig;
 import com.mojang.blaze3d.platform.Window;
 import com.wulfnet.enchanting2.tooltip.DescriptionPlan;
 import com.wulfnet.enchanting2.tooltip.TooltipFit;
-import com.wulfnet.enchanting2.tooltip.TooltipFit.Layout;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -28,23 +27,25 @@ import net.minecraft.world.item.enchantment.ItemEnchantments;
 
 /**
  * DESIGN §6 "Enchantment descriptions in tooltips" (owner, 2026-10-10): holding Ctrl over an item shows what each of
- * its enchantments does, under that enchantment's line; otherwise one "hold Ctrl" hint follows the last one. Vanilla
- * writes each enchantment as {@link Enchantment#getFullname}, so a description goes right after the line equal to it,
- * and an enchantment the tooltip hides has no line and gets nothing. Off when the Enchantment Descriptions mod is
- * loaded, which does the same from the same lang keys. {@link DescriptionPlan} decides; this only places lines.
+ * its enchantments does, on that enchantment's own line as "Name: description"; otherwise one "hold Ctrl" hint
+ * follows the last one. Vanilla writes each enchantment as {@link Enchantment#getFullname}, so the line equal to it is
+ * the one replaced, and an enchantment the tooltip hides has no line and gets nothing. Off when the Enchantment
+ * Descriptions mod is loaded, which does the same from the same lang keys. {@link DescriptionPlan} decides; this only
+ * places lines.
  *
- * <p>When descriptions under their names would make the tooltip taller than the screen, each goes on its name's line
- * instead, wrapped wider ({@link TooltipFit}); if even that is too tall, a "scroll" line goes under the item's name
- * and {@link TallTooltips} scrolls it (owner 2026-10-13).
+ * <p>Descriptions under their names made even a few enchantments a tall tooltip, so the name's own line is the only
+ * layout (owner 2026-10-13, Phase 11c), wrapped as wide as fits beside the cursor ({@link TooltipFit#compactWidth}).
+ * If the tooltip is still taller than the screen, a "scroll" line goes under the item's name and {@link TallTooltips}
+ * scrolls it.
  */
 public final class EnchantmentDescriptions {
 	/** Darkhax's Enchantment Descriptions. */
 	static final String OTHER_MOD_ID = "enchdesc";
 	static final String HINT_KEY = "enchanting2.tooltip.hold_ctrl";
-	/** "Name: description", the compact layout's line. */
+	/** "Name: description", each described enchantment's line. */
 	static final String INLINE_KEY = "enchanting2.tooltip.inline_description";
 	static final String SCROLL_KEY = "enchanting2.tooltip.scroll_more";
-	/** GUI pixels a description line wraps at, so a long one doesn't stretch the tooltip across the screen. */
+	/** GUI pixels the table and grindstone lists wrap a hover tooltip's description at. */
 	static final int WRAP_WIDTH = 200;
 
 	private EnchantmentDescriptions() {
@@ -90,29 +91,7 @@ public final class EnchantmentDescriptions {
 				settings.enchantmentDescriptions(), settings.showDescriptionHint());
 		Window window = Minecraft.getInstance().getWindow();
 		int screenHeight = window.getGuiScaledHeight();
-		// Each described line's replacement in both layouts: full puts the wrapped description under the name, compact
-		// on the name's own line, wrapped wider (owner 2026-10-13: many enchantments overflowed the screen).
-		int compactWidth = TooltipFit.compactWidth(window.getGuiScaledWidth());
-		Map<Integer, List<Component>> full = new LinkedHashMap<>();
-		Map<Integer, List<Component>> compact = new LinkedHashMap<>();
-		int fullLines = lines.size();
-		int compactLines = lines.size();
-		for (Map.Entry<String, Integer> shownLine : ordered) {
-			String key = plan.descriptions().get(shownLine.getKey());
-			if (key == null) {
-				continue;
-			}
-			Component name = lines.get(shownLine.getValue());
-			List<Component> under = new ArrayList<>(List.of(name));
-			under.addAll(wrapped(Component.translatable(key)));
-			List<Component> inline = inline(name, Component.translatable(key), compactWidth);
-			full.put(shownLine.getValue(), under);
-			compact.put(shownLine.getValue(), inline);
-			fullLines += under.size() - 1;
-			compactLines += inline.size() - 1;
-		}
-		Map<Integer, List<Component>> chosen = TooltipFit.choose(fullLines, compactLines, screenHeight) == Layout.FULL
-				? full : compact;
+		int width = TooltipFit.compactWidth(window.getGuiScaledWidth());
 		// Bottom-up, so replacing never moves a line still to be handled.
 		int last = ordered.getLast().getValue();
 		if (plan.hint()) {
@@ -120,10 +99,9 @@ public final class EnchantmentDescriptions {
 		}
 		for (int i = ordered.size() - 1; i >= 0; i--) {
 			int index = ordered.get(i).getValue();
-			List<Component> replacement = chosen.get(index);
-			if (replacement != null) {
-				lines.remove(index);
-				lines.addAll(index, replacement);
+			String key = plan.descriptions().get(ordered.get(i).getKey());
+			if (key != null) {
+				lines.addAll(index, inline(lines.remove(index), Component.translatable(key), width));
 			}
 		}
 		// Still too tall: say so under the item's name, the one place that is always on screen.
@@ -132,16 +110,9 @@ public final class EnchantmentDescriptions {
 		}
 	}
 
-	/** {@code text} split at {@link #WRAP_WIDTH}, each line indented by a space and dark grey. */
-	private static List<Component> wrapped(Component text) {
-		return Minecraft.getInstance().font.getSplitter().splitLines(text, WRAP_WIDTH, Style.EMPTY).stream()
-				.map(part -> (Component) Component.literal(" " + part.getString()).withStyle(ChatFormatting.DARK_GRAY))
-				.toList();
-	}
-
 	/**
 	 * "Name: description" split at {@code width}: the name keeps its own colour (grey, red for a curse), the description
-	 * is dark grey, and each further line is indented by a space as in the full layout.
+	 * is dark grey, and each further line is indented by a space.
 	 */
 	private static List<Component> inline(Component name, Component description, int width) {
 		Component joined = Component.translatable(INLINE_KEY, name, description.copy().withStyle(ChatFormatting.DARK_GRAY))

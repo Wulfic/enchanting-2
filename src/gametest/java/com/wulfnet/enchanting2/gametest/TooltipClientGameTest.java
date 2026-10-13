@@ -4,6 +4,7 @@ import com.wulfnet.enchanting2.client.TallTooltips;
 import com.wulfnet.enchanting2.enchantment.ModEnchantments;
 import com.wulfnet.enchanting2.tooltip.DescriptionPlan;
 import com.wulfnet.enchanting2.tooltip.TooltipFit;
+import com.wulfnet.enchanting2.tooltip.TooltipScroll;
 import java.util.Comparator;
 import java.util.List;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
@@ -29,8 +30,9 @@ import net.minecraft.world.level.GameType;
 import org.lwjgl.glfw.GLFW;
 
 /**
- * Phase 10h on the real client: holding Ctrl puts each enchantment's description under its tooltip line (a stored
- * enchantment on a book and one on worn gear), letting go shows the single hint instead. The tooltip is built the way
+ * Phase 10h on the real client: holding Ctrl puts each enchantment's description on its own tooltip line as "Name:
+ * description" (a stored enchantment on a book and one on worn gear; Phase 11c, owner 2026-10-13: under the name was
+ * too tall), letting go shows the single hint instead. The tooltip is built the way
  * the inventory builds it, and a screenshot of a hovered book is kept for the owner's look.
  */
 public class TooltipClientGameTest implements FabricClientGameTest {
@@ -48,16 +50,13 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 			context.getInput().holdKey(GLFW.GLFW_KEY_LEFT_CONTROL);
 			context.waitTick();
 			List<String> book = tooltip(context, sharpnessBook(context));
-			assertBelow(book, "Sharpness V", sharpness);
+			assertInline(book, "Sharpness V", sharpness);
 			check(!book.contains(hint), "the hint shows while Ctrl is held: " + book);
 			List<String> helmet = tooltip(context, enchanted(context, Items.DIAMOND_HELMET, ModEnchantments.VISION));
-			assertBelow(helmet, "Vision", vision);
-			// Silk Touch's is the longest: it wraps into several lines, each starting under the name.
+			assertInline(helmet, "Vision", vision);
+			// Silk Touch's is the longest: it starts on the name's line and wraps onto indented lines.
 			List<String> pickaxe = tooltip(context, enchanted(context, Items.DIAMOND_PICKAXE, Enchantments.SILK_TOUCH));
-			int silk = pickaxe.indexOf("Silk Touch");
-			String joined = String.join(" ", pickaxe.subList(silk + 1, pickaxe.size()).stream().map(String::trim).toList());
-			check(joined.startsWith(I18n.get("enchantment.minecraft.silk_touch.desc")) && pickaxe.size() > silk + 2,
-					"Silk Touch's description isn't wrapped under it: " + pickaxe);
+			assertInline(pickaxe, "Silk Touch", I18n.get("enchantment.minecraft.silk_touch.desc"));
 
 			screenshotHoveredBook(context, world);
 			context.getInput().releaseKey(GLFW.GLFW_KEY_LEFT_CONTROL);
@@ -87,8 +86,8 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 	}
 
 	/**
-	 * Sixteen described enchantments under their names would be taller than 360: each description goes on its name's
-	 * line instead. (The GameTest-only enchantments have no description, so they're left out.)
+	 * Sixteen described enchantments: each description is on its name's line, and the scroll line shows only if that is
+	 * still taller than 360. (The GameTest-only enchantments have no description, so they're left out.)
 	 */
 	private static void manyEnchantmentsGoOnTheirNamesLinesWithCtrl(ClientGameTestContext context) {
 		int height = context.computeOnClient(client -> client.getWindow().getGuiScaledHeight());
@@ -138,12 +137,20 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 		context.getInput().scroll(-1);
 		context.waitTick();
 		check(TallTooltips.offset() > 0, "one notch down scrolled it: " + TallTooltips.offset());
+		// A notch a frame until it stops moving: the client only draws on a tick here, and a tooltip not drawn for
+		// TooltipScroll.STALE_NANOS starts over, so a hundred notches with no frame between them could reset it on a
+		// loaded machine (failed that way 2026-10-13).
+		int bottom = TallTooltips.offset();
 		for (int i = 0; i < 100; i++) {
 			context.getInput().scroll(-1);
+			context.waitTick();
+			if (TallTooltips.offset() == bottom) {
+				break;
+			}
+			bottom = TallTooltips.offset();
 		}
-		context.waitTicks(2);
+		check(bottom > TooltipScroll.STEP, "scrolled down to its bottom: " + bottom);
 		context.takeScreenshot("enchanting2-tooltip-tall-bottom");
-		int bottom = TallTooltips.offset();
 		context.getInput().scroll(1);
 		context.waitTick();
 		check(TallTooltips.offset() < bottom, "and back up: " + TallTooltips.offset() + " from " + bottom);
@@ -201,6 +208,27 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 		return context.computeOnClient(client -> stack
 				.getTooltipLines(Item.TooltipContext.of(client.level), client.player, TooltipFlag.NORMAL).stream()
 				.map(Component::getString).toList());
+	}
+
+	/**
+	 * {@code name}'s line is "name: description", its wrapped rest on the indented lines after it, and no bare
+	 * {@code name} line is left.
+	 */
+	private static void assertInline(List<String> lines, String name, String description) {
+		check(!lines.contains(name), "a bare \"" + name + "\" line is left: " + lines);
+		int index = -1;
+		for (int i = 0; i < lines.size() && index < 0; i++) {
+			if (lines.get(i).startsWith(name + ": ")) {
+				index = i;
+			}
+		}
+		check(index >= 0, "no \"" + name + ": \" line: " + lines);
+		StringBuilder joined = new StringBuilder(lines.get(index));
+		for (int i = index + 1; i < lines.size() && lines.get(i).startsWith(" "); i++) {
+			joined.append(' ').append(lines.get(i).trim());
+		}
+		check(joined.toString().replaceAll("\\s+", " ").equals((name + ": " + description).replaceAll("\\s+", " ")),
+				"\"" + name + ": " + description + "\" isn't on its line: " + lines);
 	}
 
 	/** {@code below} is the line right after {@code line} (the description is indented by one space). */
