@@ -218,7 +218,7 @@ Silk Touch and Fortune can share a tool in this mod. By default Fortune never mu
 ### Hoe
 | Enchantment | Max | Cost | Fits | What it does | Status |
 |---|---|---|---|---|---|
-| Replant | 1 | 10 † | hoes | breaking a grown crop replants it with a seed from its own drops | Planned |
+| Replant | 1 | 10 | hoes | breaking a grown crop (wheat, carrots, potatoes, beetroots, nether wart, cocoa) replants it with a seed from its own drops; never makes a seed; young crops break as usual | Built |
 | Tiller | 3 | 1/lvl | hoes | tills 3×3 / 5×5 / 7×7 | Planned |
 
 ### What an axe and a shovel take

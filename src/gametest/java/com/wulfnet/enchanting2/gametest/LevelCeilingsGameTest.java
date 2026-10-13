@@ -267,7 +267,7 @@ public class LevelCeilingsGameTest {
 				"enchanting2:step_assist", "enchanting2:calm_gaze", "enchanting2:phantom_ward",
 				"enchanting2:lava_walking", "enchanting2:snow_walker", "enchanting2:steady_stance",
 				"enchanting2:magnetic", "enchanting2:ender_link", "enchanting2:keep_on_death",
-				"enchanting2:area_mining");
+				"enchanting2:area_mining", "enchanting2:replant");
 		for (String id : softOne) {
 			Ceiling ceiling = LevelCeilings.of(id).orElseThrow();
 			check(helper, ceiling.kind() == Kind.SOFT && ceiling.level() == 1, id + " isn't a soft-1 row");

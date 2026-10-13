@@ -1838,7 +1838,17 @@ listener refuses (keyed to that test's position) stays. Mutation run.
   sneak check needed its own run: with the hook off it can't show). Owner `runClient`: mining stone with ores in it
   (the ores stay), a wall vs a floor, sneaking, a shovel in dirt.
 
-#### 10cEB — Replant (detail before code)
+#### 10cEB — Replant  ✅ 2026-10-13
+**Hooks:** inside the existing `Block.dropResources` wrapper (inside Magnetic's redirect), `tool/Replant.around`: with
+`enchanting2:replant` on the tool, a mature crop in the block tag `enchanting2:replantable` (wheat, carrots, potatoes,
+beetroots, nether wart, cocoa; mature = its `age` property at its highest), the crop's clone item is the seed;
+`Block.popResource` hands each stack to `Replant.takeSeed` before the redirect, which takes one; after the drops, if a
+seed was taken, the crop goes back at age 0 (`setValue`, so cocoa keeps its facing) when the spot is air and it can
+survive, else the seed drops. Never creates a seed.
+- ✅ 2026-10-13: 361 JUnit + 306 GameTests (`ReplantGameTest`, three: wheat, carrots, immature, plain hoe; cocoa with
+  Magnetic, 1 bean replanted and 2 in the inventory; the seed rule with test-chosen drops) + client GameTests green.
+  Mutations (three runs): the wrapper call, the "seed taken" check, the maturity check, the order before Magnetic, and
+  the seed take each fail their test. Owner `runClient`: harvesting a wheat field with Replant, cocoa on a jungle tree.
 #### 10cEC — Tiller (detail before code)
 
 ### Phase 10e — Curses (three stages, one commit each)
