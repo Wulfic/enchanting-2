@@ -1,0 +1,1 @@
+Enchanting 2 by Wulfic · MIT License · [Source](https://github.com/Wulfic/enchanting-2) · [Releases](https://github.com/Wulfic/enchanting-2/releases) · [Issues](https://github.com/Wulfic/enchanting-2/issues)

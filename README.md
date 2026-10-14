@@ -2,9 +2,18 @@
 
 # Enchanting 2
 
+[![CI](https://github.com/Wulfic/enchanting-2/actions/workflows/ci.yml/badge.svg)](https://github.com/Wulfic/enchanting-2/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/Wulfic/enchanting-2)](https://github.com/Wulfic/enchanting-2/releases/latest)
+[![Minecraft 1.21.11](https://img.shields.io/badge/Minecraft-1.21.11-green)](https://github.com/Wulfic/enchanting-2/wiki/Installation)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A Fabric mod for Minecraft 1.21.11 that reworks XP and enchanting. You choose your enchantments instead of rolling
 for them, you see every price before you pay, and an item can hold every enchantment that fits it. Every vanilla
 enchantment is kept, 49 new ones are added, and almost everything can be configured in-game.
+
+**[Download](https://github.com/Wulfic/enchanting-2/releases/latest)** ·
+**[Wiki](https://github.com/Wulfic/enchanting-2/wiki)** ·
+**[Report a bug](https://github.com/Wulfic/enchanting-2/issues/new/choose)**
 
 ## Features
 
@@ -56,7 +65,9 @@ enchantment is kept, 49 new ones are added, and almost everything can be configu
 **Other**
 - An optional health multiplier for every mob (1x to 100x, off by default).
 
-The full list, with max levels, prices and what each one fits: [docs/ENCHANTMENTS.md](docs/ENCHANTMENTS.md).
+The full list, with max levels, prices and what each one fits: [Enchantments](https://github.com/Wulfic/enchanting-2/wiki/Enchantments)
+(also in [docs/ENCHANTMENTS.md](docs/ENCHANTMENTS.md)). How each screen works, and how every price is worked out, is
+on the [wiki](https://github.com/Wulfic/enchanting-2/wiki).
 
 ## Requirements
 
@@ -70,7 +81,8 @@ The full list, with max levels, prices and what each one fits: [docs/ENCHANTMENT
 
 ## Installing
 
-Put the Enchanting 2 jar and Fabric API in your `mods` folder.
+Download `enchanting2-<version>.jar` from the [latest release](https://github.com/Wulfic/enchanting-2/releases/latest)
+and put it and Fabric API in your `mods` folder.
 
 **Multiplayer: install it on the server and on every player's client.** The new screens and Double Jump need the
 client side. A player without the mod is turned away at join with a message naming it. A player with the mod who
@@ -82,7 +94,8 @@ Settings live in `config/enchanting2/` and in the in-game screen (Mod Menu → E
 apply to everyone and are sent to players when they join. Every enchantment can be turned off, kept out of the
 table, loot or trades, repriced, and given a different max level (up to 255).
 
-Every option, its default and how editing works on a server: [docs/CONFIG.md](docs/CONFIG.md).
+Every option, its default and how editing works on a server: [Configuration](https://github.com/Wulfic/enchanting-2/wiki/Configuration)
+(also in [docs/CONFIG.md](docs/CONFIG.md)).
 
 ## Adding it to or removing it from a world
 
@@ -107,7 +120,13 @@ differently. Blocks placed before you installed it count as natural for Fortune.
 ```
 
 Needs JDK 21. The design spec is [docs/DESIGN.md](docs/DESIGN.md); changes are in [CHANGELOG.md](CHANGELOG.md).
+Tests, CI and how releases are made: [Building from Source](https://github.com/Wulfic/enchanting-2/wiki/Building-from-Source).
+
+## Contributing
+
+Bug reports, balance feedback and pull requests are welcome: [open an issue](https://github.com/Wulfic/enchanting-2/issues/new/choose).
+For a pull request, keep it small, add a test that fails without it, and run `./gradlew build` first.
 
 ## License
 
-All rights reserved. © Wulfic.
+[MIT](LICENSE) © Wulfic. Modpacks are welcome to include it.

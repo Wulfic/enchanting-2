@@ -4,32 +4,28 @@ Every enchantment in Enchanting 2, grouped by what it goes on: armor first (head
 then elytra, shield, weapons, tools, and anything durable. Each enchantment is listed once,
 under the narrowest group that covers it. The **Fits** column says exactly which items take it.
 
-In game, holding Ctrl over an item shows these descriptions under each enchantment.
-
-The design lives in [DESIGN.md](DESIGN.md) (§5 prices, §8 max levels, §9 new enchantments). **Update this file
-whenever an enchantment, a max level or a price changes.**
+In game, holding Ctrl over an item shows these descriptions beside each enchantment.
 
 **Status**
-- **Vanilla**: a Minecraft 1.21.11 enchantment, kept under its vanilla ID (max levels per DESIGN §8)
+- **Vanilla**: a Minecraft 1.21.11 enchantment, kept under its vanilla ID (most go to level V here)
 - **Built**: ours, added by Enchanting 2
 
-**Cost** is in XP levels, for adding the enchantment at the table or anvil (DESIGN §5):
+**Cost** is in XP levels, for adding the enchantment at the table or anvil:
 - **1/lvl**: the default, 1 level per enchantment level (V = 5). An upgrade pays only the added levels.
-- **10**: every single-level enchantment except Mending and the curses (owner, 2026-10-10).
-- **2/lvl**: Frost Walker only (V = 10; owner, 2026-10-10).
-- **6/lvl**: Speed and Flight (elytra) (V = 30; owner, 2026-10-10 and 2026-10-13).
-- **Treasure** (like Mending): the table offers it only with 15 bookshelves, librarians charge double, and mobs never spawn wearing it. Health and Last Stand (owner, 2026-10-13).
+- **10**: every single-level enchantment except Mending and the curses.
+- **2/lvl**: Frost Walker only (V = 10).
+- **6/lvl**: Speed and Flight (elytra) (V = 30).
+- **Treasure** (like Mending): the table offers it only with 15 bookshelves, librarians charge double, and mobs never spawn wearing it. Health and Last Stand.
 - **Mending**: 2, plus 2 for every level of every other non-curse enchantment on the item.
-- **Curses**: 0, and each one takes a percentage off the item's enchant cost (DESIGN §5a).
+- **Curses**: 0, and each one takes a percentage off the item's enchant cost (see Curses below).
 
 Unknown or third-party enchantments use the default 1/lvl unless `enchantments.json5` says otherwise.
 
-**Everything here is configurable** (owner, 2026-10-10), in `enchantments.json5` or the in-game config screen (Mod
+**Everything here is configurable**, in `enchantments.json5` or the in-game config screen (Mod
 Menu): each enchantment can be turned off or kept out of the table, loot or trades, priced, and given a different max
 level, up to 255 (Efficiency 100 works). Where extra levels stop doing anything (Thorns past VII, Depth Strider past
 III), the screen says so. Where they'd break the game (Lure past V, Quick Charge past IV, Riptide past VII), they're
 capped. A max level change applies after a restart (or reopening the world). Every key: [CONFIG.md](CONFIG.md).
-See DESIGN §8.
 
 ---
 
@@ -74,7 +70,7 @@ See DESIGN §8.
 | Snow Walker | 1 | 10 | boots | the leather-boots effect on any boots: walk on and climb powder snow, sneak to sink, no freezing; works on mobs too | Built |
 
 Frost Walker and Depth Strider can share boots in this mod (vanilla forbids it). Water Walking was dropped,
-because Frost Walker already crosses water (owner, 2026-10-10).
+because Frost Walker already crosses water.
 
 ### Any armor piece
 | Enchantment | Max | Cost | Fits | What it does | Status |
@@ -262,7 +258,7 @@ takes enchantments and has durability, so Mending already fits all of them. The 
 so Mending would do nothing there.
 
 ### Infinite buckets
-Infinity on a water or lava bucket (table, or anvil + book; owner, 2026-10-10, DESIGN §6): placing the fluid leaves
+Infinity on a water or lava bucket (table, or anvil + book): placing the fluid leaves
 the bucket full, by hand, from a dispenser, or into a cauldron. Each placement uses 1 durability (256 uses), so
 Unbreaking and Mending are worth putting on it; they need Infinity on the bucket first. The last use destroys it like
 any tool. Only a water or lava bucket takes enchantments, never the empty bucket. It can't scoop, isn't furnace fuel,
@@ -274,7 +270,7 @@ enchantment.
 ## Curses
 
 A curse costs 0 and takes its discount off the item's enchant cost. Discounts add up to 45%. Removing one at the
-grindstone (Cleanse) costs at least 30 levels. See DESIGN §5a.
+grindstone (Cleanse) costs at least 30 levels.
 
 | Curse | Max | Discount | Fits | What it does | Status |
 |---|---|---|---|---|---|
@@ -286,13 +282,12 @@ grindstone (Cleanse) costs at least 30 levels. See DESIGN §5a.
 | Curse of Fumbling | 5 | 15% +5%/lvl | mining tools | −15% block break speed per level (V = −75%) | Built |
 | Curse of Hunger | 5 | 15% +5%/lvl | armor | +10% hunger drain per level per piece (V = +50%; four pieces at V = +200%) | Built |
 
-The five new curses go to level 5 (owner, 2026-10-10). Their discount is 15% at I and 5% more per level (V = 35%),
+The five new curses go to level 5. Their discount is 15% at I and 5% more per level (V = 35%),
 so one curse alone never reaches the 45% cap. Like vanilla's curses, ours come from loot, librarian trades and the
-table (as a discount), never from mob gear. Cleansing one repays its discount at the level it has. Effect numbers
-per level: owner, 2026-10-12. Both discount numbers can be changed per curse in the config screen.
+table (as a discount), never from mob gear. Cleansing one repays its discount at the level it has. Both discount numbers can be changed per curse in the config screen.
 
 ---
 
-**Totals:** 43 vanilla (2 of them curses), 24 built (5 of them curses), 25 planned in 10c. Phase 10g
-widened Knockback, Fire Aspect, Looting, Flame, Infinity and TrueShot Aura, gave water and lava buckets durability, and
-added the Silk Touch spawner option.
+**Totals:** 43 vanilla (2 of them curses) and 49 new (5 of them curses). Knockback, Fire Aspect, Looting, Flame,
+Infinity and TrueShot Aura also fit more items than in vanilla, water and lava buckets take enchantments, and Silk
+Touch can pick up spawners.

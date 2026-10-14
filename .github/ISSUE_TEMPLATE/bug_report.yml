@@ -1,0 +1,54 @@
+name: Bug report
+description: Something doesn't work, crashes, or behaves differently from the wiki.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check the [FAQ](https://github.com/Wulfic/enchanting-2/wiki/FAQ) first. One bug per issue, please.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+      placeholder: |
+        1. Put a Fortune V pickaxe in the enchanting table
+        2. Picked Silk Touch
+        3. Expected ..., got ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Enchanting 2 version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Minecraft, Fabric Loader and Fabric API versions
+      placeholder: "1.21.11, Loader 0.19.5, Fabric API 0.141.6+1.21.11"
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options:
+        - Singleplayer
+        - LAN
+        - Dedicated server
+    validations:
+      required: true
+  - type: textarea
+    id: mods
+    attributes:
+      label: Other mods installed
+      description: The list from your mods folder, or "none".
+  - type: textarea
+    id: log
+    attributes:
+      label: Log or crash report
+      description: Paste `logs/latest.log` or the crash report, or a link to it (e.g. on mclo.gs).
+      render: text

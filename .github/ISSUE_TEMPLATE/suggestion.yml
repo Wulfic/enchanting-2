@@ -1,0 +1,16 @@
+name: Suggestion or balance feedback
+description: An idea, a new enchantment, or a price or level that feels wrong.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: What should change, and why. For balance, say what you were doing and what felt off.
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Could it be a config option?
+      description: Most numbers are already configurable (see the Configuration page). Say if this should be a default change instead.
