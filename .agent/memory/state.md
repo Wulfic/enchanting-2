@@ -106,59 +106,22 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
 - 11d (2026-10-13, owner's third report): the "always-on descriptions" were the owner's `enchdesc` (removed from the
   Prism instance, now in `minecraft/mods-disabled/`); the scroll line shows on any too-tall tooltip
   (`EnchantmentDescriptions.onTooltip`); config tabs in rows (`client/TabbedConfigScreen`, `screen/TabRows`).
-- 11e (2026-10-14): public-release prep. History scrubbed of `.env` + MCP configs (new GitHub repo; the old one is
-  the private `enchanting-2-archive`), MIT, CI/release/wiki workflows, `wiki/`, `ReleaseDocsTest`, Gradle on JDK 25
+- 11e (2026-10-14): public-release prep. History scrubbed of `.env` + MCP configs (new GitHub repo, public, wiki live; the
+  old one is the private `enchanting-2-archive`), MIT, CI/release/wiki workflows, `wiki/`, `ReleaseDocsTest`, Gradle on JDK 25
   (`gradle_java_version`) while the mod targets 21.
 - 11f (2026-10-14, owner report "Flight never thrusts"): Elytra Slot compat (`compat/ElytraSlot` by reflection,
   `elytra/WornElytra`); Flight's wear hook wraps the `updateFallFlying` call in `aiStep`. Gametest stub of the mod.
 - Tests: 423 JUnit + 336 GameTests (`./gradlew build`, also in CI) + 8 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-0. **Owner (11f):** copy the new `build/libs/enchanting2-1.0.0.jar` into the Prism instance and hold jump with the
-   Flight elytra in Elytra Slot's slot (thrust, Speed, durability bar). `docs/CURSEFORGE.md` was deleted in the working
-   tree outside the 11f session (04:06); still in HEAD `026622e` — owner's call, not committed either way.
-1. **Owner (11e):** rotate the GitHub PAT, the Context7 key and every `.env` password (they were on GitHub; the
-   archive repo still has them), then make `Wulfic/enchanting-2` public, save a first wiki page in the web UI and
-   re-run the Wiki workflow; delete `enchanting-2-archive` when ready. v1.0.0 = HEAD of 2026-10-14 (owner). 11d owner checks: copy the
-   new jar into the Prism instance (it has the 19:08 build), the config tab rows, Ctrl descriptions without enchdesc,
-   a tall tooltip's scroll line. 11c owner checks: Ctrl
-   tooltips read well condensed, Mending's row price and its tooltip note, an anvil after many uses. Then the owner's runClient
-   checks (item 2, plus 11b: slot look, a tall tooltip in the creative tab, the "Name: description" wording), then Phase 12
-   (TODO.md: every 26.x version + 1.21.11 in step, Stonecutter spike 12A first on branch `port/26x`). Phase 11 done. The owner's
-   `runClient` look at the 10o windows is still open (screenshots `enchanting2-anvil-*`, `enchanting2-grindstone-*`). A new enchantment still adds a `LevelCeilings` row, a `.desc` line, tags, a
-   price row if single-level, docs rows.
-2. Owner, in one `runClient` session: 1.6 + 2B.9 + 2C.7 + 3B.6 HUD check + 4A.7 (synced max level) (bar at level
-   ~1,000,000) + 6D: panel look, config screen "Display" toggle, and a vanilla server keeping the vanilla anvil screen +
-   6bC: grindstone panel look, and a vanilla server keeping the vanilla grindstone + 7D: table panel and window look
-   (does the ready Enchant button, vanilla's beige offer sprite, read as clickable?), and a vanilla server keeping the
-   vanilla table + 8: the config screen's "Fortune" category and its warning tooltip, and a quick feel check (Fortune V
-   axe on a tree; place a log and mine it) + 9C: the config screen's "Enchantments" category (tick boxes, names,
-   the remote "kept on the server" label) + 10a: new names in tooltips, a Health V set's hearts + 10b: the five new names, a Vision helmet at night
-   (no flicker, gone when taken off), a TrueShot arrow's flight, the "Enchantment effects" config category + 10gB:
-   the "Silk Touch collects spawners" toggle, a collected spawner's tooltip (vanilla's "Spawns: Zombie" line) + 10gC:
-   an Infinity bucket's durability bar, pouring by hand feels right (no flicker to an empty bucket) + 10i: Step Assist
-   up a block, Sure Footing III on soul sand feels like normal ground + 10h: description wording, the two "Display"
-   toggles, and with Enchantment Descriptions installed that only one set of lines shows (confirms `enchdesc`) +
-   10j: an enchantment's max level / cost fields and their notes, a raised max after a restart (Efficiency 10) +
-   10e: the five curse names in red with their Ctrl descriptions, a Weight set's walking feel (I vs V, the 50% cap),
-   a curse's two discount fields and the Weight cap field, a curse picked at the table showing its discount line. + 10cA: the five new names and descriptions, staring at an
-   enderman in a Calm Gaze helmet, a sleepless night in Phantom Ward, a Warden's Darkness with Clarity I vs III,
-   sprinting through powder snow in Sure Footing III. + 10cB: a lava lake and its flowing edge in Lava Walking boots
-   (speed, burn, sneak to sink, getting out after sinking), a fall onto lava, Snow Walker iron boots on powder snow.
-   + 10cCA: the four shield names/descriptions, Spiked V against a zombie, Bulwark III's yellow hearts (gone after
-   5 s), Steadfast III against an axe vindicator. + 10cCB: a skeleton against Deflect III (arrows come back, none to
-   pick up), blaze fireballs, a ghast fireball. + 10cCC: walking with a Steady Stance shield up; Shield Bash III on a
-   zombie (knockback, slow, shield down 3 s); a plain shield still can't attack while raised. + 10cDA: mining with
-   Magnetic (inventory, XP to you, a full inventory spilling), Ender Link, a Magnetic sword kill. + 10cDB: dying with
-   Keep on Death gear (back in place), with keepInventory on (no doubles), with Vanishing on it (gone). + 10cEA: Area
-   Mining through stone with ores (ores stay), a wall vs a floor, sneaking, a shovel in dirt. + 10cEB: Replant on a
-   wheat field and on cocoa. + 10cEC: Tiller III on grass (7×7), blocks under tall grass staying. + 10cFA: Quick
-   Strike V on zombies (double hits, no extra knockback), with Vampirism. + 10cFB: Last Stand in a fight (save,
-   sound, HUD timer), with a totem in hand, the "Last Stand in PvP" toggle. + 10cGA: Speed V vs plain elytra over a
-   long flat, a rocket boost, no rubber-banding. + 10cGB: Flight I / III / V held while gliding and climbing (is I
-   too close to V?), the durability drain. + 10cGC: double jumps (land, cliff, none in water or on a ladder, elytra
-   takes off on the second press). + 10o: anvil and grindstone windows (look, wheel and thumb scrolling, a long
-   breakdown, the grindstone's hover tooltips, the price label), with a recipe viewer installed if you use one.
+0. **v1.0.1** (2026-10-14): the 11f Elytra Slot fix, released from a pushed `v1.0.1` tag (release.yml). Owner: try
+   `enchanting2-1.0.1.jar` in the Prism instance with the Flight elytra in Elytra Slot's slot.
+1. **Phase 12, version bands** (TODO.md; decisions.md 2026-10-14 "Version bands, mcMMO-style"): band A 1.21.11, band B
+   every 26.x in one jar built on 26.1.2 and proven per runtime by a GameTest matrix (12C is the gate). Start with 12A
+   on branch `port/26x`. Open for the owner: keep 1.21.11 in step, or freeze it like mcMMO's old bands?
+2. Owner checks and housekeeping: TODO.md "Owner checks (open)" and "Owner housekeeping" (the full list moved there
+   from this file on 2026-10-14; TODO.md was trimmed to open work, old notes at `git show fd3504c:TODO.md`).
+   A new enchantment still adds a `LevelCeilings` row, a `.desc` line, tags, a price row if single-level, docs rows.
 
 ## Open questions / blockers
 - Owner (2026-10-06): a lowered max level never touches existing items (decisions.md).

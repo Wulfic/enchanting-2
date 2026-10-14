@@ -1416,3 +1416,22 @@ drops and Mending; widen only when asked); telling the owner to wear the elytra 
 **Test seam:** the gametest source set has a stub `com.warwa.elytraslot.ElytraSlotUtil` plus `ElytraSlotStubMixin`
 (canGlide + cancelled `updateFallFlying`, copied from the mod's bytecode), so the real reflective path runs.
 **Affects:** compat/ElytraSlot, elytra/WornElytra, elytra/Flight, elytra/GlideSpeed, mixin/LivingEntityMixin
+
+## 2026-10-14 — Version bands, mcMMO-style: one jar per band, runtime adapters inside a band (agent, Phase 12 re-plan)
+**Context:** owner: "look at how mcMMO builds its bands for different Minecraft versions, we are going to use a similar
+thing ... keeping as many versions in one jar as feasible". The 2026-10-13 plan had one jar per 26.x line.
+**Choice:** mcMMO (2.3.003) compiles one jar against a band's floor (Spigot 1.20.5) that runs on 1.20.5 → 26.x,
+handles differences at runtime (`MinecraftGameVersion`, `ReflectionUtils`, `adapter/*`), and keeps older bands as
+frozen releases. Ours: band A = 1.21.11, band B = all 26.x in one jar built on 26.1.2, proven per runtime by a
+GameTest matrix; adapters + `IMixinConfigPlugin`-gated mixins for differences inside B; Stonecutter only for the
+A/B split. Split rule fixed in advance (TODO.md Phase 12): >~6 adapters/gated mixins, reflection on a per-tick path,
+or a subclassed class that differs → that line starts a new band.
+**Why:** fewer jars and fewer dependency sets for lines that mostly share code; the matrix makes "supported" a test
+result instead of a guess. Unlike Bukkit we sit on vanilla internals (55 mixin classes), so the gate (12C) comes
+before any adapter is written.
+**Rejected:** one jar for 1.21.11 + 26.x (intermediary vs Mojang names in the bytecode, Java 21 vs 25; jar-in-jar of
+both relies on unverified loader behaviour); one jar per 26.x line (kept as the fallback if 12C says so); an
+open-ended `minecraft` range (a mixin mod crashes at startup on an untested version).
+**Open (owner):** mcMMO freezes old bands. Does 1.21.11 keep getting every feature (2026-10-13 ruling, kept for now),
+or freeze at 1.0.x once band B ships (no Stonecutter needed then)?
+**Affects:** build.gradle, settings.gradle, gradle.properties, release.yml, fabric.mod.json, future compat/McVersion
