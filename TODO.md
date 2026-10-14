@@ -196,7 +196,7 @@ these cover look, feel and real clients. Superseded checks (the old side panels,
 
 - [ ] Rotate the GitHub PAT, the Context7 key and every `.env` password that was on GitHub (11e). The private
       `enchanting-2-archive` still has them; delete it once rotated.
-- [ ] `docs/CURSEFORGE.md` is deleted in the working tree but not in git. Keep it or commit the deletion.
+- [x] `docs/CURSEFORGE.md`: deletion committed (owner 2026-10-14). Restore: `git checkout 026622e -- docs/CURSEFORGE.md`.
 
 ---
 
