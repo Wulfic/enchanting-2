@@ -1,0 +1,12 @@
+# gitleaks config for CI (.github/workflows/ci.yml). Default rules, plus one narrow allowlist.
+title = "Enchanting 2"
+
+[extend]
+useDefault = true
+
+# generic-api-key flags lang-key prefix constants (`AMOUNT_KEY = "enchanting2.amount."`): a variable named *KEY holding
+# a dotted string. Only a value that is entirely an enchanting2. lang key is allowed; a real token never looks like one.
+[[allowlists]]
+description = "enchanting2 lang-key prefixes"
+regexTarget = "secret"
+regexes = ['''^enchanting2\.[a-z0-9_.]*$''']
