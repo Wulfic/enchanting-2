@@ -2,7 +2,6 @@ package com.wulfnet.enchanting2.client;
 
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.config.ClientConfig;
-import com.mojang.blaze3d.platform.Window;
 import com.wulfnet.enchanting2.tooltip.DescriptionPlan;
 import com.wulfnet.enchanting2.tooltip.TooltipFit;
 import java.util.ArrayList;
@@ -35,8 +34,8 @@ import net.minecraft.world.item.enchantment.ItemEnchantments;
  *
  * <p>Descriptions under their names made even a few enchantments a tall tooltip, so the name's own line is the only
  * layout (owner 2026-10-13, Phase 11c), wrapped as wide as fits beside the cursor ({@link TooltipFit#compactWidth}).
- * If the tooltip is still taller than the screen, a "scroll" line goes under the item's name and {@link TallTooltips}
- * scrolls it.
+ * Any tooltip still taller than the screen, descriptions or not, gets a "scroll" line under the item's name, and
+ * {@link TallTooltips} scrolls it.
  */
 public final class EnchantmentDescriptions {
 	/** Darkhax's Enchantment Descriptions. */
@@ -52,19 +51,40 @@ public final class EnchantmentDescriptions {
 	}
 
 	public static void register() {
-		if (FabricLoader.getInstance().isModLoaded(OTHER_MOD_ID)) {
+		boolean describe = !FabricLoader.getInstance().isModLoaded(OTHER_MOD_ID);
+		if (!describe) {
 			Enchanting2.LOGGER.info("Enchantment Descriptions ({}) is loaded; leaving tooltip descriptions to it",
 					OTHER_MOD_ID);
-			return;
 		}
 		ItemTooltipCallback.EVENT.register((stack, context, flag, lines) -> {
 			try {
-				addTo(stack, lines, Minecraft.getInstance().hasControlDown(), ClientSettings.get());
+				onTooltip(stack, lines, describe, Minecraft.getInstance().hasControlDown(), ClientSettings.get(),
+						Minecraft.getInstance().getWindow().getGuiScaledHeight());
 			} catch (RuntimeException e) {
-				Enchanting2.LOGGER.error("Adding enchantment descriptions to {}'s tooltip failed; left as it was",
+				Enchanting2.LOGGER.error("Adding descriptions or the scroll line to {}'s tooltip failed; left as it was",
 						stack.getItem(), e);
 			}
 		});
+	}
+
+	/**
+	 * Everything this adds to one tooltip: descriptions unless another mod writes them ({@code describe}), then the
+	 * scroll line on any tooltip still too tall, whoever added its lines (owner 2026-10-13: Enchantment Descriptions'
+	 * lines made one too tall with no line saying it scrolls).
+	 */
+	public static void onTooltip(ItemStack stack, List<Component> lines, boolean describe, boolean ctrlDown,
+			ClientConfig settings, int screenHeight) {
+		if (describe) {
+			addTo(stack, lines, ctrlDown, settings);
+		}
+		addScrollLine(lines, screenHeight);
+	}
+
+	/** Under the item's name, the one place that is always on screen, when the tooltip is taller than the screen. */
+	static void addScrollLine(List<Component> lines, int screenHeight) {
+		if (lines.size() > 1 && !TooltipFit.fits(lines.size() + 1, screenHeight)) {
+			lines.add(1, Component.translatable(SCROLL_KEY).withStyle(ChatFormatting.DARK_GRAY));
+		}
 	}
 
 	/** Inserts the planned lines into {@code lines}. */
@@ -89,9 +109,7 @@ public final class EnchantmentDescriptions {
 		List<String> ids = ordered.stream().map(Map.Entry::getKey).toList();
 		DescriptionPlan plan = DescriptionPlan.of(ids, Language.getInstance()::has, ctrlDown,
 				settings.enchantmentDescriptions(), settings.showDescriptionHint());
-		Window window = Minecraft.getInstance().getWindow();
-		int screenHeight = window.getGuiScaledHeight();
-		int width = TooltipFit.compactWidth(window.getGuiScaledWidth());
+		int width = TooltipFit.compactWidth(Minecraft.getInstance().getWindow().getGuiScaledWidth());
 		// Bottom-up, so replacing never moves a line still to be handled.
 		int last = ordered.getLast().getValue();
 		if (plan.hint()) {
@@ -103,10 +121,6 @@ public final class EnchantmentDescriptions {
 			if (key != null) {
 				lines.addAll(index, inline(lines.remove(index), Component.translatable(key), width));
 			}
-		}
-		// Still too tall: say so under the item's name, the one place that is always on screen.
-		if (lines.size() > 1 && !TooltipFit.fits(lines.size() + 1, screenHeight)) {
-			lines.add(1, Component.translatable(SCROLL_KEY).withStyle(ChatFormatting.DARK_GRAY));
 		}
 	}
 

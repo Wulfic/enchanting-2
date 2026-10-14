@@ -649,7 +649,9 @@ Client-only (no packet, no server rule).
 - **Config:** `client.json5` `tooltips.enchantment_descriptions` (default on) and `tooltips.show_hint` (default on),
   in the config screen's "Display" category.
 - **Another mod doing the same:** if the Enchantment Descriptions mod (`enchdesc`, the name of its config file in
-  Darkhax's docs) is loaded, ours stays off so lines aren't doubled.
+  Darkhax's docs) is loaded, ours stays off so lines aren't doubled. Its default shows them always, Ctrl or not (owner's
+  instance, 2026-10-13: the owner removed it). The "scroll" line for a tooltip taller than the screen still shows
+  with it installed (Phase 11d), since that line is about the tooltip, not our descriptions.
 - **Built (10h):** `tooltip/DescriptionPlan` decides (MC-free), `client/EnchantmentDescriptions` places lines after the
   line equal to `Enchantment.getFullname`, wrapped at 200 GUI pixels. Ctrl is `Minecraft.hasControlDown()` (still
   there in 1.21.11).

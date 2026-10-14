@@ -26,6 +26,7 @@ and versions follow [Semantic Versioning](https://semver.org/).
   name, says "Scroll to see the rest", and scrolls with the mouse wheel.
 
 ## [1.0.0] - 2026-10-13
+  That line now shows even when Enchantment Descriptions is installed and its lines make the tooltip tall.
 
 First release, for Minecraft 1.21.11 (Fabric). Needed on both the server and the client.
 

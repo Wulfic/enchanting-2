@@ -1,10 +1,13 @@
 package com.wulfnet.enchanting2.gametest;
 
+import com.wulfnet.enchanting2.client.EnchantmentDescriptions;
 import com.wulfnet.enchanting2.client.TallTooltips;
+import com.wulfnet.enchanting2.config.ClientConfig;
 import com.wulfnet.enchanting2.enchantment.ModEnchantments;
 import com.wulfnet.enchanting2.tooltip.DescriptionPlan;
 import com.wulfnet.enchanting2.tooltip.TooltipFit;
 import com.wulfnet.enchanting2.tooltip.TooltipScroll;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
@@ -76,6 +79,7 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 			});
 			context.waitTick();
 			manyEnchantmentsGoOnTheirNamesLinesWithCtrl(context);
+			anotherModsTallTooltipStillGetsTheScrollLine(context);
 			everyEnchantmentIsTooTallAndTheWheelScrollsIt(context, world);
 			context.runOnClient(client -> {
 				client.options.guiScale().set(0);
@@ -108,6 +112,38 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 		String scroll = I18n.get("enchanting2.tooltip.scroll_more");
 		check(TooltipFit.fits(lines.size(), height) != lines.contains(scroll),
 				"the scroll line shows exactly when it's still too tall (" + lines.size() + " lines): " + lines);
+	}
+
+	/**
+	 * Phase 11d (owner 2026-10-13): with Enchantment Descriptions installed ours stay off, yet a tooltip its lines make
+	 * too tall still gets the scroll line under its name, Ctrl or not, and no description of ours.
+	 */
+	private static void anotherModsTallTooltipStillGetsTheScrollLine(ClientGameTestContext context) {
+		String scroll = I18n.get("enchanting2.tooltip.scroll_more");
+		String sharpness = I18n.get("enchanting2.tooltip.inline_description", "Sharpness V",
+				I18n.get("enchantment.minecraft.sharpness.desc"));
+		ItemStack book = sharpnessBook(context);
+		List<String> lines = context.computeOnClient(client -> {
+			List<Component> built = new ArrayList<>(List.of(Component.literal("Enchanted Book"),
+					Enchantment.getFullname(holder(client, Enchantments.SHARPNESS), 5)));
+			for (int i = 0; i < 60; i++) {
+				built.add(Component.literal("another mod's line " + i));
+			}
+			EnchantmentDescriptions.onTooltip(book, built, false, true, ClientConfig.DEFAULTS,
+					client.getWindow().getGuiScaledHeight());
+			return built.stream().map(Component::getString).toList();
+		});
+		check(lines.size() == 63 && lines.get(1).equals(scroll), "the scroll line is under the name: " + lines);
+		check(lines.contains("Sharpness V") && !lines.contains(sharpness), "no description of ours: " + lines);
+
+		List<String> shortOne = context.computeOnClient(client -> {
+			List<Component> built = new ArrayList<>(List.of(Component.literal("Enchanted Book"),
+					Component.literal("one line")));
+			EnchantmentDescriptions.onTooltip(book, built, false, true, ClientConfig.DEFAULTS,
+					client.getWindow().getGuiScaledHeight());
+			return built.stream().map(Component::getString).toList();
+		});
+		check(!shortOne.contains(scroll), "a tooltip that fits has no scroll line: " + shortOne);
 	}
 
 	/**
