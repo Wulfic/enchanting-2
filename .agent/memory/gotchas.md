@@ -568,3 +568,15 @@ and the tooltip started over. Real play draws every frame, so the product was fi
 **Fix:** one notch per `waitTick` until the offset stops moving. Any client GameTest step that relies on "drawn
 recently" must tick between actions.
 **Affects:** src/gametest/java/com/wulfnet/enchanting2/gametest/TooltipClientGameTest.java
+
+## 2026-10-13 — "Descriptions always show" was Enchantment Descriptions, not ours
+**Symptom:** owner's screenshot: every enchantment's description under its name with Ctrl up, tooltip off the
+bottom of the screen.
+**Cause:** the owner's Prism instance (`%APPDATA%/PrismLauncher/instances/1.21.11`) had `enchdesc` installed. Its
+default `require_keybind: false` shows descriptions always, on their own lines; ours step aside when it's loaded
+(DESIGN §6). Tell-tale: the description sat under the name, but ours has been "Name: description" since 11c; the
+instance log says "Enchantment Descriptions (enchdesc) is loaded". Our scroll line also lived in the skipped listener.
+**Fix:** owner removed enchdesc (moved to `minecraft/mods-disabled/`); the scroll line now registers always (11d A).
+Check the owner's instance logs and mod list before debugging a screenshot: it runs ~200 other mods (Iceberg
+regathers tooltip lines, ImmersiveUI moves screens).
+**Affects:** src/client/java/com/wulfnet/enchanting2/client/EnchantmentDescriptions.java

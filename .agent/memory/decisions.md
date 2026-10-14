@@ -1364,3 +1364,19 @@ keep the state; on = a second roll keeps 1/multiplier of vanilla's chips (no ext
 other mod's call); a double multiplier (no double reader; whole multiples match mobs); multiplier below 1 (owner asked
 only to increase durability, and the second-roll scheme can't raise the chance).
 **Affects:** config/AnvilSection, anvil/AnvilWear, mixin/AnvilMenuMixin, mixin/FallingBlockEntityMixin, ConfigScreen
+
+## 2026-10-13 — Config screen tabs in rows: subclass YACLScreen, not mixins into YACL (owner, Phase 11d B)
+**Context:** owner: the config screen's tab row scrolls behind an arrow; wants two rows of tabs. YACL 3.8.1's
+`ScrollableNavigationBar` lays every category in one 24-tall row, and `YACLScreen.init` hard-codes the tab area at
+y 23 and hands it to each `CategoryTab`'s constructor (its right pane and description box keep it), so the area
+must be right before the tabs are built.
+**Choice (agent):** `client/TabbedConfigScreen extends YACLScreen`, whose `init` is YACL's own with the tab area
+below the rows, and `RowsBar extends ScrollableNavigationBar` (it must be one: YACL's code reads that field type).
+`RowsBar.arrangeElements` never calls YACL's, so YACL's scroll range stays 0 (no arrows, `ensureVisible` is a no-op).
+Rows come from MC-free `screen/TabRows`: fewest rows that fit, evened out by width, each stretched; a narrow window
+gets a third row rather than scrolling. `ConfigScreen.create` builds it directly instead of `generateScreen`.
+**Rejected:** mixins into YACL's `YACLScreen`/`ScrollableNavigationBar` (private internals, refmap-dependent, more
+to redo for the Phase 12 ports); exactly two rows always (a narrow window would overflow again); shorter category
+names (owner asked for rows).
+**Port note:** `init` copies YACL 3.8.1's; when YACL changes `YACLScreen.init`, compare and copy again.
+**Affects:** client/TabbedConfigScreen, screen/TabRows, client/ConfigScreen

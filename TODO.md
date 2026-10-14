@@ -2710,6 +2710,39 @@ prices, a toggle back to the under-the-name layout.
 on disk are never rewritten on load; missing keys read as the new defaults, so existing servers' anvils become
 unbreakable on update (the owner's ask; called out in CHANGELOG).
 
+## Phase 11d — Owner's third report (2026-10-13; Tier 1+: two units, one commit each)
+
+**Owner report:** (1) enchantment descriptions always show, Ctrl or not; (2) at a lower resolution the tooltip runs
+off the screen; (3) the config screen's tab row scrolls with an arrow; wants two rows of tabs instead.
+**Cause (1), from the owner's Prism instance `1.21.11`:** `enchdesc-fabric-1.21.11-21.11.1.jar` is installed with its
+default `require_keybind: false`, so its own lines (under each name) always show, and ours stay off by design (DESIGN
+§6; log line "Enchantment Descriptions (enchdesc) is loaded"). **Owner answer:** remove enchdesc from the instance.
+**Cause (2):** the scroll line is added inside the descriptions listener, which never registers while enchdesc is
+loaded, so a tall tooltip got no "scroll" hint (the wheel still worked). **Owner answer:** keep scrolling; the line
+shows on every too-tall tooltip, whoever added the lines.
+**Cause (3):** YACL 3.8.1's `ScrollableNavigationBar` lays every category in one row of a 24-tall header
+(`YACLScreen.init` hard-codes `tabArea` at y 23); 11 categories overflow at GUI width 640.
+- [x] A. Scroll line for any tall tooltip: `EnchantmentDescriptions.register` always registers; descriptions only
+      without enchdesc; `addScrollHint` runs for every tooltip. Client GameTest: with descriptions off, a 60-line
+      tooltip gets the scroll line under its name and no description. DESIGN §6, CHANGELOG.
+- [x] B. Tabs in rows: MC-free `screen/TabRows` (fewest rows that fit between 28 px margins, rows balanced by
+      width, each row stretched to fill; JUnit). Client `TabbedConfigScreen extends YACLScreen` (init as YACL's, with
+      `tabArea` below the rows) + `TabRowsBar extends ScrollableNavigationBar` (places buttons, no scrolling, hit area
+      and separators for every row). `ConfigScreen.create` opens it. Client GameTest: at 1080p GUI 3 the tabs are two
+      rows inside the screen, the tab area starts under them, and a real click on a second-row tab selects it.
+      CHANGELOG, decisions.md.
+- [x] C. Owner's instance: moved `mods/enchdesc-fabric-1.21.11-21.11.1.jar` to `minecraft/mods-disabled/` (what the
+      owner approved: "a backup folder"). **Destructive-shaped (outside the repo):** one named file, moved, game not
+      running, size checked after. Undo: `mv minecraft/mods-disabled/enchdesc-fabric-1.21.11-21.11.1.jar minecraft/mods/`.
+- [x] D. state.md, gotchas.md, decisions.md, `./gradlew build` + `./gradlew runClientGameTest`.
+      ✅ 2026-10-13: 418 JUnit (+5 `TabRowsTest`), 334 GameTests, 7 client GameTests. Owner checks: the config screen's
+      two tab rows (and a narrow window), a tall tooltip's scroll line, Ctrl descriptions now that enchdesc is gone.
+      The instance still has the 19:08 jar: copy the new `build/libs/enchanting2-1.0.0.jar` in.
+**Not doing:** mixins into YACL classes, a toggle back to the scrolling row, taking over from enchdesc when it is
+installed, shrinking or splitting tall tooltips.
+**Blast radius:** A, B: edits to tracked files (`git revert <sha>`). C: one jar renamed in the owner's instance,
+nothing deleted.
+
 ## Phase 12 — Every 26.x version, with 1.21.11 kept in step (Tier 2; starts after the owner's runClient checks
 ## and the v1.0.0 tag push)
 
