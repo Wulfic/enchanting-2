@@ -2,14 +2,11 @@ package com.wulfnet.enchanting2.elytra;
 
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.effect.ModEffects;
-import com.wulfnet.enchanting2.effect.WornEffects;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -18,7 +15,7 @@ import net.minecraft.world.phys.Vec3;
  * velocity toward 1.5 x look (plus 0.1 x look) by half the gap each tick, which is why it can climb, and a share of that
  * never brakes a flyer below the rocket's cruise. Speed scales the target, as it does a rocket's. The push runs in the
  * glide physics on both sides (the client moves its own player); the server only charges durability. No packet: the
- * server has the client's input.
+ * server has the client's input. An elytra worn in Elytra Slot's slot counts too (Phase 11f, {@link WornElytra}).
  */
 public final class Flight {
 	/** Flight X's share, two rockets' pull: it reaches the target in one tick; more would overshoot and oscillate. */
@@ -42,7 +39,7 @@ public final class Flight {
 
 	/** {@code entity}'s worn share of a rocket per tick, capped at Flight X's; 0 without Flight. */
 	static double thrust(LivingEntity entity) {
-		double thrust = WornEffects.sum(entity, ModEffects.FLIGHT_THRUST);
+		double thrust = WornElytra.sum(entity, ModEffects.FLIGHT_THRUST);
 		if (!Double.isFinite(thrust)) {
 			Enchanting2.LOGGER.warn("flight_thrust on {} sums to {}; ignoring it (a datapack's value?)",
 					entity.getStringUUID(), thrust);
@@ -73,14 +70,18 @@ public final class Flight {
 				&& holdsJump(entity) && thrust(entity) > 0.0;
 	}
 
-	/** Server: one point of durability off the worn Flight elytra, after {@link #TICKS_PER_DURABILITY} thrust ticks. */
+	/**
+	 * Server: one point of durability off the worn Flight elytra (the chest slot's, else an Elytra Slot one), after
+	 * {@link #TICKS_PER_DURABILITY} thrust ticks.
+	 */
 	public static void wear(LivingEntity entity, int thrustTicks) {
 		if (thrustTicks % TICKS_PER_DURABILITY != 0) {
 			return;
 		}
-		ItemStack elytra = entity.getItemBySlot(EquipmentSlot.CHEST);
-		if (EnchantmentHelper.has(elytra, ModEffects.FLIGHT_THRUST)) {
-			elytra.hurtAndBreak(1, entity, EquipmentSlot.CHEST);
+		WornElytra.Found elytra = WornElytra.find(entity, ModEffects.FLIGHT_THRUST);
+		if (!elytra.stack().isEmpty()) {
+			elytra.stack().hurtAndBreak(1, entity, EquipmentSlot.CHEST);
+			WornElytra.putBack(entity, elytra);
 		}
 	}
 }

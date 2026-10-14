@@ -1397,3 +1397,22 @@ mcMMO-SP's release-on-push (built for its many-band branches); GPL/LGPL/ARR (own
 **Still required of the owner:** rotate the GitHub PAT, the Context7 key and every password in the old `.env` —
 they were on GitHub, and the archive repo still holds them.
 **Affects:** .gitignore, .mcp.example.json, LICENSE, .github/workflows/*, wiki/, README.md, CHANGELOG.md
+
+## 2026-10-14 — Speed and Flight read Elytra Slot's elytra by reflection (agent, Phase 11f)
+**Context:** owner: a fully enchanted elytra never thrusts on jump. Their Prism instance runs Elytra Slot
+(`elytraslot-fabric-1.21.11-1.0.0.jar`, warwa, All Rights Reserved, not on Maven): the elytra lives in a synced
+Fabric attachment, so `runIterationOnEquipment` never sees it, and the mod cancels vanilla's `updateFallFlying`.
+**Choice:** `compat/ElytraSlot` resolves the mod's public static `ElytraSlotUtil.getAccessoryElytra(Player)` /
+`setAccessoryElytra(Player, ItemStack)` once with `MethodHandles.publicLookup()`; `elytra/WornElytra` adds that
+stack's chest-slot enchantments to Speed's and Flight's sums, and Flight's wear charges it and writes it back (sync).
+Flight's durability hook moved from `updateFallFlying` TAIL to a `@WrapOperation` on its call in `aiStep`.
+Fails closed: class absent → empty slot; wrong shape or a throw → one warning, empty slot.
+**Why:** its helper class is the mod's own cross-platform API and survives an attachment rename; reflection avoids a
+compile dependency on a jar we can't fetch from Maven or redistribute. Wrapping the call site survives any mod that
+cancels the method body.
+**Rejected:** reading the attachment `elytraslot:elytra` directly (Fabric has no public lookup by ID); a compile
+dependency (no Maven, ARR); applying the slot to every worn effect (Keep on Death, curses — elytraslot does its own
+drops and Mending; widen only when asked); telling the owner to wear the elytra in the chest slot.
+**Test seam:** the gametest source set has a stub `com.warwa.elytraslot.ElytraSlotUtil` plus `ElytraSlotStubMixin`
+(canGlide + cancelled `updateFallFlying`, copied from the mod's bytecode), so the real reflective path runs.
+**Affects:** compat/ElytraSlot, elytra/WornElytra, elytra/Flight, elytra/GlideSpeed, mixin/LivingEntityMixin

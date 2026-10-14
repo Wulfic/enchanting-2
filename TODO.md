@@ -2795,6 +2795,35 @@ undone by `git fetch <bundle> 'refs/*:refs/*'` + `git reset --hard <old sha>`. A
 by hand (`git push origin :refs/tags/v<version>`); the release workflow never deletes anything (decided while
 writing it: a tag the owner pushed is the owner's to move).
 
+## Phase 11f — Flight and Speed with Elytra Slot (2026-10-14; Tier 1: ~6 files)
+
+**Owner report:** a fully enchanted elytra (with full enchanted gear) glides, but holding jump never speeds it up.
+**Cause:** the owner's Prism instance runs `elytraslot-fabric-1.21.11-1.0.0.jar` ("Elytra Curios Slot", warwa): the
+elytra sits in a synced Fabric attachment (`elytraslot:elytra`), not the chest slot, so a chestplate can be worn too.
+Its mixins make `Player.canGlide` true for that elytra and cancel vanilla's `LivingEntity.updateFallFlying` (both
+sides) to run their own. Our Speed and Flight sum effects through `runIterationOnEquipment`, which never sees that
+elytra (0 thrust, factor 1), and Flight's durability hook at `updateFallFlying` TAIL never runs.
+- [x] A. `compat/ElytraSlot`: the accessory elytra through elytraslot's public static
+      `ElytraSlotUtil.getAccessoryElytra(Player)` / `setAccessoryElytra` by reflection (no compile dependency; jar is
+      All Rights Reserved, not on Maven). Class absent → EMPTY; wrong shape or a throw → warn once, EMPTY (fail closed:
+      no bonus, no crash).
+- [x] B. `elytra/WornElytra`: worn sum of a glide effect = equipment + the accessory elytra's chest-slot enchantments;
+      `GlideSpeed.factor` and `Flight.thrust` use it. `Flight.wear` charges whichever elytra carries Flight (chest
+      first), and writes an accessory one back so the attachment syncs.
+- [x] C. Durability hook moves from `updateFallFlying` TAIL to a `@WrapOperation` on its call in `aiStep` (runs after
+      it whether or not another mod cancels it).
+- [x] D. GameTests: a stub `com.warwa.elytraslot.ElytraSlotUtil` in the gametest source set (same signatures) so the
+      real reflective path runs; Flight V and Speed V in the accessory slot fly as in the chest; accessory durability.
+      Existing durability test drives `aiStep`. Client GameTest: Flight V in the chest, real jump key held → climbs.
+      ✅ 2026-10-14: 336 GameTests, 8 client GameTests, build green. Both halves mutation-checked: the slot ignored →
+      slotted Flight V + Speed V climbs at 0.38 blocks/tick vs 2.51 in the chest (the owner's symptom); the old TAIL
+      hook → slotted elytra wear 0. Owner check: the Prism instance with the new jar, Flight held with the elytra in
+      Elytra Slot's slot.
+- [x] E. Build + GameTests + client GameTests; decisions.md, gotchas.md, state.md, CHANGELOG.
+**Not doing:** reading the accessory elytra for any other effect (Keep on Death, curses on it, Mending — elytraslot
+does its own Mending); a compile dependency on elytraslot; other accessory mods (Trinkets/Accessories) until asked.
+**Blast radius:** tracked-file edits only (`git revert <sha>`). Nothing deleted.
+
 ## Phase 12 — Every 26.x version, with 1.21.11 kept in step (Tier 2; starts after the owner's runClient checks
 ## and the v1.0.0 tag push)
 

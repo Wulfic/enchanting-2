@@ -3,6 +3,7 @@
 	"package": "com.wulfnet.enchanting2.gametest.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
+		"ElytraSlotStubMixin",
 		"EnderManInvoker",
 		"EntityInvoker",
 		"ExperienceOrbAccessor",

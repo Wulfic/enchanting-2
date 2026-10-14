@@ -2,13 +2,13 @@ package com.wulfnet.enchanting2.elytra;
 
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.effect.ModEffects;
-import com.wulfnet.enchanting2.effect.WornEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 
 /**
  * Speed (Phase 10cGA, owner 2026-10-10): +10% elytra flight speed per level, gliding and firework boosts alike. Both
- * run on the client for its own player, so this reads only synced data (the worn elytra's enchantments).
+ * run on the client for its own player, so this reads only synced data (the worn elytra's enchantments, an Elytra
+ * Slot one included: {@link WornElytra}).
  */
 public final class GlideSpeed {
 	private GlideSpeed() {
@@ -16,7 +16,7 @@ public final class GlideSpeed {
 
 	/** The speed factor k for {@code flyer}: 1 without Speed. */
 	public static double factor(LivingEntity flyer) {
-		double bonus = WornEffects.sum(flyer, ModEffects.GLIDE_SPEED);
+		double bonus = WornElytra.sum(flyer, ModEffects.GLIDE_SPEED);
 		if (bonus == 0.0) {
 			return 1.0;
 		}

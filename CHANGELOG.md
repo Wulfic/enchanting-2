@@ -5,6 +5,11 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- **Speed and Flight with Elytra Slot:** an elytra worn in the Elytra Slot mod's own slot (with a chestplate on the
+  chest) glided like a plain elytra: holding jump gave no thrust and Speed added nothing. Both now count it, and
+  Flight's durability cost lands on it.
+
 ## [1.0.0] - 2026-10-14
 
 First release, for Minecraft 1.21.11 (Fabric). Needed on both the server and the client.

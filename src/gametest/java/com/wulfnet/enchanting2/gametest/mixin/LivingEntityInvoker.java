@@ -17,7 +17,4 @@ public interface LivingEntityInvoker {
 
 	@Invoker("updateFallFlyingMovement")
 	Vec3 e2test$updateFallFlyingMovement(Vec3 velocity);
-
-	@Invoker("updateFallFlying")
-	void e2test$updateFallFlying();
 }

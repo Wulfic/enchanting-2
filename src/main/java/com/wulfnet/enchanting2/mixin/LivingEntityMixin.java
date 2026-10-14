@@ -198,10 +198,14 @@ abstract class LivingEntityMixin implements ShieldState {
 	@Unique
 	private int enchanting2$thrustTicks;
 
-	/** Phase 10cGB, Flight: vanilla's server-side elytra tick; thrusting costs the elytra a point per second too. */
-	@Inject(method = "updateFallFlying", at = @At("TAIL"))
-	private void enchanting2$flightDurability(CallbackInfo ci) {
-		LivingEntity self = (LivingEntity) (Object) this;
+	/**
+	 * Phase 10cGB, Flight: after vanilla's elytra tick, thrusting costs the elytra a point per second too. Wraps the call
+	 * in {@code aiStep}, not the method's TAIL: Elytra Slot cancels {@code updateFallFlying} to run its own (Phase 11f).
+	 */
+	@WrapOperation(method = "aiStep", at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/world/entity/LivingEntity;updateFallFlying()V"))
+	private void enchanting2$flightDurability(LivingEntity self, Operation<Void> original) {
+		original.call(self);
 		if (Flight.thrusting(self)) {
 			Flight.wear(self, ++enchanting2$thrustTicks);
 		}

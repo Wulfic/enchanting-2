@@ -1,5 +1,6 @@
 package com.wulfnet.enchanting2.gametest;
 
+import com.warwa.elytraslot.ElytraSlotUtil;
 import com.wulfnet.enchanting2.enchantment.ModEnchantments;
 import com.wulfnet.enchanting2.gametest.mixin.LivingEntityInvoker;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
@@ -18,7 +19,8 @@ import net.minecraft.world.phys.Vec3;
 /**
  * Phase 10cGA/GB: Speed and Flight through vanilla's own elytra physics, called directly (a mock player isn't ticked):
  * the glide formula iterated to its top speed, one firework rocket tick on a gliding player, and the server's elytra
- * tick for Flight's durability.
+ * tick for Flight's durability. Phase 11f: the same with the elytra in Elytra Slot's slot (the stub
+ * {@link ElytraSlotUtil} and {@code ElytraSlotStubMixin}, which cancels vanilla's elytra tick as the mod does).
  */
 public class ElytraGameTest {
 	/** Long past settling: Speed V's drag loses 1/150 of the speed per tick. */
@@ -126,12 +128,56 @@ public class ElytraGameTest {
 
 	private static int wearAfterFortyTicks(GameTestHelper helper, boolean jump) {
 		ServerPlayer player = climber(helper, elytra(helper, 0, 5), jump);
+		glideFortyTicks(helper, player);
+		return player.getItemBySlot(EquipmentSlot.CHEST).getDamageValue();
+	}
+
+	/**
+	 * Forty server ticks of {@code player}'s AI step, where vanilla's elytra tick (and Flight's wear after it) runs. The
+	 * step moves the player too, so it starts 40 blocks up: a glide without thrust lands from 5 in 38 ticks.
+	 */
+	private static void glideFortyTicks(GameTestHelper helper, ServerPlayer player) {
+		player.snapTo(player.position().add(0.0, 40.0, 0.0), player.getYRot(), player.getXRot());
 		player.startFallFlying();
 		for (int tick = 0; tick < 40; tick++) {
-			((LivingEntityInvoker) player).e2test$updateFallFlying();
+			player.aiStep();
+			check(helper, player.isFallFlying(), "the mock player stopped gliding after " + (tick + 1) + " ticks (on ground "
+					+ player.onGround() + ", at " + player.position() + ", velocity " + player.getDeltaMovement() + ")");
 		}
-		check(helper, player.isFallFlying(), "the mock player stopped gliding");
-		return player.getItemBySlot(EquipmentSlot.CHEST).getDamageValue();
+	}
+
+	/** A climber with an iron chestplate on, and {@code elytra} in Elytra Slot's slot. */
+	private static ServerPlayer slottedClimber(GameTestHelper helper, ItemStack elytra, boolean jump) {
+		ServerPlayer player = climber(helper, new ItemStack(Items.IRON_CHESTPLATE), jump);
+		ElytraSlotUtil.setAccessoryElytra(player, elytra);
+		return player;
+	}
+
+	/** Owner, Phase 11f: an elytra in Elytra Slot's slot, a chestplate on, flies with Speed and Flight as in the chest. */
+	@GameTest
+	public void anElytraSlotElytraGetsSpeedAndFlight(GameTestHelper helper) {
+		double chest = topSpeed(climber(helper, elytra(helper, 5, 5), true));
+		double slotted = topSpeed(slottedClimber(helper, elytra(helper, 5, 5), true));
+		double coasting = topSpeed(slottedClimber(helper, elytra(helper, 5, 5), false));
+		check(helper, Math.abs(slotted - chest) < 1.0E-9, "slotted " + slotted + " vs chest " + chest);
+		check(helper, slotted > 2.0 * coasting, "a slotted Flight V elytra doesn't thrust: " + slotted + " vs coasting "
+				+ coasting);
+		helper.succeed();
+	}
+
+	/**
+	 * Phase 11f: Elytra Slot cancels vanilla's elytra tick, and Flight's wear still lands, on the slotted elytra (the
+	 * chestplate untouched), written back into the slot.
+	 */
+	@GameTest
+	public void flightWearsAnElytraSlotElytraThoughItsModCancelsTheElytraTick(GameTestHelper helper) {
+		ServerPlayer player = slottedClimber(helper, elytra(helper, 0, 5), true);
+		glideFortyTicks(helper, player);
+		helper.assertValueEqual(2, ElytraSlotUtil.getAccessoryElytra(player).getDamageValue(),
+				Component.literal("slotted elytra durability for 2 s of thrust"));
+		helper.assertValueEqual(0, player.getItemBySlot(EquipmentSlot.CHEST).getDamageValue(),
+				Component.literal("chestplate durability"));
+		helper.succeed();
 	}
 
 	/** From rest a rocket's first tick gives 0.85 × look; with Speed V, 0.85 × 1.5. */

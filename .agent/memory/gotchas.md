@@ -614,3 +614,15 @@ creating.
 live server. Create failure is now tested through `writeDefaultsIfAbsent` (same on both OSes) and `load` accepts
 either source. Anything path-shaped in tests should be suspected of being Windows-only until CI has run it.
 **Affects:** src/test/.../config/ConfigFilesTest.java
+
+## 2026-10-14 — Elytra Slot hides the elytra from equipment and cancels `updateFallFlying`
+**Symptom:** owner: Flight elytra glides but never thrusts; Speed silently did nothing too. Our GameTests were green
+(mock player, elytra in the chest slot).
+**Cause:** the owner's instance runs Elytra Slot: the elytra is in a Fabric attachment, not `EquipmentSlot.CHEST`,
+and the mod's `ElytraSlotMixin` cancels `LivingEntity.updateFallFlying` at HEAD whenever its slot holds a glider, so
+any TAIL inject there never runs. Fixed in Phase 11f (decisions.md).
+**Lesson:** an owner report that contradicts green tests → read the instance's `mods/` first (same as enchdesc in 11d).
+Anything reading "the worn elytra" must go through `elytra/WornElytra`, and hooks around vanilla's elytra tick go at
+its call in `aiStep`, not inside it.
+**Also:** driving a mock `ServerPlayer` through `aiStep()` really moves it (travel runs): a coasting glide from 5
+blocks up lands on tick 38. Start such tests high.

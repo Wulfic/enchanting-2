@@ -109,9 +109,14 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
 - 11e (2026-10-14): public-release prep. History scrubbed of `.env` + MCP configs (new GitHub repo; the old one is
   the private `enchanting-2-archive`), MIT, CI/release/wiki workflows, `wiki/`, `ReleaseDocsTest`, Gradle on JDK 25
   (`gradle_java_version`) while the mod targets 21.
-- Tests: 422 JUnit + 334 GameTests (`./gradlew build`, also in CI) + 7 client GameTests (`./gradlew runClientGameTest`).
+- 11f (2026-10-14, owner report "Flight never thrusts"): Elytra Slot compat (`compat/ElytraSlot` by reflection,
+  `elytra/WornElytra`); Flight's wear hook wraps the `updateFallFlying` call in `aiStep`. Gametest stub of the mod.
+- Tests: 423 JUnit + 336 GameTests (`./gradlew build`, also in CI) + 8 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
+0. **Owner (11f):** copy the new `build/libs/enchanting2-1.0.0.jar` into the Prism instance and hold jump with the
+   Flight elytra in Elytra Slot's slot (thrust, Speed, durability bar). `docs/CURSEFORGE.md` was deleted in the working
+   tree outside the 11f session (04:06); still in HEAD `026622e` — owner's call, not committed either way.
 1. **Owner (11e):** rotate the GitHub PAT, the Context7 key and every `.env` password (they were on GitHub; the
    archive repo still has them), then make `Wulfic/enchanting-2` public, save a first wiki page in the web UI and
    re-run the Wiki workflow; delete `enchanting-2-archive` when ready. v1.0.0 = HEAD of 2026-10-14 (owner). 11d owner checks: copy the
