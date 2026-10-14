@@ -1432,8 +1432,9 @@ before any adapter is written.
 **Rejected:** one jar for 1.21.11 + 26.x (intermediary vs Mojang names in the bytecode, Java 21 vs 25; jar-in-jar of
 both relies on unverified loader behaviour); one jar per 26.x line (kept as the fallback if 12C says so); an
 open-ended `minecraft` range (a mixin mod crashes at startup on an untested version).
-**Open (owner):** mcMMO freezes old bands. Does 1.21.11 keep getting every feature (2026-10-13 ruling, kept for now),
-or freeze at 1.0.x once band B ships (no Stonecutter needed then)?
+**Resolved (owner, 2026-10-14, start of 12B):** 1.21.11 keeps getting every feature; it does not freeze at 1.0.x.
+Every 1.21.11 ↔ 26.x difference stays in the shared source (Stonecutter conditions or per-band adapters), and a
+change is done only when both bands are green.
 **Affects:** build.gradle, settings.gradle, gradle.properties, release.yml, fabric.mod.json, future compat/McVersion
 
 ## 2026-10-14 — 12A build layout: Stonecutter 0.9.8 + loom-back-compat 0.4.3, Groovy, per-node properties (agent)

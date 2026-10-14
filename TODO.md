@@ -132,6 +132,29 @@ show `git log main..port/26x` first). Nothing is published until 12F.
       than ~3 places gets a small adapter class per band instead. Check each mixin against 26.1.2's source, not just
       "it compiles". Add a GameTest that loads a 1.21.11-written chunk/player (attachment codecs read the same).
       Exit: everything green on 26.1.2.
+      Owner 2026-10-14: 1.21.11 **stays in step** (not frozen), so every 1.21.11 ↔ 26.1 difference lives in the shared
+      source behind a Stonecutter condition or a per-band adapter. No access widener exists, so that item is moot.
+      Versions checked 2026-10-14 (Fabric maven, Modrinth): Fabric API 0.155.3+26.1.2, YACL 3.9.7+26.1-fabric,
+      Mod Menu 18.0.2 (26.1.x), Loom 1.18.4 (one `loomx.loom_version` for every node, as CullLeaves does).
+  - [x] B1. Loom 1.18.2 → 1.18.4, 1.21.11 node only (one variable): `./gradlew build` green, jar diff vs v1.0.1 still
+        only the manifest. Commit. Done 2026-10-14: 423 JUnit, 336 server GameTests, client GameTests green; 414
+        entries, only `MANIFEST.MF` differs.
+  - [ ] B2. Per-node resource values: `fabric.mod.json` `minecraft` + `java` and both `*.mixins.json`
+        `compatibilityLevel` expanded from node properties (`mc_dependency`, `java_version`) in `processResources`.
+        1.21.11 jar unchanged (same expanded text). Commit.
+  - [ ] B3. Node `26.1.2`: settings.gradle `versions '1.21.11', '26.1.2'`, `versions/26.1.2/gradle.properties` (Java 25,
+        the versions above, `run_root=run/26.1.2`, `mc_dependency` `>=26.1.2 <26.2-` until 12C widens it).
+  - [ ] B4. `:26.1.2:compileJava` + `compileClientJava`: write every error class into this file, then fix behind
+        `//? if >=26.1` conditions (adapter class when one difference recurs in more than ~3 places). After each fix
+        group: both nodes compile.
+  - [ ] B5. Mixin audit: every target method/descriptor/`@At` read against 26.1.2's decompiled source (`genSources`),
+        not just "it compiles"; a mixin that compiles but no longer means the same thing is the dangerous case.
+  - [ ] B6. GameTests compile + run on 26.1.2 (server, then client locally); fix behind conditions.
+  - [ ] B7. GameTest: a player/chunk written by 1.21.11 (attachments: `PlacedMarks`, `last_stand_ready_at`) reads back
+        on 26.1.2.
+  - [ ] B8. ci.yml builds both nodes (JDKs from every node file, already); state.md, decisions.md, gotchas; commit.
+        **Blast radius (12B):** build files + source conditionals on `port/26x`. **Rollback:** `git revert` the 12B
+        commits on `port/26x`, or `git switch main` (main untouched).
 - [ ] 12C **Runtime matrix (the feasibility gate):** nodes `26.2` and `26.3` run the 26.1.2 jar's server GameTests
       with that line's Minecraft + Fabric API + YACL + Mod Menu. Write every failure into this file: mixin apply
       errors, `NoSuchMethodError`/`NoSuchFieldError`, YACL API breaks, behaviour diffs. Then apply the split rule
