@@ -165,7 +165,8 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
   before the server exists and `/reload` doesn't re-run it (gotchas.md). FAPI 0.141.6 = item-api 11.6.0.
 - Config code never rewrites an existing file on load. Only the GUI save and the anvil tab (`client.json5`) write,
   both through `saveWithBackup` (`.bak` first).
-- `.env` and MCP configs are tracked with live credentials (owner's call). Rotate the `ghp_` PAT.
+- `.env`, `.mcp.json` and `.claude/mcp.vscode-reference.json` are git-ignored (Phase 11e); the repo is public.
+  `.mcp.example.json` is the tracked template. CI's gitleaks job fails on any committed secret.
 - `.claude/skills/` and `.github/skills/` are hand-synced copies.
 - A new GameTest class must be listed in `src/gametest/resources/fabric.mod.json` or it silently never runs.
 - The client GameTest flake "Network synchronizer in invalid state" hit twice on 2026-10-13 (gotchas.md): rerun once;

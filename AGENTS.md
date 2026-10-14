@@ -256,7 +256,8 @@ native tools cannot. Exactly two currently qualify:
 
 Config lives in `.mcp.json` (Claude Code) and `.claude/mcp.vscode-reference.json` (VS Code
 format). Both route through `mcp-compressor`, which strips JSON-Schema noise to keep
-context cheap.
+context cheap. **Both are git-ignored and hold real tokens — never commit them.** The repo is
+public: copy the tracked `.mcp.example.json` to `.mcp.json` and fill in your own values.
 
 **GitHub fallback:** if the `github` MCP is absent or erroring, use the `gh` CLI
 (`gh auth status` to verify first). Never report a GitHub action as done without knowing

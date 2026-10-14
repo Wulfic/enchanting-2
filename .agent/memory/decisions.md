@@ -1380,3 +1380,20 @@ to redo for the Phase 12 ports); exactly two rows always (a narrow window would 
 names (owner asked for rows).
 **Port note:** `init` copies YACL 3.8.1's; when YACL changes `YACLScreen.init`, compare and copy again.
 **Affects:** client/TabbedConfigScreen, screen/TabRows, client/ConfigScreen
+
+## 2026-10-14 — Going public: new repo with scrubbed history, MIT, tag-driven releases (owner, Phase 11e)
+**Context:** owner wants the repo public with CI. Audit found `.env` (real account passwords) and both MCP configs
+(GitHub PAT, Context7 key) tracked since the initial commit — the earlier "tracked secrets are the owner's call"
+posture (gotchas.md, 2026-08) ends here.
+**Choice (owner):** scrub history with `git filter-repo` in a scratch clone, rename the old GitHub repo to
+`enchanting-2-archive` (private) and push the scrubbed history to a new `enchanting-2`. MIT license. A release is
+cut by pushing tag `v<mod_version>`; every push/PR only builds and tests. First public version is 1.0.0 from HEAD
+(the old local `v1.0.0` was never pushed). The MCP config becomes untracked `.mcp.json` + tracked `.mcp.example.json`.
+**Why:** force-pushing over the same repo leaves the old commits reachable by SHA on a public repo until GitHub
+Support purges them (short-SHA brute force is a known attack); a new repo never had them. Tag-driven over
+mcMMO-SP's version-bump-on-push model: one branch and one Minecraft line here, and the owner decides when to ship.
+**Rejected:** force-push to the same repo (above); squash to one commit (loses 105 commits of reasoning trail);
+mcMMO-SP's release-on-push (built for its many-band branches); GPL/LGPL/ARR (owner chose MIT).
+**Still required of the owner:** rotate the GitHub PAT, the Context7 key and every password in the old `.env` —
+they were on GitHub, and the archive repo still holds them.
+**Affects:** .gitignore, .mcp.example.json, LICENSE, .github/workflows/*, wiki/, README.md, CHANGELOG.md

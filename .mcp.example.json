@@ -1,0 +1,34 @@
+{
+  "// usage": "Optional, for AI coding agents only (see AGENTS.md → Tools). Copy to .mcp.json (git-ignored) and replace the placeholders. Never commit .mcp.json.",
+
+  "// cli-syntax": "mcp-compressor 0.31.4 requires `--compression` (not --compression-level), `-H` (not --header), and a `--` separator before the backend URL/args.",
+
+  "mcpServers": {
+
+    "github": {
+      "// note": "A github-mcp-server over HTTP, compressed. Point the URL at your own instance.",
+      "command": "uvx",
+      "args": [
+        "mcp-compressor",
+        "--server-name", "github",
+        "--compression", "high",
+        "--",
+        "http://<your-github-mcp-host>:8000/mcp",
+        "-H", "Authorization=Bearer <github-token>"
+      ]
+    },
+
+    "context7": {
+      "// note": "Upstash Context7 (live library docs), compressed.",
+      "command": "uvx",
+      "args": [
+        "mcp-compressor",
+        "--server-name", "context7",
+        "--compression", "high",
+        "--",
+        "https://mcp.context7.com/mcp",
+        "-H", "Authorization=Bearer <context7-api-key>"
+      ]
+    }
+  }
+}

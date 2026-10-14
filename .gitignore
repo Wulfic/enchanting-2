@@ -177,3 +177,14 @@ history/
 !gradle/wrapper/gradle-wrapper.jar
 run/
 *.iml
+
+############################
+# Local secrets (Enchanting 2)
+############################
+# Never tracked: these hold real tokens and passwords. Copy .mcp.example.json to .mcp.json and fill it in.
+.env
+.env.*
+!.env.example
+.mcp.json
+.claude/mcp.vscode-reference.json
+.claude/settings.local.json
