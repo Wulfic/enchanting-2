@@ -142,3 +142,11 @@ tasks.withType(JavaCompile).configureEach {
 tasks.withType(Test).configureEach {
     useJUnitPlatform()
 }
+
+// ConfigDocsTest and ReleaseDocsTest read these files, not classes. Without them as inputs a docs-only edit leaves
+// `test` UP-TO-DATE and a broken doc passes locally (gotchas.md 2026-10-14).
+tasks.named('test') {
+    inputs.files(fileTree('docs'), fileTree('wiki'), 'CHANGELOG.md', 'LICENSE', '.github/workflows/wiki.yml')
+        .withPropertyName('releaseDocs')
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+}

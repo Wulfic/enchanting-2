@@ -1,0 +1,140 @@
+# ---------------------------------------------------------------------------
+# Release: pushing a tag v<mod_version> builds the jar and publishes a GitHub Release.
+#
+#   1. Bump mod_version in gradle.properties and add a "## [<version>] - YYYY-MM-DD" section to CHANGELOG.md
+#      (ReleaseDocsTest fails the build until both agree). Commit and push to main; let CI go green.
+#   2. git tag v<version> && git push origin v<version>
+#
+# This workflow REFUSES, before building anything, when:
+#   - the tag isn't exactly v + mod_version (a v1.0.1 tag on a 1.0.0 tree would ship a jar named 1.0.0),
+#   - the tagged commit isn't on main (no releases from side branches),
+#   - CHANGELOG.md has no section for the version (it becomes the release notes),
+#   - a release for the tag already exists (re-running never overwrites a published jar).
+#
+# Nothing here deletes anything. If the build fails, no release is created and the tag stays where it is: fix on
+# main, then move the tag (git tag -f v<version> && git push origin v<version> --force) or bump the version.
+# ---------------------------------------------------------------------------
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history, for the on-main check)
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check the tag, version and changelog
+        id: meta
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          prop() { grep -E "^$1=" gradle.properties | head -n1 | cut -d= -f2- | tr -d '[:space:]'; }
+          version=$(prop mod_version)
+          mc=$(prop minecraft_version)
+          jv=$(prop java_version)
+          if [ -z "$version" ] || [ -z "$mc" ] || [ -z "$jv" ]; then
+            echo "::error::gradle.properties is missing mod_version, minecraft_version or java_version."
+            exit 1
+          fi
+          if [ "$TAG" != "v${version}" ]; then
+            echo "::error::Tag ${TAG} doesn't match mod_version ${version} in gradle.properties; expected v${version}. Refusing to release."
+            exit 1
+          fi
+          # The commit the tag names; for an annotated tag GITHUB_SHA isn't guaranteed to be it.
+          commit=$(git rev-parse "refs/tags/${TAG}^{commit}")
+          if ! git merge-base --is-ancestor "$commit" origin/main; then
+            echo "::error::${TAG} points at ${commit:0:7}, which is not on main. Release only from main."
+            exit 1
+          fi
+
+          # The CHANGELOG section for this version, heading excluded, up to the next "## [" heading, without the
+          # "[1.0.0]: https://..." link definitions that end the file.
+          awk -v v="$version" '
+            index($0, "## [" v "] - ") == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found && /^\[[^]]+\]: / { next }
+            found { print }
+          ' CHANGELOG.md > changes.md
+          if ! grep -q '[^[:space:]]' changes.md; then
+            echo "::error::CHANGELOG.md has no '## [${version}] - YYYY-MM-DD' section (or it is empty). Refusing to release."
+            exit 1
+          fi
+          {
+            cat changes.md
+            echo
+            echo "---"
+            echo "**Minecraft** ${mc} · **Fabric Loader** $(prop loader_version)+ · **Requires** [Fabric API](https://modrinth.com/mod/fabric-api) · **Java** ${jv}+"
+            echo
+            echo "Install on the server **and** every player's client. Download \`enchanting2-${version}.jar\` below and put it in \`mods/\`."
+            echo "Full guide: [wiki](https://github.com/${GITHUB_REPOSITORY}/wiki) · Built from \`${commit:0:7}\`."
+          } > release-notes.md
+
+          {
+            echo "version=$version"
+            echo "mc_version=$mc"
+            echo "java_version=$jv"
+            echo "commit=$commit"
+          } >> "$GITHUB_OUTPUT"
+          echo "Releasing ${version} for Minecraft ${mc} from ${commit:0:7}."
+
+      - name: Refuse an existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::A release for ${TAG} already exists. This workflow never replaces a published jar; bump mod_version for a new release."
+            exit 1
+          fi
+
+      - name: Set up JDK
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: ${{ steps.meta.outputs.java_version }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build (runs the JUnit suite and server GameTests)
+        run: ./gradlew build --no-daemon --stacktrace
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          MC_VERSION: ${{ steps.meta.outputs.mc_version }}
+          COMMIT: ${{ steps.meta.outputs.commit }}
+        run: |
+          set -euo pipefail
+          jar="build/libs/enchanting2-${VERSION}.jar"
+          sources="build/libs/enchanting2-${VERSION}-sources.jar"
+          for f in "$jar" "$sources"; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Expected $f after the build; found: $(ls build/libs)"
+              exit 1
+            fi
+          done
+          gh release create "$TAG" "$jar" "$sources" \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title "Enchanting 2 ${VERSION} for Minecraft ${MC_VERSION}" \
+            --notes-file release-notes.md
+          echo "### Released ${TAG}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Enchanting 2 ${VERSION}, Minecraft ${MC_VERSION}, from \`${COMMIT:0:7}\`." >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,111 @@
+# ---------------------------------------------------------------------------
+# CI: every push to main and every pull request.
+#
+#   build    ./gradlew build: compiles, runs the JUnit suite and the server GameTests. The jar is kept as a run
+#            artifact for 14 days, so any commit can be tried in game without building it.
+#   secrets  gitleaks over the WHOLE history, not just the pushed commits. The repo went public after a history
+#            scrub (TODO 11e); a secret committed again would be public on push, so this job fails the run loudly.
+#
+# Client GameTests (./gradlew runClientGameTest) are not run here: they open a game window. Run them locally.
+# Releases are a separate workflow (release.yml), started by pushing a v* tag.
+# ---------------------------------------------------------------------------
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # build.gradle refuses a missing java_version; read the same key here rather than pinning a second number.
+      - name: Read the JDK level
+        id: jdk
+        run: |
+          jv=$(grep -E '^java_version=' gradle.properties | head -n1 | cut -d= -f2- | tr -d '[:space:]')
+          case "$jv" in
+            ''|*[!0-9]*)
+              echo "::error::gradle.properties java_version='$jv' is not a plain major version (e.g. 21)."
+              exit 1 ;;
+          esac
+          echo "java_version=$jv" >> "$GITHUB_OUTPUT"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: ${{ steps.jdk.outputs.java_version }}
+
+      # Also validates the Gradle wrapper jar's checksum against Gradle's published list.
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build
+        run: ./gradlew build --no-daemon --stacktrace
+
+      - name: Upload jar
+        uses: actions/upload-artifact@v7
+        with:
+          name: enchanting2-${{ github.sha }}
+          path: build/libs/*.jar
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-reports-${{ github.sha }}
+          path: |
+            build/reports/
+            build/test-results/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  secrets:
+    name: Secret scan (gitleaks, full history)
+    runs-on: ubuntu-latest
+    env:
+      GITLEAKS_VERSION: 8.30.1
+      # sha256 of gitleaks_8.30.1_linux_x64.tar.gz from the release's checksums.txt. Change both together.
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install gitleaks
+        run: |
+          set -euo pipefail
+          tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSL -o "$RUNNER_TEMP/$tarball" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/$tarball" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/$tarball" -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" version
+
+      - name: Scan every commit
+        run: |
+          set -euo pipefail
+          commits=$(git rev-list --all --count)
+          echo "Scanning ${commits} commits."
+          if [ "$commits" -lt 1 ]; then
+            echo "::error::No commits to scan; the checkout is not a full clone. Refusing to report a clean scan."
+            exit 1
+          fi
+          "$RUNNER_TEMP/gitleaks" git --redact --verbose --exit-code 1 --log-opts="--all" .

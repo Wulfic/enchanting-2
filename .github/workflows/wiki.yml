@@ -1,0 +1,106 @@
+# ---------------------------------------------------------------------------
+# Wiki: publishes wiki/ to the repo's GitHub wiki on every push to main that touches it.
+#
+# wiki/ in this repo is the source of truth; edits made in the wiki's web editor are OVERWRITTEN by the next sync.
+# Two pages are not in wiki/ but copied from docs/ at sync time (the `pages` list below), so the player reference
+# and the config doc that ConfigDocsTest guards can never drift from their wiki copies. ReleaseDocsTest reads that
+# list: every wiki link must resolve, and a copied doc may only link to another copied doc.
+#
+# One-time setup: GitHub creates the wiki's git repository only when the first page is saved in the web UI
+# (Wiki tab → "Create the first page" → Save). Until then this workflow fails with a message saying so.
+# ---------------------------------------------------------------------------
+name: Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'wiki/**'
+      - 'docs/CONFIG.md'
+      - 'docs/ENCHANTMENTS.md'
+      - '.github/workflows/wiki.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wiki
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Publish wiki/
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Check the wiki exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! git ls-remote "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" >/dev/null 2>&1; then
+            echo "::error::The wiki's git repository doesn't exist yet. Enable the wiki in Settings, then open the Wiki tab, click 'Create the first page' and Save once. Re-run this workflow after that."
+            exit 1
+          fi
+
+      - name: Checkout the wiki
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: .wiki
+
+      - name: Assemble the pages
+        run: |
+          set -euo pipefail
+          # Fail closed: an empty or broken wiki/ would otherwise wipe every published page.
+          if [ ! -f wiki/Home.md ]; then
+            echo "::error::wiki/Home.md is missing; refusing to replace the published wiki."
+            exit 1
+          fi
+
+          # "source:Page" — a docs/ file published as a wiki page. ReleaseDocsTest parses these lines; keep the format.
+          pages=(
+            "docs/CONFIG.md:Configuration"
+            "docs/ENCHANTMENTS.md:Enchantments"
+          )
+
+          # The wiki is generated, so remove the old pages first; a page deleted from wiki/ must disappear too.
+          # Only top-level *.md: the wiki's .git and any uploaded images are left alone.
+          find .wiki -maxdepth 1 -type f -name '*.md' -delete
+          cp wiki/*.md .wiki/
+
+          # Each copied doc gets a header, and its links to another copied doc (CONFIG.md → ENCHANTMENTS.md) become
+          # wiki page links.
+          for entry in "${pages[@]}"; do
+            src=${entry%%:*}
+            page=${entry##*:}
+            out=".wiki/${page}.md"
+            {
+              echo "> This page is generated from [\`${src}\`](https://github.com/${GITHUB_REPOSITORY}/blob/main/${src}). Edit that file, not the wiki."
+              echo
+              cat "$src"
+            } > "$out"
+            for other in "${pages[@]}"; do
+              name=$(basename "${other%%:*}")
+              sed -i "s#](${name}#](${other##*:}#g" "$out"
+            done
+          done
+          ls -1 .wiki
+
+      - name: Push the wiki
+        working-directory: .wiki
+        run: |
+          set -euo pipefail
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki already up to date."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -q -m "Sync from ${GITHUB_REPOSITORY}@${GITHUB_SHA:0:7}"
+          git push
+          echo "### Wiki synced from \`${GITHUB_SHA:0:7}\`" >> "$GITHUB_STEP_SUMMARY"
+          git show --stat --format= HEAD >> "$GITHUB_STEP_SUMMARY"
