@@ -4,8 +4,9 @@
 > cheap to read at the start of every session. History belongs in `decisions.md` and
 > `gotchas.md`; this file only answers "where am I right now?".
 
-**Last updated:** 2026-10-13
-**Branch:** main (commit straight to main and push; no CI; see decisions.md)
+**Last updated:** 2026-10-14
+**Branch:** main (commit straight to main and push). CI on every push (`ci.yml`: build + gitleaks); a release
+is a pushed `v<mod_version>` tag (`release.yml`); `wiki/` syncs to the GitHub wiki (`wiki.yml`). See decisions.md 11e.
 
 ## Where we are
 Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA, CB, CC), 10cD (DA, DB), 10cE (EA, EB, EC), 10cF (FA, FB) and 10cG (GA, GB, GC) done: Phase 10c complete (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
@@ -105,14 +106,19 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
 - 11d (2026-10-13, owner's third report): the "always-on descriptions" were the owner's `enchdesc` (removed from the
   Prism instance, now in `minecraft/mods-disabled/`); the scroll line shows on any too-tall tooltip
   (`EnchantmentDescriptions.onTooltip`); config tabs in rows (`client/TabbedConfigScreen`, `screen/TabRows`).
-- Tests: 418 JUnit + 334 GameTests (`./gradlew build`) + 7 client GameTests (`./gradlew runClientGameTest`).
+- 11e (2026-10-14): public-release prep. History scrubbed of `.env` + MCP configs (new GitHub repo; the old one is
+  the private `enchanting-2-archive`), MIT, CI/release/wiki workflows, `wiki/`, `ReleaseDocsTest`, Gradle on JDK 25
+  (`gradle_java_version`) while the mod targets 21.
+- Tests: 422 JUnit + 334 GameTests (`./gradlew build`, also in CI) + 7 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
-1. Owner decides: the local `v1.0.0` tag (protocol 4) vs a 1.0.1 for the 11b–11d fixes. 11d owner checks: copy the
+1. **Owner (11e):** rotate the GitHub PAT, the Context7 key and every `.env` password (they were on GitHub; the
+   archive repo still has them), then make `Wulfic/enchanting-2` public, save a first wiki page in the web UI and
+   re-run the Wiki workflow; delete `enchanting-2-archive` when ready. v1.0.0 = HEAD of 2026-10-14 (owner). 11d owner checks: copy the
    new jar into the Prism instance (it has the 19:08 build), the config tab rows, Ctrl descriptions without enchdesc,
    a tall tooltip's scroll line. 11c owner checks: Ctrl
    tooltips read well condensed, Mending's row price and its tooltip note, an anvil after many uses. Then the owner's runClient
-   checks (item 2, plus 11b: slot look, a tall tooltip in the creative tab, the "Name: description" wording), push the tag (local only, owner said wait), then Phase 12
+   checks (item 2, plus 11b: slot look, a tall tooltip in the creative tab, the "Name: description" wording), then Phase 12
    (TODO.md: every 26.x version + 1.21.11 in step, Stonecutter spike 12A first on branch `port/26x`). Phase 11 done. The owner's
    `runClient` look at the 10o windows is still open (screenshots `enchanting2-anvil-*`, `enchanting2-grindstone-*`). A new enchantment still adds a `LevelCeilings` row, a `.desc` line, tags, a
    price row if single-level, docs rows.

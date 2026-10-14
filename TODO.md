@@ -2754,26 +2754,36 @@ and in gotchas.md. Commit author email is already public on mcMMO-Singleplayer, 
 **Owner rulings (2026-10-14):** new repo (old one renamed `enchanting-2-archive`, kept private); MIT; releases from a
 pushed `v*` tag; first public version is 1.0.0 from HEAD (the local, never-pushed `v1.0.0` tag moves).
 
-- [ ] A. Stop tracking the secrets: `git rm --cached` the three files (local copies stay), ignore them, add
+- [x] A. Stop tracking the secrets: `git rm --cached` the three files (local copies stay), ignore them, add
       `.mcp.example.json` with placeholders, LAN IPs → `<lan-ip>` in gotchas.md, AGENTS.md/state.md say how to set
       up `.mcp.json` locally.
-- [ ] B. MIT `LICENSE`, `fabric.mod.json` license + homepage/issues links, README license line.
-- [ ] C. `.github/workflows/ci.yml` (push to main + PRs: `./gradlew build`, gitleaks over full history),
+- [x] B. MIT `LICENSE`, `fabric.mod.json` license + homepage/issues links, README license line.
+- [x] C. `.github/workflows/ci.yml` (push to main + PRs: `./gradlew build`, gitleaks over full history),
       `release.yml` (tag `v*`: refuse unless tag == `v` + `mod_version` and CHANGELOG has that section; build; publish
       the jar with that CHANGELOG section as notes), `wiki.yml` (push to `wiki/**` or the docs it copies → push to
       the GitHub wiki). JUnit `ReleaseDocsTest`: CHANGELOG has a section for `mod_version`, every wiki link resolves,
       LICENSE and `fabric.mod.json` agree.
-- [ ] D. `wiki/` pages (Home, Installation, Enchanting Table, Anvil, Grindstone, Costs, Enchantments, Configuration,
+- [x] D. `wiki/` pages (Home, Installation, Enchanting Table, Anvil, Grindstone, Costs, Enchantments, Configuration,
       Multiplayer, Removing the Mod, FAQ, Building from Source, sidebar, footer); Enchantments and Configuration are
       copied from `docs/` by `wiki.yml` at sync time so they can't drift (ConfigDocsTest already guards CONFIG.md).
       README: badges, download link, wiki links. CHANGELOG: [Unreleased] folded into 1.0.0 dated 2026-10-14.
       `.github/ISSUE_TEMPLATE/` bug + suggestion, `FUNDING.yml` (ko_fi: wulfic, as mcMMO-SP).
-- [ ] E. `./gradlew build` green, then the rewrite: bundle backup, scrub a mirror clone in the scratchpad with
+- [x] E. `./gradlew build` green, then the rewrite: bundle backup, scrub a mirror clone in the scratchpad with
       `git filter-repo` (drop the three paths, replace the secret strings and LAN IPs everywhere), prove 0 hits and
       HEAD's tree == local HEAD's tree.
+      ✅ 2026-10-14: bundle `enchanting-2-pre-scrub.bundle` (all refs, verified) in the session scratchpad. 111 commits,
+      HEAD tree identical, 0 secret paths, 0 pattern hits, 0 unreachable objects, gitleaks 8.30.1 clean. gitleaks'
+      default rules missed the Context7 key and the `.env` passwords (only the PATs); the own pattern sweep caught
+      them. Two false positives (lang-key prefix constants) → `.gitleaks.toml` allowlist.
 - [ ] F. GitHub: rename `Wulfic/enchanting-2` → `enchanting-2-archive` (private), create a new **private**
       `Wulfic/enchanting-2`, push scrubbed `main`, CI green (incl. gitleaks), enable wiki, push tag `v1.0.0` →
       release. Local repo re-pointed at the scrubbed history. Going public is the owner's call after rotating.
+      ✅ 2026-10-14: renamed, created, pushed, local `main` reset onto it (the old local `v1.0.0` at `f0dd817` deleted;
+      it's in the bundle). First CI runs found three real problems, all fixed: `gradlew` not executable in git,
+      Loom 1.18 needs Gradle on JDK 25 (`gradle_java_version`, settings.gradle check), and a Windows-only
+      `ConfigFilesTest` case (gotchas.md). CI green: 422 JUnit, 334 GameTests, gitleaks clean.
+      Wiki enabled; its git repo exists only after the owner saves a first page in the web UI (after going public:
+      wikis on private repos need a paid plan), then re-run the Wiki workflow.
 - [ ] G. state.md, decisions.md, gotchas.md.
 
 **Not doing:** deleting the old repo (owner's call, after rotation); rotating credentials (owner only); Modrinth /
@@ -2782,7 +2792,8 @@ CurseForge publishing; client GameTests in CI (need a display); rewriting commit
 until F. Backup: `git bundle` of every ref + copies of the three files in the scratchpad. F: rename is undone by
 `gh repo rename enchanting-2 -R Wulfic/enchanting-2-archive` (after deleting the new repo); the local re-point is
 undone by `git fetch <bundle> 'refs/*:refs/*'` + `git reset --hard <old sha>`. A pushed tag that fails CI is deleted
-by the release workflow itself.
+by hand (`git push origin :refs/tags/v<version>`); the release workflow never deletes anything (decided while
+writing it: a tag the owner pushed is the owner's to move).
 
 ## Phase 12 — Every 26.x version, with 1.21.11 kept in step (Tier 2; starts after the owner's runClient checks
 ## and the v1.0.0 tag push)
