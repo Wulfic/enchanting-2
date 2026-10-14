@@ -580,3 +580,25 @@ instance log says "Enchantment Descriptions (enchdesc) is loaded". Our scroll li
 Check the owner's instance logs and mod list before debugging a screenshot: it runs ~200 other mods (Iceberg
 regathers tooltip lines, ImmersiveUI moves screens).
 **Affects:** src/client/java/com/wulfnet/enchanting2/client/EnchantmentDescriptions.java
+
+## 2026-10-14 — A docs-only edit left `test` UP-TO-DATE, so a broken doc passed locally
+**Symptom:** a deliberately broken wiki link, then `./gradlew test` → `:test UP-TO-DATE`, BUILD SUCCESSFUL.
+**Cause:** `ConfigDocsTest` and `ReleaseDocsTest` read `docs/`, `wiki/`, `CHANGELOG.md`, `LICENSE` and `wiki.yml`
+from disk; none were task inputs, so Gradle saw nothing changed. CI was never affected (fresh checkout).
+**Fix:** `build.gradle` declares them as `test` inputs (`releaseDocs`). Any new test that reads a repo file must add
+that file there.
+**Affects:** build.gradle, src/test/.../ReleaseDocsTest.java, config/ConfigDocsTest.java
+
+## 2026-10-14 — GitHub runners dropped Node 20 on 2026-09-16; `@v4` actions are dead
+**Symptom (found while writing CI):** gitleaks-action's v3 notes: Node 20 removed from GitHub-hosted runners
+2026-09-16, so Node 20 actions stop working regardless of opt-outs.
+**Fix:** majors checked with `gh api repos/<action>/releases/latest` on 2026-10-14: checkout v7, setup-java v6,
+gradle/actions v6, upload-artifact v7. mcMMO-Singleplayer's `release.yml` still pins checkout/setup-java/setup-gradle
+`@v4` — it likely fails now (told the owner).
+**Affects:** .github/workflows/*.yml
+
+## 2026-10-14 — gitleaks runs as the pinned CLI, not gitleaks-action
+**Why:** the action scans only the pushed commit range on `push`; the guarantee needed after the history scrub is
+"no secret in ANY commit". `ci.yml` downloads gitleaks 8.30.1, checks its sha256, runs `gitleaks git --log-opts=--all`.
+Bumping the version means changing GITLEAKS_VERSION and GITLEAKS_SHA256 together.
+**Affects:** .github/workflows/ci.yml
