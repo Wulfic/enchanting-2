@@ -139,9 +139,11 @@ show `git log main..port/26x` first). Nothing is published until 12F.
   - [x] B1. Loom 1.18.2 → 1.18.4, 1.21.11 node only (one variable): `./gradlew build` green, jar diff vs v1.0.1 still
         only the manifest. Commit. Done 2026-10-14: 423 JUnit, 336 server GameTests, client GameTests green; 414
         entries, only `MANIFEST.MF` differs.
-  - [ ] B2. Per-node resource values: `fabric.mod.json` `minecraft` + `java` and both `*.mixins.json`
+  - [x] B2. Per-node resource values: `fabric.mod.json` `minecraft` + `java` and both `*.mixins.json`
         `compatibilityLevel` expanded from node properties (`mc_dependency`, `java_version`) in `processResources`.
-        1.21.11 jar unchanged (same expanded text). Commit.
+        1.21.11 jar unchanged (same expanded text). Commit. Done 2026-10-14: jar diff = manifest only;
+        `ModIdentityTest` checks the range is expanded and Java level = the test JVM's (fails with the mixin pattern
+        dropped); the pattern list is a task input (gotchas).
   - [ ] B3. Node `26.1.2`: settings.gradle `versions '1.21.11', '26.1.2'`, `versions/26.1.2/gradle.properties` (Java 25,
         the versions above, `run_root=run/26.1.2`, `mc_dependency` `>=26.1.2 <26.2-` until 12C widens it).
   - [ ] B4. `:26.1.2:compileJava` + `compileClientJava`: write every error class into this file, then fix behind

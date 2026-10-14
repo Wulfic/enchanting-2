@@ -642,3 +642,12 @@ what CI wants. But `./gradlew runServer` / `runClient` would start every node's 
 **Fix:** always qualify run tasks (`./gradlew :1.21.11:runServer`); `scripts/dev-server-smoke.sh` takes `NODE=`.
 Build output moved to `versions/<node>/build/` (libs, test results, `run/gameTest`, `run/clientGameTest/screenshots`).
 **Affects:** scripts/, README.md, wiki/Building-from-Source.md, ci.yml, release.yml
+
+## 2026-10-14 — An edited `filesMatching` pattern list left `processResources` UP-TO-DATE (12B2)
+**Symptom:** mutation check for `ModIdentityTest.minecraftRangeAndJavaLevelAreExpandedForThisNode`: dropping
+`'*.mixins.json'` from `filesMatching([...])` still passed. The old, expanded mixin configs were reused.
+**Cause:** Gradle fingerprints declared inputs and the copied files, not the `filesMatching` closure or its patterns.
+`--rerun` on `processResources` showed the test does catch it.
+**Fix:** the pattern list is a named value and an input (`inputs.property 'expandedResources', expandedResources`);
+editing it now re-runs the task. Any future processResources closure that reads values must declare them the same way.
+**Affects:** build.gradle (processResources), any mutation check that edits build logic

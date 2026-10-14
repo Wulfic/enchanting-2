@@ -112,16 +112,6 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-// Captured at configuration time: the configuration cache rejects reading `project` inside an
-// execution-time closure.
-def modVersion = project.version
-processResources {
-    inputs.property 'version', modVersion
-    filesMatching('fabric.mod.json') {
-        expand version: modVersion
-    }
-}
-
 // One declared Java level, read by every consumer. Refuses instead of defaulting: a jar compiled for
 // the wrong release builds and tests clean, then fails at the player's launcher.
 if (!project.hasProperty('java_version') || !(project.java_version.toString().trim() ==~ /\d+/)) {
@@ -129,6 +119,29 @@ if (!project.hasProperty('java_version') || !(project.java_version.toString().tr
         "e.g. java_version=21")
 }
 def javaLevel = project.java_version.toString().trim() as Integer
+
+// Per-node values in the shipped metadata: the Minecraft range a node's jar accepts, its Java level, and the mixin
+// configs' compatibilityLevel (JAVA_21 / JAVA_25). Every resource task (main, client, gametest) expands the same map.
+// Captured at configuration time: the configuration cache rejects reading `project` inside an execution-time closure.
+if (!project.hasProperty('minecraft_dependency') || project.minecraft_dependency.toString().trim().isEmpty()) {
+    throw new GradleException("${project.relativePath(file('gradle.properties'))} must declare minecraft_dependency=" +
+        "<fabric.mod.json range>, e.g. minecraft_dependency=~1.21.11")
+}
+def resourceValues = [
+    version             : project.version.toString(),
+    minecraft_dependency: project.minecraft_dependency.toString().trim(),
+    java_version        : javaLevel.toString(),
+]
+// The pattern list is an input too: Gradle doesn't fingerprint the filesMatching closure, so without it an edited list
+// leaves processResources UP-TO-DATE with stale output (gotchas.md 2026-10-14).
+def expandedResources = ['fabric.mod.json', '*.mixins.json']
+tasks.withType(ProcessResources).configureEach {
+    inputs.properties resourceValues
+    inputs.property 'expandedResources', expandedResources
+    filesMatching(expandedResources) {
+        expand resourceValues
+    }
+}
 
 java {
     withSourcesJar()
