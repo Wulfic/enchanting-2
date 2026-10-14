@@ -32,30 +32,40 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # build.gradle refuses a missing java_version; read the same key here rather than pinning a second number.
-      - name: Read the JDK level
+      # Two JDKs, both read from gradle.properties rather than pinned here: java_version is what the mod is compiled
+      # for (the toolchain), gradle_java_version is what Gradle itself must run on (Loom needs the newer one).
+      - name: Read the JDK levels
         id: jdk
         run: |
-          jv=$(grep -E '^java_version=' gradle.properties | head -n1 | cut -d= -f2- | tr -d '[:space:]')
-          case "$jv" in
-            ''|*[!0-9]*)
-              echo "::error::gradle.properties java_version='$jv' is not a plain major version (e.g. 21)."
-              exit 1 ;;
-          esac
-          echo "java_version=$jv" >> "$GITHUB_OUTPUT"
+          prop() { grep -E "^$1=" gradle.properties | head -n1 | cut -d= -f2- | tr -d '[:space:]'; }
+          for key in java_version gradle_java_version; do
+            v=$(prop "$key")
+            case "$v" in
+              ''|*[!0-9]*)
+                echo "::error::gradle.properties $key='$v' is not a plain major version (e.g. 21)."
+                exit 1 ;;
+            esac
+            echo "$key=$v" >> "$GITHUB_OUTPUT"
+          done
 
-      - name: Set up JDK
+      # The last version listed becomes JAVA_HOME, so Gradle runs on gradle_java_version.
+      - name: Set up JDKs
         uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: ${{ steps.jdk.outputs.java_version }}
+          java-version: |
+            ${{ steps.jdk.outputs.java_version }}
+            ${{ steps.jdk.outputs.gradle_java_version }}
 
       # Also validates the Gradle wrapper jar's checksum against Gradle's published list.
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
+      # fromEnv points the toolchain at the JDK setup-java installed, instead of foojay downloading another.
       - name: Build
-        run: ./gradlew build --no-daemon --stacktrace
+        run: >-
+          ./gradlew build --no-daemon --stacktrace
+          -Porg.gradle.java.installations.fromEnv=JAVA_HOME_${{ steps.jdk.outputs.java_version }}_X64
 
       - name: Upload jar
         uses: actions/upload-artifact@v7

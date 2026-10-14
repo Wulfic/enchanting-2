@@ -15,3 +15,12 @@ plugins {
 }
 
 rootProject.name = 'enchanting2'
+
+// Loom needs a newer JDK than the mod targets. Without this check, an older JAVA_HOME fails later with "Could not
+// resolve net.fabricmc:fabric-loom ... requires at least JVM runtime version 25", which doesn't say what to do.
+def gradleJava = providers.gradleProperty('gradle_java_version').get() as Integer
+if ((JavaVersion.current().majorVersion as Integer) < gradleJava) {
+    throw new GradleException("Gradle is running on JDK ${JavaVersion.current().majorVersion}; this build needs JDK " +
+        "${gradleJava} or newer to run Gradle (Fabric Loom requires it). Point JAVA_HOME at JDK ${gradleJava}. The mod " +
+        "itself is still compiled for Java ${providers.gradleProperty('java_version').get()}.")
+}

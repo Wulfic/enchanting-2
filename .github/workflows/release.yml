@@ -47,8 +47,9 @@ jobs:
           version=$(prop mod_version)
           mc=$(prop minecraft_version)
           jv=$(prop java_version)
-          if [ -z "$version" ] || [ -z "$mc" ] || [ -z "$jv" ]; then
-            echo "::error::gradle.properties is missing mod_version, minecraft_version or java_version."
+          gjv=$(prop gradle_java_version)
+          if [ -z "$version" ] || [ -z "$mc" ] || [ -z "$jv" ] || [ -z "$gjv" ]; then
+            echo "::error::gradle.properties is missing mod_version, minecraft_version, java_version or gradle_java_version."
             exit 1
           fi
           if [ "$TAG" != "v${version}" ]; then
@@ -88,6 +89,7 @@ jobs:
             echo "version=$version"
             echo "mc_version=$mc"
             echo "java_version=$jv"
+            echo "gradle_java_version=$gjv"
             echo "commit=$commit"
           } >> "$GITHUB_OUTPUT"
           echo "Releasing ${version} for Minecraft ${mc} from ${commit:0:7}."
@@ -102,17 +104,22 @@ jobs:
             exit 1
           fi
 
-      - name: Set up JDK
+      # The mod's JDK for the toolchain, then the one Gradle runs on (the last one listed becomes JAVA_HOME).
+      - name: Set up JDKs
         uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: ${{ steps.meta.outputs.java_version }}
+          java-version: |
+            ${{ steps.meta.outputs.java_version }}
+            ${{ steps.meta.outputs.gradle_java_version }}
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
       - name: Build (runs the JUnit suite and server GameTests)
-        run: ./gradlew build --no-daemon --stacktrace
+        run: >-
+          ./gradlew build --no-daemon --stacktrace
+          -Porg.gradle.java.installations.fromEnv=JAVA_HOME_${{ steps.meta.outputs.java_version }}_X64
 
       - name: Publish the release
         env:

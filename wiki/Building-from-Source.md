@@ -1,6 +1,8 @@
 # Building from Source
 
-Needs **JDK 21** and Git. The Gradle wrapper downloads everything else.
+Needs **JDK 25** (Gradle runs on it; Fabric Loom requires it) and Git. The mod itself is compiled for Java 21: Gradle
+uses an installed JDK 21 or downloads one. The Gradle wrapper downloads everything else. With an older `JAVA_HOME`
+the build stops at once and says which JDK to point it at.
 
 ```sh
 git clone https://github.com/Wulfic/enchanting-2.git

@@ -119,7 +119,8 @@ differently. Blocks placed before you installed it count as natural for Fortune.
 ./gradlew runClient            # a development client
 ```
 
-Needs JDK 21. The design spec is [docs/DESIGN.md](docs/DESIGN.md); changes are in [CHANGELOG.md](CHANGELOG.md).
+Gradle needs **JDK 25** to run (Fabric Loom requires it); the mod is compiled for Java 21, which Gradle downloads
+if you don't have it. The design spec is [docs/DESIGN.md](docs/DESIGN.md); changes are in [CHANGELOG.md](CHANGELOG.md).
 Tests, CI and how releases are made: [Building from Source](https://github.com/Wulfic/enchanting-2/wiki/Building-from-Source).
 
 ## Contributing
