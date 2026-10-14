@@ -5,6 +5,8 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-14
+
 ### Fixed
 - **Speed and Flight with Elytra Slot:** an elytra worn in the Elytra Slot mod's own slot (with a chestplate on the
   chest) glided like a plain elytra: holding jump gave no thrust and Speed added nothing. Both now count it, and
@@ -45,5 +47,6 @@ First release, for Minecraft 1.21.11 (Fabric). Needed on both the server and the
   through Mod Menu and YACL (optional), server settings synced to players, `/reload` support and a `.bak` on every
   in-game save. See [Configuration](https://github.com/Wulfic/enchanting-2/wiki/Configuration).
 
-[Unreleased]: https://github.com/Wulfic/enchanting-2/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Wulfic/enchanting-2/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/Wulfic/enchanting-2/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/Wulfic/enchanting-2/releases/tag/v1.0.0
