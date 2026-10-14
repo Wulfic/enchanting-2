@@ -17,6 +17,8 @@ and versions follow [Semantic Versioning](https://semver.org/).
 - **Anvils never wear out by default.** `anvil.vanilla_durability` brings back vanilla's chipping and breaking, from
   use and from falling; `anvil.durability_multiplier` (1 to 100) makes each chip that many times rarer. Existing
   servers get the new default on update.
+- **Config screen:** the categories are tabs in two rows (more on a narrow window) instead of one row that scrolls
+  behind an arrow.
 - Network protocol 5: a 1.0.0 client can't join a server running this version, or the reverse (the table window's
   slots changed).
 
@@ -24,9 +26,9 @@ and versions follow [Semantic Versioning](https://semver.org/).
 - **Enchanting table:** the player's armor and offhand slots, beside the inventory.
 - **Tooltips:** a tooltip taller than the screen (any item) now starts at its top instead of cutting off the item's
   name, says "Scroll to see the rest", and scrolls with the mouse wheel.
+  That line now shows even when Enchantment Descriptions is installed and its lines make the tooltip tall.
 
 ## [1.0.0] - 2026-10-13
-  That line now shows even when Enchantment Descriptions is installed and its lines make the tooltip tall.
 
 First release, for Minecraft 1.21.11 (Fabric). Needed on both the server and the client.
 

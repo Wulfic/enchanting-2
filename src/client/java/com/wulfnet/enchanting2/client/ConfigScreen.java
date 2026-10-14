@@ -55,8 +55,9 @@ public final class ConfigScreen {
 	private ConfigScreen() {
 	}
 
+	/** YACL's screen with its tabs in rows ({@link TabbedConfigScreen}), not YACL's {@code generateScreen}. */
 	static Screen create(Screen parent) {
-		return build().generateScreen(parent);
+		return new TabbedConfigScreen(build(), parent);
 	}
 
 	/** The screen's options, for {@link #create} and for the client GameTest to inspect. */

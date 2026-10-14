@@ -6,21 +6,27 @@ import com.wulfnet.enchanting2.acquisition.Source;
 import com.wulfnet.enchanting2.client.ConfigEditing;
 import com.wulfnet.enchanting2.client.ConfigScreen;
 import com.wulfnet.enchanting2.client.ModMenuIntegration;
+import com.wulfnet.enchanting2.client.TabbedConfigScreen;
 import com.wulfnet.enchanting2.config.ConfigView.Mode;
 import com.wulfnet.enchanting2.config.EnchantmentOverrides;
 import com.wulfnet.enchanting2.config.ServerConfigs;
 import com.wulfnet.enchanting2.enchantment.ModEnchantments;
+import com.wulfnet.enchanting2.screen.TabRows;
 import dev.isxander.yacl3.api.ConfigCategory;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.YetAnotherConfigLib;
+import dev.isxander.yacl3.gui.YACLScreen;
 import dev.isxander.yacl3.gui.controllers.string.number.IntegerFieldController;
+import java.util.List;
 import java.util.Set;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+import net.minecraft.client.gui.components.TabButton;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
+import org.lwjgl.glfw.GLFW;
 
 /**
  * Stage 9C on the real client: the config screen (with its Enchantments category) builds on the title screen, where
@@ -43,6 +49,7 @@ public class ConfigScreenClientGameTest implements FabricClientGameTest {
 			check(mode == Mode.EDIT_FILE, "the title screen edits enchantments.json5: " + mode);
 		});
 		openAndClose(context, "config-screen-title");
+		tabsAreInRowsAndASecondRowTabClicks(context);
 
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
 			world.getClientWorld().waitForChunksRender();
@@ -82,9 +89,61 @@ public class ConfigScreenClientGameTest implements FabricClientGameTest {
 				new ModMenuIntegration().getModConfigScreenFactory().create(client.screen)));
 		context.waitTick();
 		Screen shown = context.computeOnClient(client -> client.screen);
-		check(shown != null && shown.getClass().getName().contains("yacl"), "the config screen is open: " + shown);
+		check(shown instanceof YACLScreen, "the config screen is open: " + shown);
 		context.takeScreenshot(screenshot);
 		context.runOnClient(client -> client.screen.onClose());
+		context.waitTick();
+	}
+
+	/**
+	 * Phase 11d (owner 2026-10-13): at 1080p, GUI scale 3, the eleven categories are two rows of tabs inside the screen
+	 * with no scrolling, the options start under them, and a real click on the last tab of the second row opens it.
+	 */
+	private static void tabsAreInRowsAndASecondRowTabClicks(ClientGameTestContext context) {
+		context.getInput().resizeWindow(1920, 1080);
+		context.runOnClient(client -> {
+			client.options.guiScale().set(3);
+			client.resizeDisplay();
+			client.setScreen(new ModMenuIntegration().getModConfigScreenFactory().create(client.screen));
+		});
+		context.waitTick();
+		int[] target = context.computeOnClient(client -> {
+			check(client.screen instanceof TabbedConfigScreen, "the tabbed config screen is open: " + client.screen);
+			TabbedConfigScreen screen = (TabbedConfigScreen) client.screen;
+			check(screen.width == 640, "GUI scale 3 at 1080p is 640 wide, got " + screen.width);
+			TabRows rows = screen.tabRows();
+			check(rows.rows() == 2, "two rows of tabs: " + rows);
+			check(screen.tabArea.top() == rows.height() - 1, "the options start under the rows: " + screen.tabArea);
+			List<TabButton> buttons = screen.tabButtons();
+			check(buttons.size() == screen.config.categories().size(), "a button per category: " + buttons.size());
+			for (TabButton button : buttons) {
+				check(button.getX() >= 0 && button.getRight() <= screen.width
+						&& (button.getY() == 0 || button.getY() == TabRows.ROW_HEIGHT),
+						"\"" + button.getMessage().getString() + "\" is in a row inside the screen: " + button.getX()
+								+ ", " + button.getY() + ", " + button.getWidth());
+			}
+			TabButton last = buttons.getLast();
+			check(last.getY() == TabRows.ROW_HEIGHT, "the last tab is on the second row: " + last.getY());
+			check(screen.tabManager.getCurrentTab() != last.tab(), "the last tab isn't open yet");
+			return new int[] {last.getX() + last.getWidth() / 2, last.getY() + last.getHeight() / 2};
+		});
+		double scale = context.computeOnClient(client -> client.getWindow().getGuiScale());
+		context.getInput().setCursorPos(target[0] * scale, target[1] * scale);
+		context.waitTick();
+		context.getInput().pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+		context.waitTick();
+		context.runOnClient(client -> {
+			TabbedConfigScreen screen = (TabbedConfigScreen) client.screen;
+			check(screen.tabManager.getCurrentTab() == screen.tabButtons().getLast().tab(),
+					"clicking the second row's last tab opened it: " + screen.tabManager.getCurrentTab().getTabTitle()
+							.getString());
+		});
+		context.takeScreenshot("config-screen-tab-rows");
+		context.runOnClient(client -> {
+			client.screen.onClose();
+			client.options.guiScale().set(0);
+			client.resizeDisplay();
+		});
 		context.waitTick();
 	}
 
