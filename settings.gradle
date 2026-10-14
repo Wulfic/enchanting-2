@@ -4,6 +4,11 @@ pluginManagement {
             name = 'Fabric'
             url = 'https://maven.fabricmc.net/'
         }
+        // Stonecutter and loom-back-compat (Phase 12). Releases only, never the snapshots repo.
+        exclusiveContent {
+            forRepository { maven { name = 'KikuGie Releases'; url = 'https://maven.kikugie.dev/releases' } }
+            filter { includeGroupAndSubgroups 'dev.kikugie' }
+        }
         mavenCentral()
         gradlePluginPortal()
     }
@@ -12,6 +17,21 @@ pluginManagement {
 plugins {
     // Lets Gradle download a JDK 21 if none is installed (the toolchain is pinned in build.gradle).
     id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+    // One source tree, one Gradle subproject per Minecraft version node (versions/<node>/). Band A is 1.21.11, band B
+    // is 26.x (TODO.md Phase 12, decisions.md 2026-10-14 "Version bands").
+    id 'dev.kikugie.stonecutter' version '0.9.8'
+    // Applies fabric-loom-remap on obfuscated versions (<= 1.21.11) and fabric-loom on 26.x, from one build.gradle.
+    id 'dev.kikugie.loom-back-compat' version '0.4.3'
+}
+
+stonecutter {
+    kotlinController = false
+    centralScript = 'build.gradle'
+    create(getRootProject()) {
+        versions '1.21.11'
+        // The version the committed src/ is written for. Run "Reset active project" before committing.
+        vcsVersion = '1.21.11'
+    }
 }
 
 rootProject.name = 'enchanting2'
@@ -22,5 +42,5 @@ def gradleJava = providers.gradleProperty('gradle_java_version').get() as Intege
 if ((JavaVersion.current().majorVersion as Integer) < gradleJava) {
     throw new GradleException("Gradle is running on JDK ${JavaVersion.current().majorVersion}; this build needs JDK " +
         "${gradleJava} or newer to run Gradle (Fabric Loom requires it). Point JAVA_HOME at JDK ${gradleJava}. The mod " +
-        "itself is still compiled for Java ${providers.gradleProperty('java_version').get()}.")
+        "itself is compiled for each version's java_version (versions/<node>/gradle.properties) through a toolchain.")
 }

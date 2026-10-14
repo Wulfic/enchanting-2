@@ -5,7 +5,7 @@
 > `gotchas.md`; this file only answers "where am I right now?".
 
 **Last updated:** 2026-10-14
-**Branch:** main (commit straight to main and push). CI on every push (`ci.yml`: build + gitleaks); a release
+**Branch:** `port/26x` for Phase 12 (main otherwise: commit straight to main and push). CI on every push (`ci.yml`: build + gitleaks); a release
 is a pushed `v<mod_version>` tag (`release.yml`); `wiki/` syncs to the GitHub wiki (`wiki.yml`). See decisions.md 11e.
 
 ## Where we are
@@ -111,14 +111,17 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
   (`gradle_java_version`) while the mod targets 21.
 - 11f (2026-10-14, owner report "Flight never thrusts"): Elytra Slot compat (`compat/ElytraSlot` by reflection,
   `elytra/WornElytra`); Flight's wear hook wraps the `updateFallFlying` call in `aiStep`. Gametest stub of the mod.
+- 12A (2026-10-14, branch `port/26x`): Stonecutter 0.9.8 + loom-back-compat 0.4.3, one node `versions/1.21.11/`
+  (per-node gradle.properties, `run_root`), Groovy; jar = v1.0.1 entry for entry. Run tasks are node-qualified.
 - Tests: 423 JUnit + 336 GameTests (`./gradlew build`, also in CI) + 8 client GameTests (`./gradlew runClientGameTest`).
 
 ## What's next
 0. **v1.0.1** (2026-10-14): the 11f Elytra Slot fix, released from a pushed `v1.0.1` tag (release.yml). Owner: try
    `enchanting2-1.0.1.jar` in the Prism instance with the Flight elytra in Elytra Slot's slot.
 1. **Phase 12, version bands** (TODO.md; decisions.md 2026-10-14 "Version bands, mcMMO-style"): band A 1.21.11, band B
-   every 26.x in one jar built on 26.1.2 and proven per runtime by a GameTest matrix (12C is the gate). Start with 12A
-   on branch `port/26x`. Open for the owner: keep 1.21.11 in step, or freeze it like mcMMO's old bands?
+   every 26.x in one jar built on 26.1.2 and proven per runtime by a GameTest matrix (12C is the gate), as few 26.x
+   bands as hold up (owner 2026-10-14). 12A done on `port/26x`; next 12B: add the `26.1.2` node (Java 25, Loom 1.18.4
+   likely; versions from mcMMO-Singleplayer branch `mc/26.1.2` and CullLeaves' properties), then fix what breaks.
 2. Owner checks and housekeeping: TODO.md "Owner checks (open)" and "Owner housekeeping" (the full list moved there
    from this file on 2026-10-14; TODO.md was trimmed to open work, old notes at `git show fd3504c:TODO.md`).
    A new enchantment still adds a `LevelCeilings` row, a `.desc` line, tags, a price row if single-level, docs rows.
@@ -133,7 +136,7 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
   config key, default or comment change. README and CHANGELOG are player-facing now.
 - Owner principle (DESIGN §1): every option goes in the config screen too, and every enchantment needs a `.desc` lang
   line (10h) and a level-ceiling row (10j).
-- Plugin ID is `net.fabricmc.fabric-loom-remap` for 1.21.11. 1.21.11 Mojang names use `Identifier`, not `ResourceLocation`.
+- Loom's plugin is picked by loom-back-compat (remap on 1.21.11, plain on 26.x); never name it in build.gradle. 1.21.11 Mojang names use `Identifier`, not `ResourceLocation`.
 - Never kill java by name. The dev server uses 25566; the owner's other instance may be on 25565.
 - 1.21.x enchantments are data-driven: use `EnchantmentEvents.MODIFY`, not override JSON. MODIFY runs
   before the server exists and `/reload` doesn't re-run it (gotchas.md). FAPI 0.141.6 = item-api 11.6.0.
@@ -146,4 +149,4 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
 - The client GameTest flake "Network synchronizer in invalid state" hit twice on 2026-10-13 (gotchas.md): rerun once;
   a third time means chase it.
 - `./gradlew build` runs JUnit + server GameTests only. Run `./gradlew runClientGameTest` too for client changes (opens
-  a game window, ~2.5 min; screenshots in `build/run/clientGameTest/screenshots/`).
+  a game window, ~2.5 min; screenshots in `versions/1.21.11/build/run/clientGameTest/screenshots/`).

@@ -626,3 +626,19 @@ Anything reading "the worn elytra" must go through `elytra/WornElytra`, and hook
 its call in `aiStep`, not inside it.
 **Also:** driving a mock `ServerPlayer` through `aiStep()` really moves it (travel runs): a coasting glide from 5
 blocks up lands on tick 38. Start such tests high.
+
+## 2026-10-14 — A Windows-built jar and the CI release jar differ in text resources only (CRLF)
+**Symptom:** comparing a local `enchanting2-1.0.1.jar` with the GitHub release jar: same 414 entries, 6 "changed"
+(`en_us.json`, some tags, one enchantment JSON). Byte compare of the whole jar always differs (timestamps).
+**Cause:** the Windows checkout has CRLF in some resources, the Linux CI build LF. Classes are identical.
+**Fix:** compare jars by entry name + content with text entries normalised CRLF → LF (12A's `jardiff.py` in the
+session scratchpad: binary suffixes `.class .png .jar .ogg .nbt` compared raw). Stonecutter also adds four
+`Stonecutter-*` lines to `META-INF/MANIFEST.MF`; expect that one entry to differ from a pre-Phase-12 jar.
+**Affects:** any "same jar as before" check (Phase 12A, 12F)
+
+## 2026-10-14 — With Stonecutter, a bare task name runs in every version node
+**Symptom:** none yet (one node). `./gradlew build` runs `:1.21.11:build`; with two nodes it builds both, which is
+what CI wants. But `./gradlew runServer` / `runClient` would start every node's game, all servers on port 25566.
+**Fix:** always qualify run tasks (`./gradlew :1.21.11:runServer`); `scripts/dev-server-smoke.sh` takes `NODE=`.
+Build output moved to `versions/<node>/build/` (libs, test results, `run/gameTest`, `run/clientGameTest/screenshots`).
+**Affects:** scripts/, README.md, wiki/Building-from-Source.md, ci.yml, release.yml

@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-# Boot the dev server (run/server, port 25566), optionally type console commands into it, stop it
+# Boot the dev server of one version node (port 25566), optionally type console commands into it, stop it
 # cleanly, and check the log. Exit 0 = booted, mod initialized, no enchanting2 ERROR lines.
 #
-#   scripts/dev-server-smoke.sh                  # boot + stop
+#   scripts/dev-server-smoke.sh                  # boot + stop (node 1.21.11, run/server)
 #   scripts/dev-server-smoke.sh commands.txt     # boot, send each line as a console command, stop
+#   NODE=26.1.2 scripts/dev-server-smoke.sh      # another node (versions/<node>/, its run_root)
+#
+# One node per run: a bare `./gradlew runServer` would start every node's server, all on the same port.
 #
 # Lines in the commands file:
 #   <command>          typed into the server console
@@ -20,7 +23,18 @@ cd "$(dirname "$0")/.."
 PORT=25566
 BOOT_TIMEOUT=${BOOT_TIMEOUT:-300}
 COMMANDS_FILE=${1:-}
-LOG=run/server/logs/latest.log
+NODE=${NODE:-1.21.11}
+NODE_PROPS="versions/$NODE/gradle.properties"
+if [[ ! -f "$NODE_PROPS" ]]; then
+	echo "no version node '$NODE' ($NODE_PROPS missing); nodes: $(ls versions)" >&2
+	exit 2
+fi
+RUN_ROOT=$(grep -E '^run_root=' "$NODE_PROPS" | head -n1 | cut -d= -f2- | tr -d '[:space:]')
+if [[ -z "$RUN_ROOT" ]]; then
+	echo "$NODE_PROPS has no run_root" >&2
+	exit 2
+fi
+LOG=$RUN_ROOT/server/logs/latest.log
 OUT=build/dev-server-smoke.out
 MARKER=build/dev-server-smoke.marker
 
@@ -70,9 +84,9 @@ feed_console() {
 	echo stop
 }
 
-echo "dev-server-smoke: starting runServer on port $PORT (output: $OUT)"
+echo "dev-server-smoke: starting :$NODE:runServer on port $PORT (output: $OUT)"
 set +e
-feed_console | timeout $((BOOT_TIMEOUT + 120)) ./gradlew runServer --console=plain > "$OUT" 2>&1
+feed_console | timeout $((BOOT_TIMEOUT + 120)) ./gradlew ":$NODE:runServer" --console=plain > "$OUT" 2>&1
 status=$?
 set -e
 

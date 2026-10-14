@@ -9,7 +9,9 @@
 #   - the tag isn't exactly v + mod_version (a v1.0.1 tag on a 1.0.0 tree would ship a jar named 1.0.0),
 #   - the tagged commit isn't on main (no releases from side branches),
 #   - CHANGELOG.md has no section for the version (it becomes the release notes),
-#   - a release for the tag already exists (re-running never overwrites a published jar).
+#   - a release for the tag already exists (re-running never overwrites a published jar),
+#   - there is more than one version node in versions/ (one jar per band is Phase 12F; until then this workflow
+#     releases exactly one node and refuses to guess which).
 #
 # Nothing here deletes anything. If the build fails, no release is created and the tag stays where it is: fix on
 # main, then move the tag (git tag -f v<version> && git push origin v<version> --force) or bump the version.
@@ -43,13 +45,20 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          prop() { grep -E "^$1=" gradle.properties | head -n1 | cut -d= -f2- | tr -d '[:space:]'; }
-          version=$(prop mod_version)
-          mc=$(prop minecraft_version)
-          jv=$(prop java_version)
-          gjv=$(prop gradle_java_version)
+          prop() { grep -E "^$2=" "$1" | head -n1 | cut -d= -f2- | tr -d '[:space:]'; }
+          shopt -s nullglob
+          nodes=(versions/*/gradle.properties)
+          if [ ${#nodes[@]} -ne 1 ]; then
+            echo "::error::Expected exactly one version node in versions/, found ${#nodes[@]}: ${nodes[*]:-none}. Releasing several bands is Phase 12F; refusing to guess."
+            exit 1
+          fi
+          node=$(dirname "${nodes[0]}")
+          version=$(prop gradle.properties mod_version)
+          gjv=$(prop gradle.properties gradle_java_version)
+          mc=$(prop "$node/gradle.properties" minecraft_version)
+          jv=$(prop "$node/gradle.properties" java_version)
           if [ -z "$version" ] || [ -z "$mc" ] || [ -z "$jv" ] || [ -z "$gjv" ]; then
-            echo "::error::gradle.properties is missing mod_version, minecraft_version, java_version or gradle_java_version."
+            echo "::error::Missing mod_version or gradle_java_version (gradle.properties), or minecraft_version or java_version ($node/gradle.properties)."
             exit 1
           fi
           if [ "$TAG" != "v${version}" ]; then
@@ -79,7 +88,7 @@ jobs:
             cat changes.md
             echo
             echo "---"
-            echo "**Minecraft** ${mc} · **Fabric Loader** $(prop loader_version)+ · **Requires** [Fabric API](https://modrinth.com/mod/fabric-api) · **Java** ${jv}+"
+            echo "**Minecraft** ${mc} · **Fabric Loader** $(prop gradle.properties loader_version)+ · **Requires** [Fabric API](https://modrinth.com/mod/fabric-api) · **Java** ${jv}+"
             echo
             echo "Install on the server **and** every player's client. Download \`enchanting2-${version}.jar\` below and put it in \`mods/\`."
             echo "Full guide: [wiki](https://github.com/${GITHUB_REPOSITORY}/wiki) · Built from \`${commit:0:7}\`."
@@ -87,6 +96,7 @@ jobs:
 
           {
             echo "version=$version"
+            echo "node=$node"
             echo "mc_version=$mc"
             echo "java_version=$jv"
             echo "gradle_java_version=$gjv"
@@ -127,14 +137,15 @@ jobs:
           TAG: ${{ github.ref_name }}
           VERSION: ${{ steps.meta.outputs.version }}
           MC_VERSION: ${{ steps.meta.outputs.mc_version }}
+          NODE: ${{ steps.meta.outputs.node }}
           COMMIT: ${{ steps.meta.outputs.commit }}
         run: |
           set -euo pipefail
-          jar="build/libs/enchanting2-${VERSION}.jar"
-          sources="build/libs/enchanting2-${VERSION}-sources.jar"
+          jar="${NODE}/build/libs/enchanting2-${VERSION}.jar"
+          sources="${NODE}/build/libs/enchanting2-${VERSION}-sources.jar"
           for f in "$jar" "$sources"; do
             if [ ! -f "$f" ]; then
-              echo "::error::Expected $f after the build; found: $(ls build/libs)"
+              echo "::error::Expected $f after the build; found: $(ls "${NODE}/build/libs")"
               exit 1
             fi
           done

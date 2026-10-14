@@ -1435,3 +1435,27 @@ open-ended `minecraft` range (a mixin mod crashes at startup on an untested vers
 **Open (owner):** mcMMO freezes old bands. Does 1.21.11 keep getting every feature (2026-10-13 ruling, kept for now),
 or freeze at 1.0.x once band B ships (no Stonecutter needed then)?
 **Affects:** build.gradle, settings.gradle, gradle.properties, release.yml, fabric.mod.json, future compat/McVersion
+
+## 2026-10-14 — 12A build layout: Stonecutter 0.9.8 + loom-back-compat 0.4.3, Groovy, per-node properties (agent)
+**Context:** Phase 12A spike. Owner 2026-10-14: "1.21.11 is its own band, and 26.x versions will have however few
+bands as possible" (confirms the band layout; 1.21.11 stays in step, the 2026-10-13 ruling).
+**Choice:** Stonecutter 0.9.8 with one node, `versions/1.21.11/`; `vcsVersion` 1.21.11. `build.gradle` stays the
+single central script, applied to each node; `stonecutter.gradle` is the Groovy controller. loom-back-compat picks
+`fabric-loom-remap` / `fabric-loom` and aliases `mod*` configurations; `loomx.applyMojangMappings()` replaces the
+mappings line; Loom's version is `loomx.loom_version` in the root gradle.properties (kept at 1.18.2 for the spike).
+Per-node keys (minecraft_version, fabric_api_version, java_version, modmenu_version, yacl_version, run_root) live in
+`versions/<node>/gradle.properties`; shared ones stay in the root file. Paths that must not move with the node go
+through `rootProject`: run dirs (`run_root`; 1.21.11 keeps `run/client`, `run/server`), the dev-server eula, and the
+`test` task's `workingDir` and doc inputs. CI installs every node's JDK; release.yml releases exactly one node and
+refuses more until 12F. Run tasks are always node-qualified (`:1.21.11:runServer`; the smoke script takes `NODE=`).
+**Why:** CullLeaves (TeamMidnightDust) ships 1.21.11 + 26.1–26.3 from the same two plugins, so the wiring is proven
+elsewhere. Groovy keeps the diff to a layout change; `dev.kikugie.stonecutter.hard_mode=true` silences Stonecutter's
+"prefer Kotlin" banner. Result: the node's jar equals the v1.0.1 release jar entry for entry (only four
+`Stonecutter-*` manifest attributes added), Jankson still nested, 423 JUnit + 336 server + client GameTests green.
+**Rejected:** converting the build to Kotlin DSL (Stonecutter's recommendation; a rewrite of a working 160-line script
+during a layout spike); the stonecutter.properties YAML/TOML (Kotlin-only accessors in the examples, plain
+gradle.properties per node works in Groovy); bumping Loom to 1.18.4 in 12A (two variables at once); per-node run dirs
+for 1.21.11 too (would orphan the owner's existing `run/client` saves).
+**Affects:** settings.gradle, stonecutter.gradle, build.gradle, gradle.properties, versions/1.21.11/gradle.properties,
+.github/workflows/ci.yml, .github/workflows/release.yml, scripts/dev-server-smoke.sh, README.md,
+wiki/Building-from-Source.md

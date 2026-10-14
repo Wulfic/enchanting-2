@@ -1,6 +1,9 @@
+// This script is applied to each Stonecutter version node (versions/<node>/, settings.gradle). Paths that must not
+// move with the node (run dirs, docs read by tests) go through rootProject.
 plugins {
-    // 1.21.11 is obfuscated, so it needs the remapping variant. See gotchas.md 2026-10-06.
-    id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
+    // fabric-loom-remap on obfuscated versions (1.21.11, gotchas.md 2026-10-06), fabric-loom on 26.x. Keeps the mod*
+    // configurations working on both; Loom's version is loomx.loom_version in the root gradle.properties.
+    id 'dev.kikugie.loom-back-compat'
 }
 
 version = project.mod_version
@@ -38,14 +41,15 @@ loom {
         }
     }
 
-    // Separate run dirs so the client's singleplayer saves and the dev server's world never mix.
-    // The dev server listens on 25566: the owner often has another mod's server on 25565.
+    // Separate run dirs so the client's singleplayer saves and the dev server's world never mix, and one root per node
+    // (run_root) so a newer Minecraft never upgrades another node's worlds. runDir is relative to the node's project
+    // dir, hence the relativePath. The dev server listens on 25566: the owner often has another mod's server on 25565.
     runs {
         client {
-            runDir 'run/client'
+            runDir project.relativePath(rootProject.file("${project.run_root}/client"))
         }
         server {
-            runDir 'run/server'
+            runDir project.relativePath(rootProject.file("${project.run_root}/server"))
             programArgs '--port', '25566'
         }
     }
@@ -53,7 +57,7 @@ loom {
 
 // The dev server refuses to start until eula.txt says true. Same acceptance as `eula = true` in
 // configureTests below. Writes only when the file is absent, so it never overwrites an existing eula.txt.
-def devServerEula = file('run/server/eula.txt')
+def devServerEula = rootProject.file("${project.run_root}/server/eula.txt")
 def acceptDevServerEula = tasks.register('acceptDevServerEula') {
     onlyIf { !devServerEula.exists() }
     doLast {
@@ -81,7 +85,8 @@ fabricApi {
 
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    mappings loom.officialMojangMappings()
+    // Mojang mappings on obfuscated versions; 26.x needs none (unobfuscated).
+    loomx.applyMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
@@ -120,7 +125,8 @@ processResources {
 // One declared Java level, read by every consumer. Refuses instead of defaulting: a jar compiled for
 // the wrong release builds and tests clean, then fails at the player's launcher.
 if (!project.hasProperty('java_version') || !(project.java_version.toString().trim() ==~ /\d+/)) {
-    throw new GradleException("gradle.properties must declare java_version=<major>, e.g. java_version=21")
+    throw new GradleException("${project.relativePath(file('gradle.properties'))} must declare java_version=<major>, " +
+        "e.g. java_version=21")
 }
 def javaLevel = project.java_version.toString().trim() as Integer
 
@@ -143,10 +149,14 @@ tasks.withType(Test).configureEach {
     useJUnitPlatform()
 }
 
-// ConfigDocsTest and ReleaseDocsTest read these files, not classes. Without them as inputs a docs-only edit leaves
-// `test` UP-TO-DATE and a broken doc passes locally (gotchas.md 2026-10-14).
+// ConfigDocsTest and ReleaseDocsTest read these files, not classes, by paths relative to the repo root (hence the
+// workingDir). Without them as inputs a docs-only edit leaves `test` UP-TO-DATE and a broken doc passes locally
+// (gotchas.md 2026-10-14).
+def repoRoot = rootProject.projectDir
 tasks.named('test') {
-    inputs.files(fileTree('docs'), fileTree('wiki'), 'CHANGELOG.md', 'LICENSE', '.github/workflows/wiki.yml')
+    workingDir = repoRoot
+    inputs.files(rootProject.fileTree('docs'), rootProject.fileTree('wiki'),
+        rootProject.files('CHANGELOG.md', 'LICENSE', 'gradle.properties', '.github/workflows/wiki.yml'))
         .withPropertyName('releaseDocs')
         .withPathSensitivity(PathSensitivity.RELATIVE)
 }

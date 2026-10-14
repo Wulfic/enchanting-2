@@ -1,8 +1,9 @@
 # ---------------------------------------------------------------------------
 # CI: every push to main and every pull request.
 #
-#   build    ./gradlew build: compiles, runs the JUnit suite and the server GameTests. The jar is kept as a run
-#            artifact for 14 days, so any commit can be tried in game without building it.
+#   build    ./gradlew build in every version node: compiles, runs the JUnit suite and the server GameTests. The jars
+#            (versions/<node>/build/libs/) are kept as a run artifact for 14 days, so any commit can be tried in game
+#            without building it.
 #   secrets  gitleaks over the WHOLE history, not just the pushed commits. The repo went public after a history
 #            scrub (TODO 11e); a secret committed again would be public on push, so this job fails the run loudly.
 #
@@ -32,21 +33,42 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # Two JDKs, both read from gradle.properties rather than pinned here: java_version is what the mod is compiled
-      # for (the toolchain), gradle_java_version is what Gradle itself must run on (Loom needs the newer one).
+      # The JDKs, read from the properties files rather than pinned here: each version node's java_version
+      # (versions/<node>/gradle.properties) is what that node is compiled for (a toolchain), and the root's
+      # gradle_java_version is what Gradle itself must run on (Loom needs the newer one).
       - name: Read the JDK levels
         id: jdk
         run: |
-          prop() { grep -E "^$1=" gradle.properties | head -n1 | cut -d= -f2- | tr -d '[:space:]'; }
-          for key in java_version gradle_java_version; do
-            v=$(prop "$key")
-            case "$v" in
-              ''|*[!0-9]*)
-                echo "::error::gradle.properties $key='$v' is not a plain major version (e.g. 21)."
-                exit 1 ;;
+          set -euo pipefail
+          prop() { grep -E "^$2=" "$1" | head -n1 | cut -d= -f2- | tr -d '[:space:]'; }
+          major() {
+            case "$2" in
+              ''|*[!0-9]*) echo "::error::$1 has '$2', not a plain major version (e.g. 21)." >&2; return 1 ;;
             esac
-            echo "$key=$v" >> "$GITHUB_OUTPUT"
+          }
+          gjv=$(prop gradle.properties gradle_java_version); major "gradle.properties gradle_java_version" "$gjv"
+          shopt -s nullglob
+          nodes=(versions/*/gradle.properties)
+          if [ ${#nodes[@]} -eq 0 ]; then
+            echo "::error::No versions/<node>/gradle.properties found; settings.gradle declares the nodes."
+            exit 1
+          fi
+          levels=""
+          for f in "${nodes[@]}"; do
+            v=$(prop "$f" java_version); major "$f java_version" "$v"
+            levels="$levels $v"
           done
+          # Unique, without Gradle's own JDK (setup-java lists it last so it becomes JAVA_HOME).
+          mods=$(printf '%s
+' $levels | sort -un | grep -vx "$gjv" || true)
+          {
+            echo "mod_jdks<<EOF"
+            for v in $mods; do echo "$v"; done
+            echo "EOF"
+            echo "gradle_java_version=$gjv"
+            # Every JDK a toolchain may ask for, as the env vars setup-java sets (JAVA_HOME_<n>_X64).
+            echo "from_env=$(for v in $mods $gjv; do printf 'JAVA_HOME_%s_X64,' "$v"; done | sed 's/,$//')"
+          } >> "$GITHUB_OUTPUT"
 
       # The last version listed becomes JAVA_HOME, so Gradle runs on gradle_java_version.
       - name: Set up JDKs
@@ -54,24 +76,25 @@ jobs:
         with:
           distribution: temurin
           java-version: |
-            ${{ steps.jdk.outputs.java_version }}
+            ${{ steps.jdk.outputs.mod_jdks }}
             ${{ steps.jdk.outputs.gradle_java_version }}
 
       # Also validates the Gradle wrapper jar's checksum against Gradle's published list.
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      # fromEnv points the toolchain at the JDK setup-java installed, instead of foojay downloading another.
+      # fromEnv points the toolchains at the JDKs setup-java installed, instead of foojay downloading others.
+      # `build` runs in every version node (versions/<node>/).
       - name: Build
         run: >-
           ./gradlew build --no-daemon --stacktrace
-          -Porg.gradle.java.installations.fromEnv=JAVA_HOME_${{ steps.jdk.outputs.java_version }}_X64
+          -Porg.gradle.java.installations.fromEnv=${{ steps.jdk.outputs.from_env }}
 
       - name: Upload jar
         uses: actions/upload-artifact@v7
         with:
           name: enchanting2-${{ github.sha }}
-          path: build/libs/*.jar
+          path: versions/*/build/libs/*.jar
           retention-days: 14
           if-no-files-found: error
 
@@ -81,8 +104,8 @@ jobs:
         with:
           name: test-reports-${{ github.sha }}
           path: |
-            build/reports/
-            build/test-results/
+            versions/*/build/reports/
+            versions/*/build/test-results/
           retention-days: 14
           if-no-files-found: ignore
 

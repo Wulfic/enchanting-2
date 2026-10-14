@@ -1,0 +1,7 @@
+plugins {
+    id 'dev.kikugie.stonecutter'
+}
+
+// The node whose code src/ currently holds. Stonecutter rewrites this line when the active project is switched; set it
+// back to the vcsVersion in settings.gradle ("Reset active project") before committing.
+stonecutter.active '1.21.11'

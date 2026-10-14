@@ -93,10 +93,39 @@ during the port, widening band A below 1.21.11 (12G, only if the owner asks).
 stage is green on every node. **Rollback:** `git branch -D port/26x` (gated: unmerged work, so name the branch and
 show `git log main..port/26x` first). Nothing is published until 12F.
 
-- [ ] 12A **Spike, band A only:** Stonecutter + loom-back-compat with the one 1.21.11 node. Exit: jar contents
+- [x] 12A **Spike, band A only:** Stonecutter + loom-back-compat with the one 1.21.11 node. Exit: jar contents
       identical to v1.0.1 (class list + `fabric.mod.json` diff empty but the version), JUnit + server GameTests +
       client GameTests green, dev server still on 25566. If the tooling can't run GameTests per node or breaks
       Jankson's jar-in-jar: stop, bring the owner the branch-per-band fallback and its cost.
+      Owner 2026-10-14: "1.21.11 is its own band, and 26.x versions will have however few bands as possible" — the
+      layout above stands; 1.21.11 stays in step (2026-10-13 ruling, not overturned).
+      Versions pinned 2026-10-14 from the Maven metadata: Stonecutter 0.9.8 (2026-08-31), loom-back-compat 0.4.3
+      (2026-09-25); Loom stays 1.18.2 for 12A so the build layout is the only variable (1.18.4 is newest, 12B).
+      Reference wiring: TeamMidnightDust/CullLeaves (Fabric 1.21.11 + 26.1–26.3 on the same two plugins, Kotlin DSL).
+      Baseline: the published `v1.0.1` jar; compare with `jardiff.py` semantics (entry names + content, text entries
+      CRLF→LF, because a Windows build and the Linux CI build differ only in line endings: 414 entries, 0 changed).
+  - [x] A1. Branch `port/26x` from main (the uncommitted `docs/CURSEFORGE.md` deletion is the owner's; never staged).
+  - [x] A2. `settings.gradle`: KikuGie releases repo, plugins `dev.kikugie.stonecutter` 0.9.8 +
+        `dev.kikugie.loom-back-compat` 0.4.3, `stonecutter { kotlinController = false; centralScript = 'build.gradle';
+        create(rootProject) { versions '1.21.11'; vcsVersion = '1.21.11' } }`. The JDK check keeps working.
+  - [x] A3. `stonecutter.gradle` controller (Groovy), `stonecutter.active '1.21.11'`.
+  - [x] A4. `versions/1.21.11/gradle.properties`: the per-version keys (minecraft_version, fabric_api_version,
+        java_version, modmenu_version, yacl_version, run_root). Root keeps shared ones + `loomx.loom_version`.
+  - [x] A5. `build.gradle`: `dev.kikugie.loom-back-compat` instead of `fabric-loom-remap`;
+        `loomx.applyMojangMappings()`; run dirs, eula file and test inputs via `rootProject.file`; `Test.workingDir` =
+        root (the docs tests read `docs/`, `wiki/`, `CHANGELOG.md`, `gradle.properties` by relative path).
+  - [x] A6. `./gradlew build` green (JUnit 423 + server GameTests 336), then `runClientGameTest` (8).
+  - [x] A7. Jar diff vs the v1.0.1 jar: empty. Jankson still nested in `META-INF/jars`.
+  - [x] A8. `scripts/dev-server-smoke.sh` boots on 25566 from `run/server` and stops.
+  - [x] A9. Paths that moved to `versions/1.21.11/build/`: ci.yml (JDKs from every node's file, jar + report
+        paths), release.yml (interim: band A's node; 12F rewrites it), README + wiki "Building from Source",
+        state.md. `ReleaseDocsTest` green.
+  - [x] A10. decisions.md (12A layout), gotchas for anything that bit, state.md; commit on `port/26x`.
+  Result 2026-10-14: jar = v1.0.1 entry for entry (414; only `MANIFEST.MF` gains four `Stonecutter-*` lines),
+  Jankson nested; 423 JUnit, 336 server GameTests, client GameTests green; smoke server on 25566 from `run/server`.
+  The release.yml dry run caught a `prop loader_version` call left on the old one-argument form (fixed).
+  **Blast radius (12A):** build files only, on `port/26x`; additive except the moved property keys (they come back
+  from main). **Rollback:** `git switch main` (main untouched); then `git branch -D port/26x` gated as above.
 - [ ] 12B **Band B floor, 26.1.2 node:** Java 25, `fabric-loom` (no remap), `implementation` instead of `mod*`,
       `jar` instead of `remapJar`, access widener header `official`, Fabric API 26.1 renames (its porting page), vanilla
       changes (NeoForge 26.1 primer). 1.21.11 ↔ 26.1 differences behind Stonecutter conditions; anything used in more

@@ -7,13 +7,18 @@ the build stops at once and says which JDK to point it at.
 ```sh
 git clone https://github.com/Wulfic/enchanting-2.git
 cd enchanting-2
-./gradlew build                # jar in build/libs/; runs the JUnit suite and the server GameTests
+./gradlew build                # jar in versions/1.21.11/build/libs/; runs the JUnit suite and the server GameTests
 ./gradlew runClientGameTest    # client screen tests (opens a game window, about 2.5 minutes)
-./gradlew runClient            # a development client with Mod Menu and YACL
-./gradlew runServer            # a development server on port 25566
+./gradlew :1.21.11:runClient   # a development client with Mod Menu and YACL
+./gradlew :1.21.11:runServer   # a development server on port 25566
 ```
 
 On Windows use `gradlew.bat` (or `./gradlew` from Git Bash).
+
+The build uses [Stonecutter](https://stonecutter.kikugie.dev/): one source tree, one Gradle subproject per Minecraft
+version under `versions/<version>/` (that version's `gradle.properties` and build output). A bare task name like
+`build` runs in every version; `:1.21.11:` picks one. Run and launch tasks always name the version, or every
+version's game would start at once.
 
 ## Layout
 
@@ -25,6 +30,8 @@ On Windows use `gradlew.bat` (or `./gradlew` from Git Bash).
 | `src/gametest/` | server and client GameTests, a separate test mod never shipped in the jar |
 | `docs/` | [DESIGN.md](https://github.com/Wulfic/enchanting-2/blob/main/docs/DESIGN.md) (the full spec), CONFIG.md and ENCHANTMENTS.md (published here as [Configuration](Configuration) and [Enchantments](Enchantments)) |
 | `wiki/` | this wiki's source |
+| `versions/<version>/` | per-Minecraft-version settings (`gradle.properties`: Minecraft, Fabric API, Java) and that version's `build/` |
+| `stonecutter.gradle` | which version `src/` is currently written for (`stonecutter.active`) |
 
 ## Tests
 
