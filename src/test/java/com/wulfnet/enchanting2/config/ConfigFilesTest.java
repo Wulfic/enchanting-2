@@ -165,9 +165,25 @@ class ConfigFilesTest {
 		Path blocker = dir.resolve("enchanting2");
 		Files.writeString(blocker, "in the way", StandardCharsets.UTF_8);
 
+		assertFalse(ConfigFiles.writeDefaultsIfAbsent(common(), CommonConfig.CODEC));
+		assertEquals("in the way", Files.readString(blocker, StandardCharsets.UTF_8));
+	}
+
+	/**
+	 * The same blocker through {@code load}. Windows reports the file under it as absent, so {@code load} tries to create
+	 * it ({@code CREATE_FAILED}). Linux reports ENOTDIR, which {@code Files.notExists} treats as "unknown", so
+	 * {@code load} reads and fails ({@code UNREADABLE}: the fail-closed answer, a reload keeps the live config). Either
+	 * way: no exception, defaults, nothing touched.
+	 */
+	@Test
+	void loadUnderARegularFileFailsWithoutThrowing() throws IOException {
+		Path blocker = dir.resolve("enchanting2");
+		Files.writeString(blocker, "in the way", StandardCharsets.UTF_8);
+
 		var result = ConfigFiles.load(common(), CommonConfig.CODEC);
 
-		assertEquals(Source.CREATE_FAILED, result.source());
+		assertTrue(result.source() == Source.CREATE_FAILED || result.source() == Source.UNREADABLE,
+				"expected a reported failure, got " + result.source());
 		assertEquals(CommonConfig.defaults(), result.config());
 		assertEquals("in the way", Files.readString(blocker, StandardCharsets.UTF_8));
 	}

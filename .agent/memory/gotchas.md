@@ -602,3 +602,15 @@ gradle/actions v6, upload-artifact v7. mcMMO-Singleplayer's `release.yml` still 
 "no secret in ANY commit". `ci.yml` downloads gitleaks 8.30.1, checks its sha256, runs `gitleaks git --log-opts=--all`.
 Bumping the version means changing GITLEAKS_VERSION and GITLEAKS_SHA256 together.
 **Affects:** .github/workflows/ci.yml
+
+## 2026-10-14 — `Files.notExists` under a regular file: true on Windows, false on Linux (first CI run)
+**Symptom:** `ConfigFilesTest.createFailureIsReportedNotThrown` green on Windows, red on GitHub's Linux runner:
+expected `CREATE_FAILED`, got `UNREADABLE`.
+**Cause:** the test puts a file where `config/enchanting2/` should be. Windows answers "no such file" for the path
+under it; Linux answers ENOTDIR, which `Files.notExists` treats as status unknown (false), so `load` reads instead of
+creating.
+**Fix:** the test, not the code. `UNREADABLE` is the fail-closed answer (a `/reload` keeps the live config;
+`CREATE_FAILED` would apply defaults), so switching `load` to `!Files.exists` would make a permission glitch reset a
+live server. Create failure is now tested through `writeDefaultsIfAbsent` (same on both OSes) and `load` accepts
+either source. Anything path-shaped in tests should be suspected of being Windows-only until CI has run it.
+**Affects:** src/test/.../config/ConfigFilesTest.java
