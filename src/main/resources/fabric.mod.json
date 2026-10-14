@@ -8,9 +8,11 @@
 		"Wulfic"
 	],
 	"contact": {
-		"sources": "https://github.com/Wulfic/enchanting-2"
+		"homepage": "https://github.com/Wulfic/enchanting-2/wiki",
+		"sources": "https://github.com/Wulfic/enchanting-2",
+		"issues": "https://github.com/Wulfic/enchanting-2/issues"
 	},
-	"license": "All-Rights-Reserved",
+	"license": "MIT",
 	"icon": "assets/enchanting2/icon.png",
 	"environment": "*",
 	"entrypoints": {
