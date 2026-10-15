@@ -59,8 +59,7 @@ jobs:
             levels="$levels $v"
           done
           # Unique, without Gradle's own JDK (setup-java lists it last so it becomes JAVA_HOME).
-          mods=$(printf '%s
-' $levels | sort -un | grep -vx "$gjv" || true)
+          mods=$(printf '%s\n' $levels | sort -un | grep -vx "$gjv" || true)
           {
             echo "mod_jdks<<EOF"
             for v in $mods; do echo "$v"; done

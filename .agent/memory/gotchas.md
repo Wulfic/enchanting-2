@@ -713,3 +713,9 @@ The matrix puts the shipped `enchanting2-*.jar` (not remapped, 26.x) on `localRu
 ## 2026-10-15 — In a Gradle init script, `name` inside `tasks.register { }` is the task's name (12C)
 `new File(dir, "cp-${name}.txt")` inside the register closure resolved to the task name, so three projects' dumps
 overwrote one file. Use `project.name` (captured outside any execution-time closure for the configuration cache).
+
+## 2026-10-15 — 12A's ci.yml never parsed: a scripted edit turned `printf '%s\n'` into a real line break
+`port/26x` was first pushed after 12C, and CI failed in 0 s ("workflow file issue"): the 12A rewrite of the JDK step
+wrote `\n` as a newline inside a `run: |` block, which ends the YAML scalar. Nothing local runs workflows, so it sat
+unseen since 12A. After editing a workflow: `python -c "import yaml; yaml.safe_load(open(f))"` on it, and run its
+shell steps locally with `GITHUB_OUTPUT` pointed at a temp file.
