@@ -44,6 +44,9 @@ answer, a blank field is not. Destructive steps are marked as such and gated thr
 **Goal:** every release ships one jar per *band*. Band A = 1.21.11 (obfuscated, intermediary names, Java 21). Band B
 = every stable 26.x line (26.1.2, 26.2, 26.3 today) in **one** jar (unobfuscated, Java 25). Every feature lands in
 both bands in the same commit. The B jar is proven on each 26.x runtime by the full GameTest suite.
+**Revised 2026-10-15 by the 12C gate (decisions.md "One band per 26.x line"):** the 26.x lines don't share a jar.
+Bands: A = 1.21.11, B1 = 26.1–26.1.2 (proven by the matrix), B2 = 26.2, B3 = 26.3; four jars per release, all from
+the one source tree. The matrix stays for versions a jar claims without being built for (hotfixes, a new line).
 
 **Model: mcMMO** (checked 2026-10-14, `mcMMO-Dev/mcMMO` master, 2.3.003). One Maven module, one jar per band of game
 versions:
@@ -183,25 +186,85 @@ show `git log main..port/26x` first). Nothing is published until 12F.
         nodes until 12F. README + wiki build commands name the node (`runClientGameTest` too).
         **Blast radius (12B):** build files + source conditionals on `port/26x`. **Rollback:** `git revert` the 12B
         commits on `port/26x`, or `git switch main` (main untouched).
-- [ ] 12C **Runtime matrix (the feasibility gate):** nodes `26.2` and `26.3` run the 26.1.2 jar's server GameTests
+- [x] 12C **Runtime matrix (the feasibility gate):** nodes `26.2` and `26.3` run the 26.1.2 jar's server GameTests
       with that line's Minecraft + Fabric API + YACL + Mod Menu. Write every failure into this file: mixin apply
       errors, `NoSuchMethodError`/`NoSuchFieldError`, YACL API breaks, behaviour diffs. Then apply the split rule
       above and record the band layout in decisions.md **before** writing any adapter.
-- [ ] 12D **Adapters inside band B:** `compat/McVersion` (parse + compare, JUnit like mcMMO's
-      `MinecraftGameVersionTest`), one adapter per failure from 12C, gated mixins via `VersionedMixins`, and every
-      lookup logs and degrades (feature off, not crash) if it can't resolve. `fabric.mod.json` `minecraft` range = the
-      versions the matrix proved (e.g. `>=26.1.2 <26.4-`); never open-ended, because a mixin mod on an untested
-      version crashes at startup instead of saying "unsupported". Exit: one B jar, server GameTests green on
-      26.1.2, 26.2, 26.3; client GameTests run locally on each.
-- [ ] 12E **Scripts and process:** `scripts/` task that builds both bands and runs the whole matrix with a per-node
-      report (~5–6 min per node with client GameTests). CI runs the matrix (server GameTests) on every push. AGENTS.md
-      and state.md: "done" = green on every node of every band.
-- [ ] 12F **Release:** `release.yml` builds both bands and attaches `enchanting2-<mod>+1.21.11.jar` and
-      `enchanting2-<mod>+26.1.2-26.3.jar` (name from the proven range); `ReleaseDocsTest`, CHANGELOG and README list the
-      supported versions per jar; wiki Installation page gets the version table. First band release = 1.1.0.
-- [ ] 12G **New Minecraft versions from here on (process, not code):** add the new line to the matrix first. Green →
-      widen band B's range, no new jar. Red → an adapter if it stays under the split rule, otherwise a new band. Dropping
-      a band (mcMMO "raising the floor") is the owner's call; it becomes a frozen release, like mcMMO's 2.2.049.
+      Owner 2026-10-15: widen band B's range now as a *candidate* (the matrix proves or narrows it); push `port/26x`
+      after each green stage; client GameTests run locally on 26.2 and 26.3 this session.
+      Versions checked 2026-10-15 (Fabric meta + maven, Modrinth): stable 26.x = 26.1.2, 26.2, 26.3 (26.4 is at
+      snapshot-4, out of scope). 26.2: Fabric API 0.161.0+26.2, YACL 3.9.7+26.2-fabric, Mod Menu 20.0.3. 26.3: Fabric
+      API 0.163.0+26.3, YACL 3.9.7+26.3-fabric, Mod Menu 21.0.0. Loader 0.19.5 everywhere.
+      **Design:** a matrix node is a plain Gradle subproject (`matrix/<line>/`, project `:matrix-<line>`), *not* a
+      Stonecutter node, so it never compiles `src/`. It applies loom-back-compat with `loomx.unobfuscated=true`, and
+      its run classpath holds exactly the 26.1.2 node's mod jar and a jar of its gametest source set (consumable
+      configurations on the node), plus that line's Fabric API / YACL / Mod Menu. Run configs mirror Loom's
+      `configureTests` (server: `-Dfabric-api.gametest`; client: `-Dfabric.client.gametest`, `--username Player0`).
+      A `matrix/26.1.2` **control** runs the same jars on their own version: if the control isn't 339/339, the harness
+      is wrong, not the game. A report check fails the run on zero tests (a harness that loads nothing passes).
+  - [x] C1. `versions/26.1.2/gradle.properties`: `minecraft_dependency=>=26.1.2 <26.4-` (candidate; C8 set the
+        proven range). `ModIdentityTest` still green.
+  - [x] C2. build.gradle: `gametestJar` task + consumable `matrixModJar` / `matrixGametestJar` configurations
+        (artifacts only, no dependencies). 1.21.11 jar unchanged.
+  - [x] C3. settings.gradle includes `:matrix-26.1.2`, `:matrix-26.2`, `:matrix-26.3`; shared `matrix/matrix.gradle`;
+        each `matrix/<line>/gradle.properties` holds that line's versions and `matrix_jar_node=26.1.2`.
+  - [x] C4. `matrix.gradle`: runs `gameTest` + `clientGameTest` (run dirs under `matrix/<line>/build/run/`, cleared,
+        eula), Java 25 toolchain, JUnit report file + a check that fails on 0 tests or any failure.
+  - [x] C5. Control: `:matrix-26.1.2:runGameTest` = 339/339 (Jankson from the jar's META-INF/jars). 26.2: 83/339
+        failed. 26.3: crash at startup (`EnderManMixin` target class gone). Findings below.
+  - [x] C6. ~~Client on 26.2/26.3~~ moot: neither line can run the 26.1.2 jar (split rule, below).
+  - [x] C7. **Static link check** (`matrix/linkcheck/LinkCheck.java`, task `:matrix-<line>:linkCheck`): every class,
+        field and method our two jars use in Minecraft / Fabric / YACL / Mod Menu, plus `@Mixin` targets, injector
+        `method =` names and `@At` targets, resolved against that line's runtime classpath. Exits 1 on any problem.
+        Control on 26.1.2 = 0 problems (a band-A-only mixin, unlisted in band B's json, is skipped). It caught every
+        linkage error the 26.2 GameTests hit, plus the ones the tests' own failures masked.
+        Result: control 0 problems; 26.2 31 (the 26.2 GameTests' linkage errors all among them); 26.3 48.
+  - [x] C8. Owner 2026-10-15: "26.1, 26.1.1 and 26.1.2 are one jar" — prove it: matrix nodes `26.1` and `26.1.1`
+        (Fabric API 0.155.3+26.1.2, YACL 3.9.7+26.1, Mod Menu 18.0.2 all declare 26.1–26.1.2), link check + server
+        GameTests + client GameTests on each. Green → band B1 range `>=26.1 <26.2-`.
+        2026-10-15: range set to `>=26.1 <26.2-`; link check 0 problems and server GameTests 339/339 on 26.1 and 26.1.1
+        (log: "Loading Minecraft 26.1"). The 26.2/26.3 matrix nodes were removed (untracked, this session's; findings
+        above): those lines get their own nodes. Client GameTests on 26.1 and 26.1.1: green, the same 23 screenshots
+        as the 26.1.2 node's run. The run-dir delete guard refuses a path outside `build/run/` (mutation, reverted).
+  - [x] C9. Band layout in decisions.md; gotchas; state.md; commit; push `port/26x`.
+  **Blast radius (12C):** additive (new subprojects, one jar task, a widened range in an unreleased node).
+  **Rollback:** `git revert` the 12C commit on `port/26x`; run dirs are under `matrix/*/build/` (git-ignored).
+  **12C findings (2026-10-15)** — the 26.1.2 jar + its GameTest jar on other lines (link check, then GameTests):
+  - 26.2, mod side (8): `CriteriaTriggers` / `EnchantedItemTrigger` gone (table Enchant crashes,
+    `EnchantmentMenuMixin`); `Options.hideGui` (`LastStandHud`); `BlockEntityType.MOB_SPAWNER` and
+    `EntityType.byString` (`CollectedSpawners`); YACL `ScrollableNavigationBar.arrangeElements()` (`TabbedConfigScreen`);
+    `Minecraft.getToastManager()` (`ConfigEditing`); `LivingEntity.knockback(DDD)` (`ShieldBash`); data:
+    `loot_table/beheading/heads.json` entity predicate `"type"` no longer parses (`entity_sub_predicate_type`).
+  - 26.2, test side (~23): every `EntityType.<MOB>` constant (26.2 split registration, like `BlockIds`/`ItemIds`),
+    `BlockPos.getCenter()`, `Minecraft.setScreen`/`.screen` (now `Minecraft.gui`), `I18n.exists`, Fabric client
+    GameTest `getClientLevel()`.
+  - 26.3, mod side (23): all of 26.2's plus GUI rendering (`RenderPipeline`, `RenderPipelines.GUI_TEXTURED`, every
+    `blit`/`blitSprite` overload: all three windows, `ScrollBar`, `WindowBackground`, `TabbedConfigScreen`); loot
+    `LootContext.getParameter`/`getOptionalParameter` (Fortune, heads, smelting, spawners, `LootTool`);
+    `RegistryCodecs`, `RegistryOps$RegistryInfo`; `ServerPlayer.drop(ItemStack,boolean)`; `LivingEntity.hurtMarked`;
+    mixin target classes moved: `EnderMan` (+ `EndermanLeaveBlockGoal`), `HoeItem`, `FuelValues`.
+  - **Split rule verdict:** 26.2 needs 8 adapters, 26.3 23 (16 of them also differ from 26.2), against a limit of ~6,
+    and the GameTest jar can't run on either without as many again. So **each 26.x line is its own band**, compiled
+    from the shared source like 26.1.2 (the fallback the plan named). Owner 2026-10-15: support all three lines.
+- [ ] ~~12D Adapters inside band B~~ superseded by the 12C verdict: no runtime adapters, no `VersionedMixins`. Each
+      line compiles its own jar, differences as in 12B (decisions.md "12B: how band differences are written").
+- [ ] 12D **Band B2, node 26.2** (as 12B did for 26.1.2): `versions/26.2/` (Fabric API 0.161.0+26.2, YACL
+      3.9.7+26.2-fabric, Mod Menu 20.0.3, `run_root=run/26.2`, range `>=26.2 <26.3-`); compile errors → replacements /
+      `//? if >=26.2` conditions / `port/` adapters; mixin audit against 26.2's decompiled source; server + client
+      GameTests green on all three nodes; `SaveFormatGameTest` reads 26.1.2 saves. Start list = 12C findings (8 mod,
+      ~23 test). Exit: `./gradlew build` green on 1.21.11, 26.1.2, 26.2; client GameTests on each.
+- [ ] 12E **Band B3, node 26.3:** same steps (Fabric API 0.163.0+26.3, YACL 3.9.7+26.3-fabric, Mod Menu 21.0.0).
+      Biggest port so far: GUI rendering (`RenderPipeline`, `blit`), loot context API, moved mixin targets.
+- [ ] 12F **Scripts and process:** `scripts/` task that builds every node and runs the matrix with a per-node report.
+      CI: every node's build + the matrix's link checks and server GameTests. AGENTS.md and state.md: "done" = green on
+      every node and every matrix version.
+- [ ] 12G **Release:** `release.yml` builds every node and attaches one jar per band, named from its proven range
+      (`+1.21.11`, `+26.1-26.1.2`, `+26.2`, `+26.3`); `ReleaseDocsTest`, CHANGELOG and README list the supported
+      versions per jar; wiki Installation page gets the version table. First band release = 1.1.0.
+- [ ] 12H **New Minecraft versions from here on (process, not code):** a new version gets a matrix node on the nearest
+      band's jar: `linkCheck` first (seconds), then server + client GameTests. Green → widen that band's range, no new
+      jar. Red → a new node (band). Dropping a band (mcMMO "raising the floor") is the owner's call; it becomes a frozen
+      release, like mcMMO's 2.2.049.
 
 **Risks:** rendering and `GuiGraphics` changes in the three window screens (26.2 was "primarily rendering"); YACL's
 API across its per-version builds; enchantment component or registry changes in `MODIFY` hooks and `LevelCeilings`;

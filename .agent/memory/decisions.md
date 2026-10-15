@@ -1486,3 +1486,23 @@ see both versions. Groovy templates avoid an `IMixinConfigPlugin` for one band-o
 **Count for the split rule (12C):** inside band B nothing is adapted yet; these are A↔B differences, which the band
 split pays for.
 **Affects:** build.gradle, port/LootTool.java, the 17 conditioned files, enchanting2.mixins.json, src/gametest
+
+## 2026-10-15 — One band per 26.x line; the runtime matrix keeps proving hotfix versions (12C gate, owner)
+**Context:** 12C ran the 26.1.2 jar and its GameTest jar on 26.2 and 26.3 (runtime-only `matrix/<version>` nodes)
+and a new static link check over both jars. The split rule fixed in advance (2026-10-14 "Version bands"): more than
+~6 adapters in a line → that line is its own band.
+**Choice:** each 26.x line is its own band, compiled from the shared source like 26.1.2: A = 1.21.11, B1 = 26.1–26.1.2
+(owner: "26.1, 26.1.1 and 26.1.2 are one jar"; proven: link check 0 and 339/339 server GameTests on 26.1 and 26.1.1),
+B2 = 26.2, B3 = 26.3 (owner: support all three lines). No `compat/McVersion`, no `VersionedMixins`. The matrix
+(`matrix/matrix.gradle`, plain subprojects outside Stonecutter) and `linkCheck` stay as the tools for any version a
+jar claims without being built for it: a new hotfix, or a new line tried on the nearest band's jar (12H).
+**Why:** 26.2 broke 8 mod-side references (table Enchant, spawners, Last Stand HUD, YACL tabs, Shield Bash, a loot
+table predicate) and 26.3 23 (GUI rendering, loot context, moved mixin target classes; 16 of those differ from 26.2
+too). The GameTest jar, compiled on 26.1.2, fails in its own setup on both (`EntityType.ZOMBIE` and friends are gone
+from 26.2), so a matrix there could never prove the mod anyway without porting the tests too. Separate nodes get the
+compiler and the full suite on every line.
+**Rejected:** runtime adapters inside one B jar (8 and 23 adapters plus the test jar's; past the rule, and 26.3's
+rendering changes sit in per-frame paths); one jar for 26.2 + 26.3 (16 differences between them); dropping 26.2 (owner
+wants it).
+**Affects:** settings.gradle, matrix/, build.gradle (`gametestJar`, `matrixModJar`, `matrixGametestJar`),
+versions/26.1.2/gradle.properties, TODO.md Phase 12 (12D–12H re-cut)

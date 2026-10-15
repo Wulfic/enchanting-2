@@ -692,3 +692,24 @@ async pipeline now).
 for band A through a Groovy template block in `enchanting2.mixins.json` (`<% if (band == 'A') { %>`), expanded by
 processResources. `ModIdentityTest.everyListedMixinIsAClass` guards the template.
 **Affects:** enchantment/ItemWideningHook.java, mixin/RegistryDataLoaderMixin.java, enchanting2.mixins.json, build.gradle
+
+## 2026-10-15 — A GameTest that fails in its own setup hides every mod break behind it (12C)
+On 26.2, 80 of 83 failures were the GameTest jar's own `NoSuchFieldError: EntityType.ZOMBIE` while spawning its mob.
+The mod code those tests exist to check never ran, so the run said nothing about it. The static link check
+(`./gradlew :matrix-<version>:linkCheck`) resolves every reference in both jars without running anything and found the
+masked ones (Shield Bash's `knockback`, `Options.hideGui`, YACL's `arrangeElements`, the toast manager). On a new
+Minecraft version: link check first, GameTests after it's clean.
+
+## 2026-10-15 — loom-back-compat outside Stonecutter needs `loomx.unobfuscated=true` (12C)
+`LoomCompatProjectExtension.isUnobfuscated` reads the property `loomx.unobfuscated` / `loomx.obfuscated`, else asks
+Stonecutter's `sc.current` (compare with "26"). A plain subproject (the matrix nodes) has no Stonecutter, so its
+gradle.properties says `loomx.unobfuscated=true` or it gets fabric-loom-remap and tries to remap a 26.x game.
+
+## 2026-10-15 — A plain mod jar on the dev classpath does load its nested jars (12C)
+The matrix puts the shipped `enchanting2-*.jar` (not remapped, 26.x) on `localRuntime`. Fabric Loader lists
+`enchanting2 \-- blue_endless_jankson 1.2.3`: nested jars from `META-INF/jars` load, unlike a Loom-remapped dependency's
+(YACL's parsers, gotchas 2026-10-07). So the matrix proves the jar players get, Jankson included.
+
+## 2026-10-15 — In a Gradle init script, `name` inside `tasks.register { }` is the task's name (12C)
+`new File(dir, "cp-${name}.txt")` inside the register closure resolved to the task name, so three projects' dumps
+overwrote one file. Use `project.name` (captured outside any execution-time closure for the configuration cache).

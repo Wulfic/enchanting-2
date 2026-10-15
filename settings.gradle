@@ -36,6 +36,16 @@ stonecutter {
 
 rootProject.name = 'enchanting2'
 
+// Phase 12C runtime matrix: one plain subproject per Minecraft version that a band's jar claims without being built
+// for it (not a Stonecutter node, so it never compiles src/). Each runs that jar and its GameTests on its own Minecraft;
+// the version the jar is built for is the control. Script: matrix/matrix.gradle, versions: matrix/<version>/.
+['26.1', '26.1.1', '26.1.2'].each { line ->
+    include ":matrix-${line}"
+    def matrixNode = project(":matrix-${line}")
+    matrixNode.projectDir = file("matrix/${line}")
+    matrixNode.buildFileName = '../matrix.gradle'
+}
+
 // Loom needs a newer JDK than the mod targets. Without this check, an older JAVA_HOME fails later with "Could not
 // resolve net.fabricmc:fabric-loom ... requires at least JVM runtime version 25", which doesn't say what to do.
 def gradleJava = providers.gradleProperty('gradle_java_version').get() as Integer
