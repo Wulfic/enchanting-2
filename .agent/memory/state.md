@@ -120,7 +120,7 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
   link check (`matrix/linkcheck/LinkCheck.java`). Verdict: one band per 26.x line (decisions.md 2026-10-15).
   B1 = 26.1–26.1.2 proven (range `>=26.1 <26.2-`). CI's `build` configures the matrix projects (empty jars) but
   doesn't run their GameTests yet (12F).
-- Tests per node: 425 JUnit + 339 GameTests (`./gradlew build`, both nodes, also in CI) + 9 client GameTests
+- Tests per node: 426 JUnit + 339 GameTests (`./gradlew build`, both nodes, also in CI) + 9 client GameTests
   (`./gradlew :<node>:runClientGameTest`, one node at a time).
 
 ## What's next
@@ -128,9 +128,9 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
    `enchanting2-1.0.1.jar` in the Prism instance with the Flight elytra in Elytra Slot's slot.
 1. **Phase 12, version bands** (TODO.md; decisions.md 2026-10-15 "One band per 26.x line"): A = 1.21.11, B1 =
    26.1–26.1.2, B2 = 26.2, B3 = 26.3, one jar each from the shared source; 1.21.11 stays in step (owner 2026-10-14).
-   12A, 12B, 12C done on `port/26x`. **Next: 12D, node `versions/26.2/`** — start list = TODO.md 12C findings
-   (8 mod-side, ~23 test-side), then mixin audit vs 26.2's decompiled source, re-check every javap-chosen target
-   (`$3`, `lambda$onTake$0`). Then 12E (26.3: GUI rendering rewrite).
+   12A–12D done on `port/26x` (12D 2026-10-15: node `versions/26.2/`, band B2, all green; decisions.md "12D").
+   **Next: 12E, node `versions/26.3/`** — start list = TODO.md 12C findings for 26.3 (GUI rendering `RenderPipeline`
+   / `blit`, loot context API, moved mixin targets `EnderMan`, `HoeItem`, `FuelValues`); same steps as 12D.
 2. Owner checks and housekeeping: TODO.md "Owner checks (open)" and "Owner housekeeping" (the full list moved there
    from this file on 2026-10-14; TODO.md was trimmed to open work, old notes at `git show fd3504c:TODO.md`).
    A new enchantment still adds a `LevelCeilings` row, a `.desc` line, tags, a price row if single-level, docs rows.

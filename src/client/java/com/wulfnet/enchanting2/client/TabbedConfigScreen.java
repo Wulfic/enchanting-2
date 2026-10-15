@@ -49,6 +49,10 @@ public final class TabbedConfigScreen extends YACLScreen {
 		}).toList();
 		tabNavigationBar = new RowsBar(width, tabManager, tabs, rows);
 		tabNavigationBar.selectTab(currentTab, false);
+		// 26.2's tab bar (now a MenuTabBar) is laid out for a screen width; RowsBar ignores it and uses its TabRows.
+		//? if >=26.2 {
+		/*tabNavigationBar.arrangeElements(width);
+		*///?} else
 		tabNavigationBar.arrangeElements();
 		tabManager.setTabArea(tabArea);
 		addRenderableWidget(tabNavigationBar);
@@ -87,6 +91,9 @@ public final class TabbedConfigScreen extends YACLScreen {
 
 		/** Never calls YACL's, so its scroll range stays 0: no arrows, and focusing a tab never shifts the rows. */
 		@Override
+		//? if >=26.2 {
+		/*public void arrangeElements(int screenWidth) {
+		*///?} else
 		public void arrangeElements() {
 			List<TabButton> buttons = buttons();
 			for (int i = 0; i < buttons.size(); i++) {
@@ -100,8 +107,11 @@ public final class TabbedConfigScreen extends YACLScreen {
 
 		/** Vanilla's header line beside each row (the buttons draw their own under them), then the buttons. */
 		@Override
-		// 26.1 renamed Renderable.render to extractRenderState.
-		//? if >=26.1 {
+		// 26.1 renamed Renderable.render to extractRenderState; 26.2 made that final in AbstractWidget, which now calls
+		// extractWidgetRenderState (public in YACL's bar, so it stays public here).
+		//? if >=26.2 {
+		/*public void extractWidgetRenderState(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		*///?} else if >=26.1 {
 		/*public void extractRenderState(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		*///?} else
 		public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {

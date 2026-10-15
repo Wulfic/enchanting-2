@@ -248,11 +248,50 @@ show `git log main..port/26x` first). Nothing is published until 12F.
     from the shared source like 26.1.2 (the fallback the plan named). Owner 2026-10-15: support all three lines.
 - [ ] ~~12D Adapters inside band B~~ superseded by the 12C verdict: no runtime adapters, no `VersionedMixins`. Each
       line compiles its own jar, differences as in 12B (decisions.md "12B: how band differences are written").
-- [ ] 12D **Band B2, node 26.2** (as 12B did for 26.1.2): `versions/26.2/` (Fabric API 0.161.0+26.2, YACL
+- [x] 12D **Band B2, node 26.2** (as 12B did for 26.1.2): `versions/26.2/` (Fabric API 0.161.0+26.2, YACL
       3.9.7+26.2-fabric, Mod Menu 20.0.3, `run_root=run/26.2`, range `>=26.2 <26.3-`); compile errors → replacements /
       `//? if >=26.2` conditions / `port/` adapters; mixin audit against 26.2's decompiled source; server + client
       GameTests green on all three nodes; `SaveFormatGameTest` reads 26.1.2 saves. Start list = 12C findings (8 mod,
       ~23 test). Exit: `./gradlew build` green on 1.21.11, 26.1.2, 26.2; client GameTests on each.
+      **Blast radius:** source conditions + a new node on `port/26x`; 1.21.11 and 26.1.2 jars must stay as they are
+      (jar entry diff before/after). **Rollback:** `git revert` the 12D commits.
+  - [x] D1. `versions/26.2/gradle.properties` + settings.gradle `versions '1.21.11', '26.1.2', '26.2'`. Check
+        Stonecutter's `>=26.1` conditions and replacements now also apply to 26.2 (they should: same direction).
+        CI on `port/26x` before 12D (dispatched): green, build + gitleaks.
+  - [x] D2. `:26.2:compileJava`, `compileClientJava`, `compileGametestJava`: write every error group here, fix behind
+        `//? if >=26.2` (adapter in `port/` past ~3 callers). After each group: all three nodes compile.
+        Done 2026-10-15, no new warnings (26.2's = 26.1.2's, all pre-existing in GameTests):
+        - Same code everywhere: `CollectedSpawners.mobOf` via `BuiltInRegistries.ENTITY_TYPE.getOptional(Identifier
+          .tryParse(id))` (what `EntityType.byString` did); tests `Vec3.atCenterOf(pos)`, `Language.getInstance().has`.
+        - `>=26.2` replacements: `advancements.CriteriaTriggers` → `advancements.triggers.`; `EntityType.<CONST>` →
+          `EntityTypes.`, `BlockEntityType.<CONST>` → `BlockEntityTypes.` (+ the holder imports);
+          `minecraft.getToastManager()` → `minecraft.gui.toastManager()`; tests `client.setScreen(` / `client.screen` →
+          `client.gui.`.
+        - `//? if >=26.2`: `ShieldBash` knockback takes the player's attack source (the Sulfur Cube reads it);
+          `LastStandHud` hidden HUD = `client.gui.hud.isHidden()`; `TabbedConfigScreen` (YACL's bar is a `MenuTabBar`:
+          `arrangeElements(int)`, render override `extractWidgetRenderState`).
+        - GameTest helper `ClientWorlds.waitForChunksRender` (Fabric moved it to `getConnection()`; 8 callers).
+  - [x] D3. Data that differs: `loot_table/beheading/heads.json` (entity predicate). Find how Stonecutter (0.9.8)
+        handles per-version resources before choosing (per-node resource dir vs. generated file); record the choice.
+        Done: `${entity_type_predicate}` in the 6 predicates, expanded by processResources like `fabric.mod.json`
+        (`type` / `minecraft:entity_type`, the key vanilla's `charged_creeper/root.json` uses on 26.2).
+        `ModIdentityTest.beheadingPredicatesAreExpandedForThisNode` (fails with the file dropped from the list).
+  - [x] D4. Mixin audit: `:26.2:linkCheck`-style pass is free (javap names, `@At` targets), then the 12B structural
+        diff of every injected method between 26.1.2 and 26.2 decompiled sources; re-pick javap-chosen targets.
+        Done 2026-10-15: `matrix/26.2` (band B2's control) `linkCheck` 0 problems. Body diff (scratch `mixindiff.py`):
+        main 59 same / 16 changed, client 11 / 3; no changed line touches an injection target, no `ordinal` moved
+        (`MinecraftMixin`'s slice still lands on `keyAttack.consumeClick()`). javap: bucket dispenser still `$3`,
+        `AnvilMenu.lambda$onTake$0` still the damage lambda. No code change. Watch: 26.2's lava jump-out check
+        (`isInShallowFluid(LAVA)`) in `aiStep`, Lava Walking's GameTests cover it.
+  - [x] D5. Server GameTests on 26.2, then client GameTests (one node at a time); `SaveFormatGameTest` both ways.
+        Server: `:26.2:build` 426 JUnit + 339/339 GameTests first try (log = the control's expected warnings only).
+        Client: green, the same 23 screenshots (tab rows and Last Stand HUD checked by eye). The full build then hit a
+        random test bug on 26.1.2 (merged XP orbs undercounted; `SpawnerGameTest` now sums value × count, gotchas).
+        `./gradlew build`: 426 JUnit + 339/339 server GameTests on 1.21.11, 26.1.2 and 26.2.
+  - [x] D6. Jar diff: 1.21.11 and 26.1.2 jars unchanged by the 26.2 conditions.
+        Done (javap without line tables): only `CollectedSpawners` (the shared registry lookup) and `LastStandHud` (a
+        local) differ in code; `ShieldBash`, `TabbedConfigScreen` (+ `$RowsBar`) in line numbers; `heads.json` identical. decisions/gotchas/state; commit; push;
+        dispatch CI (`gh workflow run ci.yml --ref port/26x`: ci.yml only triggers on main and PRs).
 - [ ] 12E **Band B3, node 26.3:** same steps (Fabric API 0.163.0+26.3, YACL 3.9.7+26.3-fabric, Mod Menu 21.0.0).
       Biggest port so far: GUI rendering (`RenderPipeline`, `blit`), loot context API, moved mixin targets.
 - [ ] 12F **Scripts and process:** `scripts/` task that builds every node and runs the matrix with a per-node report.

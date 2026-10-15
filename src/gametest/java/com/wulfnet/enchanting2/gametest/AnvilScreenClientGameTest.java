@@ -49,7 +49,7 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext context) {
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
-			world.getClientWorld().waitForChunksRender();
+			ClientWorlds.waitForChunksRender(world);
 			world.getServer().runCommand("gamemode survival @a");
 			world.getServer().runCommand("xp set @a 30 levels");
 			context.getInput().resizeWindow(NARROW_WIDTH, NARROW_HEIGHT);

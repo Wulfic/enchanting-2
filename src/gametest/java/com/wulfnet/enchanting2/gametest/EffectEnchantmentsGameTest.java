@@ -462,7 +462,7 @@ public class EffectEnchantmentsGameTest {
 		BlockState ore = Blocks.IRON_ORE.defaultBlockState();
 		ItemStack pickaxe = tool(helper, Items.IRON_PICKAXE, Enchantments.SILK_TOUCH, ModEnchantments.SMELTING);
 		LootParams params = new LootParams.Builder(level)
-				.withParameter(LootContextParams.ORIGIN, helper.absolutePos(new BlockPos(1, 1, 1)).getCenter())
+				.withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(helper.absolutePos(new BlockPos(1, 1, 1))))
 				.withParameter(LootContextParams.TOOL, pickaxe)
 				.withParameter(LootContextParams.BLOCK_STATE, ore)
 				.create(LootContextParamSets.BLOCK);
@@ -520,7 +520,7 @@ public class EffectEnchantmentsGameTest {
 	/** An arrow as a bow shoots it: built with the bow, then vanilla's {@code projectile_spawned} effects run. */
 	private static Arrow shot(GameTestHelper helper, ItemStack bow, BlockPos pos) {
 		ServerLevel level = helper.getLevel();
-		Vec3 at = helper.absolutePos(pos).getCenter();
+		Vec3 at = Vec3.atCenterOf(helper.absolutePos(pos));
 		Arrow arrow = new Arrow(level, at.x, at.y, at.z, new ItemStack(Items.ARROW), bow);
 		arrow.applyOnProjectileSpawned(level, bow);
 		return arrow;
@@ -576,7 +576,7 @@ public class EffectEnchantmentsGameTest {
 	/** Gravity someone else took away (a command) is left alone: no countdown, so it is never handed back. */
 	@GameTest
 	public void trueShotLeavesAnAlreadyFloatingArrowAlone(GameTestHelper helper) {
-		Vec3 at = helper.absolutePos(new BlockPos(2, 5, 2)).getCenter();
+		Vec3 at = Vec3.atCenterOf(helper.absolutePos(new BlockPos(2, 5, 2)));
 		Arrow arrow = new Arrow(helper.getLevel(), at.x, at.y, at.z, new ItemStack(Items.ARROW), null);
 		arrow.setNoGravity(true);
 		SuspendGravity.suspend(arrow, 100);

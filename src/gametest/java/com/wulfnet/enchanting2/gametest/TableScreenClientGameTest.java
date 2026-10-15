@@ -61,7 +61,7 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext context) {
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
-			world.getClientWorld().waitForChunksRender();
+			ClientWorlds.waitForChunksRender(world);
 			world.getServer().runCommand("gamemode survival @a");
 			world.getServer().runCommand("xp set @a " + LEVELS + " levels");
 			context.getInput().resizeWindow(SMALL_WIDTH, SMALL_HEIGHT);

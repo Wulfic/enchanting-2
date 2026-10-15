@@ -27,7 +27,7 @@ public class ShieldClientGameTest implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext context) {
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
-			world.getClientWorld().waitForChunksRender();
+			ClientWorlds.waitForChunksRender(world);
 			world.getServer().runCommand("gamemode survival @a");
 			world.getServer().runCommand("time set day");
 			// Facing south, looking a little down at a still cow two blocks away.

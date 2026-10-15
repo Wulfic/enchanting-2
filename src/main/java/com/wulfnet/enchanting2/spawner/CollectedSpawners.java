@@ -124,10 +124,14 @@ public final class CollectedSpawners {
 		return mobOf(spawner.saveWithoutMetadata(registries));
 	}
 
-	/** {@code SpawnData.entity.id} of saved spawner data, if it names a known entity type. */
+	/**
+	 * {@code SpawnData.entity.id} of saved spawner data, if it names a known entity type. Looked up in the registry, as
+	 * {@code EntityType.byString} did before 26.2 removed it.
+	 */
 	static Optional<EntityType<?>> mobOf(CompoundTag spawnerData) {
 		return spawnerData.getCompound("SpawnData").flatMap(data -> data.getCompound("entity"))
-				.flatMap(entity -> entity.getString("id")).flatMap(EntityType::byString);
+				.flatMap(entity -> entity.getString("id")).map(Identifier::tryParse)
+				.flatMap(BuiltInRegistries.ENTITY_TYPE::getOptional);
 	}
 
 	/**

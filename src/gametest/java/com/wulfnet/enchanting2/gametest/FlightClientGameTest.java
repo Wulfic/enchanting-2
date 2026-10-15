@@ -20,7 +20,7 @@ public class FlightClientGameTest implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext context) {
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
-			world.getClientWorld().waitForChunksRender();
+			ClientWorlds.waitForChunksRender(world);
 			world.getServer().runCommand("gamemode survival @a");
 			world.getServer().runOnServer(server -> {
 				ItemStack elytra = new ItemStack(Items.ELYTRA);

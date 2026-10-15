@@ -719,3 +719,22 @@ overwrote one file. Use `project.name` (captured outside any execution-time clos
 wrote `\n` as a newline inside a `run: |` block, which ends the YAML scalar. Nothing local runs workflows, so it sat
 unseen since 12A. After editing a workflow: `python -c "import yaml; yaml.safe_load(open(f))"` on it, and run its
 shell steps locally with `GITHUB_OUTPUT` pointed at a temp file.
+
+## 2026-10-15 — 26.2 moved screens, toasts and the hidden-HUD flag onto `Minecraft.gui` (12D)
+`minecraft.screen` / `setScreen` → `minecraft.gui.screen()` / `gui.setScreen`; `getToastManager()` →
+`gui.toastManager()`; `options.hideGui` is gone, F1 state is `minecraft.gui.hud.isHidden()`; the spectator GUI is
+`gui.hud.getSpectatorGui()`. `AbstractWidget.extractRenderState` became final: override `extractWidgetRenderState`.
+Entity predicates in data are keyed by sub-predicate ID (`"minecraft:entity_type"`, not `"type"`); a stale file fails
+to parse at load with "Unknown registry key ... entity_sub_predicate_type: minecraft:type" and its loot table is gone.
+
+## 2026-10-15 — The mixin body diff mixes anonymous classes; decide `$N` targets by javap (12D)
+The scratch `mixindiff.py` collects every same-named method in the outer source file, so
+`DispenseItemBehavior$3.execute` diffed against ~20 other `execute`s (63 lines, all noise). The question for a `$N`
+target is only "which `$N` calls the method we wrap": `javap -c -p 'DispenseItemBehavior$N'` per version and grep for
+it (26.2: still `$3`; `AnvilMenu.lambda$onTake$0` still calls `AnvilBlock.damage`).
+
+## 2026-10-15 — An XP orb can stand for several: sum `value × count`, never `getValue()` alone (12D)
+`SpawnerGameTest.withoutSilkTouch...GivesXp` failed once on 26.1.2 (8 XP, expected 15–43) and passed on every other
+run. `ExperienceOrb.awardWithDirection` → `tryMergeToExisting` folds an equal-value orb into one nearby at random
+(`id == random(40)`) by `count++`, and `count` is private. Count XP with `ExperienceOrbAccessor.e2test$getCount()`, as
+`EffectEnchantmentsGameTest` already did. A check of "no orbs" / "some orbs" (GrindstoneGameTest) is merge-safe.

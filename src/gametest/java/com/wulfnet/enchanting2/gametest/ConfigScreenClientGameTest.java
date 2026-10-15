@@ -52,7 +52,7 @@ public class ConfigScreenClientGameTest implements FabricClientGameTest {
 		tabsAreInRowsAndASecondRowTabClicks(context);
 
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
-			world.getClientWorld().waitForChunksRender();
+			ClientWorlds.waitForChunksRender(world);
 			context.runOnClient(client -> {
 				Set<String> listed = ConfigEditing.enchantmentNames().keySet();
 				check(listed.contains(THIRD_PARTY) && listed.containsAll(ModEnchantments.knownWithoutRegistry()),

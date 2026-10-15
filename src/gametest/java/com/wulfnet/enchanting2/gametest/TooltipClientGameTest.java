@@ -19,6 +19,7 @@ import net.minecraft.client.resources.language.I18n;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
@@ -42,7 +43,7 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext context) {
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
-			world.getClientWorld().waitForChunksRender();
+			ClientWorlds.waitForChunksRender(world);
 			world.getServer().runCommand("gamemode survival @a");
 			context.waitTicks(2);
 
@@ -198,7 +199,8 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 		ItemStack stack = new ItemStack(item);
 		ItemEnchantments.Mutable enchantments = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
 		registry.listElements().sorted(Comparator.comparing(holder -> holder.key().identifier().toString()))
-				.filter(holder -> !described || I18n.exists(DescriptionPlan.key(holder.key().identifier().toString())))
+				.filter(holder -> !described
+						|| Language.getInstance().has(DescriptionPlan.key(holder.key().identifier().toString())))
 				.limit(count).forEach(holder -> enchantments.set(holder, 1));
 		EnchantmentHelper.setEnchantments(stack, enchantments.toImmutable());
 		return stack;

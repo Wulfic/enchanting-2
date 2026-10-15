@@ -63,6 +63,10 @@ public final class ShieldBash {
 		}
 		if (knockback > 0.0F) {
 			float yaw = player.getYRot() * Mth.DEG_TO_RAD;
+			// 26.2's knockback takes the hit's source (a mob may react to the attacker, e.g. the Sulfur Cube) and damage.
+			//? if >=26.2 {
+			/*living.knockback(knockback, Mth.sin(yaw), -Mth.cos(yaw), player.damageSources().playerAttack(player), 0.0F);
+			*///?} else
 			living.knockback(knockback, Mth.sin(yaw), -Mth.cos(yaw));
 			living.hurtMarked = true;
 		}

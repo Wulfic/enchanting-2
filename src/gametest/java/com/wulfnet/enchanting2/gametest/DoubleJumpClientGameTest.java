@@ -20,7 +20,7 @@ public class DoubleJumpClientGameTest implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext context) {
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
-			world.getClientWorld().waitForChunksRender();
+			ClientWorlds.waitForChunksRender(world);
 			world.getServer().runCommand("gamemode survival @a");
 			world.getServer().runOnServer(server -> {
 				ItemStack boots = new ItemStack(Items.IRON_BOOTS);

@@ -3,12 +3,14 @@ package com.wulfnet.enchanting2;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.TreeSet;
 import org.junit.jupiter.api.Test;
 
 class ModIdentityTest {
@@ -55,6 +57,36 @@ class ModIdentityTest {
 		int java = Runtime.version().feature();
 		assertEquals(">=" + java, depends.get("java").getAsString());
 		assertEquals("JAVA_" + java, resourceJson("/enchanting2.mixins.json").get("compatibilityLevel").getAsString());
+	}
+
+	/**
+	 * Phase 12D: the Beheading loot table's entity predicates are keyed {@code "type"} before 26.2 and
+	 * {@code "minecraft:entity_type"} from 26.2, expanded per node. Every predicate must come out as one key, the same
+	 * one throughout; the Beheading GameTests then prove the node's game parses it.
+	 */
+	@Test
+	void beheadingPredicatesAreExpandedForThisNode() throws Exception {
+		String table = "/data/enchanting2/loot_table/beheading/heads.json";
+		var children = resourceJson(table).getAsJsonArray("pools").get(0).getAsJsonObject().getAsJsonArray("entries")
+				.get(0).getAsJsonObject().getAsJsonArray("children");
+		var keys = new TreeSet<String>();
+		int predicates = 0;
+		for (var child : children) {
+			for (var condition : child.getAsJsonObject().getAsJsonArray("conditions")) {
+				JsonObject predicate = condition.getAsJsonObject().getAsJsonObject("predicate");
+				if (predicate == null) {
+					continue;
+				}
+				predicates++;
+				assertEquals(1, predicate.size(), "one key per entity predicate in " + table + ": " + predicate);
+				keys.addAll(predicate.keySet());
+			}
+		}
+		assertEquals(6, predicates, "the six heads' entity predicates in " + table);
+		assertEquals(1, keys.size(), "one predicate key throughout " + table + ": " + keys);
+		String key = keys.first();
+		assertFalse(key.contains("${"), "processResources did not expand " + table + ": " + key);
+		assertTrue(key.equals("type") || key.equals("minecraft:entity_type"), "unknown predicate key: " + key);
 	}
 
 	/**

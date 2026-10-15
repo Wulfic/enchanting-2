@@ -38,6 +38,36 @@ stonecutter {
     replacements.regex(sc.current.parsed.matches('>=26.1')) {
         replace '\\bClickType\\b', 'ContainerInput', '\\bContainerInput\\b', 'ClickType'
     }
+    // 26.2 moved the advancement triggers into net.minecraft.advancements.triggers, and the toast manager onto
+    // Minecraft.gui (Phase 12D).
+    replacements.string(sc.current.parsed.matches('>=26.2')) {
+        replace 'import net.minecraft.advancements.CriteriaTriggers;',
+            'import net.minecraft.advancements.triggers.CriteriaTriggers;'
+        replace 'minecraft.getToastManager()', 'minecraft.gui.toastManager()'
+        // GameTests only: the open screen moved onto Minecraft.gui too.
+        replace 'client.setScreen(', 'client.gui.setScreen('
+    }
+    replacements.regex(sc.current.parsed.matches('>=26.2')) {
+        // A read of the field (no test assigns it) becomes the getter.
+        replace '\\bclient\\.screen\\b', 'client.gui.screen()', '\\bclient\\.gui\\.screen\\(\\)', 'client.screen'
+    }
+    // 26.2 split registration out of EntityType and BlockEntityType: the constants (EntityType.ZOMBIE,
+    // BlockEntityType.MOB_SPAWNER) live in EntityTypes / BlockEntityTypes; the classes stay for the type itself. Only
+    // UPPER_CASE members move (EntityType.getKey stays), and \b keeps EntityType from matching inside BlockEntityType. A
+    // file that imports the class gets the holder's import too (unused in some files; javac doesn't mind).
+    replacements.regex(sc.current.parsed.matches('>=26.2')) {
+        replace '\\bEntityType\\.([A-Z][A-Z0-9_]*)\\b', 'EntityTypes.$1', '\\bEntityTypes\\.([A-Z][A-Z0-9_]*)\\b', 'EntityType.$1'
+        replace '\\bBlockEntityType\\.([A-Z][A-Z0-9_]*)\\b', 'BlockEntityTypes.$1',
+            '\\bBlockEntityTypes\\.([A-Z][A-Z0-9_]*)\\b', 'BlockEntityType.$1'
+        replace 'import net\\.minecraft\\.world\\.entity\\.EntityType;',
+            'import net.minecraft.world.entity.EntityType; import net.minecraft.world.entity.EntityTypes;',
+            'import net\\.minecraft\\.world\\.entity\\.EntityType; import net\\.minecraft\\.world\\.entity\\.EntityTypes;',
+            'import net.minecraft.world.entity.EntityType;'
+        replace 'import net\\.minecraft\\.world\\.level\\.block\\.entity\\.BlockEntityType;',
+            'import net.minecraft.world.level.block.entity.BlockEntityType; import net.minecraft.world.level.block.entity.BlockEntityTypes;',
+            'import net\\.minecraft\\.world\\.level\\.block\\.entity\\.BlockEntityType; import net\\.minecraft\\.world\\.level\\.block\\.entity\\.BlockEntityTypes;',
+            'import net.minecraft.world.level.block.entity.BlockEntityType;'
+    }
 }
 
 version = project.mod_version
@@ -191,10 +221,13 @@ def resourceValues = [
     band                : sc.current.parsed.matches('>=26.1') ? 'B' : 'A',
     minecraft_dependency: project.minecraft_dependency.toString().trim(),
     java_version        : javaLevel.toString(),
+    // 26.2 keys entity predicates by sub-predicate ID: {"type": "minecraft:zombie"} became
+    // {"minecraft:entity_type": "minecraft:zombie"} (vanilla's charged_creeper/root.json changed the same way).
+    entity_type_predicate: sc.current.parsed.matches('>=26.2') ? 'minecraft:entity_type' : 'type',
 ]
 // The pattern list is an input too: Gradle doesn't fingerprint the filesMatching closure, so without it an edited list
 // leaves processResources UP-TO-DATE with stale output (gotchas.md 2026-10-14).
-def expandedResources = ['fabric.mod.json', '*.mixins.json']
+def expandedResources = ['fabric.mod.json', '*.mixins.json', 'data/enchanting2/loot_table/beheading/heads.json']
 tasks.withType(ProcessResources).configureEach {
     inputs.properties resourceValues
     inputs.property 'expandedResources', expandedResources

@@ -1506,3 +1506,21 @@ rendering changes sit in per-frame paths); one jar for 26.2 + 26.3 (16 differenc
 wants it).
 **Affects:** settings.gradle, matrix/, build.gradle (`gametestJar`, `matrixModJar`, `matrixGametestJar`),
 versions/26.1.2/gradle.properties, TODO.md Phase 12 (12D–12H re-cut)
+
+## 2026-10-15 — 12D: 26.2 differences, and data that differs by version (agent)
+**Context:** node `versions/26.2/` (band B2). 6 main + 5 client + ~30 GameTest compile errors, one data file.
+**Choice:** the 12B toolbox, cheapest first. Same code everywhere where an old API exists on all three
+(`BuiltInRegistries.ENTITY_TYPE.getOptional(Identifier.tryParse(id))` for `EntityType.byString`; `Vec3.atCenterOf`,
+`Language.has` in tests). `>=26.2` replacements for pure moves (`advancements.triggers`, `EntityTypes.<CONST>`,
+`BlockEntityTypes.<CONST>` with their imports, `minecraft.gui.toastManager()`, tests' `client.gui.screen()/setScreen`).
+`//? if >=26.2` for changed signatures (`knockback` + source, `Hud.isHidden()`, YACL's `MenuTabBar` overrides). A
+GameTest helper (`ClientWorlds`) for Fabric's thrice-moved chunk wait. **Data:** `heads.json`'s entity predicate key
+(`type` → `minecraft:entity_type`) is a `${entity_type_predicate}` template expanded by processResources, the same
+mechanism as `fabric.mod.json`. `matrix/26.2` is band B2's control node, so `linkCheck` covers its mixin selectors.
+**Why:** one source file per resource, and the expansion is already an input of every processResources task. The key
+came from vanilla's own `loot_table/charged_creeper/root.json` on each version, not from guessing the codec.
+**Rejected:** per-node resource copies (two files drift); a Fabric resource condition (none tests the game version);
+Stonecutter on JSON (no comment syntax to hide a variant in). Chained `>=26.1` + `>=26.2` replacements for the chunk
+wait (relies on the order Stonecutter applies rule sets in, both directions).
+**Affects:** build.gradle, heads.json, ModIdentityTest, ShieldBash, CollectedSpawners, LastStandHud,
+TabbedConfigScreen, gametest ClientWorlds + 11 tests, versions/26.2, matrix/26.2, settings.gradle
