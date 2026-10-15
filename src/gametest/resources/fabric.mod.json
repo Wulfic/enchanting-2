@@ -7,6 +7,8 @@
 	"entrypoints": {
 		"fabric-gametest": [
 			"com.wulfnet.enchanting2.gametest.BootGameTest",
+			"com.wulfnet.enchanting2.gametest.MixinAuditGameTest",
+			"com.wulfnet.enchanting2.gametest.SaveFormatGameTest",
 			"com.wulfnet.enchanting2.gametest.VanillaEnchantmentIdsGameTest",
 			"com.wulfnet.enchanting2.gametest.ConfigWiringGameTest",
 			"com.wulfnet.enchanting2.gametest.ExperienceGameTest",
@@ -45,6 +47,7 @@
 			"com.wulfnet.enchanting2.gametest.DoubleJumpGameTest"
 		],
 		"fabric-client-gametest": [
+			"com.wulfnet.enchanting2.gametest.MixinAuditClientGameTest",
 			"com.wulfnet.enchanting2.gametest.AnvilScreenClientGameTest",
 			"com.wulfnet.enchanting2.gametest.GrindstoneScreenClientGameTest",
 			"com.wulfnet.enchanting2.gametest.TableScreenClientGameTest",

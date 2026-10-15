@@ -1,24 +1,24 @@
 # Building from Source
 
-Needs **JDK 25** (Gradle runs on it; Fabric Loom requires it) and Git. The mod itself is compiled for Java 21: Gradle
-uses an installed JDK 21 or downloads one. The Gradle wrapper downloads everything else. With an older `JAVA_HOME`
+Needs **JDK 25** (Gradle runs on it; Fabric Loom requires it) and Git. The mod itself is compiled for each version's Java
+(21 for 1.21.11, 25 for 26.x): Gradle uses an installed JDK or downloads one. The Gradle wrapper downloads everything else. With an older `JAVA_HOME`
 the build stops at once and says which JDK to point it at.
 
 ```sh
 git clone https://github.com/Wulfic/enchanting-2.git
 cd enchanting-2
-./gradlew build                # jar in versions/1.21.11/build/libs/; runs the JUnit suite and the server GameTests
-./gradlew runClientGameTest    # client screen tests (opens a game window, about 2.5 minutes)
-./gradlew :1.21.11:runClient   # a development client with Mod Menu and YACL
-./gradlew :1.21.11:runServer   # a development server on port 25566
+./gradlew build                          # every version: jars in versions/<version>/build/libs/, JUnit + server GameTests
+./gradlew :1.21.11:runClientGameTest     # client screen tests for one version (opens a game window, ~3 minutes)
+./gradlew :1.21.11:runClient             # a development client with Mod Menu and YACL
+./gradlew :1.21.11:runServer             # a development server on port 25566
 ```
 
 On Windows use `gradlew.bat` (or `./gradlew` from Git Bash).
 
 The build uses [Stonecutter](https://stonecutter.kikugie.dev/): one source tree, one Gradle subproject per Minecraft
-version under `versions/<version>/` (that version's `gradle.properties` and build output). A bare task name like
-`build` runs in every version; `:1.21.11:` picks one. Run and launch tasks always name the version, or every
-version's game would start at once.
+version under `versions/<version>/` (that version's `gradle.properties` and build output): `1.21.11` and `26.1.2`.
+A bare task name like `build` runs in every version; `:1.21.11:` or `:26.1.2:` picks one. Run, launch and client
+GameTest tasks always name the version, or every version's game would start at once.
 
 ## Layout
 

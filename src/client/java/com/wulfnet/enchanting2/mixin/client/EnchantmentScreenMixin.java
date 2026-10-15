@@ -109,8 +109,8 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 	@Inject(method = "init", at = @At("HEAD"))
 	private void enchanting2$height(CallbackInfo ci) {
 		if (TableBridge.clientServerIsOurs()) {
-			imageWidth = TableWindow.WIDTH;
-			imageHeight = TableWindow.HEIGHT;
+			((AbstractContainerScreenAccessor) this).enchanting2$setImageWidth(TableWindow.WIDTH);
+			((AbstractContainerScreenAccessor) this).enchanting2$setImageHeight(TableWindow.HEIGHT);
 			inventoryLabelX = TableWindow.INVENTORY_LABEL_X;
 			inventoryLabelY = TableWindow.INVENTORY_LABEL_Y;
 		}
@@ -172,6 +172,10 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 
 	/** Absolute coordinates, before slots and labels: under any tooltip. */
 	@Inject(method = "renderBg", at = @At("TAIL"))
+	// 26.1's extractBackground takes the partial tick last.
+	//? if >=26.1 {
+	/*private void enchanting2$drawTable(GuiGraphics graphics, int mouseX, int mouseY, float partialTick,
+	*///?} else
 	private void enchanting2$drawTable(GuiGraphics graphics, float partialTick, int mouseX, int mouseY,
 			CallbackInfo ci) {
 		TableList list = enchanting2$list;

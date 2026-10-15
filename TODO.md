@@ -144,17 +144,43 @@ show `git log main..port/26x` first). Nothing is published until 12F.
         1.21.11 jar unchanged (same expanded text). Commit. Done 2026-10-14: jar diff = manifest only;
         `ModIdentityTest` checks the range is expanded and Java level = the test JVM's (fails with the mixin pattern
         dropped); the pattern list is a task input (gotchas).
-  - [ ] B3. Node `26.1.2`: settings.gradle `versions '1.21.11', '26.1.2'`, `versions/26.1.2/gradle.properties` (Java 25,
+  - [x] B3. Node `26.1.2`: settings.gradle `versions '1.21.11', '26.1.2'`, `versions/26.1.2/gradle.properties` (Java 25,
         the versions above, `run_root=run/26.1.2`, `mc_dependency` `>=26.1.2 <26.2-` until 12C widens it).
-  - [ ] B4. `:26.1.2:compileJava` + `compileClientJava`: write every error class into this file, then fix behind
+  - [x] B4. `:26.1.2:compileJava` + `compileClientJava`: write every error class into this file, then fix behind
         `//? if >=26.1` conditions (adapter class when one difference recurs in more than ~3 places). After each fix
         group: both nodes compile.
-  - [ ] B5. Mixin audit: every target method/descriptor/`@At` read against 26.1.2's decompiled source (`genSources`),
+        Done 2026-10-14 (uncommitted until B6 is green), every source set compiles on both nodes, no new warnings:
+        - Global replacements (build.gradle `stonecutter {}`): Fabric `PayloadTypeRegistry` renames; `GuiGraphics` →
+          `GuiGraphicsExtractor` (whole word); `graphics.drawString(` → `graphics.text(`; mixin `method =` names
+          renderBg/renderLabels/renderTooltip → extractBackground/extractLabels/tooltip; `ClickType` → `ContainerInput`;
+          GameTest-only `resizeDisplay` → `resizeGui`, `getClientWorld` → `getClientLevel`.
+        - Same code on both: `Level.getRandom()` (26.1 made `random` protected); window size through
+          `AbstractContainerScreenAccessor` (`@Mutable` setters: 26.1 made `imageWidth/Height` final).
+        - `port/LootTool` (3 callers): loot `TOOL` is an `ItemInstance` on 26.1 (`ItemStackTemplate` from `/loot`).
+        - `//?` conditions: `bypassedBy` TagKey → HolderSet; `EntityType.is` → `Entity.is`; `SingleItemRecipe.assemble`
+          lost its registry arg; `EnchantmentEvents.MODIFY` → `MODIFY_WITH_LOOKUP` (2 hooks); `extractBackground`
+          handlers take the partial tick last (3); `RowsBar.extractRenderState`.
+        - Villager trades are data on 26.1 (`VillagerTrade.getOffer(LootContext)` running loot functions):
+          `VillagerTradeScopeMixin` wraps it in TRADE scope; `EnchantBookForEmeraldsMixin` keeps the treasure price on
+          its `Stream.anyMatch`; `EnchantRandomlyFunctionMixin` uses the current scope (books roll there on 26.1).
+          `AcquisitionGameTest` runs the registry's librarian and weaponsmith trades on 26.1.
+  - [x] B5. Mixin audit: every target method/descriptor/`@At` read against 26.1.2's decompiled source (`genSources`),
         not just "it compiles"; a mixin that compiles but no longer means the same thing is the dangerous case.
-  - [ ] B6. GameTests compile + run on 26.1.2 (server, then client locally); fix behind conditions.
-  - [ ] B7. GameTest: a player/chunk written by 1.21.11 (attachments: `PlacedMarks`, `last_stand_ready_at`) reads back
+        Done 2026-10-14: 92 (mixin, method) targets diffed structurally between the two decompiled trees (scratchpad
+        `mixindiff.py`, locals ignored): 52 same, 30 cosmetic, 2 real (bucket `$3`, lava shape; fixed), 8 new or
+        renamed, checked by hand. `handleKeybinds` gained two `consumeClick` calls before our slice (safe).
+        `== null` sweep on vanilla results: one hit, the spawn-egg guard (fixed). `MixinAuditGameTest` and
+        `MixinAuditClientGameTest` force-load every target per node (mutation: a broken client mixin fails it).
+  - [x] B6. GameTests compile + run on 26.1.2 (server, then client locally); fix behind conditions.
+        Done 2026-10-14: 8 failures fixed (gotchas.md 2026-10-14, 12B entries); 339 server GameTests and 425 JUnit
+        green on both nodes; client GameTests green on both; 26.1.2 screenshots match 1.21.11's windows.
+  - [x] B7. GameTest: a player/chunk written by 1.21.11 (attachments: `PlacedMarks`, `last_stand_ready_at`) reads back
         on 26.1.2.
-  - [ ] B8. ci.yml builds both nodes (JDKs from every node file, already); state.md, decisions.md, gotchas; commit.
+        Done 2026-10-14: `SaveFormatGameTest` pins the `fabric:attachments` subtree 1.21.11 writes (entity: three
+        attachments) and asserts both directions on each node; chunk marks round-trip `SerializableChunkData`.
+  - [x] B8. ci.yml builds both nodes (JDKs from every node file, already); state.md, decisions.md, gotchas; commit.
+        ci.yml needed no change (Java 25 = Gradle's JDK; artifact glob per node); release.yml still refuses two
+        nodes until 12F. README + wiki build commands name the node (`runClientGameTest` too).
         **Blast radius (12B):** build files + source conditionals on `port/26x`. **Rollback:** `git revert` the 12B
         commits on `port/26x`, or `git switch main` (main untouched).
 - [ ] 12C **Runtime matrix (the feasibility gate):** nodes `26.2` and `26.3` run the 26.1.2 jar's server GameTests
@@ -180,6 +206,13 @@ show `git log main..port/26x` first). Nothing is published until 12F.
 **Risks:** rendering and `GuiGraphics` changes in the three window screens (26.2 was "primarily rendering"); YACL's
 API across its per-version builds; enchantment component or registry changes in `MODIFY` hooks and `LevelCeilings`;
 GameTest API changes in the gametest source set (it must also compile against the floor); 26.4 when it goes stable.
+
+## Client GameTest flake (open, agent)
+
+- [ ] Chase "Network synchronizer in invalid state" (gotchas.md 2026-10-13, third time 2026-10-14): three different
+      test worlds, always at world load. Next step: rerun `:1.21.11:runClientGameTest` with
+      `-Dfabric.client.gametest.disableNetworkSynchronizer` *off* but Fabric's debug logging on to catch the packet it
+      complains about; check whether our `ConfigSyncPayload` (sent in the configuration phase) is the low-level packet.
 
 ## Owner checks (open)
 

@@ -4,6 +4,7 @@ import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.config.ServerConfigs;
 import com.wulfnet.enchanting2.effect.SmeltingDrops;
+import com.wulfnet.enchanting2.port.LootTool;
 import com.wulfnet.enchanting2.spawner.CollectedSpawners;
 import java.util.ArrayList;
 import java.util.List;
@@ -61,7 +62,7 @@ public final class FortuneDrops {
 	/** The event handler with {@code mode} given rather than read from the server config. Mutates {@code drops}. */
 	public static void apply(Holder<LootTable> table, LootContext context, List<ItemStack> drops, SilkFortuneMode mode) {
 		BlockState state = context.getOptionalParameter(LootContextParams.BLOCK_STATE);
-		ItemStack tool = context.getOptionalParameter(LootContextParams.TOOL);
+		ItemStack tool = LootTool.of(context);
 		Vec3 origin = context.getOptionalParameter(LootContextParams.ORIGIN);
 		if (drops.isEmpty() || state == null || tool == null || tool.isEmpty() || origin == null) {
 			return;

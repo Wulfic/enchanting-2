@@ -114,13 +114,13 @@ differently. Blocks placed before you installed it count as natural for Fortune.
 ## Building from source
 
 ```sh
-./gradlew build                # jar in versions/1.21.11/build/libs/, runs the unit tests and server GameTests
-./gradlew runClientGameTest    # client screen tests (opens a game window)
-./gradlew :1.21.11:runClient   # a development client
+./gradlew build                        # every version: jars in versions/<version>/build/libs/, unit + server GameTests
+./gradlew :1.21.11:runClientGameTest   # client screen tests for one version (opens a game window)
+./gradlew :1.21.11:runClient           # a development client (or :26.1.2:)
 ```
 
-Gradle needs **JDK 25** to run (Fabric Loom requires it); the mod is compiled for Java 21, which Gradle downloads
-if you don't have it. The design spec is [docs/DESIGN.md](docs/DESIGN.md); changes are in [CHANGELOG.md](CHANGELOG.md).
+Gradle needs **JDK 25** to run (Fabric Loom requires it); the mod is compiled for Java 21 on 1.21.11 and Java 25 on
+26.x, and Gradle downloads a missing JDK. The design spec is [docs/DESIGN.md](docs/DESIGN.md); changes are in [CHANGELOG.md](CHANGELOG.md).
 Tests, CI and how releases are made: [Building from Source](https://github.com/Wulfic/enchanting-2/wiki/Building-from-Source).
 
 ## Contributing

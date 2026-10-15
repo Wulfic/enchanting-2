@@ -35,6 +35,10 @@ public final class MaxLevelHook {
 	}
 
 	public static void register() {
+		// Fabric API 26.1 deprecated MODIFY for MODIFY_WITH_LOOKUP (same call, plus a registry lookup unused here).
+		//? if >=26.1 {
+		/*EnchantmentEvents.MODIFY_WITH_LOOKUP.register((key, builder, source, registries) -> apply(key, builder));
+		*///?} else
 		EnchantmentEvents.MODIFY.register((key, builder, source) -> apply(key, builder));
 	}
 

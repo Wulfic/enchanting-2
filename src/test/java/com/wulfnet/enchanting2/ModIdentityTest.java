@@ -56,4 +56,20 @@ class ModIdentityTest {
 		assertEquals(">=" + java, depends.get("java").getAsString());
 		assertEquals("JAVA_" + java, resourceJson("/enchanting2.mixins.json").get("compatibilityLevel").getAsString());
 	}
+
+	/**
+	 * Phase 12B: a mixin only one band needs is listed inside a {@code <% if (band == ...) %>} template block. After
+	 * expansion every listed name must be a class in the mixin package, with no template text left over.
+	 */
+	@Test
+	void everyListedMixinIsAClass() throws Exception {
+		JsonObject config = resourceJson("/enchanting2.mixins.json");
+		String pkg = config.get("package").getAsString();
+		for (var name : config.getAsJsonArray("mixins")) {
+			String mixin = name.getAsString();
+			assertFalse(mixin.contains("<%") || mixin.contains("%>"), "template text left in the mixin list: " + mixin);
+			assertNotNull(ModIdentityTest.class.getClassLoader().getResource(
+					(pkg + "." + mixin).replace('.', '/') + ".class"), "listed mixin has no class: " + mixin);
+		}
+	}
 }

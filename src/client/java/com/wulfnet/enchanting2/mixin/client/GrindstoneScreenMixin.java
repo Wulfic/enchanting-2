@@ -71,7 +71,7 @@ abstract class GrindstoneScreenMixin extends AbstractContainerScreen<GrindstoneM
 	protected void init() {
 		boolean ours = GrindstoneBridge.clientServerIsOurs();
 		if (ours) {
-			imageWidth = ColumnWindow.WIDTH;
+			((AbstractContainerScreenAccessor) this).enchanting2$setImageWidth(ColumnWindow.WIDTH);
 		}
 		super.init();
 		enchanting2$list = ours ? new GrindstoneList(font) : null;
@@ -100,6 +100,10 @@ abstract class GrindstoneScreenMixin extends AbstractContainerScreen<GrindstoneM
 
 	/** Absolute coordinates, before slots and labels: under any tooltip. */
 	@Inject(method = "renderBg", at = @At("TAIL"))
+	// 26.1's extractBackground takes the partial tick last.
+	//? if >=26.1 {
+	/*private void enchanting2$drawList(GuiGraphics graphics, int mouseX, int mouseY, float partialTick,
+	*///?} else
 	private void enchanting2$drawList(GuiGraphics graphics, float partialTick, int mouseX, int mouseY,
 			CallbackInfo ci) {
 		GrindstoneList list = enchanting2$list;

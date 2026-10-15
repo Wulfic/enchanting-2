@@ -12,6 +12,10 @@ import org.spongepowered.asm.mixin.gen.Invoker;
  */
 @Mixin(Entity.class)
 public interface EntityInvoker {
+	// 26.1 folded it into updateFluidInteraction (same flags; returns "in water or lava").
+	//? if >=26.1 {
+	/*@Invoker("updateFluidInteraction")
+	*///?} else
 	@Invoker("updateInWaterStateAndDoFluidPushing")
 	boolean e2test$updateInWaterStateAndDoFluidPushing();
 

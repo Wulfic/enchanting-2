@@ -1460,3 +1460,29 @@ for 1.21.11 too (would orphan the owner's existing `run/client` saves).
 **Affects:** settings.gradle, stonecutter.gradle, build.gradle, gradle.properties, versions/1.21.11/gradle.properties,
 .github/workflows/ci.yml, .github/workflows/release.yml, scripts/dev-server-smoke.sh, README.md,
 wiki/Building-from-Source.md
+
+## 2026-10-14 — 12B: how band differences are written (agent)
+**Context:** the 26.1.2 node had ~70 compile errors over main, client and GameTests, then 8 apply/behaviour failures.
+1.21.11 stays in step (owner), so every difference lives in the shared source.
+**Choice:** four tools, cheapest first:
+1. Same code on both when an API exists on both (`Level.getRandom()`, `@Mutable` accessor for the window size).
+2. Stonecutter global replacements in build.gradle for pure renames with unchanged parameters (Fabric
+   `PayloadTypeRegistry`, `GuiGraphics` → `GuiGraphicsExtractor`, `drawString` → `text`, mixin `method =` names,
+   `ClickType` → `ContainerInput`). Each is spelled with its receiver or attribute (`graphics.text(`, `method = "..."`)
+   so the reverse direction can't rewrite an unrelated call when the active version is switched back.
+3. `//? if >=26.1` conditions at the site for anything that changes a signature or meaning (25 conditions in 17
+   files, 2 of them GameTests; `grep -rn "//? if" src`).
+4. A `port/` adapter class when one difference has more than ~3 callers (`LootTool`, 3).
+A mixin only one band needs is listed in its `*.mixins.json` inside a Groovy template block (`<% if (band == 'A') %>`),
+expanded by processResources with `band`, `java_version`, `minecraft_dependency`. Target numbers and lambda names are
+chosen by javap on that band's jar. Two GameTests guard the result on every node: `MixinAudit(Client)GameTest`
+force-loads every mixin target (it caught a broken client mixin in a mutation run), `SaveFormatGameTest` pins the
+`fabric:attachments` format 1.21.11 writes.
+**Why:** replacements keep 26.1's ~40 rename sites out of the source entirely; conditions stay where a reader needs to
+see both versions. Groovy templates avoid an `IMixinConfigPlugin` for one band-only mixin.
+**Rejected:** Kotlin DSL / Stonecutter swaps (more machinery for the same result); porting `RegistryDataLoaderMixin` to
+26.1's async loader (internals; Fabric's `MODIFY_WITH_LOOKUP` hands over the same lookup); a bare `.drawString(` →
+`.text(` replacement (its reverse would hit `drawn.text()`).
+**Count for the split rule (12C):** inside band B nothing is adapted yet; these are A↔B differences, which the band
+split pays for.
+**Affects:** build.gradle, port/LootTool.java, the 17 conditioned files, enchanting2.mixins.json, src/gametest

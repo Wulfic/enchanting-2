@@ -531,6 +531,10 @@ between the client and integrated server per tick.
 tests drive real input) before suspecting the change under test.
 **Seen again** 2026-10-13 (10oC), same place (the world after the config-screen test); the rerun was green. Twice
 in one day now: if it shows a third time, chase it instead of rerunning.
+**Third time** 2026-10-14 (12B, 1.21.11 node): this time while the *grindstone* test's world loaded, right after
+the anvil test and before any test body ran ("Detected interfacing with packets at a lower level" 10 s after spawn
+prep). Three different spots, so not one test's input; looks like a race in the synchronizer during world load. The
+rerun was green and the commit went ahead on that; chasing it is its own TODO item ("Client GameTest flake").
 
 ## 2026-10-13 — A full-height box must clear vanilla's part at full height, not just the top band (10oC)
 **Symptom:** the grindstone's picker box covered the inventory's 9th column, and the client GameTest's "a click in
@@ -651,3 +655,40 @@ Build output moved to `versions/<node>/build/` (libs, test results, `run/gameTes
 **Fix:** the pattern list is a named value and an input (`inputs.property 'expandedResources', expandedResources`);
 editing it now re-runs the task. Any future processResources closure that reads values must declare them the same way.
 **Affects:** build.gradle (processResources), any mutation check that edits build logic
+
+## 2026-10-14 — 26.1: a stale anonymous-class number applies without an error (12B)
+**Symptom:** on 26.1.2 only `InfiniteBucketGameTest`'s dispenser case failed (an empty bucket came back). No mixin
+error: `DispenseItemBehavior$4` exists there and its `execute` also calls `consumeWithRemainder`, so the
+`@ModifyArg` applied to the wrong dispenser behaviour.
+**Cause:** javac numbers anonymous classes by source order; 26.1 removed one before the bucket behaviour, so it is `$3`
+(javap: the class calling `DispensibleContainerItem.emptyContents`). Same risk for lambda names (`lambda$onTake$0`
+replaced intermediary `method_24922` in `AnvilMenuMixin`).
+**Fix:** `//?` conditions per band, chosen by javap on the target jar, never by "it applied". `GrindstoneMenu$4` was
+checked and is the same class on both. 12C must re-check every numbered target (`$3`, `$4`, `lambda$...$0`) per line.
+**Affects:** mixin/BucketDispenseBehaviorMixin.java, mixin/AnvilMenuMixin.java, mixin/GrindstoneMenu*Mixin
+
+## 2026-10-14 — 26.1: an API that now returns Optional compiles against an old `== null` guard (12B)
+**Symptom:** `SpawnerGameTest.aStampedSpawnerOfAnEgglessTypePlacesEmpty` failed on 26.1.2: a forged spawner item set
+primed TNT as the mob. Compiled without a warning.
+**Cause:** `SpawnEggItem.byId` went from a nullable `SpawnEggItem` to `Optional<Holder<Item>>` (any item whose default
+`ENTITY_DATA` names the type). `Optional == null` is legal Java and always false, so the forged-item guard passed
+everything.
+**Fix:** 26.1 branch filters for a real `SpawnEggItem` and tests `isEmpty()`. B5 sweeps every `== null` / `!= null`
+on a Minecraft call's result against 26.1's return types.
+**Affects:** spawner/CollectedSpawners.java; any null check on a vanilla return value
+
+## 2026-10-14 — 26.1 moved lava's stable shape into LivingEntity.getLiquidCollisionShape (12B)
+**Symptom:** Lava Walking: three `BootsGameTest` cases sank on 26.1.2 although `canStandOnFluid` still said yes.
+**Cause:** `LiquidBlock.getCollisionShape` now maps the entity to `getLiquidCollisionShape()`, empty for everything but
+striders, then filters with `canStandOnFluid`. A yes there has no shape to keep.
+**Fix:** 26.1 only: `LivingEntityMixin` returns the strider's column (`Block.column(16, 0, 8)`) for a lava walker;
+the existing filter and the flowing-lava hook (`LiquidBlockMixin`) are unchanged.
+**Affects:** mixin/LivingEntityMixin.java, effect/Footing.java
+
+## 2026-10-14 — 26.1's RegistryDataLoader has no per-element method; MODIFY_WITH_LOOKUP replaces the lend (12B)
+**Symptom:** `RegistryDataLoaderMixin` failed to apply on 26.1.2 (`loadElementFromResource` gone; the loader is an
+async pipeline now).
+**Fix:** on 26.1, `ItemWideningHook` takes items from Fabric's `MODIFY_WITH_LOOKUP` lookup; the mixin is listed only
+for band A through a Groovy template block in `enchanting2.mixins.json` (`<% if (band == 'A') { %>`), expanded by
+processResources. `ModIdentityTest.everyListedMixinIsAClass` guards the template.
+**Affects:** enchantment/ItemWideningHook.java, mixin/RegistryDataLoaderMixin.java, enchanting2.mixins.json, build.gradle

@@ -77,7 +77,7 @@ abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> implements
 	private void enchanting2$width(AnvilMenu menu, Inventory inventory, Component title, CallbackInfo ci) {
 		enchanting2$wide = AnvilBridge.clientServerIsOurs();
 		if (enchanting2$wide) {
-			imageWidth = ColumnWindow.WIDTH;
+			((AbstractContainerScreenAccessor) this).enchanting2$setImageWidth(ColumnWindow.WIDTH);
 		}
 	}
 
@@ -114,6 +114,10 @@ abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> implements
 
 	/** Absolute coordinates, before slots and labels: under any tooltip. */
 	@Inject(method = "renderBg", at = @At("TAIL"))
+	// 26.1's extractBackground takes the partial tick last.
+	//? if >=26.1 {
+	/*private void enchanting2$drawBox(GuiGraphics graphics, int mouseX, int mouseY, float partialTick,
+	*///?} else
 	private void enchanting2$drawBox(GuiGraphics graphics, float partialTick, int mouseX, int mouseY,
 			CallbackInfo ci) {
 		AnvilBox box = enchanting2$box;

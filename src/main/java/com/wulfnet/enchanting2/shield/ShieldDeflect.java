@@ -44,6 +44,9 @@ public final class ShieldDeflect {
 	 */
 	public static ProjectileDeflection deflection(Entity target, Projectile projectile) {
 		if (!(target instanceof LivingEntity blocker) || !(target.level() instanceof ServerLevel level)
+				//? if >=26.1 {
+				/*|| !projectile.is(DEFLECTABLE)) {
+				*///?} else
 				|| !projectile.getType().is(DEFLECTABLE)) {
 			return ProjectileDeflection.NONE;
 		}
@@ -78,6 +81,10 @@ public final class ShieldDeflect {
 		DamageSource source = projectile instanceof AbstractArrow arrow
 				? level.damageSources().arrow(arrow, projectile.getOwner())
 				: level.damageSources().thrown(projectile, projectile.getOwner());
+		// 26.1 turned bypassed_by from a damage type tag into a HolderSet (vanilla LivingEntity checks it the same way).
+		//? if >=26.1 {
+		/*if (blocking.bypassedBy().map(types -> types.contains(source.typeHolder())).orElse(false)) {
+		*///?} else
 		if (blocking.bypassedBy().map(source::is).orElse(false)) {
 			return false;
 		}

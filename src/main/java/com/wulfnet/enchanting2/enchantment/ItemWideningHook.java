@@ -15,10 +15,11 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Points the {@link ItemWidening} enchantments at our item tags while enchantments load (Phase 10gA). {@code MODIFY}
- * gets no registry lookup, and the static item registry's tags aren't bound yet at this point, so
- * {@code RegistryDataLoaderMixin} lends us the item lookup the JSON itself was parsed with, for the length of one
- * element's load. Like {@link MaxLevelHook}, {@code /reload} doesn't re-run this; the tags' contents do reload.
+ * Points the {@link ItemWidening} enchantments at our item tags while enchantments load (Phase 10gA). The static item
+ * registry's tags aren't bound yet at this point, so it needs the item lookup the JSON itself was parsed with. On
+ * 1.21.11 {@code MODIFY} gets no lookup and {@code RegistryDataLoaderMixin} lends it for the length of one element's
+ * load; on 26.1 {@code MODIFY_WITH_LOOKUP} passes it (Phase 12B), and that mixin isn't applied. Like
+ * {@link MaxLevelHook}, {@code /reload} doesn't re-run this; the tags' contents do reload.
  */
 public final class ItemWideningHook {
 	/** The item lookup of the element being loaded, set only around {@code loadElementFromResource}. */
@@ -28,10 +29,17 @@ public final class ItemWideningHook {
 	}
 
 	public static void register() {
-		EnchantmentEvents.MODIFY.register((key, builder, source) -> apply(key, builder));
+		// Fabric API 26.1 deprecated MODIFY for MODIFY_WITH_LOOKUP, which passes the lookup the JSON was parsed with: the
+		// items come from it there. 1.21.11's MODIFY has none, so RegistryDataLoaderMixin lends it (band A only).
+		//? if >=26.1 {
+		/*EnchantmentEvents.MODIFY_WITH_LOOKUP.register((key, builder, source, registries) -> apply(key, builder,
+				registries.<Item>lookup(Registries.ITEM).map(net.minecraft.resources.RegistryOps.RegistryInfo::getter)
+						.orElse(null)));
+		*///?} else
+		EnchantmentEvents.MODIFY.register((key, builder, source) -> apply(key, builder, ITEMS.get()));
 	}
 
-	/** Called by the loader mixin before an element loads; {@code null} clears it afterwards. */
+	/** 1.21.11: called by the loader mixin before an element loads; {@code null} clears it afterwards. */
 	public static void lend(@Nullable HolderGetter<Item> items) {
 		if (items == null) {
 			ITEMS.remove();
@@ -40,7 +48,8 @@ public final class ItemWideningHook {
 		}
 	}
 
-	private static void apply(ResourceKey<Enchantment> key, Enchantment.Builder builder) {
+	private static void apply(ResourceKey<Enchantment> key, Enchantment.Builder builder,
+			@Nullable HolderGetter<Item> items) {
 		String id = key.identifier().toString();
 		ItemWidening.Row row = ItemWidening.ROWS.get(id);
 		if (row == null) {
@@ -56,7 +65,6 @@ public final class ItemWideningHook {
 					d.primaryItems().map(ItemWideningHook::describe).orElse("none"), row.supported());
 			return;
 		}
-		HolderGetter<Item> items = ITEMS.get();
 		if (items == null) {
 			Enchanting2.LOGGER.warn("{} was not loaded from a data file, so there's no item lookup to widen it to {}; it "
 					+ "keeps vanilla's items.", id, row.supported());

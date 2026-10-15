@@ -113,15 +113,20 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
   `elytra/WornElytra`); Flight's wear hook wraps the `updateFallFlying` call in `aiStep`. Gametest stub of the mod.
 - 12A (2026-10-14, branch `port/26x`): Stonecutter 0.9.8 + loom-back-compat 0.4.3, one node `versions/1.21.11/`
   (per-node gradle.properties, `run_root`), Groovy; jar = v1.0.1 entry for entry. Run tasks are node-qualified.
-- Tests: 423 JUnit + 336 GameTests (`./gradlew build`, also in CI) + 8 client GameTests (`./gradlew runClientGameTest`).
+- 12B (2026-10-14): node `versions/26.1.2/` (Java 25, Loom 1.18.4); renames as Stonecutter replacements in
+  build.gradle, 25 `//?` conditions, `port/LootTool`; band-only mixins via `<% if (band == 'A') %>` in mixins.json.
+- Tests per node: 425 JUnit + 339 GameTests (`./gradlew build`, both nodes, also in CI) + 9 client GameTests
+  (`./gradlew :<node>:runClientGameTest`, one node at a time).
 
 ## What's next
 0. **v1.0.1** (2026-10-14): the 11f Elytra Slot fix, released from a pushed `v1.0.1` tag (release.yml). Owner: try
    `enchanting2-1.0.1.jar` in the Prism instance with the Flight elytra in Elytra Slot's slot.
 1. **Phase 12, version bands** (TODO.md; decisions.md 2026-10-14 "Version bands, mcMMO-style"): band A 1.21.11, band B
    every 26.x in one jar built on 26.1.2 and proven per runtime by a GameTest matrix (12C is the gate), as few 26.x
-   bands as hold up (owner 2026-10-14). 12A done on `port/26x`; next 12B: add the `26.1.2` node (Java 25, Loom 1.18.4
-   likely; versions from mcMMO-Singleplayer branch `mc/26.1.2` and CullLeaves' properties), then fix what breaks.
+   bands as hold up (owner 2026-10-14); 1.21.11 stays in step (owner, 2026-10-14). 12A and 12B done on `port/26x`.
+   **12B (2026-10-14):** node `26.1.2` green (425 JUnit, 339 server GameTests, client
+   GameTests) next to 1.21.11; differences per decisions.md "12B: how band differences are written". Next: 12C, run
+   the 26.1.2 jar on 26.2 and 26.3 (runtime-only nodes), re-check every javap-chosen target (`$3`, `lambda$onTake$0`).
 2. Owner checks and housekeeping: TODO.md "Owner checks (open)" and "Owner housekeeping" (the full list moved there
    from this file on 2026-10-14; TODO.md was trimmed to open work, old notes at `git show fd3504c:TODO.md`).
    A new enchantment still adds a `LevelCeilings` row, a `.desc` line, tags, a price row if single-level, docs rows.
@@ -148,5 +153,9 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
 - A new GameTest class must be listed in `src/gametest/resources/fabric.mod.json` or it silently never runs.
 - The client GameTest flake "Network synchronizer in invalid state" hit twice on 2026-10-13 (gotchas.md): rerun once;
   a third time means chase it.
-- `./gradlew build` runs JUnit + server GameTests only. Run `./gradlew runClientGameTest` too for client changes (opens
-  a game window, ~2.5 min; screenshots in `versions/1.21.11/build/run/clientGameTest/screenshots/`).
+- `./gradlew build` runs JUnit + server GameTests on every node. Run `./gradlew :<node>:runClientGameTest` too for
+  client changes, one node at a time (opens a game window, ~3 min; screenshots in
+  `versions/<node>/build/run/clientGameTest/screenshots/`). A change is done when both nodes are green.
+- `src/` is written for 1.21.11 (`vcsVersion`); 26.x code sits in `//? if >=26.1` comments and in build.gradle's
+  `stonecutter { replacements }`. Read `versions/26.1.2/build/generated/stonecutter/` to see what 26.1.2 compiles.
+  Never commit with `stonecutter.active` switched away from 1.21.11. Pick anonymous-class / lambda targets by javap.

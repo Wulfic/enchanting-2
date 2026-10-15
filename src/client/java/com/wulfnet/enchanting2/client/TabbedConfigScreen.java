@@ -100,6 +100,10 @@ public final class TabbedConfigScreen extends YACLScreen {
 
 		/** Vanilla's header line beside each row (the buttons draw their own under them), then the buttons. */
 		@Override
+		// 26.1 renamed Renderable.render to extractRenderState.
+		//? if >=26.1 {
+		/*public void extractRenderState(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		*///?} else
 		public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
 			for (int row = 0; row < rows.rows(); row++) {
 				int y = (row + 1) * TabRows.ROW_HEIGHT - 2;
@@ -107,6 +111,9 @@ public final class TabbedConfigScreen extends YACLScreen {
 				separator(graphics, width - TabRows.MARGIN, width, y);
 			}
 			for (TabButton button : buttons()) {
+				//? if >=26.1 {
+				/*button.extractRenderState(graphics, mouseX, mouseY, partialTick);
+				*///?} else
 				button.render(graphics, mouseX, mouseY, partialTick);
 			}
 		}

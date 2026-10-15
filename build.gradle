@@ -6,6 +6,40 @@ plugins {
     id 'dev.kikugie.loom-back-compat'
 }
 
+// Pure renames between band A (1.21.11) and band B (26.x), applied to every source file when Stonecutter generates a
+// node's sources. A rename that needs more than a name change gets a //? condition or a port/ adapter instead.
+stonecutter {
+    // Fabric API 26.1 renamed its payload registries to Mojang's terms (Fabric "Porting to 26.1").
+    replacements.string(sc.current.parsed.matches('>=26.1')) {
+        replace 'PayloadTypeRegistry.configurationS2C()', 'PayloadTypeRegistry.clientboundConfiguration()'
+        replace 'PayloadTypeRegistry.playS2C()', 'PayloadTypeRegistry.clientboundPlay()'
+        replace 'PayloadTypeRegistry.playC2S()', 'PayloadTypeRegistry.serverboundPlay()'
+    }
+    // 26.1 renamed GuiGraphics to GuiGraphicsExtractor. Whole words only, so GuiGraphicsMixin (listed by name in
+    // enchanting2.client.mixins.json) keeps its name; a regex needs its reverse spelled out.
+    replacements.regex(sc.current.parsed.matches('>=26.1')) {
+        replace '\\bGuiGraphics\\b', 'GuiGraphicsExtractor', '\\bGuiGraphicsExtractor\\b', 'GuiGraphics'
+    }
+    // 26.1's "render" -> "extract" renames that keep their parameters. Each is spelled with its receiver or its mixin
+    // attribute so the reverse direction can't hit an unrelated text()/tooltip() call. renderBg also reordered its
+    // parameters (float last): its handlers carry a //? condition as well.
+    replacements.string(sc.current.parsed.matches('>=26.1')) {
+        replace 'graphics.drawString(', 'graphics.text('
+        replace 'method = "renderBg"', 'method = "extractBackground"'
+        replace 'method = "renderLabels"', 'method = "extractLabels"'
+        replace 'method = "renderTooltip"', 'method = "tooltip"'
+        replace 'protected void renderLabels(', 'protected void extractLabels('
+        replace 'super.renderLabels(', 'super.extractLabels('
+        // Same method, new names (GameTests only): Minecraft.resizeDisplay, Fabric's client GameTest world accessor.
+        replace 'client.resizeDisplay()', 'client.resizeGui()'
+        replace '.getClientWorld()', '.getClientLevel()'
+    }
+    // 26.1 renamed the ClickType enum (same constants) to ContainerInput.
+    replacements.regex(sc.current.parsed.matches('>=26.1')) {
+        replace '\\bClickType\\b', 'ContainerInput', '\\bContainerInput\\b', 'ClickType'
+    }
+}
+
 version = project.mod_version
 group = project.maven_group
 
@@ -127,8 +161,11 @@ if (!project.hasProperty('minecraft_dependency') || project.minecraft_dependency
     throw new GradleException("${project.relativePath(file('gradle.properties'))} must declare minecraft_dependency=" +
         "<fabric.mod.json range>, e.g. minecraft_dependency=~1.21.11")
 }
+// band: 'A' = obfuscated 1.21.11, 'B' = 26.x. A mixin that only one band needs is listed inside
+// <% if (band == 'A') { %>...<% } %> in its *.mixins.json (Groovy template, expanded with the values below).
 def resourceValues = [
     version             : project.version.toString(),
+    band                : sc.current.parsed.matches('>=26.1') ? 'B' : 'A',
     minecraft_dependency: project.minecraft_dependency.toString().trim(),
     java_version        : javaLevel.toString(),
 ]

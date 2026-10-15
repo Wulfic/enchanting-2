@@ -3,6 +3,7 @@
 	"package": "com.wulfnet.enchanting2.mixin.client",
 	"compatibilityLevel": "JAVA_${java_version}",
 	"client": [
+		"AbstractContainerScreenAccessor",
 		"AnvilScreenMixin",
 		"EnchantmentScreenMixin",
 		"GrindstoneScreenMixin",

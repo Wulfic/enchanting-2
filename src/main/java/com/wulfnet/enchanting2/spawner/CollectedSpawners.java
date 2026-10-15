@@ -1,6 +1,7 @@
 package com.wulfnet.enchanting2.spawner;
 
 import com.wulfnet.enchanting2.Enchanting2;
+import com.wulfnet.enchanting2.port.LootTool;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.core.BlockPos;
@@ -84,7 +85,7 @@ public final class CollectedSpawners {
 			return;
 		}
 		ServerLevel level = context.getLevel();
-		if (!collects(collectSpawners, context.getOptionalParameter(LootContextParams.TOOL), level.registryAccess())) {
+		if (!collects(collectSpawners, LootTool.of(context), level.registryAccess())) {
 			return;
 		}
 		BlockEntity blockEntity = context.getOptionalParameter(LootContextParams.BLOCK_ENTITY);
@@ -143,6 +144,11 @@ public final class CollectedSpawners {
 			return false;
 		}
 		Optional<EntityType<?>> mob = mobOf(data.copyTagWithoutId());
+		// The guard against forged items. 26.1's byId returns an Optional (any item whose default entity data names the
+		// type), so a leftover "== null" there compiles and lets every type through: it must be a spawn egg (Phase 12B).
+		//? if >=26.1 {
+		/*if (mob.isEmpty() || SpawnEggItem.byId(mob.get()).filter(egg -> egg.value() instanceof SpawnEggItem).isEmpty()) {
+		*///?} else
 		if (mob.isEmpty() || SpawnEggItem.byId(mob.get()) == null) {
 			Enchanting2.LOGGER.warn("{} placed a stamped spawner at {} naming {}, which has no spawn egg; left empty",
 					player == null ? "Something" : player.getName().getString(), pos,
