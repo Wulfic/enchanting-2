@@ -116,7 +116,7 @@ differently. Blocks placed before you installed it count as natural for Fortune.
 ```sh
 ./gradlew build                        # every version: jars in versions/<version>/build/libs/, unit + server GameTests
 ./gradlew :1.21.11:runClientGameTest   # client screen tests for one version (opens a game window)
-./gradlew :1.21.11:runClient           # a development client (or :26.1.2:)
+./gradlew :1.21.11:runClient           # a development client (or :26.1.2:, :26.2:)
 ```
 
 Gradle needs **JDK 25** to run (Fabric Loom requires it); the mod is compiled for Java 21 on 1.21.11 and Java 25 on
