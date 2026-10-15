@@ -294,6 +294,58 @@ show `git log main..port/26x` first). Nothing is published until 12F.
         dispatch CI (`gh workflow run ci.yml --ref port/26x`: ci.yml only triggers on main and PRs).
 - [ ] 12E **Band B3, node 26.3:** same steps (Fabric API 0.163.0+26.3, YACL 3.9.7+26.3-fabric, Mod Menu 21.0.0).
       Biggest port so far: GUI rendering (`RenderPipeline`, `blit`), loot context API, moved mixin targets.
+      Range `>=26.3 <26.4-` (26.4 is a snapshot, out of scope). Start list = 12C findings for 26.3 (23 mod-side; 16
+      differ from 26.2 too). Exit: `./gradlew build` green on all four nodes; client GameTests on 26.3 (and on any
+      node whose code a 26.3 change touched); 1.21.11 / 26.1.2 / 26.2 jars unchanged but for shared-code edits.
+      **Blast radius:** source conditions + a new node + `matrix/26.3` control on `port/26x`; additive.
+      **Rollback:** `git revert` the 12E commits (main untouched).
+  - [x] E1. `versions/26.3/gradle.properties`, settings.gradle `versions ... '26.3'`, `matrix/26.3` control node.
+        Check the 26.x direction replacements/conditions also hold for 26.3.
+  - [x] E2. `:26.3:compileJava`, `compileClientJava`, `compileGametestJava`: error groups written here, fixed behind
+        `>=26.3` replacements / `//? if >=26.3` / `port/` adapters (past ~3 callers). All four nodes compile after each.
+        Done 2026-10-15 (28 main, ~16 client, 2 GameTest errors; no new warnings in main/client):
+        - Same code everywhere: `InputConstants.MOUSE_BUTTON_LEFT` / `KEY_LCONTROL` for GLFW's (26.3 dropped
+          `org.lwjgl.glfw` and renumbered: left button is **1** there, 0 before; 3 mixins + 5 client GameTests);
+          `FortuneDrops.silkChangedDrop` takes the already-checked origin (no `getParameter`); the fuel GameTest drives
+          a real furnace (hopper rule, fuel slot, burn, with a lit control furnace) instead of `FuelValues`.
+        - `>=26.3` replacements: `context.getOptionalParameter(` → `getOptional(`; `RegistryCodecs` package +
+          `homogeneousList` → `holderSet`; `.hurtMarked` → `.syncVelocity`; `EnderMan` → `Enderman`;
+          `invulnerableTime = 0` → `setInvulnerableTime(0)`; `RenderPipeline` → `com.mojang.renderpearl.api.pipeline`
+          (import and the `@At` descriptors).
+        - `//? if >=26.3`: `ItemWideningHook` (lookup returns the getter), `KeepOnDeath` drop (`Prediction.SERVER_ONLY`),
+          `ShieldDeflect.atShooter` (power `Vec3`), `ProjectileMixin` (two `deflect` overloads: the Vec3 one by
+          descriptor), `ShieldsGameTest` deflect call.
+  - [x] E3. Mixin targets that moved: `EnderMan` → `Enderman` (rename); `HoeItem` gone (hoes are plain items with a
+        `block_transformer` component): `HoeItemMixin` wraps `BlockTransformer.transformBlock` on 26.3; `FuelValues`
+        gone (fuel = `cooking_fuel` component): `FuelValuesMixin` before 26.3, `FurnaceMenuFuelMixin` (`isFuel`) +
+        `FurnaceBlockEntityFuelMixin` (`getBurnDuration`, `has` in `canPlaceItem`) from 26.3, listed by the
+        `fuel_component` template flag. `:matrix-26.3:linkCheck` 0 problems (it caught 5 stale `RenderPipeline`
+        descriptors in `@At` strings first).
+  - [x] E4. Data: any loot table / predicate that no longer parses on 26.3 (check the server log for load errors).
+        Done: 26.3 reshaped loot conditions and functions (one `condition` / `modifier`, dispatched on `type`; damage
+        tag predicates `#tag`). Two enchantments failed loudly; `heads.json` and the e2test tables loaded with their
+        lists silently dropped (gotchas). processResources upgrades `loot_table/`, `enchantment/`, `predicate/`,
+        `item_modifier/` JSON on 26.3+ (decisions.md "12E"); `ModIdentityTest.lootConditionsAreInThisNodesFormat`
+        (mutation: upgrade off → red on 26.3).
+  - [x] E5. Mixin audit: `:matrix-26.3:linkCheck` 0 problems, then the body diff 26.2 → 26.3 of every injected method.
+        Done: body diff (scratch `mixindiff.py`, rewritten) 58 same / 28 changed, each read: real breaks were the three
+        `setBlock` → `setBlockAndUpdate` wraps (`LavaFluidMixin`, `EndermanLeaveBlockGoalMixin`,
+        `FallingBlockEntityMixin`, conditioned) and `hurtServer`'s cooldown field (`damageCooldownTime`, replacement);
+        `deflect` overloads handled in E2. javap: bucket dispenser still `$3`, `AnvilMenu.lambda$onTake$0`, grindstone
+        `$2/$3/$4` unchanged; `MinecraftMixin`'s slice still lands on `keyAttack`; `anyMatch` still in `getOffer`.
+  - [ ] E6. Server GameTests on 26.3, then client GameTests (screenshots checked against 26.2's).
+        Server: 339/339 on 26.3. **Client: RED, one failure** (2026-10-15, session ended on the weekly token limit):
+        `AssertionError: one notch down scrolled it: 0` (tall-tooltip scroll test). Suspect `MouseHandlerMixin`: 26.3's
+        `onScroll` became public and checks `handle != 0L && handle == window.handle()`, so Fabric's simulated scroll
+        may never reach `Screen.mouseScrolled`; or the scroll sign/units changed with 26.3's new input layer (the
+        mouse buttons were renumbered). Log: rerun `./gradlew :26.3:runClientGameTest`; read 26.3 `MouseHandler.onScroll`
+        and Fabric's `TestInput.scroll`. Screenshots not yet compared with 26.2's.
+  - [x] E7. `./gradlew build` on all four nodes; jar diff of the other three before/after.
+        Done: 427 JUnit + 339/339 server GameTests on 1.21.11, 26.1.2, 26.2, 26.3. Jar diff vs HEAD (baseline built in a
+        scratch worktree; scratch `jardiff.py`): on the three older nodes only `FortuneDrops` differs in code (shared
+        edit); 9 classes in line numbers; data, mixin configs, client classes byte-identical, so their client GameTests
+        weren't rerun.
+  - [ ] E8. decisions/gotchas/state; commit; push `port/26x`; dispatch CI.
 - [ ] 12F **Scripts and process:** `scripts/` task that builds every node and runs the matrix with a per-node report.
       CI: every node's build + the matrix's link checks and server GameTests. AGENTS.md and state.md: "done" = green on
       every node and every matrix version.

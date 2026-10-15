@@ -32,9 +32,20 @@ abstract class ProjectileMixin implements DeflectState {
 		enchanting2$deflectRolled = true;
 	}
 
+	// 26.3 has two deflect overloads (power as a double or per axis); the double one calls the Vec3 one, which is the
+	// one picked here by descriptor so the owner goes on exactly once.
+	//? if >=26.3 {
+	/*@Inject(method = "deflect(Lnet/minecraft/world/entity/projectile/ProjectileDeflection;"
+			+ "Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/entity/EntityReference;Z"
+			+ "Lnet/minecraft/world/phys/Vec3;)Z", at = @At("RETURN"))
+	private void enchanting2$deflectedByShield(ProjectileDeflection deflection, Entity deflector,
+			EntityReference<Entity> owner, boolean byAttack, net.minecraft.world.phys.Vec3 power,
+			CallbackInfoReturnable<Boolean> cir) {
+	*///?} else {
 	@Inject(method = "deflect", at = @At("RETURN"))
 	private void enchanting2$deflectedByShield(ProjectileDeflection deflection, Entity deflector,
 			EntityReference<Entity> owner, boolean byAttack, CallbackInfoReturnable<Boolean> cir) {
+	//?}
 		if (deflection == ShieldDeflect.AT_SHOOTER) {
 			ShieldDeflect.afterDeflect((Projectile) (Object) this, deflector);
 		}

@@ -30,8 +30,12 @@ public final class ItemWideningHook {
 
 	public static void register() {
 		// Fabric API 26.1 deprecated MODIFY for MODIFY_WITH_LOOKUP, which passes the lookup the JSON was parsed with: the
-		// items come from it there. 1.21.11's MODIFY has none, so RegistryDataLoaderMixin lends it (band A only).
-		//? if >=26.1 {
+		// items come from it there. 1.21.11's MODIFY has none, so RegistryDataLoaderMixin lends it (band A only). 26.3's
+		// lookup returns the getter itself instead of a RegistryInfo holding it.
+		//? if >=26.3 {
+		/*EnchantmentEvents.MODIFY_WITH_LOOKUP.register((key, builder, source, registries) -> apply(key, builder,
+				registries.<Item>lookup(Registries.ITEM).orElse(null)));
+		*///?} else if >=26.1 {
 		/*EnchantmentEvents.MODIFY_WITH_LOOKUP.register((key, builder, source, registries) -> apply(key, builder,
 				registries.<Item>lookup(Registries.ITEM).map(net.minecraft.resources.RegistryOps.RegistryInfo::getter)
 						.orElse(null)));

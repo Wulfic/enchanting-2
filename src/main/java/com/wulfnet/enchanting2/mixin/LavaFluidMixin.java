@@ -15,11 +15,20 @@ import org.spongepowered.asm.mixin.injection.At;
 /** DESIGN §6: lava flowing down onto water makes stone, marked when stone is in a Fortune tag (see LiquidBlockMixin). */
 @Mixin(LavaFluid.class)
 abstract class LavaFluidMixin {
+	// 26.3 calls setBlockAndUpdate here (setBlock with flags 3), Phase 12E.
+	//? if >=26.3 {
+	/*@WrapOperation(method = "spreadTo", at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/world/level/LevelAccessor;setBlockAndUpdate(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)Z"))
+	private boolean enchanting2$markGenerated(LevelAccessor level, BlockPos pos, BlockState state,
+			Operation<Boolean> original) {
+		boolean placed = original.call(level, pos, state);
+	*///?} else {
 	@WrapOperation(method = "spreadTo", at = @At(value = "INVOKE",
 			target = "Lnet/minecraft/world/level/LevelAccessor;setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;I)Z"))
 	private boolean enchanting2$markGenerated(LevelAccessor level, BlockPos pos, BlockState state, int flags,
 			Operation<Boolean> original) {
 		boolean placed = original.call(level, pos, state, flags);
+	//?}
 		if (placed && level instanceof ServerLevel serverLevel && FortuneTags.inAnyTag(state)) {
 			PlacedBlocks.mark(serverLevel, pos);
 		}

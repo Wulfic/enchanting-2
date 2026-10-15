@@ -1,5 +1,6 @@
 package com.wulfnet.enchanting2.gametest;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.wulfnet.enchanting2.client.TablePreviewState;
 import com.wulfnet.enchanting2.client.TableScreenAccess;
 import com.wulfnet.enchanting2.network.TablePreviewPayload;
@@ -33,7 +34,6 @@ import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.EnchantingTableBlock;
-import org.lwjgl.glfw.GLFW;
 
 /**
  * The table in the window on the real client (TODO 10l; Stage 7D's flows kept): a real table with 15 bookshelves. The
@@ -149,7 +149,7 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 
 	private static void click(ClientGameTestContext context, int x, int y) {
 		moveTo(context, x, y);
-		context.getInput().pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+		context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
 	}
 
 	private static int listTop(ClientGameTestContext context) {
@@ -266,13 +266,13 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		List<String> plain = screen(context, TableScreenAccess::enchanting2$rowTooltip);
 		check(!plain.contains(text("enchantment.minecraft.sharpness.desc"))
 				&& plain.contains(text("enchanting2.tooltip.hold_ctrl")), "no description without Ctrl: " + plain);
-		context.getInput().holdKey(GLFW.GLFW_KEY_LEFT_CONTROL);
+		context.getInput().holdKey(InputConstants.KEY_LCONTROL);
 		context.waitTicks(2);
 		List<String> tooltip = screen(context, TableScreenAccess::enchanting2$rowTooltip);
 		check(tooltip.contains(text("enchantment.minecraft.sharpness.desc")),
 				"the row's tooltip has its description with Ctrl: " + tooltip);
 		context.takeScreenshot("enchanting2-table-tooltip");
-		context.getInput().releaseKey(GLFW.GLFW_KEY_LEFT_CONTROL);
+		context.getInput().releaseKey(InputConstants.KEY_LCONTROL);
 		context.waitTick();
 
 		clickRow(context, SHARPNESS);
@@ -389,11 +389,11 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		// Drag the thumb back up, past the top of the track.
 		int barX = screen(context, TableScreenAccess::enchanting2$scrollBarX) + TableWindow.SCROLLBAR_WIDTH / 2;
 		moveTo(context, barX, screen(context, TableScreenAccess::enchanting2$thumbCenterY));
-		context.getInput().holdMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+		context.getInput().holdMouse(InputConstants.MOUSE_BUTTON_LEFT);
 		context.waitTick();
 		moveTo(context, barX, listTop(context) - 20);
 		context.waitTicks(2);
-		context.getInput().releaseMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+		context.getInput().releaseMouse(InputConstants.MOUSE_BUTTON_LEFT);
 		context.waitTick();
 		check(screen(context, TableScreenAccess::enchanting2$scrollOffset) == 0,
 				"dragging the thumb up scrolled to the top: " + screen(context, TableScreenAccess::enchanting2$scrollOffset));

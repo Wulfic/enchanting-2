@@ -1,5 +1,6 @@
 package com.wulfnet.enchanting2.gametest;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.wulfnet.enchanting2.acquisition.AcquisitionRules;
 import com.wulfnet.enchanting2.acquisition.EnchantmentFlagsDraft;
 import com.wulfnet.enchanting2.acquisition.Source;
@@ -26,7 +27,6 @@ import net.minecraft.client.gui.components.TabButton;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
 
 /**
  * Stage 9C on the real client: the config screen (with its Enchantments category) builds on the title screen, where
@@ -130,7 +130,7 @@ public class ConfigScreenClientGameTest implements FabricClientGameTest {
 		double scale = context.computeOnClient(client -> client.getWindow().getGuiScale());
 		context.getInput().setCursorPos(target[0] * scale, target[1] * scale);
 		context.waitTick();
-		context.getInput().pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+		context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
 		context.waitTick();
 		context.runOnClient(client -> {
 			TabbedConfigScreen screen = (TabbedConfigScreen) client.screen;

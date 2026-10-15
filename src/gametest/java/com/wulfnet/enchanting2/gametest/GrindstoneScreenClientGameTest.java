@@ -1,5 +1,6 @@
 package com.wulfnet.enchanting2.gametest;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.wulfnet.enchanting2.client.GrindstoneOptionsState;
 import com.wulfnet.enchanting2.client.GrindstoneScreenAccess;
 import com.wulfnet.enchanting2.grindstone.GrindstoneAction;
@@ -31,7 +32,6 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
-import org.lwjgl.glfw.GLFW;
 
 /**
  * The grindstone on the real client (Stage 6bC; in the window since TODO 10o): the window is wide and centred even on a
@@ -128,7 +128,7 @@ public class GrindstoneScreenClientGameTest implements FabricClientGameTest {
 
 	private static void click(ClientGameTestContext context, int x, int y) {
 		moveTo(context, x, y);
-		context.getInput().pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+		context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
 	}
 
 	private static void wideWindowFitsTheSmallScreenCentred(ClientGameTestContext context) {

@@ -129,8 +129,12 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
 1. **Phase 12, version bands** (TODO.md; decisions.md 2026-10-15 "One band per 26.x line"): A = 1.21.11, B1 =
    26.1–26.1.2, B2 = 26.2, B3 = 26.3, one jar each from the shared source; 1.21.11 stays in step (owner 2026-10-14).
    12A–12D done on `port/26x` (12D 2026-10-15: node `versions/26.2/`, band B2, all green; decisions.md "12D").
-   **Next: 12E, node `versions/26.3/`** — start list = TODO.md 12C findings for 26.3 (GUI rendering `RenderPipeline`
-   / `blit`, loot context API, moved mixin targets `EnderMan`, `HoeItem`, `FuelValues`); same steps as 12D.
+   **12E (node `versions/26.3/`) in progress, UNCOMMITTED on `port/26x`** (2026-10-15, stopped on the weekly token
+   limit): compiles on all four nodes, `:matrix-26.3:linkCheck` 0, `./gradlew build` green on all four (427 JUnit +
+   339 GameTests each). One red: `:26.3:runClientGameTest` "one notch down scrolled it: 0" (TODO.md E6 has the
+   leads). Fix that, compare 26.3 screenshots with 26.2's, then E8: commit (staged: build/node/data upgrader; mixins;
+   tests; docs), push, dispatch CI. decisions.md "12E" and five 12E gotchas are already written. Scratch worktree of
+   HEAD (baseline jars) at the session scratchpad `base/`: `git worktree list`, then `git worktree remove <path>`.
 2. Owner checks and housekeeping: TODO.md "Owner checks (open)" and "Owner housekeeping" (the full list moved there
    from this file on 2026-10-14; TODO.md was trimmed to open work, old notes at `git show fd3504c:TODO.md`).
    A new enchantment still adds a `LevelCeilings` row, a `.desc` line, tags, a price row if single-level, docs rows.

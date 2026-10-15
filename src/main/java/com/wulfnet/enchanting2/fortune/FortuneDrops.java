@@ -81,7 +81,8 @@ public final class FortuneDrops {
 			boolean hasSilk = EnchantmentHelper.getItemEnchantmentLevel(enchantment(level, Enchantments.SILK_TOUCH), tool) > 0;
 			FortuneRule.Decision decision = FortuneRule.decide(fortune, hasSilk, mode,
 					FortuneTags.multipliesFor(tool, state), state.is(FortuneTags.SILK), excluded(state),
-					() -> PlacedBlocks.origin(level, pos), () -> silkChangedDrop(table.value(), context, state, tool, drops));
+					() -> PlacedBlocks.origin(level, pos),
+					() -> silkChangedDrop(table.value(), context, origin, state, tool, drops));
 			if (decision != FortuneRule.Decision.MULTIPLY) {
 				Enchanting2.LOGGER.debug("Fortune {} on {} at {}: no bonus ({})", fortune, state, pos, decision);
 				return;
@@ -121,13 +122,13 @@ public final class FortuneDrops {
 	 * the block's table again with a copy of the tool without Silk Touch and compares item types. Gravel below Fortune
 	 * III is the one default-tag block where that varies per roll (vanilla's flint chance).
 	 */
-	private static boolean silkChangedDrop(LootTable table, LootContext context, BlockState state, ItemStack tool,
-			List<ItemStack> silkDrops) {
+	private static boolean silkChangedDrop(LootTable table, LootContext context, Vec3 origin, BlockState state,
+			ItemStack tool, List<ItemStack> silkDrops) {
 		ItemStack withoutSilk = tool.copy();
 		EnchantmentHelper.updateEnchantments(withoutSilk,
 				enchantments -> enchantments.removeIf(holder -> holder.is(Enchantments.SILK_TOUCH)));
 		LootParams params = new LootParams.Builder(context.getLevel())
-				.withParameter(LootContextParams.ORIGIN, context.getParameter(LootContextParams.ORIGIN))
+				.withParameter(LootContextParams.ORIGIN, origin)
 				.withParameter(LootContextParams.TOOL, withoutSilk)
 				.withParameter(LootContextParams.BLOCK_STATE, state)
 				.withOptionalParameter(LootContextParams.BLOCK_ENTITY,

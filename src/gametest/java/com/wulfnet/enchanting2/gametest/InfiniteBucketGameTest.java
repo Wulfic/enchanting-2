@@ -30,6 +30,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.ExperienceOrb;
+import net.minecraft.world.inventory.FurnaceMenu;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -40,10 +42,12 @@ import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.AbstractFurnaceBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.DispenserBlock;
 import net.minecraft.world.level.block.LayeredCauldronBlock;
 import net.minecraft.world.level.block.entity.DispenserBlockEntity;
+import net.minecraft.world.level.block.entity.FurnaceBlockEntity;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
@@ -223,14 +227,39 @@ public class InfiniteBucketGameTest {
 		helper.succeed();
 	}
 
+	/**
+	 * Through a real furnace, so it holds whichever API asks (1.21.11-26.2 {@code FuelValues}, 26.3's
+	 * {@code cooking_fuel} component): a hopper's {@code canPlaceItem}, the menu's fuel slot, and the burn. A furnace with
+	 * a plain lava bucket next to it must light, or the test proves nothing.
+	 */
 	@GameTest
 	public void anInfinityLavaBucketIsNeverFuel(GameTestHelper helper) {
-		var fuel = helper.getLevel().fuelValues();
-		check(helper, fuel.isFuel(new ItemStack(Items.LAVA_BUCKET)), "a plain lava bucket stopped being fuel");
+		BlockPos plainPos = new BlockPos(1, 1, 1);
+		BlockPos infinitePos = new BlockPos(3, 1, 1);
+		helper.setBlock(plainPos, Blocks.FURNACE);
+		helper.setBlock(infinitePos, Blocks.FURNACE);
+		FurnaceBlockEntity plain = helper.getBlockEntity(plainPos, FurnaceBlockEntity.class);
+		FurnaceBlockEntity withInfinite = helper.getBlockEntity(infinitePos, FurnaceBlockEntity.class);
 		ItemStack infinite = infinite(helper, Items.LAVA_BUCKET);
-		check(helper, !fuel.isFuel(infinite), "an Infinity lava bucket is fuel");
-		helper.assertValueEqual(0, fuel.burnDuration(infinite), Component.literal("Infinity lava bucket burn time"));
-		helper.succeed();
+		check(helper, plain.canPlaceItem(1, new ItemStack(Items.LAVA_BUCKET)), "a plain lava bucket stopped being fuel");
+		check(helper, plain.canPlaceItem(1, new ItemStack(Items.BUCKET)), "the empty-bucket rule changed");
+		check(helper, !plain.canPlaceItem(1, infinite), "a hopper may put an Infinity lava bucket in the fuel slot");
+		Slot fuelSlot = new FurnaceMenu(0, helper.makeMockPlayer(GameType.SURVIVAL).getInventory()).getSlot(1);
+		check(helper, fuelSlot.mayPlace(new ItemStack(Items.LAVA_BUCKET)), "the fuel slot refuses a plain lava bucket");
+		check(helper, !fuelSlot.mayPlace(infinite), "the fuel slot takes an Infinity lava bucket");
+		plain.setItem(0, new ItemStack(Items.RAW_IRON));
+		plain.setItem(1, new ItemStack(Items.LAVA_BUCKET));
+		withInfinite.setItem(0, new ItemStack(Items.RAW_IRON));
+		withInfinite.setItem(1, infinite.copy());
+		helper.runAfterDelay(20, () -> {
+			check(helper, helper.getBlockState(plainPos).getValue(AbstractFurnaceBlock.LIT),
+					"the control furnace never lit on a plain lava bucket");
+			check(helper, !helper.getBlockState(infinitePos).getValue(AbstractFurnaceBlock.LIT),
+					"an Infinity lava bucket lit the furnace");
+			ItemStack left = withInfinite.getItem(1);
+			check(helper, InfiniteBuckets.isInfinite(left) && left.is(Items.LAVA_BUCKET), "fuel slot after 20 ticks: " + left);
+			helper.succeed();
+		});
 	}
 
 	@GameTest

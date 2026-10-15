@@ -16,11 +16,20 @@ import org.spongepowered.asm.mixin.injection.At;
  */
 @Mixin(targets = "net.minecraft.world.entity.monster.EnderMan$EndermanLeaveBlockGoal")
 abstract class EndermanLeaveBlockGoalMixin {
+	// 26.3 calls setBlockAndUpdate here (setBlock with flags 3), Phase 12E.
+	//? if >=26.3 {
+	/*@WrapOperation(method = "tick", at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/world/level/Level;setBlockAndUpdate(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)Z"))
+	private boolean enchanting2$markSetDown(Level level, BlockPos pos, BlockState state,
+			Operation<Boolean> original) {
+		boolean placed = original.call(level, pos, state);
+	*///?} else {
 	@WrapOperation(method = "tick", at = @At(value = "INVOKE",
 			target = "Lnet/minecraft/world/level/Level;setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;I)Z"))
 	private boolean enchanting2$markSetDown(Level level, BlockPos pos, BlockState state, int flags,
 			Operation<Boolean> original) {
 		boolean placed = original.call(level, pos, state, flags);
+	//?}
 		if (placed && level instanceof ServerLevel serverLevel) {
 			PlacedBlocks.mark(serverLevel, pos);
 		}

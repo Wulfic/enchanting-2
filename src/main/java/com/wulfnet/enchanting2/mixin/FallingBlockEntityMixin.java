@@ -36,11 +36,20 @@ abstract class FallingBlockEntityMixin {
 		}
 	}
 
+	// 26.3 calls setBlockAndUpdate here (setBlock with flags 3), Phase 12E.
+	//? if >=26.3 {
+	/*@WrapOperation(method = "tick", at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/world/level/Level;setBlockAndUpdate(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)Z"))
+	private boolean enchanting2$landMark(Level level, BlockPos pos, BlockState state,
+			Operation<Boolean> original) {
+		boolean landed = original.call(level, pos, state);
+	*///?} else {
 	@WrapOperation(method = "tick", at = @At(value = "INVOKE",
 			target = "Lnet/minecraft/world/level/Level;setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;I)Z"))
 	private boolean enchanting2$landMark(Level level, BlockPos pos, BlockState state, int flags,
 			Operation<Boolean> original) {
 		boolean landed = original.call(level, pos, state, flags);
+	//?}
 		if (landed && level instanceof ServerLevel serverLevel) {
 			PlacedBlocks.setPlaced(serverLevel, pos, PlacedBlocks.isPlacedFalling((FallingBlockEntity) (Object) this));
 		}

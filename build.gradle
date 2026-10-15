@@ -68,6 +68,27 @@ stonecutter {
             'import net\\.minecraft\\.world\\.level\\.block\\.entity\\.BlockEntityType; import net\\.minecraft\\.world\\.level\\.block\\.entity\\.BlockEntityTypes;',
             'import net.minecraft.world.level.block.entity.BlockEntityType;'
     }
+    // 26.3 renames with unchanged meaning (Phase 12E): the loot context's optional getter, RegistryCodecs' package,
+    // Entity.hurtMarked (now the field that asks ServerEntity to send the velocity), the hurt cooldown, the render
+    // pipeline class, and EnderMan -> Enderman (same package and methods; the inner goal classes keep their names, so
+    // \b stops at "EndermanLeaveBlockGoal").
+    replacements.string(sc.current.parsed.matches('>=26.3')) {
+        replace 'context.getOptionalParameter(', 'context.getOptional('
+        replace 'import net.minecraft.core.RegistryCodecs;', 'import net.minecraft.core.registries.codec.RegistryCodecs;'
+        // Same codec (HolderSetCodec over RegistryFixedCodec, alwaysUseList false), new name.
+        replace 'RegistryCodecs.homogeneousList(', 'RegistryCodecs.holderSet('
+        replace '.hurtMarked = true;', '.syncVelocity = true;'
+        // 26.3 split the hurt cooldown (i-frames) out of Entity.invulnerableTime into LivingEntity.damageCooldownTime;
+        // invulnerableTime is now full temporary invulnerability. Every site clears the cooldown on a living entity.
+        replace '.invulnerableTime = 0;', '.damageCooldownTime = 0;'
+        // The render pipeline class moved with 26.3's renderer into com.mojang.renderpearl (RenderPipelines stays).
+        replace 'import com.mojang.blaze3d.pipeline.RenderPipeline;', 'import com.mojang.renderpearl.api.pipeline.RenderPipeline;'
+        // ...and inside the blit / blitSprite descriptors of the window mixins' @At targets (javac can't see those).
+        replace 'Lcom/mojang/blaze3d/pipeline/RenderPipeline;', 'Lcom/mojang/renderpearl/api/pipeline/RenderPipeline;'
+    }
+    replacements.regex(sc.current.parsed.matches('>=26.3')) {
+        replace '\\bEnderMan\\b', 'Enderman', '\\bEnderman\\b', 'EnderMan'
+    }
 }
 
 version = project.mod_version
@@ -215,7 +236,8 @@ if (!project.hasProperty('minecraft_dependency') || project.minecraft_dependency
         "<fabric.mod.json range>, e.g. minecraft_dependency=~1.21.11")
 }
 // band: 'A' = obfuscated 1.21.11, 'B' = 26.x. A mixin that only one band needs is listed inside
-// <% if (band == 'A') { %>...<% } %> in its *.mixins.json (Groovy template, expanded with the values below).
+// <% if (band == 'A') { %>...<% } %> in its *.mixins.json (Groovy template, expanded with the values below); one that
+// follows a later game change gets a flag named for that change (fuel_component).
 def resourceValues = [
     version             : project.version.toString(),
     band                : sc.current.parsed.matches('>=26.1') ? 'B' : 'A',
@@ -224,6 +246,8 @@ def resourceValues = [
     // 26.2 keys entity predicates by sub-predicate ID: {"type": "minecraft:zombie"} became
     // {"minecraft:entity_type": "minecraft:zombie"} (vanilla's charged_creeper/root.json changed the same way).
     entity_type_predicate: sc.current.parsed.matches('>=26.2') ? 'minecraft:entity_type' : 'type',
+    // 26.3 made furnace fuel the cooking_fuel item component (FuelValues is gone): the fuel mixins differ (Phase 12E).
+    fuel_component      : sc.current.parsed.matches('>=26.3'),
 ]
 // The pattern list is an input too: Gradle doesn't fingerprint the filesMatching closure, so without it an edited list
 // leaves processResources UP-TO-DATE with stale output (gotchas.md 2026-10-14).
@@ -233,6 +257,93 @@ tasks.withType(ProcessResources).configureEach {
     inputs.property 'expandedResources', expandedResources
     filesMatching(expandedResources) {
         expand resourceValues
+    }
+}
+
+// Data JSON is written in 1.21.11's format, like src/ (Phase 12E, decisions.md "12E: data upgraded per node"). 26.3
+// reshaped loot conditions and functions: a condition's dispatch key is "type" (was "condition"), an entry, pool or
+// function holds one optional "condition" (was a "conditions" list; an unknown key is ignored, so a stale list silently
+// matches always), an entry, pool or table holds one "modifier" (was a "functions" list of {"function": ...}; a stale
+// list silently does nothing), and a damage source's tag predicate takes a tag reference ("#ns:tag"). Those nodes get
+// an upgraded copy. Fails the build on a file it can't read rather than shipping it unchanged.
+def upgradeLootFormat = sc.current.parsed.matches('>=26.3')
+def upgradedDataDirs = ['loot_table', 'enchantment', 'predicate', 'item_modifier']
+tasks.withType(ProcessResources).configureEach {
+    inputs.property 'upgradeLootFormat', upgradeLootFormat
+    inputs.property 'upgradedDataDirs', upgradedDataDirs
+    if (upgradeLootFormat) {
+        doLast { task ->
+            def upgrade
+            upgrade = { node ->
+                if (node instanceof List) {
+                    return node.collect { upgrade(it) }
+                }
+                if (!(node instanceof Map)) {
+                    return node
+                }
+                def out = new LinkedHashMap()
+                node.each { key, value ->
+                    if (key == 'condition' && value instanceof String) {
+                        out.type = value
+                    } else if (key == 'functions' && value instanceof List) {
+                        // One "modifier": the function itself, or a list (26.3 reads it as an inline sequence).
+                        def functions = value.collect { function ->
+                            def typed = function instanceof Map && function.function instanceof String
+                                    ? [type: function.function] + function.findAll { it.key != 'function' } : function
+                            upgrade(typed)
+                        }
+                        if (functions.size() == 1) {
+                            out.modifier = functions[0]
+                        } else if (functions.size() > 1) {
+                            out.modifier = functions
+                        }
+                    } else if (key == 'conditions' && value instanceof List) {
+                        def terms = value.collect { upgrade(it) }
+                        if (terms.size() == 1) {
+                            out.condition = terms[0]
+                        } else if (terms.size() > 1) {
+                            out.condition = [type: 'minecraft:all_of', terms: terms]
+                        }
+                    } else if (key == 'tags' && value instanceof List
+                            && value.every { it instanceof Map && it.keySet() == ['id', 'expected'] as Set }) {
+                        out.tags = value.collect {
+                            [id: it.id.startsWith('#') ? it.id : '#' + it.id, expected: it.expected]
+                        }
+                    } else {
+                        out[key] = upgrade(value)
+                    }
+                }
+                return out
+            }
+            def dataRoot = new File(task.destinationDir, 'data')
+            int upgraded = 0
+            if (dataRoot.isDirectory()) {
+                dataRoot.eachDir { namespace ->
+                    upgradedDataDirs.each { dir ->
+                        def base = new File(namespace, dir)
+                        if (!base.isDirectory()) {
+                            return
+                        }
+                        base.eachFileRecurse(groovy.io.FileType.FILES) { file ->
+                            if (!file.name.endsWith('.json')) {
+                                return
+                            }
+                            def parsed
+                            try {
+                                parsed = new groovy.json.JsonSlurper().parse(file, 'UTF-8')
+                            } catch (Exception e) {
+                                throw new GradleException(
+                                    "Can't upgrade ${file} to 26.3's loot format: ${e.message}", e)
+                            }
+                            def json = groovy.json.JsonOutput.toJson(upgrade(parsed))
+                            file.setText(groovy.json.JsonOutput.prettyPrint(json) + '\n', 'UTF-8')
+                            upgraded++
+                        }
+                    }
+                }
+            }
+            task.logger.info("Upgraded ${upgraded} data file(s) to 26.3's loot format in ${task.destinationDir}")
+        }
     }
 }
 

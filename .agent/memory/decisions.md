@@ -1524,3 +1524,28 @@ Stonecutter on JSON (no comment syntax to hide a variant in). Chained `>=26.1` +
 wait (relies on the order Stonecutter applies rule sets in, both directions).
 **Affects:** build.gradle, heads.json, ModIdentityTest, ShieldBash, CollectedSpawners, LastStandHud,
 TabbedConfigScreen, gametest ClientWorlds + 11 tests, versions/26.2, matrix/26.2, settings.gradle
+
+## 2026-10-15 — 12E: 26.3 differences, and data upgraded per node (agent)
+**Context:** node `versions/26.3/` (band B3). 28 main + ~16 client + 2 GameTest compile errors, then runtime-only
+breaks: three `setBlock` targets now `setBlockAndUpdate`, the hurt cooldown field, two `deflect` overloads, and a loot
+data format that loads stale files without an error (gotchas.md 2026-10-15, 12E entries).
+**Choice:** the 12B toolbox for code: same code everywhere where possible (`InputConstants` for GLFW, the furnace
+GameTest, `silkChangedDrop(origin)`), `>=26.3` replacements for pure renames (loot `getOptional`, `RegistryCodecs`,
+`syncVelocity`, `damageCooldownTime`, `Enderman`, `RenderPipeline` import + descriptors), `//? if >=26.3` for changed
+signatures. Mixins whose target class is gone: `HoeItemMixin` wraps `BlockTransformer.transformBlock` (same class
+name, conditioned target); `FuelValuesMixin` (before 26.3) vs `FurnaceMenuFuelMixin` + `FurnaceBlockEntityFuelMixin`
+(26.3), whole files conditioned and listed by a `fuel_component` template flag (named for the game change, not the
+band, so a 26.4 node inherits it). **Data:** written in 1.21.11's format like `src/`; a `doLast` on every
+`ProcessResources` rewrites `loot_table/`, `enchantment/`, `predicate/`, `item_modifier/` JSON on 26.3+ nodes
+(condition `type`, one `condition` / `modifier`, `#` tag predicates). `ModIdentityTest.lootConditionsAreInThisNodesFormat`
+checks every shipped file per node (mutation: upgrade off → fails on 26.3).
+**Why:** 26.3's changes touch every condition and function object; placeholders (12D's `${entity_type_predicate}`)
+would need a structural variant per entry in Groovy template blocks, and a new data file written by someone who
+doesn't know would silently lose its conditions on 26.3. One rule set in the build upgrades every file, as Stonecutter
+does for code. 12D's placeholder stays (one key, already tested).
+**Rejected:** per-node resource copies (drift; rejected in 12D too); `<% if %>` blocks in each JSON (unreadable, easy to
+miss one); writing data in 26.3's format and downgrading for older nodes (src/ is written for 1.21.11, data follows).
+**Affects:** build.gradle (replacements, `fuel_component`, loot upgrader), enchanting2.mixins.json, HoeItemMixin,
+FuelValuesMixin, FurnaceMenuFuelMixin, FurnaceBlockEntityFuelMixin, ProjectileMixin, LavaFluidMixin,
+EndermanLeaveBlockGoalMixin, FallingBlockEntityMixin, ShieldDeflect, KeepOnDeath, ItemWideningHook, FortuneDrops,
+three window mixins + five client GameTests (InputConstants), InfiniteBucketGameTest, ShieldsGameTest, ModIdentityTest

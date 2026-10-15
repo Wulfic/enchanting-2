@@ -1,5 +1,6 @@
 package com.wulfnet.enchanting2.gametest;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.wulfnet.enchanting2.client.EnchantmentDescriptions;
 import com.wulfnet.enchanting2.client.TallTooltips;
 import com.wulfnet.enchanting2.config.ClientConfig;
@@ -31,7 +32,6 @@ import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.level.GameType;
-import org.lwjgl.glfw.GLFW;
 
 /**
  * Phase 10h on the real client: holding Ctrl puts each enchantment's description on its own tooltip line as "Name:
@@ -51,7 +51,7 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 			String vision = I18n.get("enchantment.enchanting2.vision.desc");
 			String hint = I18n.get("enchanting2.tooltip.hold_ctrl");
 
-			context.getInput().holdKey(GLFW.GLFW_KEY_LEFT_CONTROL);
+			context.getInput().holdKey(InputConstants.KEY_LCONTROL);
 			context.waitTick();
 			List<String> book = tooltip(context, sharpnessBook(context));
 			assertInline(book, "Sharpness V", sharpness);
@@ -63,7 +63,7 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 			assertInline(pickaxe, "Silk Touch", I18n.get("enchantment.minecraft.silk_touch.desc"));
 
 			screenshotHoveredBook(context, world);
-			context.getInput().releaseKey(GLFW.GLFW_KEY_LEFT_CONTROL);
+			context.getInput().releaseKey(InputConstants.KEY_LCONTROL);
 			context.waitTick();
 
 			List<String> released = tooltip(context, sharpnessBook(context));
@@ -100,10 +100,10 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 		ItemStack pickaxe = context.computeOnClient(client -> withEnchantments(client.level.registryAccess()
 				.lookupOrThrow(Registries.ENCHANTMENT), Items.DIAMOND_PICKAXE, 16, true));
 		List<String> names = fullNames(context, pickaxe);
-		context.getInput().holdKey(GLFW.GLFW_KEY_LEFT_CONTROL);
+		context.getInput().holdKey(InputConstants.KEY_LCONTROL);
 		context.waitTick();
 		List<String> lines = tooltip(context, pickaxe);
-		context.getInput().releaseKey(GLFW.GLFW_KEY_LEFT_CONTROL);
+		context.getInput().releaseKey(InputConstants.KEY_LCONTROL);
 		context.waitTick();
 		for (String name : names) {
 			check(lines.stream().anyMatch(line -> line.startsWith(name + ": ")),

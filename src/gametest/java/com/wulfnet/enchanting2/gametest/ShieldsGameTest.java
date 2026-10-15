@@ -299,6 +299,11 @@ public class ShieldsGameTest {
 	public void deflectAimsAtTheShooterAtTheSameSpeed(GameTestHelper helper) {
 		withDeflect(helper, 3, (blocker, shooter) -> {
 			Arrow arrow = arrowInFront(helper, shooter, blocker);
+			// 26.3: the double-power overload, as an entity's deflection calls it; it hands on to the Vec3 one, where
+			// ProjectileMixin sets the owner.
+			//? if >=26.3 {
+			/*arrow.deflect(ShieldDeflect.AT_SHOOTER, blocker, null, false, 1.0);
+			*///?} else
 			arrow.deflect(ShieldDeflect.AT_SHOOTER, blocker, null, false);
 			Vec3 toShooter = shooter.position().add(0.0, shooter.getBbHeight() * 0.5, 0.0).subtract(arrow.position());
 			Vec3 flight = arrow.getDeltaMovement();

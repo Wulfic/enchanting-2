@@ -5,12 +5,21 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
 import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 class ModIdentityTest {
@@ -72,7 +81,11 @@ class ModIdentityTest {
 		var keys = new TreeSet<String>();
 		int predicates = 0;
 		for (var child : children) {
-			for (var condition : child.getAsJsonObject().getAsJsonArray("conditions")) {
+			// One condition per head: a "conditions" list of one in the source format, "condition" from 26.3 (12E).
+			JsonObject entry = child.getAsJsonObject();
+			List<JsonElement> conditions = entry.has("conditions") ? entry.getAsJsonArray("conditions").asList()
+					: List.of(entry.get("condition"));
+			for (var condition : conditions) {
 				JsonObject predicate = condition.getAsJsonObject().getAsJsonObject("predicate");
 				if (predicate == null) {
 					continue;
@@ -87,6 +100,83 @@ class ModIdentityTest {
 		String key = keys.first();
 		assertFalse(key.contains("${"), "processResources did not expand " + table + ": " + key);
 		assertTrue(key.equals("type") || key.equals("minecraft:entity_type"), "unknown predicate key: " + key);
+	}
+
+	/** This node's Minecraft version as {major, minor}: the lower bound of its expanded {@code depends.minecraft}. */
+	private static int[] nodeVersion() throws Exception {
+		String range = modJson().getAsJsonObject("depends").get("minecraft").getAsString();
+		Matcher version = Pattern.compile("(\\d+)\\.(\\d+)").matcher(range);
+		assertTrue(version.find(), "no version in depends.minecraft: " + range);
+		return new int[] {Integer.parseInt(version.group(1)), Integer.parseInt(version.group(2))};
+	}
+
+	/**
+	 * Phase 12E: data is written in 1.21.11's loot condition format and processResources upgrades the copy a 26.3+ node
+	 * ships (a condition keyed "type", one "condition" instead of a "conditions" list, damage tag predicates as "#tag").
+	 * Every shipped condition must be in this node's format; a stale list would parse on 26.3 as no condition at all.
+	 */
+	@Test
+	void lootConditionsAreInThisNodesFormat() throws Exception {
+		int[] node = nodeVersion();
+		boolean upgraded = node[0] > 26 || node[0] == 26 && node[1] >= 3;
+		URL data = ModIdentityTest.class.getResource("/data/enchanting2");
+		assertNotNull(data, "/data/enchanting2 missing from the main resources");
+		assertEquals("file", data.getProtocol(), "expected the processed resources directory, got " + data);
+		int[] counts = new int[2];
+		try (Stream<Path> files = Files.walk(Path.of(data.toURI()))) {
+			for (Path file : files.filter(f -> f.toString().endsWith(".json")).toList()) {
+				checkConditions(JsonParser.parseString(Files.readString(file)), upgraded, file, counts);
+			}
+		}
+		assertTrue(counts[0] >= 8, "found only " + counts[0] + " loot conditions; the heads, Cushion and Critical"
+				+ " Strike have 8 (did the walk see the data?)");
+		assertTrue(counts[1] >= 1, "found no damage tag predicate; Cushion has one");
+	}
+
+	/** Counts conditions into {@code counts[0]} and damage tag predicates into {@code counts[1]}. */
+	private static void checkConditions(JsonElement element, boolean upgraded, Path file, int[] counts) {
+		if (element.isJsonArray()) {
+			element.getAsJsonArray().forEach(child -> checkConditions(child, upgraded, file, counts));
+			return;
+		}
+		if (!element.isJsonObject()) {
+			return;
+		}
+		JsonObject object = element.getAsJsonObject();
+		if (object.has("conditions")) {
+			assertFalse(upgraded, "a \"conditions\" list on 26.3+ (read as no condition) in " + file);
+		}
+		if (object.has("functions")) {
+			assertFalse(upgraded, "a \"functions\" list on 26.3+ (read as no modifier) in " + file);
+		}
+		if (object.has("modifier")) {
+			assertTrue(upgraded, "a 26.3 \"modifier\" on a node before 26.3 in " + file);
+		}
+		JsonElement condition = object.get("condition");
+		if (condition != null && condition.isJsonPrimitive()) {
+			assertFalse(upgraded, "a condition keyed \"condition\" on 26.3+ in " + file + ": " + object);
+			counts[0]++;
+		}
+		for (String holder : List.of("condition", "requirements")) {
+			JsonElement held = object.get(holder);
+			if (held != null && held.isJsonObject() && held.getAsJsonObject().has("type")) {
+				assertTrue(upgraded, "a 26.3 condition on a node before 26.3 in " + file + ": " + held);
+				counts[0]++;
+			}
+		}
+		JsonElement tags = object.get("tags");
+		if (tags != null && tags.isJsonArray()) {
+			for (JsonElement tag : tags.getAsJsonArray()) {
+				if (tag.isJsonObject() && tag.getAsJsonObject().has("expected")) {
+					String id = tag.getAsJsonObject().get("id").getAsString();
+					assertEquals(upgraded, id.startsWith("#"), "damage tag predicate id " + id + " in " + file);
+					counts[1]++;
+				}
+			}
+		}
+		for (Map.Entry<String, JsonElement> child : object.entrySet()) {
+			checkConditions(child.getValue(), upgraded, file, counts);
+		}
 	}
 
 	/**

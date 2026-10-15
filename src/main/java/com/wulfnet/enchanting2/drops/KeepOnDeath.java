@@ -73,6 +73,11 @@ public final class KeepOnDeath {
 					newPlayer.getStringUUID(), slot, stack);
 			to.add(stack);
 			if (!stack.isEmpty()) {
+				// 26.3 says who animates the drop's swing; a server-side overflow is SERVER_ONLY, as vanilla's
+				// AdvancementRewards drops a reward that doesn't fit.
+				//? if >=26.3 {
+				/*newPlayer.drop(stack, false, net.minecraft.util.Prediction.SERVER_ONLY);
+				*///?} else
 				newPlayer.drop(stack, false);
 			}
 		}

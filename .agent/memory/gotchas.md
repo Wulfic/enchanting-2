@@ -738,3 +738,36 @@ it (26.2: still `$3`; `AnvilMenu.lambda$onTake$0` still calls `AnvilBlock.damage
 run. `ExperienceOrb.awardWithDirection` → `tryMergeToExisting` folds an equal-value orb into one nearby at random
 (`id == random(40)`) by `count++`, and `count` is private. Count XP with `ExperienceOrbAccessor.e2test$getCount()`, as
 `EffectEnchantmentsGameTest` already did. A check of "no orbs" / "some orbs" (GrindstoneGameTest) is merge-safe.
+
+## 2026-10-15 — 26.3 loot data: a stale `conditions` / `functions` list parses as nothing (12E)
+26.3's loot codecs read one optional `"condition"` and one optional `"modifier"` per entry, pool, table and function,
+and a condition or function is dispatched on `"type"` (was `"condition"` / `"function"`). Unknown keys are ignored, so a
+1.21.11-format `"conditions": [...]` loads with **no condition** (every alternative in `heads.json` matched: a piglin
+head for every kill) and `"functions": [...]` with **no function** (no player head profile, unenchanted e2test books).
+Only the enchantment files failed loudly ("No key type in MapLike"), because their `requirements` field is required.
+Damage-source tag predicates also take a tag reference there (`"#enchanting2:cushioned"`). Fix: processResources
+upgrades data on 26.3+ nodes (decisions.md "12E: data upgraded per node"); `ModIdentityTest.lootConditionsAreInThisNodesFormat`.
+**Check on any new line:** read one vanilla loot table with conditions and functions from that version's jar.
+
+## 2026-10-15 — 26.3 moved the hurt cooldown to `LivingEntity.damageCooldownTime` (12E)
+`Entity.invulnerableTime` went private with a setter, so `setInvulnerableTime(0)` compiled as the obvious port. Wrong:
+26.3's `hurtServer` checks `damageCooldownTime` (public, on LivingEntity); `invulnerableTime` is now full temporary
+invulnerability (`isInvulnerable()`). Quick Strike's second hit and three GameTests reset the cooldown, so the
+replacement is `.invulnerableTime = 0;` → `.damageCooldownTime = 0;`. Found by reading the mixin body diff of
+`hurtServer`, not by the compiler.
+
+## 2026-10-15 — 26.3 swapped `setBlock(pos, state, 3)` for `setBlockAndUpdate` in injected methods (12E)
+`FallingBlockEntity.tick`, `Enderman$EndermanLeaveBlockGoal.tick` and `LavaFluid.spreadTo` call `setBlockAndUpdate`
+now. `setBlock` still exists, so the link check passed and the server crashed at load ("Scanned 0 target(s)") on the
+first mixin. The `@At` target and handler (no `flags`) are conditioned per mixin. The link check proves a target
+*exists*, not that the injected method still *calls* it: the body diff (scratch `mixindiff.py`) or a GameTest run does.
+
+## 2026-10-15 — 26.3 renumbered mouse buttons; GLFW is gone (12E)
+`org.lwjgl.glfw` isn't on 26.3's classpath and `InputConstants.MOUSE_BUTTON_LEFT` is **1** there (0 before;
+`KEY_LCONTROL` 224, was 341). A hard-coded GLFW constant would make every left click miss. `InputConstants` has both
+names on all four lines, so the windows and client GameTests use it everywhere.
+
+## 2026-10-15 — 26.3's renderer moved `RenderPipeline`; `@At` descriptor strings keep the old name (12E)
+`com.mojang.blaze3d.pipeline.RenderPipeline` → `com.mojang.renderpearl.api.pipeline.RenderPipeline`. The import
+replacement fixed the compile; five `blit`/`blitSprite` descriptors inside window mixins' `@At` strings still named the
+old class (javac can't see strings). `:matrix-26.3:linkCheck` caught them; a second replacement covers descriptors.

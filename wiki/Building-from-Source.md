@@ -16,9 +16,12 @@ cd enchanting-2
 On Windows use `gradlew.bat` (or `./gradlew` from Git Bash).
 
 The build uses [Stonecutter](https://stonecutter.kikugie.dev/): one source tree, one Gradle subproject per Minecraft
-version under `versions/<version>/` (that version's `gradle.properties` and build output): `1.21.11`, `26.1.2` and
-`26.2`. A bare task name like `build` runs in every version; `:1.21.11:`, `:26.1.2:` or `:26.2:` picks one. Run, launch and client
-GameTest tasks always name the version, or every version's game would start at once.
+version under `versions/<version>/` (that version's `gradle.properties` and build output): `1.21.11`, `26.1.2`,
+`26.2` and `26.3`. A bare task name like `build` runs in every version; `:1.21.11:`, `:26.1.2:`, `:26.2:` or `:26.3:`
+picks one. Run, launch and client GameTest tasks always name the version, or every version's game would start at once.
+
+Data files (loot tables, enchantments) are written in 1.21.11's format, like the code. On 26.3 and later the build
+rewrites the copy it packs into 26.3's loot format (conditions and functions changed shape there).
 
 Some Minecraft versions run a jar built for another one: the 26.1.2 jar also covers 26.1 and 26.1.1. Those are proven
 by the runtime matrix under `matrix/<version>/`, which compiles nothing and runs a built jar plus its GameTests on that
