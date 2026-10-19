@@ -167,6 +167,8 @@ fabricApi {
         clearRunDirectory = true
     }
 }
+// build/gametest-report.xml + the check that fails a run with no test cases (Phase 12F; shared with the matrix).
+apply from: rootProject.file('gradle/gametest-report.gradle')
 
 // Phase 12C: the runtime matrix (matrix/<line>/, matrix/matrix.gradle) runs this node's shipped mod jar and a jar of
 // its GameTests on other Minecraft versions, without compiling anything there. Artifacts only: no dependencies travel
@@ -375,5 +377,10 @@ tasks.named('test') {
     inputs.files(rootProject.fileTree('docs'), rootProject.fileTree('wiki'),
         rootProject.files('CHANGELOG.md', 'LICENSE', 'gradle.properties', '.github/workflows/wiki.yml'))
         .withPropertyName('releaseDocs')
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    // MatrixLayoutTest (Phase 12F): the matrix list in settings.gradle against matrix/<version>/gradle.properties.
+    // Only the properties files: the matrix nodes' build dirs change on every run.
+    inputs.files(rootProject.fileTree('matrix') { include '*/gradle.properties' }, rootProject.files('settings.gradle'))
+        .withPropertyName('matrixLayout')
         .withPathSensitivity(PathSensitivity.RELATIVE)
 }

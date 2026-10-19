@@ -11,7 +11,16 @@ plugins {
     id 'dev.kikugie.loom-back-compat'
 }
 
-def jarNode = ":${project.matrix_jar_node}"
+// Fails closed with a message that says what to fix (verifyAll classifies matrix nodes from these two keys).
+def jarNodeName = project.findProperty('matrix_jar_node')?.toString()?.trim()
+if (!jarNodeName || !project.findProperty('minecraft_version')?.toString()?.trim()) {
+    throw new GradleException("${project.path}: matrix/${project.projectDir.name}/gradle.properties needs both " +
+        "minecraft_version and matrix_jar_node")
+}
+if (rootProject.findProject(":${jarNodeName}")?.projectDir?.parentFile != rootProject.file('versions')) {
+    throw new GradleException("${project.path}: matrix_jar_node '${jarNodeName}' is not a version node (versions/<node>/)")
+}
+def jarNode = ":${jarNodeName}"
 def javaLevel = project.java_version.toString().trim() as Integer
 
 repositories {
@@ -111,7 +120,6 @@ tasks.register('linkCheck', JavaExec) {
 // (clearRunDirectory). The delete is fenced to <this node>/build/run/<name>: anything else refuses.
 def buildRoot = layout.buildDirectory.get().asFile.canonicalFile
 def runDirOf = { String name -> new File(buildRoot, "run/${name}") }
-def gameTestReport = new File(buildRoot, 'gametest-report.xml')
 
 // Mirrors Loom 1.18.4's FabricApiTesting run configs: server with -Dfabric-api.gametest, client with
 // -Dfabric.client.gametest and --username Player0.
@@ -122,7 +130,6 @@ loom {
             name = "Matrix GameTest ${project.minecraft_version}"
             ideConfigGenerated = false
             property 'fabric-api.gametest', ''
-            property 'fabric-api.gametest.report-file', gameTestReport.absolutePath
             runDir project.relativePath(runDirOf('gameTest'))
         }
         clientGameTest {
@@ -162,29 +169,5 @@ loom {
     }
 }
 
-// The server exits non-zero on a failed test, but a run that loads no tests (a missing jar, a wrong entrypoint) also
-// exits 0. The report check turns "nothing ran" into a failure.
-def checkGameTestReport = tasks.register('checkGameTestReport') {
-    def report = gameTestReport
-    def nodeName = project.name
-    doLast {
-        if (!report.isFile()) {
-            throw new GradleException("No GameTest report at ${report}: the GameTest server didn't run")
-        }
-        def suite = new groovy.xml.XmlSlurper().parse(report)
-        def cases = suite.'**'.findAll { it.name() == 'testcase' }
-        def failed = cases.findAll { !it.failure.isEmpty() || !it.error.isEmpty() }
-        logger.lifecycle("GameTests on ${nodeName}: ${cases.size()} ran, ${failed.size()} failed (${report})")
-        if (cases.isEmpty()) {
-            throw new GradleException("The GameTest report at ${report} has no test cases: the GameTest jar didn't load")
-        }
-        if (!failed.isEmpty()) {
-            throw new GradleException("${failed.size()} GameTests failed on ${nodeName}: " +
-                failed.collect { it.@name.text() }.join(', '))
-        }
-    }
-}
-tasks.named('runGameTest') {
-    doFirst { gameTestReport.delete() }
-    finalizedBy checkGameTestReport
-}
+// The report file and the check that fails a run with no test cases (shared with the version nodes).
+apply from: rootProject.file('gradle/gametest-report.gradle')
