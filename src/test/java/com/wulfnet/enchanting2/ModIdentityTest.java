@@ -3,6 +3,7 @@ package com.wulfnet.enchanting2;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.gson.JsonElement;
@@ -51,6 +52,62 @@ class ModIdentityTest {
 	void versionIsExpandedByTheBuild() throws Exception {
 		String version = modJson().get("version").getAsString();
 		assertFalse(version.contains("${"), "processResources did not expand version: " + version);
+	}
+
+	/**
+	 * Phase 12G: the shipped version (and so the jar name) is {@code mod_version+band}, the band being this node's
+	 * Minecraft version plus every matrix version that runs this node's jar, as "lowest" or "lowest-highest". Derived
+	 * here from the same files as build.gradle does, and every version in it must be inside depends.minecraft: a jar
+	 * named for a version its own metadata refuses would be a broken release.
+	 */
+	@Test
+	void versionNamesTheVersionsThisJarIsProvenOn() throws Exception {
+		String node = System.getProperty("enchanting2.node");
+		String ownVersion = System.getProperty("enchanting2.minecraftVersion");
+		assertNotNull(node, "build.gradle passes enchanting2.node to the test task");
+		assertNotNull(ownVersion, "build.gradle passes enchanting2.minecraftVersion to the test task");
+		TreeSet<String> versions = Bands.versions(node, ownVersion);
+		String band = Bands.label(versions);
+		String modVersion = gradleProperty("mod_version");
+		assertEquals(modVersion + "+" + band, modJson().get("version").getAsString());
+
+		String range = modJson().getAsJsonObject("depends").get("minecraft").getAsString();
+		for (String version : versions) {
+			assertTrue(admits(range, version), "the jar is named for " + version + " but depends.minecraft is " + range);
+		}
+	}
+
+	@Test
+	void rangeCheckUnderstandsOnlyTheFormsTheNodesUse() {
+		assertTrue(admits("~1.21.11", "1.21.11"));
+		assertFalse(admits("~1.21.11", "1.22"));
+		assertFalse(admits("~1.21.11", "1.21.10"));
+		assertTrue(admits(">=26.1 <26.2-", "26.1.2"));
+		assertFalse(admits(">=26.1 <26.2-", "26.2"));
+		assertFalse(admits(">=26.2 <26.3-", "26.1.2"));
+		assertThrows(AssertionError.class, () -> admits("26.1.x", "26.1"), "an unknown range form must fail, not pass");
+	}
+
+	/** Fabric's {@code ~X.Y.Z} (= {@code >=X.Y.Z <X.(Y+1)-}) and {@code >=A <B-}; anything else fails the test. */
+	private static boolean admits(String range, String version) {
+		Matcher tilde = Pattern.compile("~(\\d+)\\.(\\d+)(\\.\\d+)*").matcher(range);
+		if (tilde.matches()) {
+			String next = tilde.group(1) + "." + (Integer.parseInt(tilde.group(2)) + 1);
+			return Bands.compare(version, range.substring(1)) >= 0
+					&& Bands.compare(version, next) < 0;
+		}
+		Matcher bounds = Pattern.compile(">=(\\S+) <(\\S+?)-").matcher(range);
+		if (bounds.matches()) {
+			return Bands.compare(version, bounds.group(1)) >= 0
+					&& Bands.compare(version, bounds.group(2)) < 0;
+		}
+		throw new AssertionError("depends.minecraft '" + range + "' is in a form this test doesn't read; extend admits()");
+	}
+
+	private static String gradleProperty(String key) throws Exception {
+		String value = Bands.properties(Path.of("gradle.properties")).getProperty(key);
+		assertNotNull(value, "gradle.properties has no " + key);
+		return value.trim();
 	}
 
 	/**

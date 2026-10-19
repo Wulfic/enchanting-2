@@ -91,7 +91,38 @@ stonecutter {
     }
 }
 
-version = project.mod_version
+// Phase 12G (owner 2026-10-19): one jar per band, named for the Minecraft versions it's proven on:
+// enchanting2-<mod_version>+<band>.jar, e.g. +1.21.11 or +26.1-26.1.2 (also the version in fabric.mod.json). The band is
+// derived, never typed: this node's minecraft_version plus every runtime-matrix version whose matrix_jar_node is this
+// node (verifyAll GameTests each claimed one), lowest, or "lowest-highest". A new matrix/<version>/ widens the name.
+// ModIdentityTest derives it again from the same files and checks minecraft_dependency admits every version in it.
+def mcVersionParts = { String v ->
+    if (!(v ==~ /\d+(\.\d+)*/)) {
+        throw new GradleException("'${v}' is not a release version (digits and dots); bands hold releases only")
+    }
+    v.tokenize('.').collect { it as Integer }
+}
+def compareMcVersions = { String a, String b ->
+    def x = mcVersionParts(a), y = mcVersionParts(b)
+    for (int i = 0; i < Math.min(x.size(), y.size()); i++) {
+        if (x[i] != y[i]) return x[i] <=> y[i]
+    }
+    x.size() <=> y.size()
+}
+def bandVersions = [project.minecraft_version.toString().trim()]
+rootProject.file('matrix').eachDir { dir ->
+    def props = new File(dir, 'gradle.properties')
+    if (props.isFile()) {
+        def values = new Properties()
+        props.withInputStream { values.load(it) }
+        if (values.getProperty('matrix_jar_node', '').trim() == project.name) {
+            bandVersions << values.getProperty('minecraft_version', '').trim()
+        }
+    }
+}
+bandVersions = bandVersions.unique().sort(compareMcVersions)
+def bandLabel = bandVersions.size() == 1 ? bandVersions.first() : "${bandVersions.first()}-${bandVersions.last()}"
+version = "${project.mod_version}+${bandLabel}"
 group = project.maven_group
 
 base {
@@ -375,7 +406,8 @@ def repoRoot = rootProject.projectDir
 tasks.named('test') {
     workingDir = repoRoot
     inputs.files(rootProject.fileTree('docs'), rootProject.fileTree('wiki'),
-        rootProject.files('CHANGELOG.md', 'LICENSE', 'gradle.properties', '.github/workflows/wiki.yml'))
+        rootProject.files('CHANGELOG.md', 'LICENSE', 'README.md', 'gradle.properties', '.github/workflows/wiki.yml'),
+        rootProject.fileTree('versions') { include '*/gradle.properties' })
         .withPropertyName('releaseDocs')
         .withPathSensitivity(PathSensitivity.RELATIVE)
     // MatrixLayoutTest (Phase 12F): the matrix list in settings.gradle against matrix/<version>/gradle.properties.
@@ -383,4 +415,7 @@ tasks.named('test') {
     inputs.files(rootProject.fileTree('matrix') { include '*/gradle.properties' }, rootProject.files('settings.gradle'))
         .withPropertyName('matrixLayout')
         .withPathSensitivity(PathSensitivity.RELATIVE)
+    // ModIdentityTest derives this node's band label (Phase 12G) from the matrix files, as the version above does.
+    systemProperty 'enchanting2.node', project.name
+    systemProperty 'enchanting2.minecraftVersion', project.minecraft_version.toString().trim()
 }
