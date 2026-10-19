@@ -78,7 +78,10 @@ and aren't run in CI.
    ```
 
 The **Release** workflow checks the tag is exactly `v` + `mod_version`, is on `main`, and has a CHANGELOG section;
-builds and tests; and publishes a GitHub Release with the jar, using that CHANGELOG section as the notes. It never
+runs `./gradlew verifyAll`; and publishes a GitHub Release with one jar per version (`enchanting2-<version>+<band>.jar`,
+the band being the Minecraft versions that jar is built for or proven on by the matrix) and its sources jar, using that
+CHANGELOG section as the notes plus a "which jar" table. A new matrix version widens its band's name by itself; the
+README and wiki Installation tables must follow (`ReleaseDocsTest` fails until they do). It never
 replaces an existing release. The **Wiki** workflow publishes `wiki/` on every push to `main` that changes it.
 
 ## Contributing

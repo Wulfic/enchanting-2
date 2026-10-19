@@ -1562,3 +1562,18 @@ repeat the node builds), client GameTests local-only, one Gradle task so local a
 **Rejected:** a `matrix_role` property (can go stale); a bash-only script (CI and local would drift; Windows);
 headless client GameTests in CI (unproven with 26.3's renderer under Mesa; later follow-up).
 **Affects:** stonecutter.gradle, gradle/gametest-report.gradle, matrix/matrix.gradle, build.gradle, .github/workflows/ci.yml, scripts/verify-all.sh
+
+## 2026-10-19 — 12G: jar names carry a derived band; release collection is a script
+**Context:** four jars per release need names a player can match to their game, and the name must never claim a
+version nothing tested.
+**Choice:** `version = mod_version+band` in build.gradle (jar name and fabric.mod.json), band = the node's
+`minecraft_version` plus every matrix version with `matrix_jar_node` = that node, "lowest" or "lowest-highest". A new
+matrix node (12H "green → widen") renames the jar by itself; `ModIdentityTest` re-derives it and checks
+`depends.minecraft` admits each version; `ReleaseDocsTest` makes README + wiki tables list exactly the bands.
+release.yml runs `verifyAll`; jar collection + notes table live in `scripts/release-collect.sh` so it can be
+dry-run locally, and it checks each jar's own fabric.mod.json against its file name.
+**Why:** owner 2026-10-19: `+<range>` names, PR + squash-merge, tag v1.1.0 once green.
+**Rejected:** a typed `band_label` property per node (can disagree with the matrix); collection inline in YAML
+(only testable by tagging); a jar per node without the band in fabric.mod.json (Mod Menu / crash logs couldn't tell
+the jars apart).
+**Affects:** build.gradle, .github/workflows/release.yml, scripts/release-collect.sh, src/test/.../Bands.java, ModIdentityTest, ReleaseDocsTest

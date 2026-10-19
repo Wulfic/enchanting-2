@@ -134,8 +134,10 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
    12A–12D done on `port/26x` (12D 2026-10-15: node `versions/26.2/`, band B2, all green; decisions.md "12D").
    12E (node `versions/26.3/`, band B3) done 2026-10-19: the work is in the pushed `a489e0f temp` commit (owner: leave
    it, no rewrite), the E6 fix on top. `./gradlew build` green on all four nodes (427 JUnit + 339 GameTests each),
-   client GameTests green on all four, `:matrix-26.3:linkCheck` 0. Next: **12F** (scripts + CI run every node and the
-   matrix), then 12G (release, four jars). Old scratch worktree of dbf6006 at the 147c41c6 session scratchpad `base/`
+   client GameTests green on all four, `:matrix-26.3:linkCheck` 0. 12F done 2026-10-19 (`verifyAll`, CI green).
+   **12G in progress** (2026-10-19): jar names `+<band>` derived (G1), release.yml for every node (G2), docs +
+   `mod_version=1.1.0` (G3) done; next G4 verify + push, G5 PR port/26x → main + **squash-merge** (owner), G6 tag
+   `v1.1.0` once green (owner: no wait for an in-game check). Old scratch worktree of dbf6006 at the 147c41c6 session scratchpad `base/`
    (`git worktree list`; remove with `git worktree remove <path>` once nothing needs a baseline jar).
 2. Owner checks and housekeeping: TODO.md "Owner checks (open)" and "Owner housekeeping" (the full list moved there
    from this file on 2026-10-14; TODO.md was trimmed to open work, old notes at `git show fd3504c:TODO.md`).

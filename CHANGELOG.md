@@ -5,6 +5,15 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-19
+
+### Added
+- **Minecraft 26.1, 26.1.1, 26.1.2, 26.2 and 26.3.** Each release now has one jar per Minecraft version line, all
+  with the same features and settings: `+1.21.11`, `+26.1-26.1.2`, `+26.2` and `+26.3`. Pick the one that matches
+  your game (the [Installation](https://github.com/Wulfic/enchanting-2/wiki/Installation) page has the table). The
+  26.x jars need Java 25. Saves carry over: a world or player from 1.21.11 keeps its placed-block marks and Last
+  Stand cooldown on 26.x.
+
 ## [1.0.1] - 2026-10-14
 
 ### Fixed
@@ -47,6 +56,7 @@ First release, for Minecraft 1.21.11 (Fabric). Needed on both the server and the
   through Mod Menu and YACL (optional), server settings synced to players, `/reload` support and a `.bak` on every
   in-game save. See [Configuration](https://github.com/Wulfic/enchanting-2/wiki/Configuration).
 
-[Unreleased]: https://github.com/Wulfic/enchanting-2/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/Wulfic/enchanting-2/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/Wulfic/enchanting-2/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/Wulfic/enchanting-2/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/Wulfic/enchanting-2/releases/tag/v1.0.0

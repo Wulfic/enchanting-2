@@ -1,17 +1,21 @@
 # ---------------------------------------------------------------------------
-# Release: pushing a tag v<mod_version> builds the jar and publishes a GitHub Release.
+# Release: pushing a tag v<mod_version> builds one jar per band and publishes a GitHub Release (Phase 12G).
 #
 #   1. Bump mod_version in gradle.properties and add a "## [<version>] - YYYY-MM-DD" section to CHANGELOG.md
 #      (ReleaseDocsTest fails the build until both agree). Commit and push to main; let CI go green.
 #   2. git tag v<version> && git push origin v<version>
 #
+# Every version node in versions/ is one band and one jar: enchanting2-<version>+<band>.jar, the band being the
+# Minecraft versions it is proven on (build.gradle derives it from the node and the runtime matrix), e.g. +1.21.11 or
+# +26.1-26.1.2. The build is ./gradlew verifyAll, the same check CI runs.
+#
 # This workflow REFUSES, before building anything, when:
-#   - the tag isn't exactly v + mod_version (a v1.0.1 tag on a 1.0.0 tree would ship a jar named 1.0.0),
+#   - the tag isn't exactly v + mod_version (a v1.0.1 tag on a 1.0.0 tree would ship jars named 1.0.0),
 #   - the tagged commit isn't on main (no releases from side branches),
 #   - CHANGELOG.md has no section for the version (it becomes the release notes),
-#   - a release for the tag already exists (re-running never overwrites a published jar),
-#   - there is more than one version node in versions/ (one jar per band is Phase 12F; until then this workflow
-#     releases exactly one node and refuses to guess which).
+#   - a release for the tag already exists (re-running never overwrites a published jar);
+# and, after the build, when a node hasn't produced exactly one mod jar and its sources jar, or a jar's own
+# fabric.mod.json version isn't the <version>+<band> its file name says.
 #
 # Nothing here deletes anything. If the build fails, no release is created and the tag stays where it is: fix on
 # main, then move the tag (git tag -f v<version> && git push origin v<version> --force) or bump the version.
@@ -48,17 +52,14 @@ jobs:
           prop() { grep -E "^$2=" "$1" | head -n1 | cut -d= -f2- | tr -d '[:space:]'; }
           shopt -s nullglob
           nodes=(versions/*/gradle.properties)
-          if [ ${#nodes[@]} -ne 1 ]; then
-            echo "::error::Expected exactly one version node in versions/, found ${#nodes[@]}: ${nodes[*]:-none}. Releasing several bands is Phase 12F; refusing to guess."
+          if [ ${#nodes[@]} -eq 0 ]; then
+            echo "::error::No versions/<node>/gradle.properties found; settings.gradle declares the nodes."
             exit 1
           fi
-          node=$(dirname "${nodes[0]}")
           version=$(prop gradle.properties mod_version)
           gjv=$(prop gradle.properties gradle_java_version)
-          mc=$(prop "$node/gradle.properties" minecraft_version)
-          jv=$(prop "$node/gradle.properties" java_version)
-          if [ -z "$version" ] || [ -z "$mc" ] || [ -z "$jv" ] || [ -z "$gjv" ]; then
-            echo "::error::Missing mod_version or gradle_java_version (gradle.properties), or minecraft_version or java_version ($node/gradle.properties)."
+          if [ -z "$version" ] || [ -z "$gjv" ]; then
+            echo "::error::Missing mod_version or gradle_java_version in gradle.properties."
             exit 1
           fi
           if [ "$TAG" != "v${version}" ]; then
@@ -72,6 +73,17 @@ jobs:
             exit 1
           fi
 
+          # Every JDK a version node or matrix node compiles or runs on, as in ci.yml; Gradle's own is listed last.
+          levels=""
+          for f in "${nodes[@]}" matrix/*/gradle.properties; do
+            v=$(prop "$f" java_version)
+            case "$v" in
+              ''|*[!0-9]*) echo "::error::$f has java_version '$v', not a plain major version (e.g. 25)." >&2; exit 1 ;;
+            esac
+            levels="$levels $v"
+          done
+          mods=$(printf '%s\n' $levels | sort -un | grep -vx "$gjv" || true)
+
           # The CHANGELOG section for this version, heading excluded, up to the next "## [" heading, without the
           # "[1.0.0]: https://..." link definitions that end the file.
           awk -v v="$version" '
@@ -84,25 +96,17 @@ jobs:
             echo "::error::CHANGELOG.md has no '## [${version}] - YYYY-MM-DD' section (or it is empty). Refusing to release."
             exit 1
           fi
-          {
-            cat changes.md
-            echo
-            echo "---"
-            echo "**Minecraft** ${mc} · **Fabric Loader** $(prop gradle.properties loader_version)+ · **Requires** [Fabric API](https://modrinth.com/mod/fabric-api) · **Java** ${jv}+"
-            echo
-            echo "Install on the server **and** every player's client. Download \`enchanting2-${version}.jar\` below and put it in \`mods/\`."
-            echo "Full guide: [wiki](https://github.com/${GITHUB_REPOSITORY}/wiki) · Built from \`${commit:0:7}\`."
-          } > release-notes.md
 
           {
             echo "version=$version"
-            echo "node=$node"
-            echo "mc_version=$mc"
-            echo "java_version=$jv"
-            echo "gradle_java_version=$gjv"
             echo "commit=$commit"
+            echo "gradle_java_version=$gjv"
+            echo "mod_jdks<<EOF"
+            for v in $mods; do echo "$v"; done
+            echo "EOF"
+            echo "from_env=$(for v in $mods $gjv; do printf 'JAVA_HOME_%s_X64,' "$v"; done | sed 's/,$//')"
           } >> "$GITHUB_OUTPUT"
-          echo "Releasing ${version} for Minecraft ${mc} from ${commit:0:7}."
+          echo "Releasing ${version} (${#nodes[@]} band(s)) from ${commit:0:7}."
 
       - name: Refuse an existing release
         env:
@@ -114,45 +118,45 @@ jobs:
             exit 1
           fi
 
-      # The mod's JDK for the toolchain, then the one Gradle runs on (the last one listed becomes JAVA_HOME).
+      # The nodes' JDKs for their toolchains, then the one Gradle runs on (the last one listed becomes JAVA_HOME).
       - name: Set up JDKs
         uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: |
-            ${{ steps.meta.outputs.java_version }}
+            ${{ steps.meta.outputs.mod_jdks }}
             ${{ steps.meta.outputs.gradle_java_version }}
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Build (runs the JUnit suite and server GameTests)
+      - name: Build and test every node (verifyAll)
         run: >-
-          ./gradlew build --no-daemon --stacktrace
-          -Porg.gradle.java.installations.fromEnv=JAVA_HOME_${{ steps.meta.outputs.java_version }}_X64
+          ./gradlew verifyAll --no-daemon --stacktrace
+          -Porg.gradle.java.installations.fromEnv=${{ steps.meta.outputs.from_env }}
+
+      # One mod jar + its sources jar per node, each checked against its own metadata; the notes get a jar table.
+      - name: Collect the jars
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+          COMMIT: ${{ steps.meta.outputs.commit }}
+        run: scripts/release-collect.sh
 
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
           VERSION: ${{ steps.meta.outputs.version }}
-          MC_VERSION: ${{ steps.meta.outputs.mc_version }}
-          NODE: ${{ steps.meta.outputs.node }}
           COMMIT: ${{ steps.meta.outputs.commit }}
         run: |
           set -euo pipefail
-          jar="${NODE}/build/libs/enchanting2-${VERSION}.jar"
-          sources="${NODE}/build/libs/enchanting2-${VERSION}-sources.jar"
-          for f in "$jar" "$sources"; do
-            if [ ! -f "$f" ]; then
-              echo "::error::Expected $f after the build; found: $(ls "${NODE}/build/libs")"
-              exit 1
-            fi
-          done
-          gh release create "$TAG" "$jar" "$sources" \
+          mapfile -t files < release-files.txt
+          gh release create "$TAG" "${files[@]}" \
             --repo "$GITHUB_REPOSITORY" \
             --verify-tag \
-            --title "Enchanting 2 ${VERSION} for Minecraft ${MC_VERSION}" \
+            --title "Enchanting 2 ${VERSION}" \
             --notes-file release-notes.md
-          echo "### Released ${TAG}" >> "$GITHUB_STEP_SUMMARY"
-          echo "Enchanting 2 ${VERSION}, Minecraft ${MC_VERSION}, from \`${COMMIT:0:7}\`." >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### Released ${TAG}"
+            echo "Enchanting 2 ${VERSION} from \`${COMMIT:0:7}\`: ${#files[@]} files."
+          } >> "$GITHUB_STEP_SUMMARY"
