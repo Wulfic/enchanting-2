@@ -163,11 +163,12 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
 - A new GameTest class must be listed in `src/gametest/resources/fabric.mod.json` or it silently never runs.
 - The client GameTest flake "Network synchronizer in invalid state" hit twice on 2026-10-13 (gotchas.md): rerun once;
   a third time means chase it.
-- `./gradlew build` runs JUnit + server GameTests on every node. Run `./gradlew :<node>:runClientGameTest` too for
+- **Done = `scripts/verify-all.sh` green** (`./gradlew verifyAll`, 12F: every node's build, every matrix `linkCheck`,
+  GameTests on claimed matrix versions 26.1/26.1.1; CI runs the same task). `./gradlew build` runs JUnit + server GameTests on every node. Run `./gradlew :<node>:runClientGameTest` too for
   client changes, one node at a time (opens a game window, ~3 min; screenshots in
   `versions/<node>/build/run/clientGameTest/screenshots/`). A change is done when both nodes are green.
-- B1's jar claims 26.1 and 26.1.1 too: until 12F puts them in CI, run `./gradlew :matrix-26.1:linkCheck
-  :matrix-26.1.1:linkCheck` (seconds) on 26.x changes, and their `runGameTest` before a release.
+- B1's jar claims 26.1 and 26.1.1 too: `verifyAll` (and CI) runs their link checks and GameTests. A matrix node's role
+  is derived (control iff `minecraft_version == matrix_jar_node`); a new `matrix/<v>/` also goes in settings.gradle.
 - `src/` is written for 1.21.11 (`vcsVersion`); 26.x code sits in `//? if >=26.1` comments and in build.gradle's
   `stonecutter { replacements }`. Read `versions/26.1.2/build/generated/stonecutter/` to see what 26.1.2 compiles.
   Never commit with `stonecutter.active` switched away from 1.21.11. Pick anonymous-class / lambda targets by javap.

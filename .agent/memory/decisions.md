@@ -1549,3 +1549,16 @@ miss one); writing data in 26.3's format and downgrading for older nodes (src/ i
 FuelValuesMixin, FurnaceMenuFuelMixin, FurnaceBlockEntityFuelMixin, ProjectileMixin, LavaFluidMixin,
 EndermanLeaveBlockGoalMixin, FallingBlockEntityMixin, ShieldDeflect, KeepOnDeath, ItemWideningHook, FortuneDrops,
 three window mixins + five client GameTests (InputConstants), InfiniteBucketGameTest, ShieldsGameTest, ModIdentityTest
+
+## 2026-10-19 — 12F: one `verifyAll` task for local and CI; matrix roles derived
+**Context:** "done" on port/26x meant remembering which nodes and matrix versions to run; CI ran only `build`.
+**Choice:** `./gradlew verifyAll` (stonecutter.gradle) = every version node's `build` + every matrix node's
+`linkCheck` + `runGameTest` on "claimed" matrix versions; CI and `scripts/verify-all.sh` both call it. A matrix node is
+a control iff `minecraft_version == matrix_jar_node` (no role property to keep in sync). `verifyReport` is a separate
+task reading result files (a finalizer doesn't run when a dependency fails); `-PverifySince` marks results this run
+didn't rewrite. Version nodes got the matrix's zero-tests GameTest check (`gradle/gametest-report.gradle`, shared).
+**Why:** owner 2026-10-19 picked all three: GameTests only where a jar claims a version it isn't built for (controls
+repeat the node builds), client GameTests local-only, one Gradle task so local and CI can't drift.
+**Rejected:** a `matrix_role` property (can go stale); a bash-only script (CI and local would drift; Windows);
+headless client GameTests in CI (unproven with 26.3's renderer under Mesa; later follow-up).
+**Affects:** stonecutter.gradle, gradle/gametest-report.gradle, matrix/matrix.gradle, build.gradle, .github/workflows/ci.yml, scripts/verify-all.sh

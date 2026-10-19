@@ -784,3 +784,15 @@ table scroll tests passed on 26.3, so the wheel reached screens.
 step (`bottom - STEP`): a stale reset to 0 used to satisfy "less than bottom".
 **Rule:** in a client GameTest, any time-based client state needs a tick after anything slow (screenshots included).
 **Affects:** src/gametest/java/com/wulfnet/enchanting2/gametest/TooltipClientGameTest.java
+
+## 2026-10-19 — A guard in the root script can be unreachable: subprojects evaluate first (12F)
+**Symptom:** the fail-closed check on `matrix_jar_node` in `stonecutter.gradle`'s `verifyAll` never fired; a bad value
+failed with "Project with path ':9.9' could not be found" instead (mutation test, three bad values).
+**Cause:** `matrix.gradle` dereferences the property while `:matrix-<v>` is evaluated, which happens before the root's
+lazily registered task is configured. The root guard was dead code.
+**Fix:** one guard, in `matrix.gradle` at the top, with the "what to fix" message; the root only classifies. Mutation:
+blank, `9.9`, `matrix-26.2` each refused with that message.
+**Also:** a new JUnit test that reads repo files must add them as `test` inputs (gotchas 2026-10-14 again):
+`MatrixLayoutTest`'s mutation run was UP-TO-DATE in 2 s and "passed" until `matrix/*/gradle.properties` +
+`settings.gradle` were declared (a `fileTree` limited to the properties files, not the matrix build dirs).
+**Affects:** matrix/matrix.gradle, stonecutter.gradle, build.gradle (test inputs)

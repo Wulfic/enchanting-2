@@ -291,7 +291,8 @@ Not done until **all** of these are true:
 - [ ] Zero errors in diagnostics; build exits 0
 - [ ] Lint and typecheck pass with no new suppressions
 - [ ] A test exists that fails if this change is reverted
-- [ ] Full suite green — no regressions
+- [ ] Full suite green — no regressions. Here that is `scripts/verify-all.sh` (`./gradlew verifyAll`: every version
+      node + the runtime matrix), plus `./gradlew :<node>:runClientGameTest` on each node for client-side changes
 - [ ] Every error path logs something useful
 - [ ] **Every destructive path is guarded** — dry-run default, confirmation showing counts,
       refusal on an empty filter, logging with the recovery path

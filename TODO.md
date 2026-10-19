@@ -292,7 +292,7 @@ show `git log main..port/26x` first). Nothing is published until 12F.
         Done (javap without line tables): only `CollectedSpawners` (the shared registry lookup) and `LastStandHud` (a
         local) differ in code; `ShieldBash`, `TabbedConfigScreen` (+ `$RowsBar`) in line numbers; `heads.json` identical. decisions/gotchas/state; commit; push;
         dispatch CI (`gh workflow run ci.yml --ref port/26x`: ci.yml only triggers on main and PRs).
-- [ ] 12E **Band B3, node 26.3:** same steps (Fabric API 0.163.0+26.3, YACL 3.9.7+26.3-fabric, Mod Menu 21.0.0).
+- [x] 12E **Band B3, node 26.3:** same steps (Fabric API 0.163.0+26.3, YACL 3.9.7+26.3-fabric, Mod Menu 21.0.0).
       Biggest port so far: GUI rendering (`RenderPipeline`, `blit`), loot context API, moved mixin targets.
       Range `>=26.3 <26.4-` (26.4 is a snapshot, out of scope). Start list = 12C findings for 26.3 (23 mod-side; 16
       differ from 26.2 too). Exit: `./gradlew build` green on all four nodes; client GameTests on 26.3 (and on any
@@ -358,12 +358,46 @@ show `git log main..port/26x` first). Nothing is published until 12F.
         scratch worktree; scratch `jardiff.py`): on the three older nodes only `FortuneDrops` differs in code (shared
         edit); 9 classes in line numbers; data, mixin configs, client classes byte-identical, so their client GameTests
         weren't rerun.
-  - [ ] E8. decisions/gotchas/state; commit; push `port/26x`; dispatch CI.
+  - [x] E8. decisions/gotchas/state; commit; push `port/26x`; dispatch CI.
         Owner 2026-10-19: the 12E work was pushed as `a489e0f temp`; leave it (no history rewrite / force-push), commit
         the E6 fix and docs on top, and name a489e0f as the 12E node/mixins/data/tests work in the commit body.
+        Done: 6078afd pushed; CI run 39330250047 green (build + gitleaks).
 - [ ] 12F **Scripts and process:** `scripts/` task that builds every node and runs the matrix with a per-node report.
       CI: every node's build + the matrix's link checks and server GameTests. AGENTS.md and state.md: "done" = green on
       every node and every matrix version.
+      Owner 2026-10-19: (1) CI runs `linkCheck` on **every** matrix node, server GameTests only on the versions a jar
+      claims without being built for (26.1, 26.1.1; the 26.1.2/26.2/26.3 controls repeat the node builds). (2) Client
+      GameTests stay local-only (headless xvfb/Mesa = a later follow-up, not 12F). (3) One aggregate Gradle task that CI
+      also calls, so local and CI can't drift, plus a thin `scripts/verify-all.sh` that wraps it and prints the report.
+      **Not doing:** client GameTests in CI, release.yml (12G), new matrix versions.
+      **Blast radius:** build.gradle / settings.gradle / matrix.gradle tasks, ci.yml, docs; additive. **Rollback:**
+      `git revert` the 12F commits on `port/26x`.
+  - [x] F1. Read `matrix/matrix.gradle` and the root build. Role needs no new property: a matrix node is its jar's
+        **control** iff `minecraft_version == matrix_jar_node`, else **claimed** (derived, can't go stale). The root
+        script is `stonecutter.gradle` (`build.gradle` is the per-node central script). Node `runGameTest` (Loom
+        `configureTests`) writes no report and has no zero-tests check; the matrix's does.
+  - [x] F2a. `gradle/gametest-report.gradle`, applied by `build.gradle` and `matrix.gradle`: the `gameTest` run writes
+        `build/gametest-report.xml`; `checkGameTestReport` (moved from matrix.gradle) fails on no report / 0 cases /
+        any failure. Version nodes gain the zero-tests guard. Verify: `:26.3:runGameTest` + `:matrix-26.1:runGameTest`
+        green and each writes its report; mutation: report check fed an empty suite fails.
+        Done 2026-10-19: 339/339 + report on 1.21.11 (FAPI 0.141.6 honours report-file), 26.3, matrix 26.1; an
+        empty suite fails `:26.3:checkGameTestReport` ("has no test cases"), the real one passes (mutation, restored).
+  - [x] F2b. `verifyAll` in `stonecutter.gradle`: every version node's `build` + every matrix node's `linkCheck` +
+        `runGameTest` on claimed matrix nodes. Fails closed at configuration if a matrix node's properties lack
+        `minecraft_version` / `matrix_jar_node` or name a jar node that isn't a version node. JUnit `MatrixLayoutTest`:
+        settings.gradle's matrix list = `matrix/*/` dirs, each with both keys, jar node in settings' versions.
+  - [x] F3. `verifyReport` (root): one line per version node (JUnit n/failed, GameTests n/failed) and matrix node
+        (link-check summary line, GameTests if claimed), from the result files; `-PverifySince=<epoch ms>` marks older
+        files "stale (didn't run)". Separate task, not a finalizer (a finalizer doesn't run when a dependency fails).
+        `scripts/verify-all.sh`: `verifyAll --continue`, then `verifyReport`, exit = verifyAll's.
+        Done 2026-10-19. The fail-closed key check moved into `matrix.gradle` (the root copy was unreachable, gotchas);
+        mutation: blank / `9.9` / `matrix-26.2` refused. `MatrixLayoutTest` (+ test inputs: it was UP-TO-DATE at first);
+        mutation: a stray `matrix/99.9/` turns it red. `scripts/verify-all.sh` local: exit 0, 429 JUnit + 339/339 on
+        four nodes, link checks 0 on five, 339/339 on claimed 26.1 / 26.1.1; with a bad option: exit 1, "FAILED".
+        CI: `verifyAll --continue`, report into the job summary (`if: always()`), matrix JDKs read too.
+  - [x] F4. ci.yml `build` job calls `verifyAll` (keeps the jar artifact upload); header comment updated.
+  - [x] F5. AGENTS.md / state.md "done" definition: green on every node + `verifyAll`; README/wiki build docs.
+  - [ ] F6. Run `verifyAll` locally, commit, push, dispatch CI; CI green.
 - [ ] 12G **Release:** `release.yml` builds every node and attaches one jar per band, named from its proven range
       (`+1.21.11`, `+26.1-26.1.2`, `+26.2`, `+26.3`); `ReleaseDocsTest`, CHANGELOG and README list the supported
       versions per jar; wiki Installation page gets the version table. First band release = 1.1.0.

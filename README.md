@@ -115,6 +115,7 @@ differently. Blocks placed before you installed it count as natural for Fortune.
 
 ```sh
 ./gradlew build                        # every version: jars in versions/<version>/build/libs/, unit + server GameTests
+scripts/verify-all.sh                  # build + the runtime matrix, as CI runs it, with one line per version
 ./gradlew :1.21.11:runClientGameTest   # client screen tests for one version (opens a game window)
 ./gradlew :1.21.11:runClient           # a development client (or :26.1.2:, :26.2:, :26.3:)
 ```
@@ -126,7 +127,7 @@ Tests, CI and how releases are made: [Building from Source](https://github.com/W
 ## Contributing
 
 Bug reports, balance feedback and pull requests are welcome: [open an issue](https://github.com/Wulfic/enchanting-2/issues/new/choose).
-For a pull request, keep it small, add a test that fails without it, and run `./gradlew build` first.
+For a pull request, keep it small, add a test that fails without it, and run `scripts/verify-all.sh` (or `./gradlew verifyAll`) first.
 
 ## License
 
