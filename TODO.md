@@ -333,19 +333,34 @@ show `git log main..port/26x` first). Nothing is published until 12F.
         `FallingBlockEntityMixin`, conditioned) and `hurtServer`'s cooldown field (`damageCooldownTime`, replacement);
         `deflect` overloads handled in E2. javap: bucket dispenser still `$3`, `AnvilMenu.lambda$onTake$0`, grindstone
         `$2/$3/$4` unchanged; `MinecraftMixin`'s slice still lands on `keyAttack`; `anyMatch` still in `getOffer`.
-  - [ ] E6. Server GameTests on 26.3, then client GameTests (screenshots checked against 26.2's).
+  - [x] E6. Server GameTests on 26.3, then client GameTests (screenshots checked against 26.2's).
+        **Fixed 2026-10-19:** confirmed: the screenshot took 208 ms (gotchas.md 2026-10-19). `waitTick` after both tall
+        screenshots; "back up" asserts exactly `bottom - STEP`. Green on all four nodes. Screenshots vs 26.2 / 26.1:
+        windows and tooltips match (< 1% pixels, world background aside). 26.3 alone showed a leftover hover (a
+        table-row tooltip over Enchant), so `table-rows` and `openAndClose` park the cursor at 0,0 and tick before the
+        shot (now 0.06%). Config title shot: 26.2 opens with the first option focused + its description, 26.3 without.
+        Vanilla `Screen.setInitialFocus` is identical on both (focus only if the last input was keyboard); an earlier
+        test's simulated Ctrl counts as keyboard on 26.2, not on 26.3. Test history, not product: not chased.
         Server: 339/339 on 26.3. **Client: RED, one failure** (2026-10-15, session ended on the weekly token limit):
         `AssertionError: one notch down scrolled it: 0` (tall-tooltip scroll test). Suspect `MouseHandlerMixin`: 26.3's
         `onScroll` became public and checks `handle != 0L && handle == window.handle()`, so Fabric's simulated scroll
         may never reach `Screen.mouseScrolled`; or the scroll sign/units changed with 26.3's new input layer (the
         mouse buttons were renumbered). Log: rerun `./gradlew :26.3:runClientGameTest`; read 26.3 `MouseHandler.onScroll`
         and Fabric's `TestInput.scroll`. Screenshots not yet compared with 26.2's.
+        2026-10-19: `MouseHandler.onScroll` still calls `Screen.mouseScrolled` (wrap intact); the anvil/table scroll
+        tests pass on 26.3, and the tall-top screenshot shows the tooltip at its top (vanilla 26.3 would put y < 0), so
+        placement + scroll hooks both run. Hypothesis: `takeScreenshot` between the hover and the first notch takes
+        > `TooltipScroll.STALE_NANOS` (200 ms) on 26.3, so the notch (or the next frame's `y()`) starts over. Test:
+        `waitTick` after the screenshot + a temporary `E6DIAG` timing print (remove before commit). 26.2's screenshots
+        are gone; compare with `matrix/26.1`'s (same 23, per 12D).
   - [x] E7. `./gradlew build` on all four nodes; jar diff of the other three before/after.
         Done: 427 JUnit + 339/339 server GameTests on 1.21.11, 26.1.2, 26.2, 26.3. Jar diff vs HEAD (baseline built in a
         scratch worktree; scratch `jardiff.py`): on the three older nodes only `FortuneDrops` differs in code (shared
         edit); 9 classes in line numbers; data, mixin configs, client classes byte-identical, so their client GameTests
         weren't rerun.
   - [ ] E8. decisions/gotchas/state; commit; push `port/26x`; dispatch CI.
+        Owner 2026-10-19: the 12E work was pushed as `a489e0f temp`; leave it (no history rewrite / force-push), commit
+        the E6 fix and docs on top, and name a489e0f as the 12E node/mixins/data/tests work in the commit body.
 - [ ] 12F **Scripts and process:** `scripts/` task that builds every node and runs the matrix with a per-node report.
       CI: every node's build + the matrix's link checks and server GameTests. AGENTS.md and state.md: "done" = green on
       every node and every matrix version.

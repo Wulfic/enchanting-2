@@ -257,6 +257,9 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 				"the sword's rows: " + list);
 		check(screen(context, TableScreenAccess::enchanting2$windowText).contains(text("enchanting2.table.status.pick")),
 				"asks for a pick");
+		// Off the list, so the shot doesn't show a hover left by an earlier test (26.3 drew one over Enchant).
+		moveTo(context, 0, 0);
+		context.waitTick();
 		context.takeScreenshot("enchanting2-table-rows");
 
 		scrollIntoView(context, SHARPNESS);

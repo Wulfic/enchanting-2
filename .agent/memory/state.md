@@ -4,7 +4,7 @@
 > cheap to read at the start of every session. History belongs in `decisions.md` and
 > `gotchas.md`; this file only answers "where am I right now?".
 
-**Last updated:** 2026-10-15
+**Last updated:** 2026-10-19
 **Branch:** `port/26x` for Phase 12 (main otherwise: commit straight to main and push). CI on every push (`ci.yml`: build + gitleaks); a release
 is a pushed `v<mod_version>` tag (`release.yml`); `wiki/` syncs to the GitHub wiki (`wiki.yml`). See decisions.md 11e.
 
@@ -120,8 +120,11 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
   link check (`matrix/linkcheck/LinkCheck.java`). Verdict: one band per 26.x line (decisions.md 2026-10-15).
   B1 = 26.1–26.1.2 proven (range `>=26.1 <26.2-`). CI's `build` configures the matrix projects (empty jars) but
   doesn't run their GameTests yet (12F).
-- Tests per node: 426 JUnit + 339 GameTests (`./gradlew build`, both nodes, also in CI) + 9 client GameTests
+- Tests per node: 427 JUnit + 339 GameTests (`./gradlew build`, all four nodes, also in CI) + 9 client GameTests
   (`./gradlew :<node>:runClientGameTest`, one node at a time).
+- 12E (2026-10-15/19): node `versions/26.3/` (B3, range `>=26.3 <26.4-`): renderer/loot/input renames as
+  replacements, moved targets (`Enderman`, hoe `BlockTransformer`, fuel component mixins), loot JSON upgraded per node
+  in processResources (decisions.md "12E").
 
 ## What's next
 0. **v1.0.1** (2026-10-14): the 11f Elytra Slot fix, released from a pushed `v1.0.1` tag (release.yml). Owner: try
@@ -129,12 +132,11 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
 1. **Phase 12, version bands** (TODO.md; decisions.md 2026-10-15 "One band per 26.x line"): A = 1.21.11, B1 =
    26.1–26.1.2, B2 = 26.2, B3 = 26.3, one jar each from the shared source; 1.21.11 stays in step (owner 2026-10-14).
    12A–12D done on `port/26x` (12D 2026-10-15: node `versions/26.2/`, band B2, all green; decisions.md "12D").
-   **12E (node `versions/26.3/`) in progress, UNCOMMITTED on `port/26x`** (2026-10-15, stopped on the weekly token
-   limit): compiles on all four nodes, `:matrix-26.3:linkCheck` 0, `./gradlew build` green on all four (427 JUnit +
-   339 GameTests each). One red: `:26.3:runClientGameTest` "one notch down scrolled it: 0" (TODO.md E6 has the
-   leads). Fix that, compare 26.3 screenshots with 26.2's, then E8: commit (staged: build/node/data upgrader; mixins;
-   tests; docs), push, dispatch CI. decisions.md "12E" and five 12E gotchas are already written. Scratch worktree of
-   HEAD (baseline jars) at the session scratchpad `base/`: `git worktree list`, then `git worktree remove <path>`.
+   12E (node `versions/26.3/`, band B3) done 2026-10-19: the work is in the pushed `a489e0f temp` commit (owner: leave
+   it, no rewrite), the E6 fix on top. `./gradlew build` green on all four nodes (427 JUnit + 339 GameTests each),
+   client GameTests green on all four, `:matrix-26.3:linkCheck` 0. Next: **12F** (scripts + CI run every node and the
+   matrix), then 12G (release, four jars). Old scratch worktree of dbf6006 at the 147c41c6 session scratchpad `base/`
+   (`git worktree list`; remove with `git worktree remove <path>` once nothing needs a baseline jar).
 2. Owner checks and housekeeping: TODO.md "Owner checks (open)" and "Owner housekeeping" (the full list moved there
    from this file on 2026-10-14; TODO.md was trimmed to open work, old notes at `git show fd3504c:TODO.md`).
    A new enchantment still adds a `LevelCeilings` row, a `.desc` line, tags, a price row if single-level, docs rows.

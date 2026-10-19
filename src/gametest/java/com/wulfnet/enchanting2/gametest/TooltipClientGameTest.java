@@ -171,6 +171,9 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 		context.waitTicks(2);
 		check(TallTooltips.offset() == 0, "starts at the top: " + TallTooltips.offset());
 		context.takeScreenshot("enchanting2-tooltip-tall-top");
+		// A screenshot can take longer than TooltipScroll.STALE_NANOS (208 ms on 26.3, 2026-10-19): draw a frame
+		// before the wheel, or the tooltip starts over.
+		context.waitTick();
 		context.getInput().scroll(-1);
 		context.waitTick();
 		check(TallTooltips.offset() > 0, "one notch down scrolled it: " + TallTooltips.offset());
@@ -188,9 +191,12 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 		}
 		check(bottom > TooltipScroll.STEP, "scrolled down to its bottom: " + bottom);
 		context.takeScreenshot("enchanting2-tooltip-tall-bottom");
+		context.waitTick();
 		context.getInput().scroll(1);
 		context.waitTick();
-		check(TallTooltips.offset() < bottom, "and back up: " + TallTooltips.offset() + " from " + bottom);
+		// Exactly one notch: a tooltip that went stale would start over at 0, which "less than bottom" let through.
+		check(TallTooltips.offset() == bottom - TooltipScroll.STEP,
+				"and back up one notch: " + TallTooltips.offset() + " from " + bottom);
 	}
 
 	/** The first {@code count} enchantments by ID (only ones with a description, if {@code described}), each at I. */

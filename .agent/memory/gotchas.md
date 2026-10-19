@@ -771,3 +771,16 @@ names on all four lines, so the windows and client GameTests use it everywhere.
 `com.mojang.blaze3d.pipeline.RenderPipeline` → `com.mojang.renderpearl.api.pipeline.RenderPipeline`. The import
 replacement fixed the compile; five `blit`/`blitSprite` descriptors inside window mixins' `@At` strings still named the
 old class (javac can't see strings). `:matrix-26.3:linkCheck` caught them; a second replacement covers descriptors.
+
+## 2026-10-19 — A client GameTest screenshot can outlast `TooltipScroll.STALE_NANOS` (12E)
+**Symptom:** 26.3 only: `TooltipClientGameTest` "one notch down scrolled it: 0"; every other node green.
+**Cause:** `takeScreenshot` sat between the hover and the first wheel notch and took 208 ms on 26.3 (measured with a
+timing print), over the 200 ms after which an undrawn tall tooltip starts over. Same family as 2026-10-13: client
+GameTests only draw on a tick. Not a product bug (real play draws every frame); the hooks were fine (the tall-top
+screenshot showed the tooltip at its top, which vanilla 26.3 never does).
+**Dead end avoided:** suspecting 26.3's new input layer (`onScroll` handle check, renumbered buttons): the anvil and
+table scroll tests passed on 26.3, so the wheel reached screens.
+**Fix:** `waitTick` after each screenshot before the next wheel notch. The "back up" check now asserts exactly one
+step (`bottom - STEP`): a stale reset to 0 used to satisfy "less than bottom".
+**Rule:** in a client GameTest, any time-based client state needs a tick after anything slow (screenshots included).
+**Affects:** src/gametest/java/com/wulfnet/enchanting2/gametest/TooltipClientGameTest.java

@@ -90,6 +90,9 @@ public class ConfigScreenClientGameTest implements FabricClientGameTest {
 		context.waitTick();
 		Screen shown = context.computeOnClient(client -> client.screen);
 		check(shown instanceof YACLScreen, "the config screen is open: " + shown);
+		// Off every option, so the shot is the same on each node whatever an earlier test left under the cursor.
+		context.getInput().setCursorPos(0, 0);
+		context.waitTick();
 		context.takeScreenshot(screenshot);
 		context.runOnClient(client -> client.screen.onClose());
 		context.waitTick();
