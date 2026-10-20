@@ -6,8 +6,8 @@ and versions follow [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
-- **NeoForge** (Minecraft 26.2 and 26.3 so far), with every feature the Fabric jar has. The in-game config screen on NeoForge
-  comes later; the config files work as on Fabric.
+- **NeoForge** for Minecraft 26.1.2, 26.2 and 26.3, with every feature the Fabric jar has. The in-game config
+  screen on NeoForge comes later; the config files work as on Fabric.
 
 ### Changed
 - **Every jar names its loader:** `+26.3-fabric`, `+26.3-neoforge`, `+1.21.11-fabric`, and so on, in the file name

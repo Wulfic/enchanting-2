@@ -131,7 +131,7 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
       node's `runClientGameTest` are as green as on `a071f7f`, with the same test counts (432 JUnit / 339 GameTests).
       Add a JUnit test that fails if any class outside `platform/<loader>/` imports `net.fabricmc` / `net.neoforged` /
       `net.minecraftforge`.
-- [ ] 13C — **NeoForge nodes** 26.1.2, 26.2, 26.3: `neoforge.mods.toml`, `platform/neoforge` (payload registration,
+- [x] 13C — **NeoForge nodes** 26.1.2, 26.2, 26.3: `neoforge.mods.toml`, `platform/neoforge` (payload registration,
       data attachments with `copyOnDeath`, `ModifyDefaultComponentsEvent`, loot events, `PlayerEvent.Clone`,
       `RegisterGuiLayersEvent`, `ItemTooltipEvent`). The enchantment `MODIFY` replacement is a registry-load hook like
       10gA's `RegistryDataLoaderMixin`. Fix mixins that miss on NeoForge's patched targets (mixin `require` errors =
@@ -226,7 +226,8 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
       `global_loot_modifiers.json` list logged an ERROR at every start (removed; `NeoForgeLootModifiersTest`).
       `loot_modifiers` joined the 26.3 data upgrade. verifyAll: 445 JUnit, 340 GameTests on all six nodes; both
       NeoForge logs free of ERRORs but our config tests' deliberate ones. gotchas.md "NeoForge loot modifiers".
-      Next: 26.1.2-neoforge (B1 = 26.1.2 only on NeoForge; the README row "26.1, 26.1.1, 26.1.2" splits).
+      **26.1.2-neoforge built 2026-10-20** (NeoForge 26.1.2.122): `:26.1.2-neoforge:build` green first try (340/340,
+      log clean), README/wiki row split. verifyAll 2026-10-20: 445 JUnit + 340 GameTests on all 7 nodes. **13C done.**
       Owner check later (13E/C7): `runClient` on NeoForge (tooltips, HUD, table/anvil/grindstone panels, joining a
       vanilla server gets our message; singleplayer and a `runServer` join both reach the world, not stuck at
       "Joining world" — that is the hello round trip).

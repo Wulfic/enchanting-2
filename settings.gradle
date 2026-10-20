@@ -31,6 +31,7 @@ stonecutter {
         versions '1.21.11', '26.1.2', '26.2', '26.3'
         // Phase 13C: NeoForge nodes, same Minecraft as the Fabric node of that name, own build script (the loader's
         // Gradle plugin differs; gradle/common.gradle holds what they share). decisions.md 2026-10-20 "build plugins".
+        vers('26.1.2-neoforge', '26.1.2').buildscript('build.neoforge.gradle')
         vers('26.2-neoforge', '26.2').buildscript('build.neoforge.gradle')
         vers('26.3-neoforge', '26.3').buildscript('build.neoforge.gradle')
         // The version the committed src/ is written for. Run "Reset active project" before committing.
