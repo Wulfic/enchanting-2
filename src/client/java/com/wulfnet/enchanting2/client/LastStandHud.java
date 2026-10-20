@@ -30,8 +30,12 @@ public final class LastStandHud {
 
 	private static void render(GuiGraphics graphics, DeltaTracker delta) {
 		Minecraft client = Minecraft.getInstance();
-		if (client.player == null || client.level == null || client.options.hideGui
-				|| LastStand.worn(client.player) == null) {
+		// F1 hides the HUD: an option until 26.2, the Hud's own state from 26.2.
+		//? if >=26.2 {
+		/*boolean hudHidden = client.gui.hud.isHidden();
+		*///?} else
+		boolean hudHidden = client.options.hideGui;
+		if (client.player == null || client.level == null || hudHidden || LastStand.worn(client.player) == null) {
 			return;
 		}
 		long remaining = LastStand.remaining(client.player, client.level.getGameTime());

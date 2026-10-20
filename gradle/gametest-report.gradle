@@ -1,0 +1,35 @@
+// Phase 12F: the server GameTest report, shared by every version node (build.gradle) and matrix node (matrix.gradle).
+// The `gameTest` run writes a JUnit-style report to <project>/build/gametest-report.xml, and checkGameTestReport turns
+// "nothing ran" into a failure: the server exits non-zero on a failed test, but a run that loads no tests (a missing
+// jar, a wrong entrypoint, a GameTest class left out of fabric.mod.json) also exits 0. verifyReport reads the file.
+def gameTestReport = new File(layout.buildDirectory.get().asFile.canonicalFile, 'gametest-report.xml')
+
+loom.runs.matching { it.name == 'gameTest' }.configureEach {
+    property 'fabric-api.gametest.report-file', gameTestReport.absolutePath
+}
+
+def checkGameTestReport = tasks.register('checkGameTestReport') {
+    def report = gameTestReport
+    def nodeName = project.path
+    doLast {
+        if (!report.isFile()) {
+            throw new GradleException("No GameTest report at ${report}: the GameTest server didn't run")
+        }
+        def suite = new groovy.xml.XmlSlurper().parse(report)
+        def cases = suite.'**'.findAll { it.name() == 'testcase' }
+        def failed = cases.findAll { !it.failure.isEmpty() || !it.error.isEmpty() }
+        logger.lifecycle("GameTests on ${nodeName}: ${cases.size()} ran, ${failed.size()} failed (${report})")
+        if (cases.isEmpty()) {
+            throw new GradleException("The GameTest report at ${report} has no test cases: the GameTest jar didn't load")
+        }
+        if (!failed.isEmpty()) {
+            throw new GradleException("${failed.size()} GameTests failed on ${nodeName}: " +
+                failed.collect { it.@name.text() }.join(', '))
+        }
+    }
+}
+tasks.named('runGameTest') {
+    // A report left by an earlier run must never pass for this one.
+    doFirst { gameTestReport.delete() }
+    finalizedBy checkGameTestReport
+}

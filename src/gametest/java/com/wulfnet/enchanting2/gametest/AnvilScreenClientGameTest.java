@@ -1,5 +1,6 @@
 package com.wulfnet.enchanting2.gametest;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.wulfnet.enchanting2.client.AnvilPreviewState;
 import com.wulfnet.enchanting2.client.AnvilScreenAccess;
 import com.wulfnet.enchanting2.config.CommonConfig;
@@ -29,7 +30,6 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
-import org.lwjgl.glfw.GLFW;
 
 /**
  * The anvil screen on the real client (Stage 6D; in the window since TODO 10o): the window is wide and centred even on
@@ -49,7 +49,7 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext context) {
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
-			world.getClientWorld().waitForChunksRender();
+			ClientWorlds.waitForChunksRender(world);
 			world.getServer().runCommand("gamemode survival @a");
 			world.getServer().runCommand("xp set @a 30 levels");
 			context.getInput().resizeWindow(NARROW_WIDTH, NARROW_HEIGHT);
@@ -212,11 +212,11 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 
 		int barX = screen(context, AnvilScreenAccess::enchanting2$scrollBarX) + ColumnWindow.SCROLLBAR_WIDTH / 2;
 		moveTo(context, barX, screen(context, AnvilScreenAccess::enchanting2$thumbCenterY));
-		context.getInput().holdMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+		context.getInput().holdMouse(InputConstants.MOUSE_BUTTON_LEFT);
 		context.waitTick();
 		moveTo(context, barX, boxTop - 20);
 		context.waitTicks(2);
-		context.getInput().releaseMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+		context.getInput().releaseMouse(InputConstants.MOUSE_BUTTON_LEFT);
 		context.waitTick();
 		check(screen(context, AnvilScreenAccess::enchanting2$scrollOffset) == 0,
 				"the thumb dragged up to the top: " + screen(context, AnvilScreenAccess::enchanting2$scrollOffset));
@@ -252,7 +252,7 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 
 	private static void click(ClientGameTestContext context, int x, int y) {
 		moveTo(context, x, y);
-		context.getInput().pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+		context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
 	}
 
 	/**

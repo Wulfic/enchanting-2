@@ -1,12 +1,12 @@
 # Enchanting 2
 
-**A Fabric mod for Minecraft 1.21.11 that reworks XP and enchanting.** You choose your enchantments instead of rolling
+**A Fabric mod for Minecraft 1.21.11 and 26.1 through 26.3 that reworks XP and enchanting.** You choose your enchantments instead of rolling
 for them, you see every price before you pay, and an item can hold every enchantment that fits it. Every vanilla
 enchantment is kept, 49 new ones are added, and almost everything can be configured in-game.
 
 | | |
 |---|---|
-| **Minecraft** | Java Edition 1.21.11 |
+| **Minecraft** | Java Edition 1.21.11, 26.1 to 26.1.2, 26.2, 26.3 ([which jar](Installation)) |
 | **Loader** | Fabric Loader 0.19.5 or newer |
 | **Requires** | Fabric API |
 | **Optional** | Mod Menu + YACL, for the in-game config screen |

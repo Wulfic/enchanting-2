@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.wulfnet.enchanting2.client.ClientConfigState;
 import com.wulfnet.enchanting2.client.PanelTextResolver;
 import com.wulfnet.enchanting2.client.TableList;
@@ -52,7 +53,6 @@ import net.minecraft.world.inventory.EnchantmentMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import org.jspecify.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -109,8 +109,8 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 	@Inject(method = "init", at = @At("HEAD"))
 	private void enchanting2$height(CallbackInfo ci) {
 		if (TableBridge.clientServerIsOurs()) {
-			imageWidth = TableWindow.WIDTH;
-			imageHeight = TableWindow.HEIGHT;
+			((AbstractContainerScreenAccessor) this).enchanting2$setImageWidth(TableWindow.WIDTH);
+			((AbstractContainerScreenAccessor) this).enchanting2$setImageHeight(TableWindow.HEIGHT);
 			inventoryLabelX = TableWindow.INVENTORY_LABEL_X;
 			inventoryLabelY = TableWindow.INVENTORY_LABEL_Y;
 		}
@@ -172,6 +172,10 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 
 	/** Absolute coordinates, before slots and labels: under any tooltip. */
 	@Inject(method = "renderBg", at = @At("TAIL"))
+	// 26.1's extractBackground takes the partial tick last.
+	//? if >=26.1 {
+	/*private void enchanting2$drawTable(GuiGraphics graphics, int mouseX, int mouseY, float partialTick,
+	*///?} else
 	private void enchanting2$drawTable(GuiGraphics graphics, float partialTick, int mouseX, int mouseY,
 			CallbackInfo ci) {
 		TableList list = enchanting2$list;
@@ -299,7 +303,7 @@ abstract class EnchantmentScreenMixin extends AbstractContainerScreen<Enchantmen
 		if (list == null || !list.contains(event.x(), event.y())) {
 			return;
 		}
-		if (event.button() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+		if (event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
 			if (list.overScrollBar(event.x(), event.y())) {
 				list.press(event.y());
 			} else {

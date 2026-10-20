@@ -4,8 +4,8 @@
 > cheap to read at the start of every session. History belongs in `decisions.md` and
 > `gotchas.md`; this file only answers "where am I right now?".
 
-**Last updated:** 2026-10-14
-**Branch:** main (commit straight to main and push). CI on every push (`ci.yml`: build + gitleaks); a release
+**Last updated:** 2026-10-19
+**Branch:** `port/26x` for Phase 12 (main otherwise: commit straight to main and push). CI on every push (`ci.yml`: build + gitleaks); a release
 is a pushed `v<mod_version>` tag (`release.yml`); `wiki/` syncs to the GitHub wiki (`wiki.yml`). See decisions.md 11e.
 
 ## Where we are
@@ -111,14 +111,34 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
   (`gradle_java_version`) while the mod targets 21.
 - 11f (2026-10-14, owner report "Flight never thrusts"): Elytra Slot compat (`compat/ElytraSlot` by reflection,
   `elytra/WornElytra`); Flight's wear hook wraps the `updateFallFlying` call in `aiStep`. Gametest stub of the mod.
-- Tests: 423 JUnit + 336 GameTests (`./gradlew build`, also in CI) + 8 client GameTests (`./gradlew runClientGameTest`).
+- 12A (2026-10-14, branch `port/26x`): Stonecutter 0.9.8 + loom-back-compat 0.4.3, one node `versions/1.21.11/`
+  (per-node gradle.properties, `run_root`), Groovy; jar = v1.0.1 entry for entry. Run tasks are node-qualified.
+- 12B (2026-10-14): node `versions/26.1.2/` (Java 25, Loom 1.18.4); renames as Stonecutter replacements in
+  build.gradle, 25 `//?` conditions, `port/LootTool`; band-only mixins via `<% if (band == 'A') %>` in mixins.json.
+- 12C (2026-10-15): runtime matrix `matrix/<version>` (plain subprojects, `matrix/matrix.gradle`: the 26.1.2 node's
+  jar + `gametestJar` on another Minecraft; `:matrix-<v>:linkCheck`, `runGameTest`, `runClientGameTest`) and the static
+  link check (`matrix/linkcheck/LinkCheck.java`). Verdict: one band per 26.x line (decisions.md 2026-10-15).
+  B1 = 26.1–26.1.2 proven (range `>=26.1 <26.2-`). CI's `build` configures the matrix projects (empty jars) but
+  doesn't run their GameTests yet (12F).
+- Tests per node: 427 JUnit + 339 GameTests (`./gradlew build`, all four nodes, also in CI) + 9 client GameTests
+  (`./gradlew :<node>:runClientGameTest`, one node at a time).
+- 12E (2026-10-15/19): node `versions/26.3/` (B3, range `>=26.3 <26.4-`): renderer/loot/input renames as
+  replacements, moved targets (`Enderman`, hoe `BlockTransformer`, fuel component mixins), loot JSON upgraded per node
+  in processResources (decisions.md "12E").
 
 ## What's next
 0. **v1.0.1** (2026-10-14): the 11f Elytra Slot fix, released from a pushed `v1.0.1` tag (release.yml). Owner: try
    `enchanting2-1.0.1.jar` in the Prism instance with the Flight elytra in Elytra Slot's slot.
-1. **Phase 12, version bands** (TODO.md; decisions.md 2026-10-14 "Version bands, mcMMO-style"): band A 1.21.11, band B
-   every 26.x in one jar built on 26.1.2 and proven per runtime by a GameTest matrix (12C is the gate). Start with 12A
-   on branch `port/26x`. Open for the owner: keep 1.21.11 in step, or freeze it like mcMMO's old bands?
+1. **Phase 12, version bands** (TODO.md; decisions.md 2026-10-15 "One band per 26.x line"): A = 1.21.11, B1 =
+   26.1–26.1.2, B2 = 26.2, B3 = 26.3, one jar each from the shared source; 1.21.11 stays in step (owner 2026-10-14).
+   12A–12D done on `port/26x` (12D 2026-10-15: node `versions/26.2/`, band B2, all green; decisions.md "12D").
+   12E (node `versions/26.3/`, band B3) done 2026-10-19: the work is in the pushed `a489e0f temp` commit (owner: leave
+   it, no rewrite), the E6 fix on top. `./gradlew build` green on all four nodes (427 JUnit + 339 GameTests each),
+   client GameTests green on all four, `:matrix-26.3:linkCheck` 0. 12F done 2026-10-19 (`verifyAll`, CI green).
+   **12G in progress** (2026-10-19): jar names `+<band>` derived (G1), release.yml for every node (G2), docs +
+   `mod_version=1.1.0` (G3) done; next G4 verify + push, G5 PR port/26x → main + **squash-merge** (owner), G6 tag
+   `v1.1.0` once green (owner: no wait for an in-game check). Old scratch worktree of dbf6006 at the 147c41c6 session scratchpad `base/`
+   (`git worktree list`; remove with `git worktree remove <path>` once nothing needs a baseline jar).
 2. Owner checks and housekeeping: TODO.md "Owner checks (open)" and "Owner housekeeping" (the full list moved there
    from this file on 2026-10-14; TODO.md was trimmed to open work, old notes at `git show fd3504c:TODO.md`).
    A new enchantment still adds a `LevelCeilings` row, a `.desc` line, tags, a price row if single-level, docs rows.
@@ -133,7 +153,7 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
   config key, default or comment change. README and CHANGELOG are player-facing now.
 - Owner principle (DESIGN §1): every option goes in the config screen too, and every enchantment needs a `.desc` lang
   line (10h) and a level-ceiling row (10j).
-- Plugin ID is `net.fabricmc.fabric-loom-remap` for 1.21.11. 1.21.11 Mojang names use `Identifier`, not `ResourceLocation`.
+- Loom's plugin is picked by loom-back-compat (remap on 1.21.11, plain on 26.x); never name it in build.gradle. 1.21.11 Mojang names use `Identifier`, not `ResourceLocation`.
 - Never kill java by name. The dev server uses 25566; the owner's other instance may be on 25565.
 - 1.21.x enchantments are data-driven: use `EnchantmentEvents.MODIFY`, not override JSON. MODIFY runs
   before the server exists and `/reload` doesn't re-run it (gotchas.md). FAPI 0.141.6 = item-api 11.6.0.
@@ -145,5 +165,12 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
 - A new GameTest class must be listed in `src/gametest/resources/fabric.mod.json` or it silently never runs.
 - The client GameTest flake "Network synchronizer in invalid state" hit twice on 2026-10-13 (gotchas.md): rerun once;
   a third time means chase it.
-- `./gradlew build` runs JUnit + server GameTests only. Run `./gradlew runClientGameTest` too for client changes (opens
-  a game window, ~2.5 min; screenshots in `build/run/clientGameTest/screenshots/`).
+- **Done = `scripts/verify-all.sh` green** (`./gradlew verifyAll`, 12F: every node's build, every matrix `linkCheck`,
+  GameTests on claimed matrix versions 26.1/26.1.1; CI runs the same task). `./gradlew build` runs JUnit + server GameTests on every node. Run `./gradlew :<node>:runClientGameTest` too for
+  client changes, one node at a time (opens a game window, ~3 min; screenshots in
+  `versions/<node>/build/run/clientGameTest/screenshots/`). A change is done when both nodes are green.
+- B1's jar claims 26.1 and 26.1.1 too: `verifyAll` (and CI) runs their link checks and GameTests. A matrix node's role
+  is derived (control iff `minecraft_version == matrix_jar_node`); a new `matrix/<v>/` also goes in settings.gradle.
+- `src/` is written for 1.21.11 (`vcsVersion`); 26.x code sits in `//? if >=26.1` comments and in build.gradle's
+  `stonecutter { replacements }`. Read `versions/26.1.2/build/generated/stonecutter/` to see what 26.1.2 compiles.
+  Never commit with `stonecutter.active` switched away from 1.21.11. Pick anonymous-class / lambda targets by javap.

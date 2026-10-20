@@ -1,0 +1,105 @@
+plugins {
+    id 'dev.kikugie.stonecutter'
+}
+
+// The node whose code src/ currently holds. Stonecutter rewrites this line when the active project is switched; set it
+// back to the vcsVersion in settings.gradle ("Reset active project") before committing.
+stonecutter.active '1.21.11'
+
+// Phase 12F (owner 2026-10-19): `./gradlew verifyAll` is what "done" means, locally and in CI.
+//   - every version node's `build` (compile, JUnit, server GameTests with the zero-tests check),
+//   - every matrix node's `linkCheck` (seconds each),
+//   - the server GameTests of every matrix version a jar claims without being built for ("claimed"). A matrix node
+//     whose minecraft_version is its matrix_jar_node's is that jar's "control": it repeats the node's own build.
+// Client GameTests stay local (they open a game window): ./gradlew :<node>:runClientGameTest, one node at a time.
+// `./gradlew verifyReport` prints one line per node from the result files; scripts/verify-all.sh runs both.
+def versionNodes = { subprojects.findAll { it.projectDir.parentFile == file('versions') }.sort { it.name } }
+def matrixNodes = { subprojects.findAll { it.projectDir.parentFile == file('matrix') }.sort { it.name } }
+
+// matrix.gradle has already refused a node without both keys or with a jar node that isn't a version node.
+def matrixRole = { Project node ->
+    node.property('minecraft_version').toString().trim() == node.property('matrix_jar_node').toString().trim() ?
+        'control' : 'claimed'
+}
+
+tasks.register('verifyAll') {
+    group = 'verification'
+    description = 'Builds and tests every version node, link-checks every matrix node, GameTests the claimed versions'
+    def nodes = versionNodes()
+    if (nodes.isEmpty()) {
+        throw new GradleException('verifyAll found no version nodes under versions/; refusing to report a pass')
+    }
+    def roles = matrixNodes().collectEntries { [(it.path): matrixRole(it)] }
+    def claimed = roles.findAll { it.value == 'claimed' }.keySet().toList()
+    dependsOn nodes.collect { "${it.path}:build" }
+    dependsOn roles.keySet().collect { "${it}:linkCheck" }
+    dependsOn claimed.collect { "${it}:runGameTest" }
+    def summary = "verifyAll: ${nodes.size()} version node(s) (${nodes*.name.join(', ')}), ${roles.size()} matrix " +
+        "link check(s), GameTests on claimed ${claimed.isEmpty() ? 'none' : claimed.join(', ')}"
+    doLast { logger.lifecycle(summary) }
+}
+
+tasks.register('verifyReport') {
+    group = 'verification'
+    description = 'One line per version and matrix node from the last results (run after verifyAll)'
+    // Results older than this (epoch ms; scripts/verify-all.sh passes its start time) weren't rewritten by this run.
+    def since = providers.gradleProperty('verifySince').map { it as long }.getOrElse(0L)
+    def rows = versionNodes().collect { n ->
+        def build = new File(n.projectDir, 'build')
+        [label: n.path, junit: new File(build, 'test-results/test'), gameTests: new File(build, 'gametest-report.xml')]
+    } + matrixNodes().collect { n ->
+        def build = new File(n.projectDir, 'build')
+        def role = matrixRole(n)
+        [label: "${n.path} (${role})", linkCheck: new File(build, 'linkcheck/report.txt'),
+         gameTests: role == 'claimed' ? new File(build, 'gametest-report.xml') : null]
+    }
+    outputs.upToDateWhen { false }
+    doLast {
+        def stale = false
+        def age = { File f ->
+            if (since > 0 && f.lastModified() < since) {
+                stale = true
+                return ' *'
+            }
+            ''
+        }
+        def lines = rows.collect { row ->
+            def cells = []
+            if (row.junit != null) {
+                def suites = row.junit.isDirectory() ? row.junit.listFiles().findAll { it.name.endsWith('.xml') } : []
+                if (suites.isEmpty()) {
+                    cells << 'JUnit: no results'
+                } else {
+                    int tests = 0, failed = 0
+                    suites.each { f ->
+                        def s = new groovy.xml.XmlSlurper().parse(f)
+                        tests += (s.@tests.text() ?: '0') as int
+                        failed += ((s.@failures.text() ?: '0') as int) + ((s.@errors.text() ?: '0') as int)
+                    }
+                    cells << "JUnit ${tests - failed}/${tests}${age(suites.max { it.lastModified() })}"
+                }
+            }
+            if (row.linkCheck != null) {
+                def report = row.linkCheck
+                def last = report.isFile() ? report.readLines().findAll { it.trim() }.with { it ? it.last() : null } : null
+                // LinkCheck's last line: "N problem(s); M classes checked against K jars; ..."
+                cells << (last == null ? 'link check: no report' : "link check ${last.split(';')[0]}${age(report)}")
+            }
+            if (row.gameTests != null) {
+                def report = row.gameTests
+                if (!report.isFile()) {
+                    cells << 'GameTests: no report'
+                } else {
+                    def cases = new groovy.xml.XmlSlurper().parse(report).'**'.findAll { it.name() == 'testcase' }
+                    def failed = cases.count { !it.failure.isEmpty() || !it.error.isEmpty() }
+                    cells << "GameTests ${cases.size() - failed}/${cases.size()}${age(report)}"
+                }
+            }
+            "${row.label.padRight(24)} ${cells.join('   ')}"
+        }
+        logger.quiet((['', 'verifyReport (passed/total):'] + lines).join('\n'))
+        if (stale) {
+            logger.quiet('* not rewritten by this run: up to date, or skipped after a failure. verifyAll\'s exit code decides.')
+        }
+    }
+}

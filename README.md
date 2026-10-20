@@ -4,10 +4,10 @@
 
 [![CI](https://github.com/Wulfic/enchanting-2/actions/workflows/ci.yml/badge.svg)](https://github.com/Wulfic/enchanting-2/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/Wulfic/enchanting-2)](https://github.com/Wulfic/enchanting-2/releases/latest)
-[![Minecraft 1.21.11](https://img.shields.io/badge/Minecraft-1.21.11-green)](https://github.com/Wulfic/enchanting-2/wiki/Installation)
+[![Minecraft 1.21.11 | 26.1-26.3](https://img.shields.io/badge/Minecraft-1.21.11%20%7C%2026.1--26.3-green)](https://github.com/Wulfic/enchanting-2/wiki/Installation)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A Fabric mod for Minecraft 1.21.11 that reworks XP and enchanting. You choose your enchantments instead of rolling
+A Fabric mod for Minecraft 1.21.11 and 26.1 through 26.3 that reworks XP and enchanting. You choose your enchantments instead of rolling
 for them, you see every price before you pay, and an item can hold every enchantment that fits it. Every vanilla
 enchantment is kept, 49 new ones are added, and almost everything can be configured in-game.
 
@@ -73,16 +73,23 @@ on the [wiki](https://github.com/Wulfic/enchanting-2/wiki).
 
 | | |
 |---|---|
-| Minecraft | Java Edition 1.21.11 |
+| Minecraft | Java Edition 1.21.11, 26.1 to 26.1.2, 26.2 or 26.3 (one jar each) |
 | Loader | [Fabric Loader](https://fabricmc.net/use/) 0.19.5 or newer |
 | Required | [Fabric API](https://modrinth.com/mod/fabric-api) |
 | Optional | [Mod Menu](https://modrinth.com/mod/modmenu) and [YACL](https://modrinth.com/mod/yacl) for the in-game config screen |
-| Java | 21 |
+| Java | 21 for 1.21.11, 25 for 26.x |
 
 ## Installing
 
-Download `enchanting2-<version>.jar` from the [latest release](https://github.com/Wulfic/enchanting-2/releases/latest)
-and put it and Fabric API in your `mods` folder.
+Download the jar for your Minecraft version from the [latest release](https://github.com/Wulfic/enchanting-2/releases/latest)
+(not a `-sources` jar) and put it and Fabric API in your `mods` folder.
+
+| Your Minecraft | Download | Java |
+|---|---|---|
+| 1.21.11 | `enchanting2-<version>+1.21.11.jar` | 21 |
+| 26.1, 26.1.1, 26.1.2 | `enchanting2-<version>+26.1-26.1.2.jar` | 25 |
+| 26.2 | `enchanting2-<version>+26.2.jar` | 25 |
+| 26.3 | `enchanting2-<version>+26.3.jar` | 25 |
 
 **Multiplayer: install it on the server and on every player's client.** The new screens and Double Jump need the
 client side. A player without the mod is turned away at join with a message naming it. A player with the mod who
@@ -114,19 +121,20 @@ differently. Blocks placed before you installed it count as natural for Fortune.
 ## Building from source
 
 ```sh
-./gradlew build                # jar in build/libs/, runs the unit tests and server GameTests
-./gradlew runClientGameTest    # client screen tests (opens a game window)
-./gradlew runClient            # a development client
+./gradlew build                        # every version: jars in versions/<version>/build/libs/, unit + server GameTests
+scripts/verify-all.sh                  # build + the runtime matrix, as CI runs it, with one line per version
+./gradlew :1.21.11:runClientGameTest   # client screen tests for one version (opens a game window)
+./gradlew :1.21.11:runClient           # a development client (or :26.1.2:, :26.2:, :26.3:)
 ```
 
-Gradle needs **JDK 25** to run (Fabric Loom requires it); the mod is compiled for Java 21, which Gradle downloads
-if you don't have it. The design spec is [docs/DESIGN.md](docs/DESIGN.md); changes are in [CHANGELOG.md](CHANGELOG.md).
+Gradle needs **JDK 25** to run (Fabric Loom requires it); the mod is compiled for Java 21 on 1.21.11 and Java 25 on
+26.x, and Gradle downloads a missing JDK. The design spec is [docs/DESIGN.md](docs/DESIGN.md); changes are in [CHANGELOG.md](CHANGELOG.md).
 Tests, CI and how releases are made: [Building from Source](https://github.com/Wulfic/enchanting-2/wiki/Building-from-Source).
 
 ## Contributing
 
 Bug reports, balance feedback and pull requests are welcome: [open an issue](https://github.com/Wulfic/enchanting-2/issues/new/choose).
-For a pull request, keep it small, add a test that fails without it, and run `./gradlew build` first.
+For a pull request, keep it small, add a test that fails without it, and run `scripts/verify-all.sh` (or `./gradlew verifyAll`) first.
 
 ## License
 

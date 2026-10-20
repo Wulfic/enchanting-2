@@ -45,6 +45,26 @@ class ReleaseDocsTest {
 		assertFalse(body.isBlank(), "CHANGELOG.md's " + version + " section is empty");
 	}
 
+	/**
+	 * Phase 12G: a release has one jar per band ({@code enchanting2-<version>+<band>.jar}), so the README's and the
+	 * wiki's "which jar" tables must name exactly the current bands: a new band (or a matrix version widening one)
+	 * that the tables miss would send players looking for a file that isn't there, or leave a stale one listed.
+	 */
+	@Test
+	void installTablesListExactlyTheCurrentBands() throws IOException {
+		Set<String> bands = new TreeSet<>(Bands.all().values());
+		assertFalse(bands.isEmpty(), "no version nodes under versions/");
+		Pattern jarName = Pattern.compile("enchanting2-<version>\\+([0-9.]+(?:-[0-9.]+)?)\\.jar");
+		for (Path doc : List.of(Path.of("README.md"), WIKI.resolve("Installation.md"))) {
+			Set<String> listed = new TreeSet<>();
+			Matcher m = jarName.matcher(read(doc));
+			while (m.find()) {
+				listed.add(m.group(1));
+			}
+			assertEquals(bands, listed, doc + " lists jars for " + listed + "; this build makes " + bands);
+		}
+	}
+
 	@Test
 	void licenseFileAndModMetadataAgree() throws IOException {
 		assertTrue(read(Path.of("LICENSE")).startsWith("MIT License\n"), "LICENSE is not the MIT license");

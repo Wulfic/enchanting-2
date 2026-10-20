@@ -27,6 +27,9 @@ import net.minecraft.tags.EnchantmentTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.DifficultyInstance;
+//? if >=26.1 {
+/*import net.minecraft.world.item.trading.VillagerTrades;
+*///?} else
 import net.minecraft.world.entity.npc.villager.VillagerTrades;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -61,8 +64,12 @@ public class AcquisitionGameTest {
 	}
 
 	private static MerchantOffer librarianOffer(ServerLevel level, RandomSource random) {
+		//? if >=26.1 {
+		/*MerchantOffer offer = trade(level, random, VillagerTrades.LIBRARIAN_1_EMERALD_AND_BOOK_ENCHANTED_BOOK);
+		*///?} else {
 		MerchantOffer offer = new VillagerTrades.EnchantBookForEmeralds(1, EnchantmentTags.TRADEABLE).getOffer(level,
 				null, random);
+		//?}
 		if (offer == null) {
 			throw new AssertionError("the librarian made no offer");
 		}
@@ -70,10 +77,34 @@ public class AcquisitionGameTest {
 	}
 
 	private static Set<String> villagerSword(ServerLevel level, RandomSource random) {
+		//? if >=26.1 {
+		/*MerchantOffer offer = trade(level, random, VillagerTrades.WEAPONSMITH_5_EMERALD_ENCHANTED_DIAMOND_SWORD);
+		*///?} else {
 		MerchantOffer offer = new VillagerTrades.EnchantedItemForEmeralds(Items.DIAMOND_SWORD, 3, 3, 30).getOffer(level,
 				null, random);
+		//?}
 		return offer == null ? Set.of() : ids(offer.getResult());
 	}
+
+	// 26.1 made trades data: one registry trade run the way AbstractVillager runs it, with a villager that is never
+	// added to the level and `random` as the loot random, so a seed rolls the same offer every time.
+	//? if >=26.1 {
+	/*private static MerchantOffer trade(ServerLevel level, RandomSource random,
+			ResourceKey<net.minecraft.world.item.trading.VillagerTrade> key) {
+		net.minecraft.world.entity.Entity villager = net.minecraft.world.entity.EntityType.VILLAGER.create(level,
+				net.minecraft.world.entity.EntitySpawnReason.LOAD);
+		net.minecraft.world.level.storage.loot.LootContext context = new net.minecraft.world.level.storage.loot.LootContext.Builder(
+				new LootParams.Builder(level)
+						.withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN,
+								net.minecraft.world.phys.Vec3.ZERO)
+						.withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.THIS_ENTITY, villager)
+						.withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams
+								.ADDITIONAL_COST_COMPONENT_ALLOWED, net.minecraft.util.Unit.INSTANCE)
+						.create(LootContextParamSets.VILLAGER_TRADE))
+				.withOptionalRandomSource(random).create(Optional.empty());
+		return level.registryAccess().lookupOrThrow(Registries.VILLAGER_TRADE).getOrThrow(key).value().getOffer(context);
+	}
+	*///?}
 
 	private static Set<String> enchantRandomlyBook(ServerLevel level, RandomSource random) {
 		return lootTable(level, "enchant_randomly_book", random);

@@ -194,7 +194,7 @@ abstract class EnchantmentMenuMixin extends AbstractContainerMenu implements Tab
 		player.awardStat(Stats.ENCHANT_ITEM);
 		CriteriaTriggers.ENCHANTED_ITEM.trigger(player, result, charged);
 		access.execute((level, pos) -> level.playSound(null, pos, SoundEvents.ENCHANTMENT_TABLE_USE,
-				SoundSource.BLOCKS, 1.0F, level.random.nextFloat() * 0.1F + 0.9F));
+				SoundSource.BLOCKS, 1.0F, level.getRandom().nextFloat() * 0.1F + 0.9F));
 		Enchanting2.LOGGER.debug("{} enchanted {} with {} for {} level(s) and {} lapis", name, result, selection,
 				charged, lapisUsed);
 		return true;

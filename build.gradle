@@ -1,9 +1,128 @@
+// This script is applied to each Stonecutter version node (versions/<node>/, settings.gradle). Paths that must not
+// move with the node (run dirs, docs read by tests) go through rootProject.
 plugins {
-    // 1.21.11 is obfuscated, so it needs the remapping variant. See gotchas.md 2026-10-06.
-    id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
+    // fabric-loom-remap on obfuscated versions (1.21.11, gotchas.md 2026-10-06), fabric-loom on 26.x. Keeps the mod*
+    // configurations working on both; Loom's version is loomx.loom_version in the root gradle.properties.
+    id 'dev.kikugie.loom-back-compat'
 }
 
-version = project.mod_version
+// Pure renames between band A (1.21.11) and band B (26.x), applied to every source file when Stonecutter generates a
+// node's sources. A rename that needs more than a name change gets a //? condition or a port/ adapter instead.
+stonecutter {
+    // Fabric API 26.1 renamed its payload registries to Mojang's terms (Fabric "Porting to 26.1").
+    replacements.string(sc.current.parsed.matches('>=26.1')) {
+        replace 'PayloadTypeRegistry.configurationS2C()', 'PayloadTypeRegistry.clientboundConfiguration()'
+        replace 'PayloadTypeRegistry.playS2C()', 'PayloadTypeRegistry.clientboundPlay()'
+        replace 'PayloadTypeRegistry.playC2S()', 'PayloadTypeRegistry.serverboundPlay()'
+    }
+    // 26.1 renamed GuiGraphics to GuiGraphicsExtractor. Whole words only, so GuiGraphicsMixin (listed by name in
+    // enchanting2.client.mixins.json) keeps its name; a regex needs its reverse spelled out.
+    replacements.regex(sc.current.parsed.matches('>=26.1')) {
+        replace '\\bGuiGraphics\\b', 'GuiGraphicsExtractor', '\\bGuiGraphicsExtractor\\b', 'GuiGraphics'
+    }
+    // 26.1's "render" -> "extract" renames that keep their parameters. Each is spelled with its receiver or its mixin
+    // attribute so the reverse direction can't hit an unrelated text()/tooltip() call. renderBg also reordered its
+    // parameters (float last): its handlers carry a //? condition as well.
+    replacements.string(sc.current.parsed.matches('>=26.1')) {
+        replace 'graphics.drawString(', 'graphics.text('
+        replace 'method = "renderBg"', 'method = "extractBackground"'
+        replace 'method = "renderLabels"', 'method = "extractLabels"'
+        replace 'method = "renderTooltip"', 'method = "tooltip"'
+        replace 'protected void renderLabels(', 'protected void extractLabels('
+        replace 'super.renderLabels(', 'super.extractLabels('
+        // Same method, new names (GameTests only): Minecraft.resizeDisplay, Fabric's client GameTest world accessor.
+        replace 'client.resizeDisplay()', 'client.resizeGui()'
+        replace '.getClientWorld()', '.getClientLevel()'
+    }
+    // 26.1 renamed the ClickType enum (same constants) to ContainerInput.
+    replacements.regex(sc.current.parsed.matches('>=26.1')) {
+        replace '\\bClickType\\b', 'ContainerInput', '\\bContainerInput\\b', 'ClickType'
+    }
+    // 26.2 moved the advancement triggers into net.minecraft.advancements.triggers, and the toast manager onto
+    // Minecraft.gui (Phase 12D).
+    replacements.string(sc.current.parsed.matches('>=26.2')) {
+        replace 'import net.minecraft.advancements.CriteriaTriggers;',
+            'import net.minecraft.advancements.triggers.CriteriaTriggers;'
+        replace 'minecraft.getToastManager()', 'minecraft.gui.toastManager()'
+        // GameTests only: the open screen moved onto Minecraft.gui too.
+        replace 'client.setScreen(', 'client.gui.setScreen('
+    }
+    replacements.regex(sc.current.parsed.matches('>=26.2')) {
+        // A read of the field (no test assigns it) becomes the getter.
+        replace '\\bclient\\.screen\\b', 'client.gui.screen()', '\\bclient\\.gui\\.screen\\(\\)', 'client.screen'
+    }
+    // 26.2 split registration out of EntityType and BlockEntityType: the constants (EntityType.ZOMBIE,
+    // BlockEntityType.MOB_SPAWNER) live in EntityTypes / BlockEntityTypes; the classes stay for the type itself. Only
+    // UPPER_CASE members move (EntityType.getKey stays), and \b keeps EntityType from matching inside BlockEntityType. A
+    // file that imports the class gets the holder's import too (unused in some files; javac doesn't mind).
+    replacements.regex(sc.current.parsed.matches('>=26.2')) {
+        replace '\\bEntityType\\.([A-Z][A-Z0-9_]*)\\b', 'EntityTypes.$1', '\\bEntityTypes\\.([A-Z][A-Z0-9_]*)\\b', 'EntityType.$1'
+        replace '\\bBlockEntityType\\.([A-Z][A-Z0-9_]*)\\b', 'BlockEntityTypes.$1',
+            '\\bBlockEntityTypes\\.([A-Z][A-Z0-9_]*)\\b', 'BlockEntityType.$1'
+        replace 'import net\\.minecraft\\.world\\.entity\\.EntityType;',
+            'import net.minecraft.world.entity.EntityType; import net.minecraft.world.entity.EntityTypes;',
+            'import net\\.minecraft\\.world\\.entity\\.EntityType; import net\\.minecraft\\.world\\.entity\\.EntityTypes;',
+            'import net.minecraft.world.entity.EntityType;'
+        replace 'import net\\.minecraft\\.world\\.level\\.block\\.entity\\.BlockEntityType;',
+            'import net.minecraft.world.level.block.entity.BlockEntityType; import net.minecraft.world.level.block.entity.BlockEntityTypes;',
+            'import net\\.minecraft\\.world\\.level\\.block\\.entity\\.BlockEntityType; import net\\.minecraft\\.world\\.level\\.block\\.entity\\.BlockEntityTypes;',
+            'import net.minecraft.world.level.block.entity.BlockEntityType;'
+    }
+    // 26.3 renames with unchanged meaning (Phase 12E): the loot context's optional getter, RegistryCodecs' package,
+    // Entity.hurtMarked (now the field that asks ServerEntity to send the velocity), the hurt cooldown, the render
+    // pipeline class, and EnderMan -> Enderman (same package and methods; the inner goal classes keep their names, so
+    // \b stops at "EndermanLeaveBlockGoal").
+    replacements.string(sc.current.parsed.matches('>=26.3')) {
+        replace 'context.getOptionalParameter(', 'context.getOptional('
+        replace 'import net.minecraft.core.RegistryCodecs;', 'import net.minecraft.core.registries.codec.RegistryCodecs;'
+        // Same codec (HolderSetCodec over RegistryFixedCodec, alwaysUseList false), new name.
+        replace 'RegistryCodecs.homogeneousList(', 'RegistryCodecs.holderSet('
+        replace '.hurtMarked = true;', '.syncVelocity = true;'
+        // 26.3 split the hurt cooldown (i-frames) out of Entity.invulnerableTime into LivingEntity.damageCooldownTime;
+        // invulnerableTime is now full temporary invulnerability. Every site clears the cooldown on a living entity.
+        replace '.invulnerableTime = 0;', '.damageCooldownTime = 0;'
+        // The render pipeline class moved with 26.3's renderer into com.mojang.renderpearl (RenderPipelines stays).
+        replace 'import com.mojang.blaze3d.pipeline.RenderPipeline;', 'import com.mojang.renderpearl.api.pipeline.RenderPipeline;'
+        // ...and inside the blit / blitSprite descriptors of the window mixins' @At targets (javac can't see those).
+        replace 'Lcom/mojang/blaze3d/pipeline/RenderPipeline;', 'Lcom/mojang/renderpearl/api/pipeline/RenderPipeline;'
+    }
+    replacements.regex(sc.current.parsed.matches('>=26.3')) {
+        replace '\\bEnderMan\\b', 'Enderman', '\\bEnderman\\b', 'EnderMan'
+    }
+}
+
+// Phase 12G (owner 2026-10-19): one jar per band, named for the Minecraft versions it's proven on:
+// enchanting2-<mod_version>+<band>.jar, e.g. +1.21.11 or +26.1-26.1.2 (also the version in fabric.mod.json). The band is
+// derived, never typed: this node's minecraft_version plus every runtime-matrix version whose matrix_jar_node is this
+// node (verifyAll GameTests each claimed one), lowest, or "lowest-highest". A new matrix/<version>/ widens the name.
+// ModIdentityTest derives it again from the same files and checks minecraft_dependency admits every version in it.
+def mcVersionParts = { String v ->
+    if (!(v ==~ /\d+(\.\d+)*/)) {
+        throw new GradleException("'${v}' is not a release version (digits and dots); bands hold releases only")
+    }
+    v.tokenize('.').collect { it as Integer }
+}
+def compareMcVersions = { String a, String b ->
+    def x = mcVersionParts(a), y = mcVersionParts(b)
+    for (int i = 0; i < Math.min(x.size(), y.size()); i++) {
+        if (x[i] != y[i]) return x[i] <=> y[i]
+    }
+    x.size() <=> y.size()
+}
+def bandVersions = [project.minecraft_version.toString().trim()]
+rootProject.file('matrix').eachDir { dir ->
+    def props = new File(dir, 'gradle.properties')
+    if (props.isFile()) {
+        def values = new Properties()
+        props.withInputStream { values.load(it) }
+        if (values.getProperty('matrix_jar_node', '').trim() == project.name) {
+            bandVersions << values.getProperty('minecraft_version', '').trim()
+        }
+    }
+}
+bandVersions = bandVersions.unique().sort(compareMcVersions)
+def bandLabel = bandVersions.size() == 1 ? bandVersions.first() : "${bandVersions.first()}-${bandVersions.last()}"
+version = "${project.mod_version}+${bandLabel}"
 group = project.maven_group
 
 base {
@@ -38,14 +157,15 @@ loom {
         }
     }
 
-    // Separate run dirs so the client's singleplayer saves and the dev server's world never mix.
-    // The dev server listens on 25566: the owner often has another mod's server on 25565.
+    // Separate run dirs so the client's singleplayer saves and the dev server's world never mix, and one root per node
+    // (run_root) so a newer Minecraft never upgrades another node's worlds. runDir is relative to the node's project
+    // dir, hence the relativePath. The dev server listens on 25566: the owner often has another mod's server on 25565.
     runs {
         client {
-            runDir 'run/client'
+            runDir project.relativePath(rootProject.file("${project.run_root}/client"))
         }
         server {
-            runDir 'run/server'
+            runDir project.relativePath(rootProject.file("${project.run_root}/server"))
             programArgs '--port', '25566'
         }
     }
@@ -53,7 +173,7 @@ loom {
 
 // The dev server refuses to start until eula.txt says true. Same acceptance as `eula = true` in
 // configureTests below. Writes only when the file is absent, so it never overwrites an existing eula.txt.
-def devServerEula = file('run/server/eula.txt')
+def devServerEula = rootProject.file("${project.run_root}/server/eula.txt")
 def acceptDevServerEula = tasks.register('acceptDevServerEula') {
     onlyIf { !devServerEula.exists() }
     doLast {
@@ -78,10 +198,36 @@ fabricApi {
         clearRunDirectory = true
     }
 }
+// build/gametest-report.xml + the check that fails a run with no test cases (Phase 12F; shared with the matrix).
+apply from: rootProject.file('gradle/gametest-report.gradle')
+
+// Phase 12C: the runtime matrix (matrix/<line>/, matrix/matrix.gradle) runs this node's shipped mod jar and a jar of
+// its GameTests on other Minecraft versions, without compiling anything there. Artifacts only: no dependencies travel
+// with them, so the matrix node's own Fabric API and libraries are the only ones on its classpath. Only 26.x nodes can
+// feed it: on 1.21.11 the GameTest jar holds unremapped Mojang names and runs in no production-named game.
+def gametestJar = tasks.register('gametestJar', Jar) {
+    archiveClassifier = 'gametest'
+    from sourceSets.named('gametest').map { it.output }
+}
+configurations {
+    matrixModJar {
+        canBeConsumed = true
+        canBeResolved = false
+    }
+    matrixGametestJar {
+        canBeConsumed = true
+        canBeResolved = false
+    }
+}
+artifacts {
+    matrixModJar loomx.modJar
+    matrixGametestJar gametestJar
+}
 
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    mappings loom.officialMojangMappings()
+    // Mojang mappings on obfuscated versions; 26.x needs none (unobfuscated).
+    loomx.applyMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
@@ -107,22 +253,132 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-// Captured at configuration time: the configuration cache rejects reading `project` inside an
-// execution-time closure.
-def modVersion = project.version
-processResources {
-    inputs.property 'version', modVersion
-    filesMatching('fabric.mod.json') {
-        expand version: modVersion
-    }
-}
-
 // One declared Java level, read by every consumer. Refuses instead of defaulting: a jar compiled for
 // the wrong release builds and tests clean, then fails at the player's launcher.
 if (!project.hasProperty('java_version') || !(project.java_version.toString().trim() ==~ /\d+/)) {
-    throw new GradleException("gradle.properties must declare java_version=<major>, e.g. java_version=21")
+    throw new GradleException("${project.relativePath(file('gradle.properties'))} must declare java_version=<major>, " +
+        "e.g. java_version=21")
 }
 def javaLevel = project.java_version.toString().trim() as Integer
+
+// Per-node values in the shipped metadata: the Minecraft range a node's jar accepts, its Java level, and the mixin
+// configs' compatibilityLevel (JAVA_21 / JAVA_25). Every resource task (main, client, gametest) expands the same map.
+// Captured at configuration time: the configuration cache rejects reading `project` inside an execution-time closure.
+if (!project.hasProperty('minecraft_dependency') || project.minecraft_dependency.toString().trim().isEmpty()) {
+    throw new GradleException("${project.relativePath(file('gradle.properties'))} must declare minecraft_dependency=" +
+        "<fabric.mod.json range>, e.g. minecraft_dependency=~1.21.11")
+}
+// band: 'A' = obfuscated 1.21.11, 'B' = 26.x. A mixin that only one band needs is listed inside
+// <% if (band == 'A') { %>...<% } %> in its *.mixins.json (Groovy template, expanded with the values below); one that
+// follows a later game change gets a flag named for that change (fuel_component).
+def resourceValues = [
+    version             : project.version.toString(),
+    band                : sc.current.parsed.matches('>=26.1') ? 'B' : 'A',
+    minecraft_dependency: project.minecraft_dependency.toString().trim(),
+    java_version        : javaLevel.toString(),
+    // 26.2 keys entity predicates by sub-predicate ID: {"type": "minecraft:zombie"} became
+    // {"minecraft:entity_type": "minecraft:zombie"} (vanilla's charged_creeper/root.json changed the same way).
+    entity_type_predicate: sc.current.parsed.matches('>=26.2') ? 'minecraft:entity_type' : 'type',
+    // 26.3 made furnace fuel the cooking_fuel item component (FuelValues is gone): the fuel mixins differ (Phase 12E).
+    fuel_component      : sc.current.parsed.matches('>=26.3'),
+]
+// The pattern list is an input too: Gradle doesn't fingerprint the filesMatching closure, so without it an edited list
+// leaves processResources UP-TO-DATE with stale output (gotchas.md 2026-10-14).
+def expandedResources = ['fabric.mod.json', '*.mixins.json', 'data/enchanting2/loot_table/beheading/heads.json']
+tasks.withType(ProcessResources).configureEach {
+    inputs.properties resourceValues
+    inputs.property 'expandedResources', expandedResources
+    filesMatching(expandedResources) {
+        expand resourceValues
+    }
+}
+
+// Data JSON is written in 1.21.11's format, like src/ (Phase 12E, decisions.md "12E: data upgraded per node"). 26.3
+// reshaped loot conditions and functions: a condition's dispatch key is "type" (was "condition"), an entry, pool or
+// function holds one optional "condition" (was a "conditions" list; an unknown key is ignored, so a stale list silently
+// matches always), an entry, pool or table holds one "modifier" (was a "functions" list of {"function": ...}; a stale
+// list silently does nothing), and a damage source's tag predicate takes a tag reference ("#ns:tag"). Those nodes get
+// an upgraded copy. Fails the build on a file it can't read rather than shipping it unchanged.
+def upgradeLootFormat = sc.current.parsed.matches('>=26.3')
+def upgradedDataDirs = ['loot_table', 'enchantment', 'predicate', 'item_modifier']
+tasks.withType(ProcessResources).configureEach {
+    inputs.property 'upgradeLootFormat', upgradeLootFormat
+    inputs.property 'upgradedDataDirs', upgradedDataDirs
+    if (upgradeLootFormat) {
+        doLast { task ->
+            def upgrade
+            upgrade = { node ->
+                if (node instanceof List) {
+                    return node.collect { upgrade(it) }
+                }
+                if (!(node instanceof Map)) {
+                    return node
+                }
+                def out = new LinkedHashMap()
+                node.each { key, value ->
+                    if (key == 'condition' && value instanceof String) {
+                        out.type = value
+                    } else if (key == 'functions' && value instanceof List) {
+                        // One "modifier": the function itself, or a list (26.3 reads it as an inline sequence).
+                        def functions = value.collect { function ->
+                            def typed = function instanceof Map && function.function instanceof String
+                                    ? [type: function.function] + function.findAll { it.key != 'function' } : function
+                            upgrade(typed)
+                        }
+                        if (functions.size() == 1) {
+                            out.modifier = functions[0]
+                        } else if (functions.size() > 1) {
+                            out.modifier = functions
+                        }
+                    } else if (key == 'conditions' && value instanceof List) {
+                        def terms = value.collect { upgrade(it) }
+                        if (terms.size() == 1) {
+                            out.condition = terms[0]
+                        } else if (terms.size() > 1) {
+                            out.condition = [type: 'minecraft:all_of', terms: terms]
+                        }
+                    } else if (key == 'tags' && value instanceof List
+                            && value.every { it instanceof Map && it.keySet() == ['id', 'expected'] as Set }) {
+                        out.tags = value.collect {
+                            [id: it.id.startsWith('#') ? it.id : '#' + it.id, expected: it.expected]
+                        }
+                    } else {
+                        out[key] = upgrade(value)
+                    }
+                }
+                return out
+            }
+            def dataRoot = new File(task.destinationDir, 'data')
+            int upgraded = 0
+            if (dataRoot.isDirectory()) {
+                dataRoot.eachDir { namespace ->
+                    upgradedDataDirs.each { dir ->
+                        def base = new File(namespace, dir)
+                        if (!base.isDirectory()) {
+                            return
+                        }
+                        base.eachFileRecurse(groovy.io.FileType.FILES) { file ->
+                            if (!file.name.endsWith('.json')) {
+                                return
+                            }
+                            def parsed
+                            try {
+                                parsed = new groovy.json.JsonSlurper().parse(file, 'UTF-8')
+                            } catch (Exception e) {
+                                throw new GradleException(
+                                    "Can't upgrade ${file} to 26.3's loot format: ${e.message}", e)
+                            }
+                            def json = groovy.json.JsonOutput.toJson(upgrade(parsed))
+                            file.setText(groovy.json.JsonOutput.prettyPrint(json) + '\n', 'UTF-8')
+                            upgraded++
+                        }
+                    }
+                }
+            }
+            task.logger.info("Upgraded ${upgraded} data file(s) to 26.3's loot format in ${task.destinationDir}")
+        }
+    }
+}
 
 java {
     withSourcesJar()
@@ -143,10 +399,23 @@ tasks.withType(Test).configureEach {
     useJUnitPlatform()
 }
 
-// ConfigDocsTest and ReleaseDocsTest read these files, not classes. Without them as inputs a docs-only edit leaves
-// `test` UP-TO-DATE and a broken doc passes locally (gotchas.md 2026-10-14).
+// ConfigDocsTest and ReleaseDocsTest read these files, not classes, by paths relative to the repo root (hence the
+// workingDir). Without them as inputs a docs-only edit leaves `test` UP-TO-DATE and a broken doc passes locally
+// (gotchas.md 2026-10-14).
+def repoRoot = rootProject.projectDir
 tasks.named('test') {
-    inputs.files(fileTree('docs'), fileTree('wiki'), 'CHANGELOG.md', 'LICENSE', '.github/workflows/wiki.yml')
+    workingDir = repoRoot
+    inputs.files(rootProject.fileTree('docs'), rootProject.fileTree('wiki'),
+        rootProject.files('CHANGELOG.md', 'LICENSE', 'README.md', 'gradle.properties', '.github/workflows/wiki.yml'),
+        rootProject.fileTree('versions') { include '*/gradle.properties' })
         .withPropertyName('releaseDocs')
         .withPathSensitivity(PathSensitivity.RELATIVE)
+    // MatrixLayoutTest (Phase 12F): the matrix list in settings.gradle against matrix/<version>/gradle.properties.
+    // Only the properties files: the matrix nodes' build dirs change on every run.
+    inputs.files(rootProject.fileTree('matrix') { include '*/gradle.properties' }, rootProject.files('settings.gradle'))
+        .withPropertyName('matrixLayout')
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    // ModIdentityTest derives this node's band label (Phase 12G) from the matrix files, as the version above does.
+    systemProperty 'enchanting2.node', project.name
+    systemProperty 'enchanting2.minecraftVersion', project.minecraft_version.toString().trim()
 }

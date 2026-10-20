@@ -1432,6 +1432,148 @@ before any adapter is written.
 **Rejected:** one jar for 1.21.11 + 26.x (intermediary vs Mojang names in the bytecode, Java 21 vs 25; jar-in-jar of
 both relies on unverified loader behaviour); one jar per 26.x line (kept as the fallback if 12C says so); an
 open-ended `minecraft` range (a mixin mod crashes at startup on an untested version).
-**Open (owner):** mcMMO freezes old bands. Does 1.21.11 keep getting every feature (2026-10-13 ruling, kept for now),
-or freeze at 1.0.x once band B ships (no Stonecutter needed then)?
+**Resolved (owner, 2026-10-14, start of 12B):** 1.21.11 keeps getting every feature; it does not freeze at 1.0.x.
+Every 1.21.11 ↔ 26.x difference stays in the shared source (Stonecutter conditions or per-band adapters), and a
+change is done only when both bands are green.
 **Affects:** build.gradle, settings.gradle, gradle.properties, release.yml, fabric.mod.json, future compat/McVersion
+
+## 2026-10-14 — 12A build layout: Stonecutter 0.9.8 + loom-back-compat 0.4.3, Groovy, per-node properties (agent)
+**Context:** Phase 12A spike. Owner 2026-10-14: "1.21.11 is its own band, and 26.x versions will have however few
+bands as possible" (confirms the band layout; 1.21.11 stays in step, the 2026-10-13 ruling).
+**Choice:** Stonecutter 0.9.8 with one node, `versions/1.21.11/`; `vcsVersion` 1.21.11. `build.gradle` stays the
+single central script, applied to each node; `stonecutter.gradle` is the Groovy controller. loom-back-compat picks
+`fabric-loom-remap` / `fabric-loom` and aliases `mod*` configurations; `loomx.applyMojangMappings()` replaces the
+mappings line; Loom's version is `loomx.loom_version` in the root gradle.properties (kept at 1.18.2 for the spike).
+Per-node keys (minecraft_version, fabric_api_version, java_version, modmenu_version, yacl_version, run_root) live in
+`versions/<node>/gradle.properties`; shared ones stay in the root file. Paths that must not move with the node go
+through `rootProject`: run dirs (`run_root`; 1.21.11 keeps `run/client`, `run/server`), the dev-server eula, and the
+`test` task's `workingDir` and doc inputs. CI installs every node's JDK; release.yml releases exactly one node and
+refuses more until 12F. Run tasks are always node-qualified (`:1.21.11:runServer`; the smoke script takes `NODE=`).
+**Why:** CullLeaves (TeamMidnightDust) ships 1.21.11 + 26.1–26.3 from the same two plugins, so the wiring is proven
+elsewhere. Groovy keeps the diff to a layout change; `dev.kikugie.stonecutter.hard_mode=true` silences Stonecutter's
+"prefer Kotlin" banner. Result: the node's jar equals the v1.0.1 release jar entry for entry (only four
+`Stonecutter-*` manifest attributes added), Jankson still nested, 423 JUnit + 336 server + client GameTests green.
+**Rejected:** converting the build to Kotlin DSL (Stonecutter's recommendation; a rewrite of a working 160-line script
+during a layout spike); the stonecutter.properties YAML/TOML (Kotlin-only accessors in the examples, plain
+gradle.properties per node works in Groovy); bumping Loom to 1.18.4 in 12A (two variables at once); per-node run dirs
+for 1.21.11 too (would orphan the owner's existing `run/client` saves).
+**Affects:** settings.gradle, stonecutter.gradle, build.gradle, gradle.properties, versions/1.21.11/gradle.properties,
+.github/workflows/ci.yml, .github/workflows/release.yml, scripts/dev-server-smoke.sh, README.md,
+wiki/Building-from-Source.md
+
+## 2026-10-14 — 12B: how band differences are written (agent)
+**Context:** the 26.1.2 node had ~70 compile errors over main, client and GameTests, then 8 apply/behaviour failures.
+1.21.11 stays in step (owner), so every difference lives in the shared source.
+**Choice:** four tools, cheapest first:
+1. Same code on both when an API exists on both (`Level.getRandom()`, `@Mutable` accessor for the window size).
+2. Stonecutter global replacements in build.gradle for pure renames with unchanged parameters (Fabric
+   `PayloadTypeRegistry`, `GuiGraphics` → `GuiGraphicsExtractor`, `drawString` → `text`, mixin `method =` names,
+   `ClickType` → `ContainerInput`). Each is spelled with its receiver or attribute (`graphics.text(`, `method = "..."`)
+   so the reverse direction can't rewrite an unrelated call when the active version is switched back.
+3. `//? if >=26.1` conditions at the site for anything that changes a signature or meaning (25 conditions in 17
+   files, 2 of them GameTests; `grep -rn "//? if" src`).
+4. A `port/` adapter class when one difference has more than ~3 callers (`LootTool`, 3).
+A mixin only one band needs is listed in its `*.mixins.json` inside a Groovy template block (`<% if (band == 'A') %>`),
+expanded by processResources with `band`, `java_version`, `minecraft_dependency`. Target numbers and lambda names are
+chosen by javap on that band's jar. Two GameTests guard the result on every node: `MixinAudit(Client)GameTest`
+force-loads every mixin target (it caught a broken client mixin in a mutation run), `SaveFormatGameTest` pins the
+`fabric:attachments` format 1.21.11 writes.
+**Why:** replacements keep 26.1's ~40 rename sites out of the source entirely; conditions stay where a reader needs to
+see both versions. Groovy templates avoid an `IMixinConfigPlugin` for one band-only mixin.
+**Rejected:** Kotlin DSL / Stonecutter swaps (more machinery for the same result); porting `RegistryDataLoaderMixin` to
+26.1's async loader (internals; Fabric's `MODIFY_WITH_LOOKUP` hands over the same lookup); a bare `.drawString(` →
+`.text(` replacement (its reverse would hit `drawn.text()`).
+**Count for the split rule (12C):** inside band B nothing is adapted yet; these are A↔B differences, which the band
+split pays for.
+**Affects:** build.gradle, port/LootTool.java, the 17 conditioned files, enchanting2.mixins.json, src/gametest
+
+## 2026-10-15 — One band per 26.x line; the runtime matrix keeps proving hotfix versions (12C gate, owner)
+**Context:** 12C ran the 26.1.2 jar and its GameTest jar on 26.2 and 26.3 (runtime-only `matrix/<version>` nodes)
+and a new static link check over both jars. The split rule fixed in advance (2026-10-14 "Version bands"): more than
+~6 adapters in a line → that line is its own band.
+**Choice:** each 26.x line is its own band, compiled from the shared source like 26.1.2: A = 1.21.11, B1 = 26.1–26.1.2
+(owner: "26.1, 26.1.1 and 26.1.2 are one jar"; proven: link check 0 and 339/339 server GameTests on 26.1 and 26.1.1),
+B2 = 26.2, B3 = 26.3 (owner: support all three lines). No `compat/McVersion`, no `VersionedMixins`. The matrix
+(`matrix/matrix.gradle`, plain subprojects outside Stonecutter) and `linkCheck` stay as the tools for any version a
+jar claims without being built for it: a new hotfix, or a new line tried on the nearest band's jar (12H).
+**Why:** 26.2 broke 8 mod-side references (table Enchant, spawners, Last Stand HUD, YACL tabs, Shield Bash, a loot
+table predicate) and 26.3 23 (GUI rendering, loot context, moved mixin target classes; 16 of those differ from 26.2
+too). The GameTest jar, compiled on 26.1.2, fails in its own setup on both (`EntityType.ZOMBIE` and friends are gone
+from 26.2), so a matrix there could never prove the mod anyway without porting the tests too. Separate nodes get the
+compiler and the full suite on every line.
+**Rejected:** runtime adapters inside one B jar (8 and 23 adapters plus the test jar's; past the rule, and 26.3's
+rendering changes sit in per-frame paths); one jar for 26.2 + 26.3 (16 differences between them); dropping 26.2 (owner
+wants it).
+**Affects:** settings.gradle, matrix/, build.gradle (`gametestJar`, `matrixModJar`, `matrixGametestJar`),
+versions/26.1.2/gradle.properties, TODO.md Phase 12 (12D–12H re-cut)
+
+## 2026-10-15 — 12D: 26.2 differences, and data that differs by version (agent)
+**Context:** node `versions/26.2/` (band B2). 6 main + 5 client + ~30 GameTest compile errors, one data file.
+**Choice:** the 12B toolbox, cheapest first. Same code everywhere where an old API exists on all three
+(`BuiltInRegistries.ENTITY_TYPE.getOptional(Identifier.tryParse(id))` for `EntityType.byString`; `Vec3.atCenterOf`,
+`Language.has` in tests). `>=26.2` replacements for pure moves (`advancements.triggers`, `EntityTypes.<CONST>`,
+`BlockEntityTypes.<CONST>` with their imports, `minecraft.gui.toastManager()`, tests' `client.gui.screen()/setScreen`).
+`//? if >=26.2` for changed signatures (`knockback` + source, `Hud.isHidden()`, YACL's `MenuTabBar` overrides). A
+GameTest helper (`ClientWorlds`) for Fabric's thrice-moved chunk wait. **Data:** `heads.json`'s entity predicate key
+(`type` → `minecraft:entity_type`) is a `${entity_type_predicate}` template expanded by processResources, the same
+mechanism as `fabric.mod.json`. `matrix/26.2` is band B2's control node, so `linkCheck` covers its mixin selectors.
+**Why:** one source file per resource, and the expansion is already an input of every processResources task. The key
+came from vanilla's own `loot_table/charged_creeper/root.json` on each version, not from guessing the codec.
+**Rejected:** per-node resource copies (two files drift); a Fabric resource condition (none tests the game version);
+Stonecutter on JSON (no comment syntax to hide a variant in). Chained `>=26.1` + `>=26.2` replacements for the chunk
+wait (relies on the order Stonecutter applies rule sets in, both directions).
+**Affects:** build.gradle, heads.json, ModIdentityTest, ShieldBash, CollectedSpawners, LastStandHud,
+TabbedConfigScreen, gametest ClientWorlds + 11 tests, versions/26.2, matrix/26.2, settings.gradle
+
+## 2026-10-15 — 12E: 26.3 differences, and data upgraded per node (agent)
+**Context:** node `versions/26.3/` (band B3). 28 main + ~16 client + 2 GameTest compile errors, then runtime-only
+breaks: three `setBlock` targets now `setBlockAndUpdate`, the hurt cooldown field, two `deflect` overloads, and a loot
+data format that loads stale files without an error (gotchas.md 2026-10-15, 12E entries).
+**Choice:** the 12B toolbox for code: same code everywhere where possible (`InputConstants` for GLFW, the furnace
+GameTest, `silkChangedDrop(origin)`), `>=26.3` replacements for pure renames (loot `getOptional`, `RegistryCodecs`,
+`syncVelocity`, `damageCooldownTime`, `Enderman`, `RenderPipeline` import + descriptors), `//? if >=26.3` for changed
+signatures. Mixins whose target class is gone: `HoeItemMixin` wraps `BlockTransformer.transformBlock` (same class
+name, conditioned target); `FuelValuesMixin` (before 26.3) vs `FurnaceMenuFuelMixin` + `FurnaceBlockEntityFuelMixin`
+(26.3), whole files conditioned and listed by a `fuel_component` template flag (named for the game change, not the
+band, so a 26.4 node inherits it). **Data:** written in 1.21.11's format like `src/`; a `doLast` on every
+`ProcessResources` rewrites `loot_table/`, `enchantment/`, `predicate/`, `item_modifier/` JSON on 26.3+ nodes
+(condition `type`, one `condition` / `modifier`, `#` tag predicates). `ModIdentityTest.lootConditionsAreInThisNodesFormat`
+checks every shipped file per node (mutation: upgrade off → fails on 26.3).
+**Why:** 26.3's changes touch every condition and function object; placeholders (12D's `${entity_type_predicate}`)
+would need a structural variant per entry in Groovy template blocks, and a new data file written by someone who
+doesn't know would silently lose its conditions on 26.3. One rule set in the build upgrades every file, as Stonecutter
+does for code. 12D's placeholder stays (one key, already tested).
+**Rejected:** per-node resource copies (drift; rejected in 12D too); `<% if %>` blocks in each JSON (unreadable, easy to
+miss one); writing data in 26.3's format and downgrading for older nodes (src/ is written for 1.21.11, data follows).
+**Affects:** build.gradle (replacements, `fuel_component`, loot upgrader), enchanting2.mixins.json, HoeItemMixin,
+FuelValuesMixin, FurnaceMenuFuelMixin, FurnaceBlockEntityFuelMixin, ProjectileMixin, LavaFluidMixin,
+EndermanLeaveBlockGoalMixin, FallingBlockEntityMixin, ShieldDeflect, KeepOnDeath, ItemWideningHook, FortuneDrops,
+three window mixins + five client GameTests (InputConstants), InfiniteBucketGameTest, ShieldsGameTest, ModIdentityTest
+
+## 2026-10-19 — 12F: one `verifyAll` task for local and CI; matrix roles derived
+**Context:** "done" on port/26x meant remembering which nodes and matrix versions to run; CI ran only `build`.
+**Choice:** `./gradlew verifyAll` (stonecutter.gradle) = every version node's `build` + every matrix node's
+`linkCheck` + `runGameTest` on "claimed" matrix versions; CI and `scripts/verify-all.sh` both call it. A matrix node is
+a control iff `minecraft_version == matrix_jar_node` (no role property to keep in sync). `verifyReport` is a separate
+task reading result files (a finalizer doesn't run when a dependency fails); `-PverifySince` marks results this run
+didn't rewrite. Version nodes got the matrix's zero-tests GameTest check (`gradle/gametest-report.gradle`, shared).
+**Why:** owner 2026-10-19 picked all three: GameTests only where a jar claims a version it isn't built for (controls
+repeat the node builds), client GameTests local-only, one Gradle task so local and CI can't drift.
+**Rejected:** a `matrix_role` property (can go stale); a bash-only script (CI and local would drift; Windows);
+headless client GameTests in CI (unproven with 26.3's renderer under Mesa; later follow-up).
+**Affects:** stonecutter.gradle, gradle/gametest-report.gradle, matrix/matrix.gradle, build.gradle, .github/workflows/ci.yml, scripts/verify-all.sh
+
+## 2026-10-19 — 12G: jar names carry a derived band; release collection is a script
+**Context:** four jars per release need names a player can match to their game, and the name must never claim a
+version nothing tested.
+**Choice:** `version = mod_version+band` in build.gradle (jar name and fabric.mod.json), band = the node's
+`minecraft_version` plus every matrix version with `matrix_jar_node` = that node, "lowest" or "lowest-highest". A new
+matrix node (12H "green → widen") renames the jar by itself; `ModIdentityTest` re-derives it and checks
+`depends.minecraft` admits each version; `ReleaseDocsTest` makes README + wiki tables list exactly the bands.
+release.yml runs `verifyAll`; jar collection + notes table live in `scripts/release-collect.sh` so it can be
+dry-run locally, and it checks each jar's own fabric.mod.json against its file name.
+**Why:** owner 2026-10-19: `+<range>` names, PR + squash-merge, tag v1.1.0 once green.
+**Rejected:** a typed `band_label` property per node (can disagree with the matrix); collection inline in YAML
+(only testable by tagging); a jar per node without the band in fabric.mod.json (Mod Menu / crash logs couldn't tell
+the jars apart).
+**Affects:** build.gradle, .github/workflows/release.yml, scripts/release-collect.sh, src/test/.../Bands.java, ModIdentityTest, ReleaseDocsTest

@@ -3,7 +3,7 @@ package com.wulfnet.enchanting2.mixin;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.wulfnet.enchanting2.acquisition.Acquisition;
-import com.wulfnet.enchanting2.acquisition.Source;
+import com.wulfnet.enchanting2.acquisition.AcquisitionScope;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.core.Holder;
@@ -15,7 +15,9 @@ import org.spongepowered.asm.mixin.injection.At;
 
 /**
  * Phase 9: the {@code enchant_randomly} loot function picks uniformly from its options (the whole registry when it has
- * none). It now drops what loot doesn't allow and weighs the rest (owner, 2026-10-09: weighted by default).
+ * none). It now drops what loot doesn't allow and weighs the rest (owner, 2026-10-09: weighted by default). The source
+ * is the current scope: LOOT, except on 26.1, where librarian books run this function inside the TRADE scope of
+ * {@code VillagerTradeScopeMixin} (Phase 12B). On 1.21.11 no trade reaches it, so it is always LOOT there.
  */
 @Mixin(EnchantRandomlyFunction.class)
 abstract class EnchantRandomlyFunctionMixin {
@@ -23,6 +25,6 @@ abstract class EnchantRandomlyFunctionMixin {
 			target = "Lnet/minecraft/util/Util;getRandomSafe(Ljava/util/List;Lnet/minecraft/util/RandomSource;)Ljava/util/Optional;"))
 	private Optional<Holder<Enchantment>> enchanting2$weighted(List<Holder<Enchantment>> candidates, RandomSource random,
 			Operation<Optional<Holder<Enchantment>>> original) {
-		return Acquisition.pick(candidates, Source.LOOT, random, () -> original.call(candidates, random));
+		return Acquisition.pick(candidates, AcquisitionScope.current(), random, () -> original.call(candidates, random));
 	}
 }

@@ -1,6 +1,7 @@
 package com.wulfnet.enchanting2.mixin.client;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.wulfnet.enchanting2.anvil.AnvilBridge;
 import com.wulfnet.enchanting2.anvil.AnvilOutcome.Entry;
 import com.wulfnet.enchanting2.anvil.AnvilOutcome.Status;
@@ -32,7 +33,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AnvilMenu;
 import net.minecraft.world.item.ItemStack;
 import org.jspecify.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -77,7 +77,7 @@ abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> implements
 	private void enchanting2$width(AnvilMenu menu, Inventory inventory, Component title, CallbackInfo ci) {
 		enchanting2$wide = AnvilBridge.clientServerIsOurs();
 		if (enchanting2$wide) {
-			imageWidth = ColumnWindow.WIDTH;
+			((AbstractContainerScreenAccessor) this).enchanting2$setImageWidth(ColumnWindow.WIDTH);
 		}
 	}
 
@@ -114,6 +114,10 @@ abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> implements
 
 	/** Absolute coordinates, before slots and labels: under any tooltip. */
 	@Inject(method = "renderBg", at = @At("TAIL"))
+	// 26.1's extractBackground takes the partial tick last.
+	//? if >=26.1 {
+	/*private void enchanting2$drawBox(GuiGraphics graphics, int mouseX, int mouseY, float partialTick,
+	*///?} else
 	private void enchanting2$drawBox(GuiGraphics graphics, float partialTick, int mouseX, int mouseY,
 			CallbackInfo ci) {
 		AnvilBox box = enchanting2$box;
@@ -141,7 +145,7 @@ abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> implements
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
 		AnvilBox box = enchanting2$box;
 		if (box != null && box.contains(event.x(), event.y())) {
-			if (event.button() == GLFW.GLFW_MOUSE_BUTTON_LEFT && box.overScrollBar(event.x(), event.y())) {
+			if (event.button() == InputConstants.MOUSE_BUTTON_LEFT && box.overScrollBar(event.x(), event.y())) {
 				box.press(event.y());
 			}
 			return true;

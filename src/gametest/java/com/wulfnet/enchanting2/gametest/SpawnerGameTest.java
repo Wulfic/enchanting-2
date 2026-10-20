@@ -2,6 +2,7 @@ package com.wulfnet.enchanting2.gametest;
 
 import com.wulfnet.enchanting2.fortune.FortuneDrops;
 import com.wulfnet.enchanting2.fortune.SilkFortuneMode;
+import com.wulfnet.enchanting2.gametest.mixin.ExperienceOrbAccessor;
 import com.wulfnet.enchanting2.spawner.CollectedSpawners;
 import java.util.ArrayList;
 import java.util.List;
@@ -96,9 +97,13 @@ public class SpawnerGameTest {
 				.stream().map(ItemEntity::getItem).filter(stack -> stack.is(Items.SPAWNER)).toList();
 	}
 
+	/**
+	 * The XP on the ground around the spawner. Vanilla merges an equal-value orb into a nearby one at random
+	 * ({@code count++}), so each orb is worth its value times its count.
+	 */
 	private static int xpOrbs(GameTestHelper helper) {
 		return helper.getLevel().getEntitiesOfClass(ExperienceOrb.class, new AABB(helper.absolutePos(POS)).inflate(2))
-				.stream().mapToInt(ExperienceOrb::getValue).sum();
+				.stream().mapToInt(orb -> orb.getValue() * ((ExperienceOrbAccessor) orb).e2test$getCount()).sum();
 	}
 
 	/** {@code player} places {@code item} on the stone at {@link #POS}'s floor, the vanilla way. */

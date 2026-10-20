@@ -1,5 +1,6 @@
 package com.wulfnet.enchanting2.gametest;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.wulfnet.enchanting2.client.EnchantmentDescriptions;
 import com.wulfnet.enchanting2.client.TallTooltips;
 import com.wulfnet.enchanting2.config.ClientConfig;
@@ -19,6 +20,7 @@ import net.minecraft.client.resources.language.I18n;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
@@ -30,7 +32,6 @@ import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.level.GameType;
-import org.lwjgl.glfw.GLFW;
 
 /**
  * Phase 10h on the real client: holding Ctrl puts each enchantment's description on its own tooltip line as "Name:
@@ -42,7 +43,7 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext context) {
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
-			world.getClientWorld().waitForChunksRender();
+			ClientWorlds.waitForChunksRender(world);
 			world.getServer().runCommand("gamemode survival @a");
 			context.waitTicks(2);
 
@@ -50,7 +51,7 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 			String vision = I18n.get("enchantment.enchanting2.vision.desc");
 			String hint = I18n.get("enchanting2.tooltip.hold_ctrl");
 
-			context.getInput().holdKey(GLFW.GLFW_KEY_LEFT_CONTROL);
+			context.getInput().holdKey(InputConstants.KEY_LCONTROL);
 			context.waitTick();
 			List<String> book = tooltip(context, sharpnessBook(context));
 			assertInline(book, "Sharpness V", sharpness);
@@ -62,7 +63,7 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 			assertInline(pickaxe, "Silk Touch", I18n.get("enchantment.minecraft.silk_touch.desc"));
 
 			screenshotHoveredBook(context, world);
-			context.getInput().releaseKey(GLFW.GLFW_KEY_LEFT_CONTROL);
+			context.getInput().releaseKey(InputConstants.KEY_LCONTROL);
 			context.waitTick();
 
 			List<String> released = tooltip(context, sharpnessBook(context));
@@ -99,10 +100,10 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 		ItemStack pickaxe = context.computeOnClient(client -> withEnchantments(client.level.registryAccess()
 				.lookupOrThrow(Registries.ENCHANTMENT), Items.DIAMOND_PICKAXE, 16, true));
 		List<String> names = fullNames(context, pickaxe);
-		context.getInput().holdKey(GLFW.GLFW_KEY_LEFT_CONTROL);
+		context.getInput().holdKey(InputConstants.KEY_LCONTROL);
 		context.waitTick();
 		List<String> lines = tooltip(context, pickaxe);
-		context.getInput().releaseKey(GLFW.GLFW_KEY_LEFT_CONTROL);
+		context.getInput().releaseKey(InputConstants.KEY_LCONTROL);
 		context.waitTick();
 		for (String name : names) {
 			check(lines.stream().anyMatch(line -> line.startsWith(name + ": ")),
@@ -170,6 +171,9 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 		context.waitTicks(2);
 		check(TallTooltips.offset() == 0, "starts at the top: " + TallTooltips.offset());
 		context.takeScreenshot("enchanting2-tooltip-tall-top");
+		// A screenshot can take longer than TooltipScroll.STALE_NANOS (208 ms on 26.3, 2026-10-19): draw a frame
+		// before the wheel, or the tooltip starts over.
+		context.waitTick();
 		context.getInput().scroll(-1);
 		context.waitTick();
 		check(TallTooltips.offset() > 0, "one notch down scrolled it: " + TallTooltips.offset());
@@ -187,9 +191,12 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 		}
 		check(bottom > TooltipScroll.STEP, "scrolled down to its bottom: " + bottom);
 		context.takeScreenshot("enchanting2-tooltip-tall-bottom");
+		context.waitTick();
 		context.getInput().scroll(1);
 		context.waitTick();
-		check(TallTooltips.offset() < bottom, "and back up: " + TallTooltips.offset() + " from " + bottom);
+		// Exactly one notch: a tooltip that went stale would start over at 0, which "less than bottom" let through.
+		check(TallTooltips.offset() == bottom - TooltipScroll.STEP,
+				"and back up one notch: " + TallTooltips.offset() + " from " + bottom);
 	}
 
 	/** The first {@code count} enchantments by ID (only ones with a description, if {@code described}), each at I. */
@@ -198,7 +205,8 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 		ItemStack stack = new ItemStack(item);
 		ItemEnchantments.Mutable enchantments = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
 		registry.listElements().sorted(Comparator.comparing(holder -> holder.key().identifier().toString()))
-				.filter(holder -> !described || I18n.exists(DescriptionPlan.key(holder.key().identifier().toString())))
+				.filter(holder -> !described
+						|| Language.getInstance().has(DescriptionPlan.key(holder.key().identifier().toString())))
 				.limit(count).forEach(holder -> enchantments.set(holder, 1));
 		EnchantmentHelper.setEnchantments(stack, enchantments.toImmutable());
 		return stack;

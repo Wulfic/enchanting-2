@@ -2,6 +2,7 @@ package com.wulfnet.enchanting2.effect;
 
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.enchantment.StochasticRounding;
+import com.wulfnet.enchanting2.port.LootTool;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -47,7 +48,7 @@ public final class SmeltingDrops {
 	public static void apply(Holder<LootTable> table, LootContext context, List<ItemStack> drops,
 			SmeltingSilkPriority priority) {
 		BlockState state = context.getOptionalParameter(LootContextParams.BLOCK_STATE);
-		ItemStack tool = context.getOptionalParameter(LootContextParams.TOOL);
+		ItemStack tool = LootTool.of(context);
 		Vec3 origin = context.getOptionalParameter(LootContextParams.ORIGIN);
 		if (drops.isEmpty() || state == null || tool == null || tool.isEmpty() || origin == null
 				|| !EnchantmentHelper.has(tool, ModEffects.SMELT_DROPS)) {
@@ -72,6 +73,9 @@ public final class SmeltingDrops {
 				Optional<RecipeHolder<SmeltingRecipe>> recipe = drop.isEmpty() || drop.is(EXCLUDED) ? Optional.empty()
 						: level.recipeAccess().getRecipeFor(RecipeType.SMELTING, new SingleRecipeInput(drop), level);
 				ItemStack result = recipe
+						//? if >=26.1 {
+						/*.map(r -> r.value().assemble(new SingleRecipeInput(drop)))
+						*///?} else
 						.map(r -> r.value().assemble(new SingleRecipeInput(drop), level.registryAccess()))
 						.orElse(ItemStack.EMPTY);
 				if (result.isEmpty()) {

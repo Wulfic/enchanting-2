@@ -1,0 +1,173 @@
+// Phase 12C runtime matrix: the build script of every matrix/<version>/ node (settings.gradle). A matrix node compiles
+// nothing. It runs a band's shipped mod jar and a jar of its GameTests, both built by the Stonecutter node named in
+// matrix_jar_node, on this node's Minecraft with the Fabric API, YACL and Mod Menu a player there would use. Green here
+// is what lets that jar claim this version (TODO.md Phase 12, decisions.md 2026-10-15 "One band per 26.x line").
+//
+//   ./gradlew :matrix-26.2:runGameTest         server GameTests, then the report check
+//   ./gradlew :matrix-26.2:runClientGameTest   client GameTests (opens a game window; one node at a time)
+plugins {
+    // fabric-loom on 26.x (no remap); matrix/<line>/gradle.properties sets loomx.unobfuscated, since outside
+    // Stonecutter loom-back-compat can't tell the version kind by itself.
+    id 'dev.kikugie.loom-back-compat'
+}
+
+// Fails closed with a message that says what to fix (verifyAll classifies matrix nodes from these two keys).
+def jarNodeName = project.findProperty('matrix_jar_node')?.toString()?.trim()
+if (!jarNodeName || !project.findProperty('minecraft_version')?.toString()?.trim()) {
+    throw new GradleException("${project.path}: matrix/${project.projectDir.name}/gradle.properties needs both " +
+        "minecraft_version and matrix_jar_node")
+}
+if (rootProject.findProject(":${jarNodeName}")?.projectDir?.parentFile != rootProject.file('versions')) {
+    throw new GradleException("${project.path}: matrix_jar_node '${jarNodeName}' is not a version node (versions/<node>/)")
+}
+def jarNode = ":${jarNodeName}"
+def javaLevel = project.java_version.toString().trim() as Integer
+
+repositories {
+    mavenCentral()
+    exclusiveContent {
+        forRepository { maven { name = 'TerraformersMC'; url = 'https://maven.terraformersmc.com/releases/' } }
+        filter { includeGroup 'com.terraformersmc' }
+    }
+    exclusiveContent {
+        forRepository { maven { name = 'isXander'; url = 'https://maven.isxander.dev/releases/' } }
+        filter { includeGroup 'dev.isxander' }
+    }
+    exclusiveContent {
+        forRepository { maven { name = 'Quilt'; url = 'https://maven.quiltmc.org/repository/release/' } }
+        filter { includeGroup 'org.quiltmc.parsers' }
+    }
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(javaLevel)
+    }
+}
+
+// The static link check (matrix/linkcheck/LinkCheck.java) builds in its own source set, so nothing of it lands on the
+// game's classpath.
+sourceSets {
+    linkCheck {
+        java.srcDirs = [rootProject.file('matrix/linkcheck')]
+        resources.srcDirs = []
+    }
+}
+
+// The jars under test, resolved on their own (they are also on runtimeClasspath, where LinkCheck skips them).
+configurations {
+    linkCheckSubjects {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+    // The artifacts under test, exactly as the jar node builds them (artifacts only, no dependencies; Jankson must come
+    // from the mod jar's own META-INF/jars, as it does for players).
+    localRuntime project(path: jarNode, configuration: 'matrixModJar')
+    localRuntime project(path: jarNode, configuration: 'matrixGametestJar')
+
+    // This line's builds of the optional client mods, as in build.gradle (YACL is environment "*", so it loads on the
+    // GameTest server too), and YACL's nested parsers, which the dev runtime doesn't load (gotchas.md 2026-10-07).
+    localRuntime("com.terraformersmc:modmenu:${project.modmenu_version}") { transitive = false }
+    localRuntime("dev.isxander:yet-another-config-lib:${project.yacl_version}") { transitive = false }
+    localRuntime("org.quiltmc.parsers:json:${project.quilt_parsers_version}") { transitive = false }
+    localRuntime("org.quiltmc.parsers:gson:${project.quilt_parsers_version}") { transitive = false }
+
+    linkCheckImplementation "org.ow2.asm:asm:${project.asm_version}"
+    linkCheckSubjects project(path: jarNode, configuration: 'matrixModJar')
+    linkCheckSubjects project(path: jarNode, configuration: 'matrixGametestJar')
+}
+
+// ./gradlew :matrix-<line>:linkCheck — seconds, against this line's whole runtime classpath (Minecraft, Fabric API,
+// YACL, Mod Menu). Run it first on a new Minecraft version; the GameTests only after it's clean (TODO.md 12H).
+def linkCheckDir = new File(layout.buildDirectory.get().asFile.canonicalFile, 'linkcheck')
+tasks.register('linkCheck', JavaExec) {
+    description = "Resolves every Minecraft/Fabric/YACL/Mod Menu reference of ${jarNode}'s jars on ${project.minecraft_version}"
+    group = 'verification'
+    def runtime = configurations.runtimeClasspath
+    def subjects = configurations.linkCheckSubjects
+    def classpathFile = new File(linkCheckDir, 'classpath.txt')
+    def reportFile = new File(linkCheckDir, 'report.txt')
+    inputs.files(runtime).withPropertyName('runtimeClasspath')
+    inputs.files(subjects).withPropertyName('subjects')
+    outputs.file(reportFile)
+    classpath = sourceSets.linkCheck.runtimeClasspath
+    mainClass = 'LinkCheck'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(javaLevel) }
+    argumentProviders.add({
+        def jars = subjects.files.toList()
+        def mod = jars.find { !it.name.endsWith('-gametest.jar') }
+        def tests = jars.find { it.name.endsWith('-gametest.jar') }
+        if (jars.size() != 2 || mod == null || tests == null) {
+            throw new GradleException("linkCheck expects the mod jar and the -gametest jar from ${jarNode}, got ${jars}")
+        }
+        [classpathFile.absolutePath, reportFile.absolutePath, mod.absolutePath, tests.absolutePath]
+    } as CommandLineArgumentProvider)
+    doFirst {
+        linkCheckDir.mkdirs()
+        classpathFile.text = runtime.files.join('\n')
+    }
+}
+
+// Run dirs live under this node's build dir and are wiped before each run, as Loom's fabricApi.configureTests does
+// (clearRunDirectory). The delete is fenced to <this node>/build/run/<name>: anything else refuses.
+def buildRoot = layout.buildDirectory.get().asFile.canonicalFile
+def runDirOf = { String name -> new File(buildRoot, "run/${name}") }
+
+// Mirrors Loom 1.18.4's FabricApiTesting run configs: server with -Dfabric-api.gametest, client with
+// -Dfabric.client.gametest and --username Player0.
+loom {
+    runs {
+        gameTest {
+            server()
+            name = "Matrix GameTest ${project.minecraft_version}"
+            ideConfigGenerated = false
+            property 'fabric-api.gametest', ''
+            runDir project.relativePath(runDirOf('gameTest'))
+        }
+        clientGameTest {
+            client()
+            name = "Matrix Client GameTest ${project.minecraft_version}"
+            ideConfigGenerated = false
+            property 'fabric.client.gametest', ''
+            property 'fabric.client.gametest.testModResourcesPath', rootProject.file('src/gametest/resources').absolutePath
+            programArgs '--username', 'Player0'
+            runDir project.relativePath(runDirOf('clientGameTest'))
+        }
+    }
+}
+
+['gameTest', 'clientGameTest'].each { runName ->
+    def runDir = runDirOf(runName).canonicalFile
+    def clear = tasks.register("clear${runName.capitalize()}RunDir") {
+        doLast {
+            // Fail closed: only a direct child of <node>/build/run/ is ever deleted.
+            if (runDir.parentFile != new File(buildRoot, 'run').canonicalFile) {
+                throw new GradleException("Refusing to delete ${runDir}: not inside ${buildRoot}/run")
+            }
+            if (runDir.exists()) {
+                logger.lifecycle("Clearing matrix run dir ${runDir} (rebuilt by every run)")
+                if (!runDir.deleteDir()) {
+                    throw new GradleException("Could not clear ${runDir}; a game from the last run may still hold it")
+                }
+            }
+            runDir.mkdirs()
+            if (runName == 'gameTest') {
+                new File(runDir, 'eula.txt').text = '# Accepted for the matrix GameTest server (matrix/matrix.gradle).\neula=true\n'
+            }
+        }
+    }
+    tasks.named("run${runName.capitalize()}") {
+        dependsOn clear
+    }
+}
+
+// The report file and the check that fails a run with no test cases (shared with the version nodes).
+apply from: rootProject.file('gradle/gametest-report.gradle')

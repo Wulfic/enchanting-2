@@ -44,6 +44,9 @@ public final class ShieldDeflect {
 	 */
 	public static ProjectileDeflection deflection(Entity target, Projectile projectile) {
 		if (!(target instanceof LivingEntity blocker) || !(target.level() instanceof ServerLevel level)
+				//? if >=26.1 {
+				/*|| !projectile.is(DEFLECTABLE)) {
+				*///?} else
 				|| !projectile.getType().is(DEFLECTABLE)) {
 			return ProjectileDeflection.NONE;
 		}
@@ -78,6 +81,10 @@ public final class ShieldDeflect {
 		DamageSource source = projectile instanceof AbstractArrow arrow
 				? level.damageSources().arrow(arrow, projectile.getOwner())
 				: level.damageSources().thrown(projectile, projectile.getOwner());
+		// 26.1 turned bypassed_by from a damage type tag into a HolderSet (vanilla LivingEntity checks it the same way).
+		//? if >=26.1 {
+		/*if (blocking.bypassedBy().map(types -> types.contains(source.typeHolder())).orElse(false)) {
+		*///?} else
 		if (blocking.bypassedBy().map(source::is).orElse(false)) {
 			return false;
 		}
@@ -89,8 +96,13 @@ public final class ShieldDeflect {
 
 	/**
 	 * Same speed, aimed at the middle of the shooter with the projectile's drop over that distance added back; with no
-	 * shooter left in this level, straight back the way it came. Rotation and sync as vanilla's {@code REVERSE}.
+	 * shooter left in this level, straight back the way it came. Rotation and sync as vanilla's {@code REVERSE}. 26.3
+	 * passes the deflection a power per axis (1 for an entity's deflection, the path that reaches this); it scales the
+	 * returned velocity as it does vanilla's.
 	 */
+	//? if >=26.3 {
+	/*private static void atShooter(Projectile projectile, Entity deflector, RandomSource random, Vec3 power) {
+	*///?} else
 	private static void atShooter(Projectile projectile, Entity deflector, RandomSource random) {
 		Vec3 velocity = projectile.getDeltaMovement();
 		double speed = velocity.length();
@@ -106,6 +118,9 @@ public final class ShieldDeflect {
 		} else {
 			direction = velocity.scale(-1.0).normalize();
 		}
+		//? if >=26.3 {
+		/*Vec3 back = direction.scale(speed).multiply(power);
+		*///?} else
 		Vec3 back = direction.scale(speed);
 		projectile.setDeltaMovement(back);
 		projectile.setYRot((float) (Mth.atan2(back.x, back.z) * Mth.RAD_TO_DEG));

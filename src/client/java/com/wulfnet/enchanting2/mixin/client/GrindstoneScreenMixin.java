@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.wulfnet.enchanting2.client.ClientConfigState;
 import com.wulfnet.enchanting2.client.CostLabel;
 import com.wulfnet.enchanting2.client.GrindstoneList;
@@ -37,7 +38,6 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.inventory.GrindstoneMenu;
 import net.minecraft.world.item.ItemStack;
 import org.jspecify.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -71,7 +71,7 @@ abstract class GrindstoneScreenMixin extends AbstractContainerScreen<GrindstoneM
 	protected void init() {
 		boolean ours = GrindstoneBridge.clientServerIsOurs();
 		if (ours) {
-			imageWidth = ColumnWindow.WIDTH;
+			((AbstractContainerScreenAccessor) this).enchanting2$setImageWidth(ColumnWindow.WIDTH);
 		}
 		super.init();
 		enchanting2$list = ours ? new GrindstoneList(font) : null;
@@ -100,6 +100,10 @@ abstract class GrindstoneScreenMixin extends AbstractContainerScreen<GrindstoneM
 
 	/** Absolute coordinates, before slots and labels: under any tooltip. */
 	@Inject(method = "renderBg", at = @At("TAIL"))
+	// 26.1's extractBackground takes the partial tick last.
+	//? if >=26.1 {
+	/*private void enchanting2$drawList(GuiGraphics graphics, int mouseX, int mouseY, float partialTick,
+	*///?} else
 	private void enchanting2$drawList(GuiGraphics graphics, float partialTick, int mouseX, int mouseY,
 			CallbackInfo ci) {
 		GrindstoneList list = enchanting2$list;
@@ -148,7 +152,7 @@ abstract class GrindstoneScreenMixin extends AbstractContainerScreen<GrindstoneM
 		if (list == null || !list.contains(event.x(), event.y())) {
 			return super.mouseClicked(event, doubleClick);
 		}
-		if (event.button() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+		if (event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
 			if (list.overScrollBar(event.x(), event.y())) {
 				list.press(event.y());
 			} else {

@@ -180,9 +180,13 @@ abstract class AnvilMenuMixin extends ItemCombinerMenu implements AnvilOutcomeHo
 
 	/**
 	 * Phase 11c: vanilla rolled its 12% chip; {@link AnvilWear} decides whether it lands. The target is
-	 * {@code onTake}'s {@code access.execute} lambda, {@code method_24922(Player, Level, BlockPos)} (javap 1.21.11).
+	 * {@code onTake}'s {@code access.execute} lambda, {@code method_24922(Player, Level, BlockPos)} (javap 1.21.11),
+	 * {@code lambda$onTake$0} on unobfuscated 26.1.2 (javap; javac's numbering, so 12C checks it on every 26.x line).
 	 * Keeping the state makes vanilla set the same block and play the plain use sound, as on a roll that missed.
 	 */
+	//? if >=26.1 {
+	/*@WrapOperation(method = "lambda$onTake$0", at = @At(value = "INVOKE",
+	*///?} else
 	@WrapOperation(method = "method_24922", at = @At(value = "INVOKE",
 			target = "Lnet/minecraft/world/level/block/AnvilBlock;damage(Lnet/minecraft/world/level/block/state/BlockState;)Lnet/minecraft/world/level/block/state/BlockState;"))
 	private static @Nullable BlockState enchanting2$wearOnUse(BlockState state, Operation<BlockState> original,

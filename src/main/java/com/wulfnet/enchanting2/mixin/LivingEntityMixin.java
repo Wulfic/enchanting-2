@@ -120,6 +120,22 @@ abstract class LivingEntityMixin implements ShieldState {
 		return stands || Footing.standsOnLava((LivingEntity) (Object) this, fluid);
 	}
 
+	// Phase 12B, Lava Walking on 26.1: LiquidBlock's half-block shape moved into LivingEntity.getLiquidCollisionShape(),
+	// empty except for striders. A lava walker gets the strider's column; LiquidBlock still keeps it only where
+	// canStandOnFluid (above) says yes for the actual fluid and no lava is above, as on 1.21.11.
+	//? if >=26.1 {
+	/*@Unique
+	private static final net.minecraft.world.phys.shapes.VoxelShape ENCHANTING2$LAVA_FOOTING =
+			net.minecraft.world.level.block.Block.column(16.0, 0.0, 8.0);
+
+	@ModifyReturnValue(method = "getLiquidCollisionShape", at = @At("RETURN"))
+	private net.minecraft.world.phys.shapes.VoxelShape enchanting2$lavaWalkingShape(
+			net.minecraft.world.phys.shapes.VoxelShape shape) {
+		return shape.isEmpty() && Footing.standsOnLava((LivingEntity) (Object) this,
+				net.minecraft.world.level.material.Fluids.LAVA.defaultFluidState()) ? ENCHANTING2$LAVA_FOOTING : shape;
+	}
+	*///?}
+
 	/** Phase 10cB, Snow Walker: no freezing, as vanilla's {@code #freeze_immune_wearables} (leather) gives. */
 	@ModifyReturnValue(method = "canFreeze", at = @At("RETURN"))
 	private boolean enchanting2$snowWalker(boolean freezes) {

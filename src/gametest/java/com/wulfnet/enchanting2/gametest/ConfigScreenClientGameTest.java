@@ -1,5 +1,6 @@
 package com.wulfnet.enchanting2.gametest;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.wulfnet.enchanting2.acquisition.AcquisitionRules;
 import com.wulfnet.enchanting2.acquisition.EnchantmentFlagsDraft;
 import com.wulfnet.enchanting2.acquisition.Source;
@@ -26,7 +27,6 @@ import net.minecraft.client.gui.components.TabButton;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
 
 /**
  * Stage 9C on the real client: the config screen (with its Enchantments category) builds on the title screen, where
@@ -52,7 +52,7 @@ public class ConfigScreenClientGameTest implements FabricClientGameTest {
 		tabsAreInRowsAndASecondRowTabClicks(context);
 
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
-			world.getClientWorld().waitForChunksRender();
+			ClientWorlds.waitForChunksRender(world);
 			context.runOnClient(client -> {
 				Set<String> listed = ConfigEditing.enchantmentNames().keySet();
 				check(listed.contains(THIRD_PARTY) && listed.containsAll(ModEnchantments.knownWithoutRegistry()),
@@ -90,6 +90,9 @@ public class ConfigScreenClientGameTest implements FabricClientGameTest {
 		context.waitTick();
 		Screen shown = context.computeOnClient(client -> client.screen);
 		check(shown instanceof YACLScreen, "the config screen is open: " + shown);
+		// Off every option, so the shot is the same on each node whatever an earlier test left under the cursor.
+		context.getInput().setCursorPos(0, 0);
+		context.waitTick();
 		context.takeScreenshot(screenshot);
 		context.runOnClient(client -> client.screen.onClose());
 		context.waitTick();
@@ -130,7 +133,7 @@ public class ConfigScreenClientGameTest implements FabricClientGameTest {
 		double scale = context.computeOnClient(client -> client.getWindow().getGuiScale());
 		context.getInput().setCursorPos(target[0] * scale, target[1] * scale);
 		context.waitTick();
-		context.getInput().pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+		context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
 		context.waitTick();
 		context.runOnClient(client -> {
 			TabbedConfigScreen screen = (TabbedConfigScreen) client.screen;

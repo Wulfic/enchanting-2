@@ -531,6 +531,10 @@ between the client and integrated server per tick.
 tests drive real input) before suspecting the change under test.
 **Seen again** 2026-10-13 (10oC), same place (the world after the config-screen test); the rerun was green. Twice
 in one day now: if it shows a third time, chase it instead of rerunning.
+**Third time** 2026-10-14 (12B, 1.21.11 node): this time while the *grindstone* test's world loaded, right after
+the anvil test and before any test body ran ("Detected interfacing with packets at a lower level" 10 s after spawn
+prep). Three different spots, so not one test's input; looks like a race in the synchronizer during world load. The
+rerun was green and the commit went ahead on that; chasing it is its own TODO item ("Client GameTest flake").
 
 ## 2026-10-13 — A full-height box must clear vanilla's part at full height, not just the top band (10oC)
 **Symptom:** the grindstone's picker box covered the inventory's 9th column, and the client GameTest's "a click in
@@ -626,3 +630,169 @@ Anything reading "the worn elytra" must go through `elytra/WornElytra`, and hook
 its call in `aiStep`, not inside it.
 **Also:** driving a mock `ServerPlayer` through `aiStep()` really moves it (travel runs): a coasting glide from 5
 blocks up lands on tick 38. Start such tests high.
+
+## 2026-10-14 — A Windows-built jar and the CI release jar differ in text resources only (CRLF)
+**Symptom:** comparing a local `enchanting2-1.0.1.jar` with the GitHub release jar: same 414 entries, 6 "changed"
+(`en_us.json`, some tags, one enchantment JSON). Byte compare of the whole jar always differs (timestamps).
+**Cause:** the Windows checkout has CRLF in some resources, the Linux CI build LF. Classes are identical.
+**Fix:** compare jars by entry name + content with text entries normalised CRLF → LF (12A's `jardiff.py` in the
+session scratchpad: binary suffixes `.class .png .jar .ogg .nbt` compared raw). Stonecutter also adds four
+`Stonecutter-*` lines to `META-INF/MANIFEST.MF`; expect that one entry to differ from a pre-Phase-12 jar.
+**Affects:** any "same jar as before" check (Phase 12A, 12F)
+
+## 2026-10-14 — With Stonecutter, a bare task name runs in every version node
+**Symptom:** none yet (one node). `./gradlew build` runs `:1.21.11:build`; with two nodes it builds both, which is
+what CI wants. But `./gradlew runServer` / `runClient` would start every node's game, all servers on port 25566.
+**Fix:** always qualify run tasks (`./gradlew :1.21.11:runServer`); `scripts/dev-server-smoke.sh` takes `NODE=`.
+Build output moved to `versions/<node>/build/` (libs, test results, `run/gameTest`, `run/clientGameTest/screenshots`).
+**Affects:** scripts/, README.md, wiki/Building-from-Source.md, ci.yml, release.yml
+
+## 2026-10-14 — An edited `filesMatching` pattern list left `processResources` UP-TO-DATE (12B2)
+**Symptom:** mutation check for `ModIdentityTest.minecraftRangeAndJavaLevelAreExpandedForThisNode`: dropping
+`'*.mixins.json'` from `filesMatching([...])` still passed. The old, expanded mixin configs were reused.
+**Cause:** Gradle fingerprints declared inputs and the copied files, not the `filesMatching` closure or its patterns.
+`--rerun` on `processResources` showed the test does catch it.
+**Fix:** the pattern list is a named value and an input (`inputs.property 'expandedResources', expandedResources`);
+editing it now re-runs the task. Any future processResources closure that reads values must declare them the same way.
+**Affects:** build.gradle (processResources), any mutation check that edits build logic
+
+## 2026-10-14 — 26.1: a stale anonymous-class number applies without an error (12B)
+**Symptom:** on 26.1.2 only `InfiniteBucketGameTest`'s dispenser case failed (an empty bucket came back). No mixin
+error: `DispenseItemBehavior$4` exists there and its `execute` also calls `consumeWithRemainder`, so the
+`@ModifyArg` applied to the wrong dispenser behaviour.
+**Cause:** javac numbers anonymous classes by source order; 26.1 removed one before the bucket behaviour, so it is `$3`
+(javap: the class calling `DispensibleContainerItem.emptyContents`). Same risk for lambda names (`lambda$onTake$0`
+replaced intermediary `method_24922` in `AnvilMenuMixin`).
+**Fix:** `//?` conditions per band, chosen by javap on the target jar, never by "it applied". `GrindstoneMenu$4` was
+checked and is the same class on both. 12C must re-check every numbered target (`$3`, `$4`, `lambda$...$0`) per line.
+**Affects:** mixin/BucketDispenseBehaviorMixin.java, mixin/AnvilMenuMixin.java, mixin/GrindstoneMenu*Mixin
+
+## 2026-10-14 — 26.1: an API that now returns Optional compiles against an old `== null` guard (12B)
+**Symptom:** `SpawnerGameTest.aStampedSpawnerOfAnEgglessTypePlacesEmpty` failed on 26.1.2: a forged spawner item set
+primed TNT as the mob. Compiled without a warning.
+**Cause:** `SpawnEggItem.byId` went from a nullable `SpawnEggItem` to `Optional<Holder<Item>>` (any item whose default
+`ENTITY_DATA` names the type). `Optional == null` is legal Java and always false, so the forged-item guard passed
+everything.
+**Fix:** 26.1 branch filters for a real `SpawnEggItem` and tests `isEmpty()`. B5 sweeps every `== null` / `!= null`
+on a Minecraft call's result against 26.1's return types.
+**Affects:** spawner/CollectedSpawners.java; any null check on a vanilla return value
+
+## 2026-10-14 — 26.1 moved lava's stable shape into LivingEntity.getLiquidCollisionShape (12B)
+**Symptom:** Lava Walking: three `BootsGameTest` cases sank on 26.1.2 although `canStandOnFluid` still said yes.
+**Cause:** `LiquidBlock.getCollisionShape` now maps the entity to `getLiquidCollisionShape()`, empty for everything but
+striders, then filters with `canStandOnFluid`. A yes there has no shape to keep.
+**Fix:** 26.1 only: `LivingEntityMixin` returns the strider's column (`Block.column(16, 0, 8)`) for a lava walker;
+the existing filter and the flowing-lava hook (`LiquidBlockMixin`) are unchanged.
+**Affects:** mixin/LivingEntityMixin.java, effect/Footing.java
+
+## 2026-10-14 — 26.1's RegistryDataLoader has no per-element method; MODIFY_WITH_LOOKUP replaces the lend (12B)
+**Symptom:** `RegistryDataLoaderMixin` failed to apply on 26.1.2 (`loadElementFromResource` gone; the loader is an
+async pipeline now).
+**Fix:** on 26.1, `ItemWideningHook` takes items from Fabric's `MODIFY_WITH_LOOKUP` lookup; the mixin is listed only
+for band A through a Groovy template block in `enchanting2.mixins.json` (`<% if (band == 'A') { %>`), expanded by
+processResources. `ModIdentityTest.everyListedMixinIsAClass` guards the template.
+**Affects:** enchantment/ItemWideningHook.java, mixin/RegistryDataLoaderMixin.java, enchanting2.mixins.json, build.gradle
+
+## 2026-10-15 — A GameTest that fails in its own setup hides every mod break behind it (12C)
+On 26.2, 80 of 83 failures were the GameTest jar's own `NoSuchFieldError: EntityType.ZOMBIE` while spawning its mob.
+The mod code those tests exist to check never ran, so the run said nothing about it. The static link check
+(`./gradlew :matrix-<version>:linkCheck`) resolves every reference in both jars without running anything and found the
+masked ones (Shield Bash's `knockback`, `Options.hideGui`, YACL's `arrangeElements`, the toast manager). On a new
+Minecraft version: link check first, GameTests after it's clean.
+
+## 2026-10-15 — loom-back-compat outside Stonecutter needs `loomx.unobfuscated=true` (12C)
+`LoomCompatProjectExtension.isUnobfuscated` reads the property `loomx.unobfuscated` / `loomx.obfuscated`, else asks
+Stonecutter's `sc.current` (compare with "26"). A plain subproject (the matrix nodes) has no Stonecutter, so its
+gradle.properties says `loomx.unobfuscated=true` or it gets fabric-loom-remap and tries to remap a 26.x game.
+
+## 2026-10-15 — A plain mod jar on the dev classpath does load its nested jars (12C)
+The matrix puts the shipped `enchanting2-*.jar` (not remapped, 26.x) on `localRuntime`. Fabric Loader lists
+`enchanting2 \-- blue_endless_jankson 1.2.3`: nested jars from `META-INF/jars` load, unlike a Loom-remapped dependency's
+(YACL's parsers, gotchas 2026-10-07). So the matrix proves the jar players get, Jankson included.
+
+## 2026-10-15 — In a Gradle init script, `name` inside `tasks.register { }` is the task's name (12C)
+`new File(dir, "cp-${name}.txt")` inside the register closure resolved to the task name, so three projects' dumps
+overwrote one file. Use `project.name` (captured outside any execution-time closure for the configuration cache).
+
+## 2026-10-15 — 12A's ci.yml never parsed: a scripted edit turned `printf '%s\n'` into a real line break
+`port/26x` was first pushed after 12C, and CI failed in 0 s ("workflow file issue"): the 12A rewrite of the JDK step
+wrote `\n` as a newline inside a `run: |` block, which ends the YAML scalar. Nothing local runs workflows, so it sat
+unseen since 12A. After editing a workflow: `python -c "import yaml; yaml.safe_load(open(f))"` on it, and run its
+shell steps locally with `GITHUB_OUTPUT` pointed at a temp file.
+
+## 2026-10-15 — 26.2 moved screens, toasts and the hidden-HUD flag onto `Minecraft.gui` (12D)
+`minecraft.screen` / `setScreen` → `minecraft.gui.screen()` / `gui.setScreen`; `getToastManager()` →
+`gui.toastManager()`; `options.hideGui` is gone, F1 state is `minecraft.gui.hud.isHidden()`; the spectator GUI is
+`gui.hud.getSpectatorGui()`. `AbstractWidget.extractRenderState` became final: override `extractWidgetRenderState`.
+Entity predicates in data are keyed by sub-predicate ID (`"minecraft:entity_type"`, not `"type"`); a stale file fails
+to parse at load with "Unknown registry key ... entity_sub_predicate_type: minecraft:type" and its loot table is gone.
+
+## 2026-10-15 — The mixin body diff mixes anonymous classes; decide `$N` targets by javap (12D)
+The scratch `mixindiff.py` collects every same-named method in the outer source file, so
+`DispenseItemBehavior$3.execute` diffed against ~20 other `execute`s (63 lines, all noise). The question for a `$N`
+target is only "which `$N` calls the method we wrap": `javap -c -p 'DispenseItemBehavior$N'` per version and grep for
+it (26.2: still `$3`; `AnvilMenu.lambda$onTake$0` still calls `AnvilBlock.damage`).
+
+## 2026-10-15 — An XP orb can stand for several: sum `value × count`, never `getValue()` alone (12D)
+`SpawnerGameTest.withoutSilkTouch...GivesXp` failed once on 26.1.2 (8 XP, expected 15–43) and passed on every other
+run. `ExperienceOrb.awardWithDirection` → `tryMergeToExisting` folds an equal-value orb into one nearby at random
+(`id == random(40)`) by `count++`, and `count` is private. Count XP with `ExperienceOrbAccessor.e2test$getCount()`, as
+`EffectEnchantmentsGameTest` already did. A check of "no orbs" / "some orbs" (GrindstoneGameTest) is merge-safe.
+
+## 2026-10-15 — 26.3 loot data: a stale `conditions` / `functions` list parses as nothing (12E)
+26.3's loot codecs read one optional `"condition"` and one optional `"modifier"` per entry, pool, table and function,
+and a condition or function is dispatched on `"type"` (was `"condition"` / `"function"`). Unknown keys are ignored, so a
+1.21.11-format `"conditions": [...]` loads with **no condition** (every alternative in `heads.json` matched: a piglin
+head for every kill) and `"functions": [...]` with **no function** (no player head profile, unenchanted e2test books).
+Only the enchantment files failed loudly ("No key type in MapLike"), because their `requirements` field is required.
+Damage-source tag predicates also take a tag reference there (`"#enchanting2:cushioned"`). Fix: processResources
+upgrades data on 26.3+ nodes (decisions.md "12E: data upgraded per node"); `ModIdentityTest.lootConditionsAreInThisNodesFormat`.
+**Check on any new line:** read one vanilla loot table with conditions and functions from that version's jar.
+
+## 2026-10-15 — 26.3 moved the hurt cooldown to `LivingEntity.damageCooldownTime` (12E)
+`Entity.invulnerableTime` went private with a setter, so `setInvulnerableTime(0)` compiled as the obvious port. Wrong:
+26.3's `hurtServer` checks `damageCooldownTime` (public, on LivingEntity); `invulnerableTime` is now full temporary
+invulnerability (`isInvulnerable()`). Quick Strike's second hit and three GameTests reset the cooldown, so the
+replacement is `.invulnerableTime = 0;` → `.damageCooldownTime = 0;`. Found by reading the mixin body diff of
+`hurtServer`, not by the compiler.
+
+## 2026-10-15 — 26.3 swapped `setBlock(pos, state, 3)` for `setBlockAndUpdate` in injected methods (12E)
+`FallingBlockEntity.tick`, `Enderman$EndermanLeaveBlockGoal.tick` and `LavaFluid.spreadTo` call `setBlockAndUpdate`
+now. `setBlock` still exists, so the link check passed and the server crashed at load ("Scanned 0 target(s)") on the
+first mixin. The `@At` target and handler (no `flags`) are conditioned per mixin. The link check proves a target
+*exists*, not that the injected method still *calls* it: the body diff (scratch `mixindiff.py`) or a GameTest run does.
+
+## 2026-10-15 — 26.3 renumbered mouse buttons; GLFW is gone (12E)
+`org.lwjgl.glfw` isn't on 26.3's classpath and `InputConstants.MOUSE_BUTTON_LEFT` is **1** there (0 before;
+`KEY_LCONTROL` 224, was 341). A hard-coded GLFW constant would make every left click miss. `InputConstants` has both
+names on all four lines, so the windows and client GameTests use it everywhere.
+
+## 2026-10-15 — 26.3's renderer moved `RenderPipeline`; `@At` descriptor strings keep the old name (12E)
+`com.mojang.blaze3d.pipeline.RenderPipeline` → `com.mojang.renderpearl.api.pipeline.RenderPipeline`. The import
+replacement fixed the compile; five `blit`/`blitSprite` descriptors inside window mixins' `@At` strings still named the
+old class (javac can't see strings). `:matrix-26.3:linkCheck` caught them; a second replacement covers descriptors.
+
+## 2026-10-19 — A client GameTest screenshot can outlast `TooltipScroll.STALE_NANOS` (12E)
+**Symptom:** 26.3 only: `TooltipClientGameTest` "one notch down scrolled it: 0"; every other node green.
+**Cause:** `takeScreenshot` sat between the hover and the first wheel notch and took 208 ms on 26.3 (measured with a
+timing print), over the 200 ms after which an undrawn tall tooltip starts over. Same family as 2026-10-13: client
+GameTests only draw on a tick. Not a product bug (real play draws every frame); the hooks were fine (the tall-top
+screenshot showed the tooltip at its top, which vanilla 26.3 never does).
+**Dead end avoided:** suspecting 26.3's new input layer (`onScroll` handle check, renumbered buttons): the anvil and
+table scroll tests passed on 26.3, so the wheel reached screens.
+**Fix:** `waitTick` after each screenshot before the next wheel notch. The "back up" check now asserts exactly one
+step (`bottom - STEP`): a stale reset to 0 used to satisfy "less than bottom".
+**Rule:** in a client GameTest, any time-based client state needs a tick after anything slow (screenshots included).
+**Affects:** src/gametest/java/com/wulfnet/enchanting2/gametest/TooltipClientGameTest.java
+
+## 2026-10-19 — A guard in the root script can be unreachable: subprojects evaluate first (12F)
+**Symptom:** the fail-closed check on `matrix_jar_node` in `stonecutter.gradle`'s `verifyAll` never fired; a bad value
+failed with "Project with path ':9.9' could not be found" instead (mutation test, three bad values).
+**Cause:** `matrix.gradle` dereferences the property while `:matrix-<v>` is evaluated, which happens before the root's
+lazily registered task is configured. The root guard was dead code.
+**Fix:** one guard, in `matrix.gradle` at the top, with the "what to fix" message; the root only classifies. Mutation:
+blank, `9.9`, `matrix-26.2` each refused with that message.
+**Also:** a new JUnit test that reads repo files must add them as `test` inputs (gotchas 2026-10-14 again):
+`MatrixLayoutTest`'s mutation run was UP-TO-DATE in 2 s and "passed" until `matrix/*/gradle.properties` +
+`settings.gradle` were declared (a `fileTree` limited to the properties files, not the matrix build dirs).
+**Affects:** matrix/matrix.gradle, stonecutter.gradle, build.gradle (test inputs)
