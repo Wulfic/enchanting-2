@@ -1,0 +1,63 @@
+# ---------------------------------------------------------------------------
+# Every JDK the build asks for, read from the properties files rather than pinned here: each version node's
+# java_version (versions/<node>/gradle.properties) and matrix node's (matrix/<version>/gradle.properties) is a
+# toolchain, and the root's gradle_java_version is what Gradle itself must run on (Loom needs the newer one). The last
+# version setup-java lists becomes JAVA_HOME, so Gradle runs on gradle_java_version.
+#
+# Output from_env: pass it as -Porg.gradle.java.installations.fromEnv=... so the toolchains use these JDKs instead
+# of foojay downloading others. Used by both jobs in ci.yml; release.yml reads the same files in its meta step.
+# ---------------------------------------------------------------------------
+name: Set up JDKs
+description: Installs every JDK the version and matrix nodes and Gradle need.
+
+outputs:
+  from_env:
+    description: JAVA_HOME_<n>_X64 names for org.gradle.java.installations.fromEnv
+    value: ${{ steps.jdk.outputs.from_env }}
+
+runs:
+  using: composite
+  steps:
+    - name: Read the JDK levels
+      id: jdk
+      shell: bash
+      run: |
+        set -euo pipefail
+        prop() { grep -E "^$2=" "$1" | head -n1 | cut -d= -f2- | tr -d '[:space:]'; }
+        major() {
+          case "$2" in
+            ''|*[!0-9]*) echo "::error::$1 has '$2', not a plain major version (e.g. 21)." >&2; return 1 ;;
+          esac
+        }
+        gjv=$(prop gradle.properties gradle_java_version); major "gradle.properties gradle_java_version" "$gjv"
+        shopt -s nullglob
+        nodes=(versions/*/gradle.properties)
+        if [ ${#nodes[@]} -eq 0 ]; then
+          echo "::error::No versions/<node>/gradle.properties found; settings.gradle declares the nodes."
+          exit 1
+        fi
+        # Matrix nodes run their own Minecraft on their own java_version (matrix/<version>/gradle.properties).
+        nodes+=(matrix/*/gradle.properties)
+        levels=""
+        for f in "${nodes[@]}"; do
+          v=$(prop "$f" java_version); major "$f java_version" "$v"
+          levels="$levels $v"
+        done
+        # Unique, without Gradle's own JDK (setup-java lists it last so it becomes JAVA_HOME).
+        mods=$(printf '%s\n' $levels | sort -un | grep -vx "$gjv" || true)
+        {
+          echo "mod_jdks<<EOF"
+          for v in $mods; do echo "$v"; done
+          echo "EOF"
+          echo "gradle_java_version=$gjv"
+          # Every JDK a toolchain may ask for, as the env vars setup-java sets (JAVA_HOME_<n>_X64).
+          echo "from_env=$(for v in $mods $gjv; do printf 'JAVA_HOME_%s_X64,' "$v"; done | sed 's/,$//')"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Set up JDKs
+      uses: actions/setup-java@v6
+      with:
+        distribution: temurin
+        java-version: |
+          ${{ steps.jdk.outputs.mod_jdks }}
+          ${{ steps.jdk.outputs.gradle_java_version }}

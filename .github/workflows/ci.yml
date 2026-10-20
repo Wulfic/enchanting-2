@@ -9,7 +9,9 @@
 #   secrets  gitleaks over the WHOLE history, not just the pushed commits. The repo went public after a history
 #            scrub (TODO 11e); a secret committed again would be public on push, so this job fails the run loudly.
 #
-# Client GameTests (./gradlew runClientGameTest) are not run here: they open a game window. Run them locally.
+#   client   ./gradlew :<node>:runClientGameTest on every version node, one job per node, under Xvfb with Mesa's
+#            software renderer. The node list is versions/*/ (the client-nodes job), so a new node is covered
+#            without editing this file. Screenshots and the game log are kept for 14 days, pass or fail.
 # Releases are a separate workflow (release.yml), started by pushing a v* tag.
 # ---------------------------------------------------------------------------
 name: CI
@@ -35,52 +37,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # The JDKs, read from the properties files rather than pinned here: each version node's java_version
-      # (versions/<node>/gradle.properties) is what that node is compiled for (a toolchain), and the root's
-      # gradle_java_version is what Gradle itself must run on (Loom needs the newer one).
-      - name: Read the JDK levels
-        id: jdk
-        run: |
-          set -euo pipefail
-          prop() { grep -E "^$2=" "$1" | head -n1 | cut -d= -f2- | tr -d '[:space:]'; }
-          major() {
-            case "$2" in
-              ''|*[!0-9]*) echo "::error::$1 has '$2', not a plain major version (e.g. 21)." >&2; return 1 ;;
-            esac
-          }
-          gjv=$(prop gradle.properties gradle_java_version); major "gradle.properties gradle_java_version" "$gjv"
-          shopt -s nullglob
-          nodes=(versions/*/gradle.properties)
-          if [ ${#nodes[@]} -eq 0 ]; then
-            echo "::error::No versions/<node>/gradle.properties found; settings.gradle declares the nodes."
-            exit 1
-          fi
-          # Matrix nodes run their own Minecraft on their own java_version (matrix/<version>/gradle.properties).
-          nodes+=(matrix/*/gradle.properties)
-          levels=""
-          for f in "${nodes[@]}"; do
-            v=$(prop "$f" java_version); major "$f java_version" "$v"
-            levels="$levels $v"
-          done
-          # Unique, without Gradle's own JDK (setup-java lists it last so it becomes JAVA_HOME).
-          mods=$(printf '%s\n' $levels | sort -un | grep -vx "$gjv" || true)
-          {
-            echo "mod_jdks<<EOF"
-            for v in $mods; do echo "$v"; done
-            echo "EOF"
-            echo "gradle_java_version=$gjv"
-            # Every JDK a toolchain may ask for, as the env vars setup-java sets (JAVA_HOME_<n>_X64).
-            echo "from_env=$(for v in $mods $gjv; do printf 'JAVA_HOME_%s_X64,' "$v"; done | sed 's/,$//')"
-          } >> "$GITHUB_OUTPUT"
-
-      # The last version listed becomes JAVA_HOME, so Gradle runs on gradle_java_version.
+      # Every node's JDK and Gradle's own, read from the properties files (.github/actions/setup-jdks).
       - name: Set up JDKs
-        uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: |
-            ${{ steps.jdk.outputs.mod_jdks }}
-            ${{ steps.jdk.outputs.gradle_java_version }}
+        id: jdk
+        uses: ./.github/actions/setup-jdks
 
       # Also validates the Gradle wrapper jar's checksum against Gradle's published list.
       - name: Set up Gradle
@@ -123,6 +83,73 @@ jobs:
             versions/*/build/gametest-report.xml
             matrix/*/build/gametest-report.xml
             matrix/*/build/linkcheck/report.txt
+          retention-days: 14
+          if-no-files-found: ignore
+
+  client-nodes:
+    name: List version nodes
+    runs-on: ubuntu-latest
+    outputs:
+      nodes: ${{ steps.list.outputs.nodes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: List versions/*/
+        id: list
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          props=(versions/*/gradle.properties)
+          if [ ${#props[@]} -eq 0 ]; then
+            echo "::error::No versions/<node>/gradle.properties found; settings.gradle declares the nodes."
+            exit 1
+          fi
+          nodes=$(for f in "${props[@]}"; do basename "$(dirname "$f")"; done | jq -R . | jq -cs .)
+          echo "Version nodes: $nodes"
+          echo "nodes=$nodes" >> "$GITHUB_OUTPUT"
+
+  client:
+    name: Client GameTests (${{ matrix.node }})
+    needs: client-nodes
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ${{ fromJSON(needs.client-nodes.outputs.nodes) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDKs
+        id: jdk
+        uses: ./.github/actions/setup-jdks
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      # The game needs a display and OpenGL: Xvfb for the first, Mesa's llvmpipe for the second (and lavapipe, in
+      # case a newer client asks for Vulkan).
+      - name: Install Xvfb and Mesa
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends xvfb libgl1-mesa-dri libegl-mesa0 mesa-vulkan-drivers
+
+      - name: Client GameTests
+        run: >-
+          xvfb-run -a -s "-screen 0 1920x1080x24"
+          ./gradlew :${{ matrix.node }}:runClientGameTest --no-daemon --stacktrace
+          -Porg.gradle.java.installations.fromEnv=${{ steps.jdk.outputs.from_env }}
+
+      - name: Upload screenshots and log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: client-gametests-${{ matrix.node }}-${{ github.sha }}
+          path: |
+            versions/${{ matrix.node }}/build/run/clientGameTest/screenshots/
+            versions/${{ matrix.node }}/build/run/clientGameTest/logs/latest.log
+            versions/${{ matrix.node }}/build/run/clientGameTest/crash-reports/
           retention-days: 14
           if-no-files-found: ignore
 
