@@ -1594,3 +1594,20 @@ a negative such as "the carried diamonds were not thrown"); raising tick counts 
 The tooltip scroll test also stopped racing the wall clock: `TallTooltips.useClock` lets it hold time still
 (a test hook, like `offset()`; play always uses `REAL_CLOCK`).
 **Affects:** build.gradle, src/gametest/.../Delivery.java, SyncMarkerPayload.java, NetworkSynchronizerClientGameTest.java, src/gametest/resources/fabric.mod.json, the nine *ClientGameTest.java, src/client/.../TallTooltips.java
+
+## 2026-10-20 — Phase 13: Quilt via the Fabric jar; NeoForge + Forge behind a platform seam; own config screen
+**Context:** owner wants Quilt, NeoForge and Forge. Answers: new loaders on 26.x only, separate jars for
+NeoForge/Forge, server GameTests on every loader, a non-YACL config menu on Forge/NeoForge.
+**Choice:** Quilt runs the unchanged Fabric jar and is claimed only where a Quilt runtime node passes the server
+GameTests. NeoForge/Forge are a second Stonecutter axis (`26.x-neoforge`, `26.x-forge`) over one source tree; loader
+APIs sit only in `platform/<loader>/`, behind interfaces in `platform/`. Config screen for NeoForge + Forge is ours, on
+vanilla widgets, drawn from the existing `ConfigView` / drafts.
+**Why:** Quilted Fabric API froze at 1.21 (2024-12), so a Quilt jar would have nothing to build on. Only 28 main/client
+files touch Fabric API, which is small enough for our own seam and needs no runtime dependency. Checked 2026-10-20:
+no config library has maintained Forge + NeoForge builds for 26.1–26.3 without replacing our json5 model.
+**Rejected:** Architectury API (a runtime dependency for ~28 call sites); Cloth Config (no Forge; unofficial port
+stops at 26.2); Forge Config API Port (TOML specs, breaks existing configs and docs/CONFIG.md); simple-config-lib /
+configlib-txf (~3k downloads, own config models); NeoForge/Forge on 1.21.11 (owner: 26.x only).
+**Open (13A spike decides):** build plugin for the new loaders (ModDevGradle + ForgeGradle next to loom-back-compat,
+vs Architectury Loom); whether Forge 26.x ships MixinExtras (39 of our files need it); Quilt's 26.x result.
+**Affects:** TODO.md Phase 13, settings.gradle, build.gradle, src/**/platform/

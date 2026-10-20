@@ -4,7 +4,7 @@
 > cheap to read at the start of every session. History belongs in `decisions.md` and
 > `gotchas.md`; this file only answers "where am I right now?".
 
-**Last updated:** 2026-10-19
+**Last updated:** 2026-10-20
 **Branch:** `main` (commit straight to main and push). Phase 12 landed as the squash commit 9246bc4 (PR #1); `port/26x` is merged and kept until the owner deletes it. CI on every push (`ci.yml`: verifyAll + gitleaks + client GameTests headless per node, 2026-10-19); a release is a pushed `v<mod_version>` tag (`release.yml`, one jar per band); `wiki/` syncs to the GitHub wiki (`wiki.yml`). See decisions.md 11e.
 
 ## Where we are
@@ -126,6 +126,8 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
   in processResources (decisions.md "12E").
 
 ## What's next
+00. **Phase 13 planned 2026-10-20** (TODO.md, decisions.md "Phase 13"): Quilt (Fabric jar, tested), NeoForge + Forge
+    on 26.x behind `platform/`, own config screen there. Next: 13A spikes on branch `port/loaders`; nothing coded yet.
 0. **v1.1.0 released 2026-10-19** (https://github.com/Wulfic/enchanting-2/releases/tag/v1.1.0): four jars,
    `enchanting2-1.1.0+{1.21.11,26.1-26.1.2,26.2,26.3}.jar`, from main 9246bc4. Phase 12 (12A–12G) done.
 1. **12H is process, not code** (TODO.md): a new Minecraft version gets `matrix/<v>/` on the nearest band's jar plus

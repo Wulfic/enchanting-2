@@ -39,6 +39,90 @@ answer, a blank field is not. Destructive steps are marked as such and gated thr
 
 ## Active
 
+## Phase 13 — Quilt, NeoForge and Forge (Tier 2)
+
+Owner 2026-10-20: bring the mod to Quilt, NeoForge and Forge. Answers: NeoForge/Forge on **26.x only** (no 1.21.11);
+Fabric/Quilt share a jar, NeoForge and Forge get their own; JUnit + **server GameTests on every loader**; a config
+menu on Forge/NeoForge from something other than YACL. Decision record: decisions.md 2026-10-20 "Phase 13".
+
+**Goal:** each release ships the four Fabric jars (also claimed for Quilt where proven) plus one NeoForge and one
+Forge jar per 26.x band (B1 26.1.2, B2 26.2, B3 26.3). Each new jar passes JUnit and all server GameTests on its own
+loader, and every feature exists on every loader, as in Phase 12.
+
+**Facts checked 2026-10-20 (Maven metadata / Modrinth API):**
+- NeoForge: 26.1.2.122, 26.2.0.93, 26.3.0.95 stable (26.1.0 / 26.1.1 builds are still beta). Forge: 26.1.2-64.1.5,
+  26.2-65.1.5, 26.3-66.0.13. Each 26.1 patch has its own Forge major (62/63/64), so a B1 jar starts out claiming 26.1.2
+  only; the matrix can widen it later, as in 12H.
+- Quilt: Loader 0.31.0-beta.4 (2026-09-04). Quilted Fabric API stopped at 1.21 (last update 2024-12), and nothing
+  official says whether Quilt runs on 26.x. Quilt users run plain Fabric API, so the claim has to be tested.
+- Config screens: YACL has NeoForge builds for 26.x and none for Forge. Cloth Config has NeoForge only; its Forge build
+  is an unofficial port with no 26.3. Forge Config API Port would move us to TOML specs. SuperMartijn / config-api
+  have no Forge 26.3 build. simple-config-lib and configlib-txf have about 3k downloads each and their own config
+  models. → **Our own screen on vanilla widgets** for NeoForge + Forge. `ConfigView`, the drafts and `TabRows` are
+  already ours; only the drawing goes through YACL.
+- Fabric API surface: 28 main/client files (networking 24 imports, attachments 9, lifecycle 4, item-api 4, loot 2, HUD
+  2, tooltip 1, entity copy 1, Mod Menu 1). Tests: 39 server GameTests use only `@GameTest`; the 10 client GameTests
+  use `FabricClientGameTest` (Fabric-only, nothing equivalent on the new loaders). No access widener. MixinExtras in 39
+  files. 49 vanilla classes mixed into, several of which NeoForge/Forge patch (`AnvilMenu`, `EnchantmentHelper`,
+  `EnchantmentMenu`, `GrindstoneMenu`, `LivingEntity`, `Player`, `Block`), so injection points can move or double up.
+
+**Approach:**
+- One source tree. Loaders become a second Stonecutter axis: nodes such as `26.3-neoforge` and `26.3-forge` next to
+  the existing Fabric nodes (which keep their names, so CI, matrix and release paths stay put).
+- A **platform seam**: `platform/` holds interfaces (`Networking`, `Attachments`, `Lifecycle`, `LootHooks`,
+  `ComponentHooks`, `EnchantmentHooks`, `ClientHooks`, `ConfigScreenEntry`, `GameTestRegistrar`), with one
+  implementation package per loader (`platform/fabric`, `platform/neoforge`, `platform/forge`). Each node compiles only
+  its own package. Game logic never imports a loader API. This beats Architectury API because it adds no runtime
+  dependency, and the surface we need is small (28 files).
+- Server GameTests: test classes keep a loader-neutral `@GameTest` (ours), and each loader's registrar hands them to
+  Fabric's API, NeoForge's registration event or Forge's. Client GameTests stay on the Fabric nodes; NeoForge/Forge get
+  a written `runClient` smoke list.
+- Quilt: the Fabric jar, unchanged. A `quilt-<v>` runtime node (like `matrix/`) runs its server GameTests on Quilt
+  Loader + Fabric API. Green = claimed in README/mod pages. Red = documented as unsupported, with no workaround code.
+
+**Not doing:** NeoForge/Forge on 1.21.11 (so `AnvilMenuMixin`'s intermediary `method_24922` stays Fabric-only); a
+separate Quilt jar or QSL APIs; client GameTests on NeoForge/Forge; replacing YACL on Fabric/Quilt; any config file
+format change (json5 stays, so `docs/CONFIG.md` holds for every loader); Architectury API; 26.4 (waits for stable).
+
+**Blast radius:** 13B moves the 28 Fabric-importing files' loader calls behind `platform/`: these are edits, not
+deletions, and they come back from git (`a071f7f` is the base). Everything else is additive (new nodes, packages,
+CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmation.
+
+**Work on branch `port/loaders`** (PR + squash, as Phase 12). Each stage = one commit, `verifyAll` green before it.
+
+- [ ] 13A — **Spikes, throwaway, nothing merged.** These decide whether the rest holds.
+  - [ ] A1. Quilt: run the 1.21.11 and 26.x Fabric jars' server GameTests on Quilt Loader 0.31.0-beta.4 + Fabric API
+        (Quilt installer CLI, server, scratchpad). Record pass/fail per band.
+  - [ ] A2. NeoForge 26.3: an empty node in this build (Stonecutter loader axis + ModDevGradle next to
+        loom-back-compat, or Architectury Loom for both) that loads `enchanting2.mixins.json` with one MixinExtras
+        `@WrapOperation`. Choose the build plugin, `/research-docs` first.
+  - [ ] A3. Forge 26.3: the same with ForgeGradle. Check that Forge 66 applies mixins **and** ships MixinExtras.
+  - **Gate:** if Forge can't apply our mixins, stop and report to the owner (Forge would wait, NeoForge continues).
+        The plugin choice goes into decisions.md.
+- [ ] 13B — **Platform seam, Fabric only, no behaviour change.** `platform/` interfaces + `platform/fabric`; the 28
+      files call the seam; `@GameTest` is ours, registered through `GameTestRegistrar`. Proof: `verifyAll` and every
+      node's `runClientGameTest` are as green as on `a071f7f`, with the same test counts (432 JUnit / 339 GameTests).
+      Add a JUnit test that fails if any class outside `platform/<loader>/` imports `net.fabricmc` / `net.neoforged` /
+      `net.minecraftforge`.
+- [ ] 13C — **NeoForge nodes** 26.1.2, 26.2, 26.3: `neoforge.mods.toml`, `platform/neoforge` (payload registration,
+      data attachments with `copyOnDeath`, `ModifyDefaultComponentsEvent`, loot events, `PlayerEvent.Clone`,
+      `RegisterGuiLayersEvent`, `ItemTooltipEvent`). The enchantment `MODIFY` replacement is a registry-load hook like
+      10gA's `RegistryDataLoaderMixin`. Fix mixins that miss on NeoForge's patched targets (mixin `require` errors =
+      the list), each with a GameTest already covering it. Proof: JUnit + 339 server GameTests on each node.
+- [ ] 13D — **Forge nodes** 26.1.2, 26.2, 26.3: `mods.toml`, `platform/forge` (capabilities for attachments, its
+      payload channel, Forge events). Same proof.
+- [ ] 13E — **Config screen for NeoForge + Forge** on vanilla widgets (`client/config/`, drawn from the existing
+      `ConfigView` / drafts / `TabRows`; every option the YACL screen has, per DESIGN §1). Entry: NeoForge
+      `IConfigScreenFactory`, Forge `ConfigScreenFactory`. JUnit on the model (an option missing from the screen fails),
+      plus the owner's `runClient` check on both loaders.
+- [ ] 13F — **Build, CI, release plumbing:** `verifyAll` covers every node + Quilt nodes; `ci.yml` jobs per loader;
+      jar names carry the loader (proposed `enchanting2-1.2.0+26.3-neoforge.jar`; Fabric names unchanged); `release-collect.sh`,
+      `ModIdentityTest`, `ReleaseDocsTest`; README / wiki Installation tables per loader; CHANGELOG [Unreleased].
+- [ ] 13G — **Release 1.2.0.** Owner confirms first (outward-facing). Tag, ten jars, mod pages list the loaders.
+
+**Rollback:** before merge, delete the branch (`git branch -D port/loaders`, after checking it's merged or unwanted).
+After merge, `git revert <squash commit>`. A bad release is fixed by a patch release, never by deleting tags.
+
 ## Session 2026-10-19 — cleanup, client GameTest flake, client GameTests in CI (Tier 1 → 2 for CI)
 
 Owner answers 2026-10-19: 26.4 waits for stable (latest release 26.3, snapshot 26.4-snapshot-4); chase the flake now;
