@@ -128,8 +128,9 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      # The game needs a display and OpenGL: Xvfb for the first, Mesa's llvmpipe for the second (and lavapipe, in
-      # case a newer client asks for Vulkan).
+      # The game needs a display and a GPU: Xvfb, and Mesa's software drivers. 1.21.11-26.2 render with OpenGL
+      # (llvmpipe); 26.3 finds no GLX visual under Xvfb and falls back to Vulkan (lavapipe, mesa-vulkan-drivers;
+      # without it the 26.3 client can't start). First run 2026-10-19: all four green.
       - name: Install Xvfb and Mesa
         run: |
           sudo apt-get update -q

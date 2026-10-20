@@ -11,7 +11,8 @@ stonecutter.active '1.21.11'
 //   - every matrix node's `linkCheck` (seconds each),
 //   - the server GameTests of every matrix version a jar claims without being built for ("claimed"). A matrix node
 //     whose minecraft_version is its matrix_jar_node's is that jar's "control": it repeats the node's own build.
-// Client GameTests stay local (they open a game window): ./gradlew :<node>:runClientGameTest, one node at a time.
+// Not client GameTests (they open a game window): ./gradlew :<node>:runClientGameTest, one node at a time; CI runs
+// them headless per node (ci.yml `client`).
 // `./gradlew verifyReport` prints one line per node from the result files; scripts/verify-all.sh runs both.
 def versionNodes = { subprojects.findAll { it.projectDir.parentFile == file('versions') }.sort { it.name } }
 def matrixNodes = { subprojects.findAll { it.projectDir.parentFile == file('matrix') }.sort { it.name } }

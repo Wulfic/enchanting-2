@@ -5,7 +5,7 @@
 > `gotchas.md`; this file only answers "where am I right now?".
 
 **Last updated:** 2026-10-19
-**Branch:** `main` (commit straight to main and push). Phase 12 landed as the squash commit 9246bc4 (PR #1); `port/26x` is merged and kept until the owner deletes it. CI on every push (`ci.yml`: verifyAll + gitleaks); a release is a pushed `v<mod_version>` tag (`release.yml`, one jar per band); `wiki/` syncs to the GitHub wiki (`wiki.yml`). See decisions.md 11e.
+**Branch:** `main` (commit straight to main and push). Phase 12 landed as the squash commit 9246bc4 (PR #1); `port/26x` is merged and kept until the owner deletes it. CI on every push (`ci.yml`: verifyAll + gitleaks + client GameTests headless per node, 2026-10-19); a release is a pushed `v<mod_version>` tag (`release.yml`, one jar per band); `wiki/` syncs to the GitHub wiki (`wiki.yml`). See decisions.md 11e.
 
 ## Where we are
 Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA, CB, CC), 10cD (DA, DB), 10cE (EA, EB, EC), 10cF (FA, FB) and 10cG (GA, GB, GC) done: Phase 10c complete (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
@@ -119,7 +119,7 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
   link check (`matrix/linkcheck/LinkCheck.java`). Verdict: one band per 26.x line (decisions.md 2026-10-15).
   B1 = 26.1–26.1.2 proven (range `>=26.1 <26.2-`). CI's `build` configures the matrix projects (empty jars) but
   doesn't run their GameTests yet (12F).
-- Tests per node: 427 JUnit + 339 GameTests (`./gradlew build`, all four nodes, also in CI) + 9 client GameTests
+- Tests per node: 432 JUnit + 339 GameTests (`./gradlew build`, all four nodes, also in CI) + 10 client GameTests
   (`./gradlew :<node>:runClientGameTest`, one node at a time).
 - 12E (2026-10-15/19): node `versions/26.3/` (B3, range `>=26.3 <26.4-`): renderer/loot/input renames as
   replacements, moved targets (`Enderman`, hoe `BlockTransformer`, fuel component mixins), loot JSON upgraded per node
@@ -131,8 +131,9 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
 1. **12H is process, not code** (TODO.md): a new Minecraft version gets `matrix/<v>/` on the nearest band's jar plus
    a settings.gradle entry; `linkCheck` first, then GameTests (`verifyAll` runs them). Green widens that band's name
    by itself (build.gradle derives it); update README + wiki Installation tables (ReleaseDocsTest). Red = a new node.
-   Open follow-ups: client GameTests headless in CI (owner: later); the client GameTest network-synchronizer flake.
-   Old scratch worktree of dbf6006 at the 147c41c6 session scratchpad `base/` (`git worktree list`; no longer needed).
+   2026-10-19 session: the client GameTest flake is fixed (e016372; Fabric 4.3.5's synchronizer, off on 1.21.11;
+   cross-side waits go through `Delivery`). `port/26x` deleted (restore from `refs/pull/1/head`); the stale worktree
+   is unregistered, its leftover folder (147c41c6 scratchpad `base/`, 530 MB) is the owner's to delete.
 2. Owner checks and housekeeping: TODO.md "Owner checks (open)" and "Owner housekeeping" (the full list moved there
    from this file on 2026-10-14; TODO.md was trimmed to open work, old notes at `git show fd3504c:TODO.md`).
    A new enchantment still adds a `LevelCeilings` row, a `.desc` line, tags, a price row if single-level, docs rows.
@@ -157,12 +158,13 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
   `.mcp.example.json` is the tracked template. CI's gitleaks job fails on any committed secret.
 - `.claude/skills/` and `.github/skills/` are hand-synced copies.
 - A new GameTest class must be listed in `src/gametest/resources/fabric.mod.json` or it silently never runs.
-- The client GameTest flake "Network synchronizer in invalid state" hit twice on 2026-10-13 (gotchas.md): rerun once;
-  a third time means chase it.
+- Client GameTests: read the other side only after `Delivery.toServer` / `Delivery.toClient`, never after a fixed
+  `waitTicks` (gotchas.md 2026-10-19); time-based client state gets a test clock, never the wall clock.
 - **Done = `scripts/verify-all.sh` green** (`./gradlew verifyAll`, 12F: every node's build, every matrix `linkCheck`,
   GameTests on claimed matrix versions 26.1/26.1.1; CI runs the same task). `./gradlew build` runs JUnit + server GameTests on every node. Run `./gradlew :<node>:runClientGameTest` too for
   client changes, one node at a time (opens a game window, ~3 min; screenshots in
-  `versions/<node>/build/run/clientGameTest/screenshots/`). A change is done when both nodes are green.
+  `versions/<node>/build/run/clientGameTest/screenshots/`); CI's `client` jobs run them on every node too (Xvfb +
+  Mesa; 26.3 needs the Vulkan driver). A change is done when every node is green.
 - B1's jar claims 26.1 and 26.1.1 too: `verifyAll` (and CI) runs their link checks and GameTests. A matrix node's role
   is derived (control iff `minecraft_version == matrix_jar_node`); a new `matrix/<v>/` also goes in settings.gradle.
 - `src/` is written for 1.21.11 (`vcsVersion`); 26.x code sits in `//? if >=26.1` comments and in build.gradle's

@@ -822,3 +822,13 @@ broadcast goes out, then has the server echo the marker). A fixed `waitTicks` st
 (hover, scrolling, physics).
 **Rule:** a new client GameTest reads server state only after `Delivery.toServer`, client state set by the server
 only after `Delivery.toClient`.
+
+## 2026-10-19 — 26.3's client finds no GLX visual under Xvfb; it renders through Vulkan (lavapipe) instead
+**Symptom:** CI's first headless client run on 26.3 logged "Failed to create backend OpenGL ... Couldn't find
+matching GLX visual" and then "Using graphics backend Vulkan, using drivers: ... llvmpipe Mesa 25.2.8".
+**Cause:** 26.3's renderer ("renderpearl") tries OpenGL, then Vulkan. Under `xvfb-run -s "-screen 0 1920x1080x24"`
+its GL window request matches no visual; 1.21.11-26.2 get llvmpipe GL fine.
+**Fix:** none needed: ci.yml installs `mesa-vulkan-drivers` and the Vulkan fallback passes every test (screenshots
+are real renders). Removing that package would break 26.3 only. "swapchain out of date" errors after window resizes
+are logged and recovered.
+**Affects:** .github/workflows/ci.yml

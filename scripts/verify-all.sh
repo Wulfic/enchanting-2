@@ -8,7 +8,8 @@
 # GameTests of each matrix version a jar claims without being built for. --continue runs every node even after one
 # fails, so the report shows all of them. Exit status = verifyAll's; the report never turns a failure into a pass.
 #
-# Not included: client GameTests (they open a game window). Run ./gradlew :<node>:runClientGameTest, one node at a time.
+# Not included: client GameTests (they open a game window). Run ./gradlew :<node>:runClientGameTest, one node at a time;
+# CI runs them headless on every node (ci.yml `client`).
 set -uo pipefail
 
 cd "$(dirname "$0")/.."

@@ -63,8 +63,8 @@ A new GameTest class must be listed in `src/gametest/resources/fabric.mod.json`,
 
 Every push to `main` and every pull request runs `./gradlew verifyAll` (per-version lines in the run's summary) and a
 [gitleaks](https://github.com/gitleaks/gitleaks) secret scan over the whole history. The built jars are attached to each
-run for 14 days. Client GameTests need a display
-and aren't run in CI.
+run for 14 days. Client GameTests run in CI too, one job per version under a virtual display (Xvfb) with Mesa's
+software renderer; each job keeps its screenshots and game log for 14 days.
 
 ## Making a release
 

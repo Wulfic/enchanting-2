@@ -70,15 +70,18 @@ C2 deletes `port/26x` locally and on origin (tip 97e1949, 15 commits not on main
       load, gotchas.md 12E entry). `TallTooltips.useClock` (client, test hook beside `offset()`); the test freezes it
       for the scroll section.
 - [x] F2c. 1.21.11 client suite green 3 runs in a row (barriers); final code green once on all four nodes.
-- [ ] F3. `scripts/verify-all.sh` green (the gametest mod's new `main` entrypoint loads in server GameTests too);
-      commit `fix:` + push; CI green.
-- [ ] CI1. ci.yml job `client-gametests`: node list derived from `versions/*/` (a `nodes` job → JSON matrix, like
+- [x] F3. `scripts/verify-all.sh` green (the gametest mod's new `main` entrypoint loads in server GameTests too);
+      commit `fix:` + push; CI green. Done: e016372, CI run 39354598552 green.
+- [x] CI1. ci.yml job `client` (+ `client-nodes`): node list derived from `versions/*/` (a `nodes` job → JSON matrix, like
       the JDK step reads properties), `fail-fast: false`; per node its `java_version` + `gradle_java_version`;
       `apt-get install xvfb` + Mesa (plus `mesa-vulkan-drivers` if a 26.x client wants Vulkan; check the local log);
       `xvfb-run -a ./gradlew :<node>:runClientGameTest`; screenshots + logs uploaded `if: always()`.
       Header comment + AGENTS.md "done" line + state.md updated. Dispatch CI; green on all four, or a documented
       blocker per node (a node that can't render headless stays local-only, said so in ci.yml).
       **Blast radius:** none (additive CI job). **Rollback:** `git revert` the commit.
+      Done 2026-10-19 on branch `ci/client-gametests`, dispatch run 39354609061: build, secrets and all four client
+      jobs green on the first try (23 screenshots per node, real renders). 26.3 fell back to Vulkan on lavapipe
+      (no GLX visual under Xvfb). JDK step moved to `.github/actions/setup-jdks` (release.yml keeps its own copy).
 
 ## Phase 12 — Version bands: one jar per band, as many Minecraft versions per jar as hold up (Tier 2)
 
@@ -482,12 +485,10 @@ show `git log main..port/26x` first). Nothing is published until 12F.
 API across its per-version builds; enchantment component or registry changes in `MODIFY` hooks and `LevelCeilings`;
 GameTest API changes in the gametest source set (it must also compile against the floor); 26.4 when it goes stable.
 
-## Client GameTest flake (open, agent)
+## Client GameTest flake
 
-- [ ] Chase "Network synchronizer in invalid state" (gotchas.md 2026-10-13, third time 2026-10-14): three different
-      test worlds, always at world load. Next step: rerun `:1.21.11:runClientGameTest` with
-      `-Dfabric.client.gametest.disableNetworkSynchronizer` *off* but Fabric's debug logging on to catch the packet it
-      complains about; check whether our `ConfigSyncPayload` (sent in the configuration phase) is the low-level packet.
+- [x] "Network synchronizer in invalid state": solved 2026-10-19 (session section above, F1–F2c; gotchas.md
+      2026-10-19). Not our packets: Fabric 4.3.5's own race at world close.
 
 ## Owner checks (open)
 
