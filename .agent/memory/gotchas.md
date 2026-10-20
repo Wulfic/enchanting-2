@@ -832,3 +832,31 @@ its GL window request matches no visual; 1.21.11-26.2 get llvmpipe GL fine.
 are real renders). Removing that package would break 26.3 only. "swapchain out of date" errors after window resizes
 are logged and recovered.
 **Affects:** .github/workflows/ci.yml
+
+## 2026-10-20 — Running our GameTests on a production server (Quilt spike, 13A1)
+**Context:** proving the Fabric jar on Quilt meant running the server GameTests outside Loom.
+**Gotchas:**
+- The `fabric-api` jar players install does **not** contain `fabric-gametest-api-v1`; Loom adds it in dev. Without it
+  `-Dfabric-api.gametest` is silently ignored and a normal dedicated server starts **on port 25565** (the owner's
+  other instance may be there). Add the module (version from the fabric-api POM) and always write
+  `server-port=<other>` into server.properties first.
+- `-Dfabric-api.gametest.report-file=report.xml` (bare name) crashes the server at the end of the run:
+  `SavingXmlTestReporter` calls `createDirectories(path.getParent())` on null. Pass an absolute path.
+- `ConfigWiringGameTest` refuses to run unless the game dir ends in `build/run/gameTest`, so a production harness has
+  to put its server there.
+- 1.21.11 (obfuscated): the GameTest jar must be remapped to intermediary (scratch init script registering a
+  `RemapJarTask` typed from `remapJar`'s class; Loom's classes aren't visible to an init script by name), and even
+  then Fabric's own `@GameTest.rotation()` default fails with `AnnotationFormatError` on Fabric Loader *and* Quilt.
+  Server GameTests run in production only on 26.x.
+- Quilt's meta lists sha256/sha1 for quilt-installer 0.15.1 that don't match the jar; the jar matches Maven's own
+  `.sha1/.sha256/.md5` files and meta's size. Treat meta's hashes as stale, verify against Maven's.
+**Affects:** TODO.md 13A1, 13F (Quilt runtime nodes)
+
+## 2026-10-20 — Forge's Mixin 0.8.7 rejects `compatibilityLevel: JAVA_25`
+**Symptom:** Forge 66 (26.3) dies at launch: "Mixin config ... specifies compatibility level JAVA_25 which is not
+recognised". Fabric (sponge-mixin 0.17.x) and NeoForge 26.3 accept JAVA_25.
+**Fix:** Forge nodes write `JAVA_21` into the mixin configs; it still applies mixin classes compiled for Java 25
+(spike: `forge+SPIKE-MIXINEXTRAS`). Our configs expand `JAVA_${java_version}`, so Forge needs its own key.
+Forge in dev also needs `--mixin.config=<file>` per config as a run arg; the jar needs a `MixinConfigs` manifest
+attribute (Forge's `mods.toml` has no mixins list, unlike `neoforge.mods.toml`'s `[[mixins]]`).
+**Affects:** build.forge.gradle, src/main/resources/enchanting2.mixins.json, src/client/resources/enchanting2.client.mixins.json

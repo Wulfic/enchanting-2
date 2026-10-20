@@ -91,14 +91,24 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
 **Work on branch `port/loaders`** (PR + squash, as Phase 12). Each stage = one commit, `verifyAll` green before it.
 
 - [ ] 13A — **Spikes, throwaway, nothing merged.** These decide whether the rest holds.
-  - [ ] A1. Quilt: run the 1.21.11 and 26.x Fabric jars' server GameTests on Quilt Loader 0.31.0-beta.4 + Fabric API
+  - [x] A1. Quilt: run the 1.21.11 and 26.x Fabric jars' server GameTests on Quilt Loader 0.31.0-beta.4 + Fabric API
         (Quilt installer CLI, server, scratchpad). Record pass/fail per band.
-  - [ ] A2. NeoForge 26.3: an empty node in this build (Stonecutter loader axis + ModDevGradle next to
+        **2026-10-20 result:** 26.1.2 / 26.2 / 26.3: **339/339 server GameTests pass** on Quilt with the unchanged
+        1.1.0 Fabric jars (+ Fabric API, YACL, `fabric-gametest-api-v1`). 1.21.11: boots to "Done", config loads, no
+        errors; GameTests can't run in *any* production 1.21.11 game. Fabric Loader 0.19.5 fails identically
+        (`AnnotationFormatError` on `@GameTest.rotation()`'s intermediary enum default), so this is a harness limit,
+        not a Quilt one. → Quilt is claimed for B1–B3; 1.21.11 Quilt is "boots, not GameTest-proven" unless 13F finds
+        a way. Harness notes in gotchas.md 2026-10-20.
+  - [x] A2. NeoForge 26.3: an empty node in this build (Stonecutter loader axis + ModDevGradle next to
         loom-back-compat, or Architectury Loom for both) that loads `enchanting2.mixins.json` with one MixinExtras
         `@WrapOperation`. Choose the build plugin, `/research-docs` first.
-  - [ ] A3. Forge 26.3: the same with ForgeGradle. Check that Forge 66 applies mixins **and** ships MixinExtras.
-  - **Gate:** if Forge can't apply our mixins, stop and report to the owner (Forge would wait, NeoForge continues).
-        The plugin choice goes into decisions.md.
+  - [x] A3. Forge 26.3: the same with ForgeGradle. Check that Forge 66 applies mixins **and** ships MixinExtras.
+  - **Gate: passed 2026-10-20.** Scratch mini-build (Stonecutter 0.9.8, nodes `26.3` / `26.3-neoforge` /
+        `26.3-forge` from one `src/`, `vers(name, mc).buildscript(...)`, `constants.match(loader, ...)`): Loom (via
+        loom-back-compat), ModDevGradle 2.0.148 and ForgeGradle 7.0.40 build side by side, configuration cache on.
+        `runGameTestServer` on both: one `@Inject` + one MixinExtras `@ModifyReturnValue` on `MinecraftServer` apply
+        (`neoforge+SPIKE-MIXINEXTRAS`, MixinExtras 0.5.5; `forge+SPIKE-MIXINEXTRAS`, 0.5.4). Forge needs mixin
+        `compatibilityLevel` ≤ `JAVA_21` (gotchas.md). decisions.md 2026-10-20 "build plugins".
 - [ ] 13B — **Platform seam, Fabric only, no behaviour change.** `platform/` interfaces + `platform/fabric`; the 28
       files call the seam; `@GameTest` is ours, registered through `GameTestRegistrar`. Proof: `verifyAll` and every
       node's `runClientGameTest` are as green as on `a071f7f`, with the same test counts (432 JUnit / 339 GameTests).

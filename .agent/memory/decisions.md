@@ -1611,3 +1611,18 @@ configlib-txf (~3k downloads, own config models); NeoForge/Forge on 1.21.11 (own
 **Open (13A spike decides):** build plugin for the new loaders (ModDevGradle + ForgeGradle next to loom-back-compat,
 vs Architectury Loom); whether Forge 26.x ships MixinExtras (39 of our files need it); Quilt's 26.x result.
 **Affects:** TODO.md Phase 13, settings.gradle, build.gradle, src/**/platform/
+
+## 2026-10-20 — Phase 13 build plugins: ModDevGradle + ForgeGradle 7 beside loom-back-compat, per-node build scripts
+**Context:** 13A2/A3 had to pick how NeoForge and Forge nodes build inside the existing Stonecutter tree.
+**Choice:** Stonecutter `vers('26.x-neoforge', '26.x').buildscript('build.neoforge.gradle')` and
+`vers('26.x-forge', '26.x').buildscript('build.forge.gradle')`; Fabric nodes keep `build.gradle` (loom-back-compat)
+and their names. Plugins: `net.neoforged.moddev` 2.0.148 and `net.minecraftforge.gradle` 7.0.40, declared
+`apply false` in stonecutter.gradle (Forge maven as an exclusiveContent plugin repo for `net.minecraftforge`).
+Loader code switches with `stonecutter { constants.match(project.loader, 'fabric', 'neoforge', 'forge') }`.
+**Why:** proven in a scratch mini-build: all three build together with the configuration cache, and both new loaders
+apply a mixin + MixinExtras in `runGameTestServer`. These are each loader's official MDK toolchains (NeoForge MDK
+26.3 = MDG 2.0.148; Forge MDK 26.3 = FG `[7.0.17,8)`), so upstream docs apply as written.
+**Rejected:** Architectury Loom for all loaders (one more toolchain between us and each loader's own docs, and no
+evidence it supports Forge's 26.x mavenizer setup); NeoGradle (MDG is NeoForge's default MDK); separate Gradle
+builds per loader (loses shared `verifyAll`, Stonecutter conditions and one-source-tree).
+**Affects:** settings.gradle, stonecutter.gradle, build.neoforge.gradle, build.forge.gradle, versions/26.x-*/
