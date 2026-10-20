@@ -188,7 +188,8 @@ tasks.withType(ProcessResources).configureEach {
 // list silently does nothing), and a damage source's tag predicate takes a tag reference ("#ns:tag"). Those nodes get
 // an upgraded copy. Fails the build on a file it can't read rather than shipping it unchanged.
 def upgradeLootFormat = sc.current.parsed.matches('>=26.3')
-def upgradedDataDirs = ['loot_table', 'enchantment', 'predicate', 'item_modifier']
+// loot_modifiers: NeoForge's (13C). Its LootModifier codec moved to the same shape in 26.3 (one optional "condition").
+def upgradedDataDirs = ['loot_table', 'enchantment', 'predicate', 'item_modifier', 'loot_modifiers']
 tasks.withType(ProcessResources).configureEach {
     inputs.property 'upgradeLootFormat', upgradeLootFormat
     inputs.property 'upgradedDataDirs', upgradedDataDirs

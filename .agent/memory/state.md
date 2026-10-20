@@ -119,7 +119,7 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
   link check (`matrix/linkcheck/LinkCheck.java`). Verdict: one band per 26.x line (decisions.md 2026-10-15).
   B1 = 26.1–26.1.2 proven (range `>=26.1 <26.2-`). CI's `build` configures the matrix projects (empty jars) but
   doesn't run their GameTests yet (12F).
-- Tests per node: 443 JUnit + 340 GameTests (2026-10-20) (`./gradlew build`, all four nodes, also in CI) + 10 client GameTests
+- Tests per node: 445 JUnit + 340 GameTests (2026-10-20) (`./gradlew build`, all four nodes, also in CI) + 10 client GameTests
   (`./gradlew :<node>:runClientGameTest`, one node at a time).
 - 12E (2026-10-15/19): node `versions/26.3/` (B3, range `>=26.3 <26.4-`): renderer/loot/input renames as
   replacements, moved targets (`Enderman`, hoe `BlockTransformer`, fuel component mixins), loot JSON upgraded per node
@@ -135,7 +135,8 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
     (verifyAll 2026-10-20: 438 JUnit, 339 GameTests on every node incl. `:26.3-neoforge`), committed as "13C 26.3".
     `enchanting2:hello` done (owner: fix the mismatch gap now; 442 JUnit, 340 GameTests; live join = owner check).
     13F naming done (owner: loader in the version, `1.1.0+26.3-neoforge`; tables have a column per loader).
-    Next (TODO.md 13C "Progress"): 26.1.2-neoforge, 26.2-neoforge (each splits/extends the README + wiki tables). Owner: 13E screen
+    **26.2-neoforge green** (loot modifier fixes, gotchas.md "NeoForge loot modifiers"). Next: 26.1.2-neoforge
+    (TODO.md 13C "Progress"; README + wiki tables split the 26.1.x row), then 13D Forge. Owner: 13E screen
     mirrors YACL (decisions.md "third round").
     **Only one session works this tree** (owner 2026-10-20); a second session's builds lock GameTest worlds (gotchas).
     13B committed 7fdae70 and pushed (`origin/port/loaders`). `ci.yml` only triggers on main/PRs, so each stage's CI

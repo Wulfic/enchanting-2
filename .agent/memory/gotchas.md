@@ -919,3 +919,18 @@ platform/{Registration,Attachment}.java, ElytraGameTest, build.neoforge.gradle
 checkout. To dry-run locally, copy the current `+<band>-<loader>` jars and each node's gradle.properties into a scratch
 tree with the script and a `changes.md`, and run the copy there; don't delete build/libs to make it pass.
 **Affects:** scripts/release-collect.sh
+
+## 2026-10-20 — NeoForge loot modifiers: no list file on 26.x; 26.2 and 26.3 codecs differ
+**Context:** 26.2-neoforge (13C) failed to compile `DropsLootModifier`; fixing that showed an ERROR in every NeoForge
+GameTest log, 26.3 included, that no test had noticed (the drops still worked).
+- **No `global_loot_modifiers.json` on NeoForge 26.x.** `LootModifierManager` is a plain
+  `SimpleJsonResourceReloadListener` over `data/*/loot_modifiers/`: every file there is one modifier. The old list
+  file is parsed as a modifier ("No key type in MapLike[{"replace":false,"entries":[...]}]") and logged at ERROR on
+  every start and `/reload`. Removed; `NeoForgeLootModifiersTest` refuses any file there without a `type`.
+- **`LootModifier` changed between 26.2 and 26.3.** 26.2: `LootItemCondition[]`, field `conditions` *required*;
+  26.3: `Optional<Holder<LootItemCondition>>`, field `condition` optional. Constructor behind `//? if >=26.3`; the
+  JSON is written with `"conditions": []` (older format, like all our data) and `loot_modifiers` is one of
+  common.gradle's `upgradedDataDirs`, so 26.3 ships it without the list (ModIdentityTest's 12E format check
+  failed on the stale list until then).
+- **Grep the NeoForge GameTest log for ERROR after a green run.** 340/340 doesn't mean a clean load.
+**Affects:** platform/neoforge/DropsLootModifier.java, src/neoforge/resources/data/

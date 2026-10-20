@@ -221,6 +221,12 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
       test loads Minecraft classes. GameTests now 340 (339 ours + `always_pass`). **Not verified live:** no harness
       joins a NeoForge client in tests; the owner `runClient` check below covers it (a normal join must not hang in
       configuration: the server waits for the client's hello).
+      **26.2-neoforge green 2026-10-20** (NeoForge 26.2.0.93): one fix, `DropsLootModifier` on 26.2's older
+      `LootModifier` (condition array, required `conditions`), plus a bug that was on 26.3 too: the obsolete
+      `global_loot_modifiers.json` list logged an ERROR at every start (removed; `NeoForgeLootModifiersTest`).
+      `loot_modifiers` joined the 26.3 data upgrade. verifyAll: 445 JUnit, 340 GameTests on all six nodes; both
+      NeoForge logs free of ERRORs but our config tests' deliberate ones. gotchas.md "NeoForge loot modifiers".
+      Next: 26.1.2-neoforge (B1 = 26.1.2 only on NeoForge; the README row "26.1, 26.1.1, 26.1.2" splits).
       Owner check later (13E/C7): `runClient` on NeoForge (tooltips, HUD, table/anvil/grindstone panels, joining a
       vanilla server gets our message; singleplayer and a `runServer` join both reach the world, not stuck at
       "Joining world" — that is the hello round trip).

@@ -1,3 +1,4 @@
 {
-	"type": "enchanting2:drops"
+	"type": "enchanting2:drops",
+	"conditions": []
 }
