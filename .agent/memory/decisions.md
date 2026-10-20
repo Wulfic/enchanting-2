@@ -1687,3 +1687,16 @@ scrolling option list, per-option reset, Save / Cancel.
 the gap would be permanent for every pre-fix client. (2) players moving between loaders see the same screen.
 **Rejected:** leaving the "known gap" of "13C networking"; a vanilla Options-style list of sub-screens.
 **Affects:** platform/neoforge/NeoForgeNetworking.java, network/NetworkProtocol.java, client/config/ (13E)
+
+## 2026-10-20 — 13F naming (moved up): loader in the version string; install tables have a column per loader
+**Context:** jar names gain the loader (owner ruling, round 2); `ReleaseDocsTest` blocks 26.1.2-neoforge until the
+tables can name a band per loader, so this part of 13F comes before the remaining 13C nodes.
+**Choice:** the version itself is `<mod_version>+<band>-<loader>` (`1.2.0+26.3-neoforge`), in the jar name, the
+shipped metadata, the mod list and the join message. README / wiki tables: rows = Minecraft versions, one column per
+loader (Fabric / Quilt, NeoForge, Forge), "—" where a loader has no jar. `mod_version` stays 1.1.0 until 13G
+(the CHANGELOG test wants a dated section for it).
+**Why:** owner's call. One string everywhere keeps release-collect's "name = shipped version" check, and the join
+message names the exact file; a column per loader stays compact as loaders' bands differ (B1 26.1-26.1.2 vs 26.1.2).
+**Rejected:** loader in the file name only; one table per loader.
+**Affects:** gradle/common.gradle, ModIdentityTest, ReleaseDocsTest, scripts/release-collect.sh, release.yml, README,
+wiki/Installation.md

@@ -73,23 +73,24 @@ on the [wiki](https://github.com/Wulfic/enchanting-2/wiki).
 
 | | |
 |---|---|
-| Minecraft | Java Edition 1.21.11, 26.1 to 26.1.2, 26.2 or 26.3 (one jar each) |
-| Loader | [Fabric Loader](https://fabricmc.net/use/) 0.19.5 or newer |
-| Required | [Fabric API](https://modrinth.com/mod/fabric-api) |
-| Optional | [Mod Menu](https://modrinth.com/mod/modmenu) and [YACL](https://modrinth.com/mod/yacl) for the in-game config screen |
+| Minecraft | Java Edition 1.21.11, 26.1 to 26.1.2, 26.2 or 26.3 (one jar per version line and loader) |
+| Loader | [Fabric Loader](https://fabricmc.net/use/) 0.19.5 or newer, or [NeoForge](https://neoforged.net/) (26.3) |
+| Required | Fabric: [Fabric API](https://modrinth.com/mod/fabric-api). NeoForge: nothing else |
+| Optional | Fabric: [Mod Menu](https://modrinth.com/mod/modmenu) and [YACL](https://modrinth.com/mod/yacl) for the in-game config screen. NeoForge: config files only for now |
 | Java | 21 for 1.21.11, 25 for 26.x |
 
 ## Installing
 
-Download the jar for your Minecraft version from the [latest release](https://github.com/Wulfic/enchanting-2/releases/latest)
-(not a `-sources` jar) and put it and Fabric API in your `mods` folder.
+Download the jar for your Minecraft version and loader from the
+[latest release](https://github.com/Wulfic/enchanting-2/releases/latest) (not a `-sources` jar) and put it in your
+`mods` folder, with Fabric API on Fabric.
 
-| Your Minecraft | Download | Java |
-|---|---|---|
-| 1.21.11 | `enchanting2-<version>+1.21.11.jar` | 21 |
-| 26.1, 26.1.1, 26.1.2 | `enchanting2-<version>+26.1-26.1.2.jar` | 25 |
-| 26.2 | `enchanting2-<version>+26.2.jar` | 25 |
-| 26.3 | `enchanting2-<version>+26.3.jar` | 25 |
+| Your Minecraft | Fabric | NeoForge | Java |
+|---|---|---|---|
+| 1.21.11 | `enchanting2-<version>+1.21.11-fabric.jar` | — | 21 |
+| 26.1, 26.1.1, 26.1.2 | `enchanting2-<version>+26.1-26.1.2-fabric.jar` | — | 25 |
+| 26.2 | `enchanting2-<version>+26.2-fabric.jar` | — | 25 |
+| 26.3 | `enchanting2-<version>+26.3-fabric.jar` | `enchanting2-<version>+26.3-neoforge.jar` | 25 |
 
 **Multiplayer: install it on the server and on every player's client.** The new screens and Double Jump need the
 client side. A player without the mod is turned away at join with a message naming it. A player with the mod who

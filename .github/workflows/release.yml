@@ -5,17 +5,18 @@
 #      (ReleaseDocsTest fails the build until both agree). Commit and push to main; let CI go green.
 #   2. git tag v<version> && git push origin v<version>
 #
-# Every version node in versions/ is one band and one jar: enchanting2-<version>+<band>.jar, the band being the
-# Minecraft versions it is proven on (build.gradle derives it from the node and the runtime matrix), e.g. +1.21.11 or
-# +26.1-26.1.2. The build is ./gradlew verifyAll, the same check CI runs.
+# Every version node in versions/ is one band, one loader and one jar: enchanting2-<version>+<band>-<loader>.jar, the
+# band being the Minecraft versions it is proven on (gradle/common.gradle derives it from the node and the runtime
+# matrix), e.g. +1.21.11-fabric, +26.1-26.1.2-fabric or +26.3-neoforge. The build is ./gradlew verifyAll, the same
+# check CI runs.
 #
 # This workflow REFUSES, before building anything, when:
 #   - the tag isn't exactly v + mod_version (a v1.0.1 tag on a 1.0.0 tree would ship jars named 1.0.0),
 #   - the tagged commit isn't on main (no releases from side branches),
 #   - CHANGELOG.md has no section for the version (it becomes the release notes),
 #   - a release for the tag already exists (re-running never overwrites a published jar);
-# and, after the build, when a node hasn't produced exactly one mod jar and its sources jar, or a jar's own
-# fabric.mod.json version isn't the <version>+<band> its file name says.
+# and, after the build, when a node hasn't produced exactly one mod jar and its sources jar, a jar names another
+# loader than its node's, or a jar's own metadata version isn't the <version>+<band>-<loader> its file name says.
 #
 # Nothing here deletes anything. If the build fails, no release is created and the tag stays where it is: fix on
 # main, then move the tag (git tag -f v<version> && git push origin v<version> --force) or bump the version.

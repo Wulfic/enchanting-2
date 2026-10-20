@@ -231,6 +231,30 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
       mirrors the YACL screen (categories as tab rows, scrolling option list, per-option reset, Save / Cancel). Entry: NeoForge
       `IConfigScreenFactory`, Forge `ConfigScreenFactory`. JUnit on the model (an option missing from the screen fails),
       plus the owner's `runClient` check on both loaders.
+- [x] 13F-names **done 2026-10-20**: verifyAll green (443 JUnit, 340 GameTests everywhere); release-collect dry run
+      on a scratch copy of the jars: 10 files / 5 bands, and it refuses a stale loader-less jar, a jar on another
+      loader's node, and a name that disagrees with the shipped metadata; ModIdentityTest went red on both loaders
+      with the loader removed from the version, green restored. Tables say "Fabric" for now: "/ Quilt" goes in with
+      13F's Quilt runtime nodes (1.21.11 stays Fabric-only).
+- 13F-names (moved up, 2026-10-20; decisions.md "13F naming"): **loader in the version and every jar name.**
+      - `gradle/common.gradle`: `version = <mod_version>+<band>-<mod_loader>` (mod_loader read before the line).
+      - `Bands` (test helper): `loader(node)` from the node name (`-neoforge` / `-forge` suffix, else `fabric`, the rule
+        ci.yml already uses); `all()` → node → `<band>-<loader>`. `ModIdentityTest`: expected version gains the
+        loader on both metadata tests, plus `Bands.loader(node)` = the build's `enchanting2.loader` (ties the rule to
+        the build scripts).
+      - `ReleaseDocsTest.installTablesListExactlyTheCurrentBands`: jar pattern `+<band>-<loader>.jar`; the set of
+        `<band>-<loader>` in README and wiki/Installation.md = `Bands.all()` values.
+      - README + wiki/Installation.md: the table with a column per loader (rows = Minecraft versions, "—" where none);
+        Requirements rows per loader (NeoForge 26.x needs no Fabric API; config screen on NeoForge comes in 13E).
+        On this branch the tables list what exists (NeoForge 26.3 only), widened as nodes land.
+      - `release-collect.sh`: name → `<band>-<loader>`, check the shipped version from that loader's metadata
+        (`fabric.mod.json` / `META-INF/neoforge.mods.toml`), table with a Loader column, notes' install text per
+        loader. Dry-run it locally after `assemble` with a scratch `changes.md` (the script only writes
+        release-notes.md / release-files.txt; both git-ignored? check first). `release.yml` comments.
+      - CHANGELOG [Unreleased]: jar names now carry the loader.
+      Proof: verifyAll green; release-collect dry run lists 5 jars with the right names; ModIdentityTest fails if
+      the loader is dropped from the version (checked by reverting the common.gradle line once).
+      Blast radius: names only, nothing released (13G). Rollback: revert the commit.
 - [ ] 13F — **Build, CI, release plumbing:** `verifyAll` covers every node + Quilt nodes; `ci.yml` jobs per loader;
       jar names carry the loader (proposed `enchanting2-1.2.0+26.3-neoforge.jar`; Fabric names unchanged); `release-collect.sh`,
       `ModIdentityTest`, `ReleaseDocsTest`; README / wiki Installation tables per loader; CHANGELOG [Unreleased].

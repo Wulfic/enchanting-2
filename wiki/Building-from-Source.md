@@ -78,8 +78,9 @@ software renderer; each job keeps its screenshots and game log for 14 days.
    ```
 
 The **Release** workflow checks the tag is exactly `v` + `mod_version`, is on `main`, and has a CHANGELOG section;
-runs `./gradlew verifyAll`; and publishes a GitHub Release with one jar per version (`enchanting2-<version>+<band>.jar`,
-the band being the Minecraft versions that jar is built for or proven on by the matrix) and its sources jar, using that
+runs `./gradlew verifyAll`; and publishes a GitHub Release with one jar per version node
+(`enchanting2-<version>+<band>-<loader>.jar`, the band being the Minecraft versions that jar is built for or proven on
+by the matrix, the loader `fabric`, `neoforge` or `forge`) and its sources jar, using that
 CHANGELOG section as the notes plus a "which jar" table. A new matrix version widens its band's name by itself; the
 README and wiki Installation tables must follow (`ReleaseDocsTest` fails until they do). It never
 replaces an existing release. The **Wiki** workflow publishes `wiki/` on every push to `main` that changes it.

@@ -46,15 +46,17 @@ class ReleaseDocsTest {
 	}
 
 	/**
-	 * Phase 12G: a release has one jar per band ({@code enchanting2-<version>+<band>.jar}), so the README's and the
-	 * wiki's "which jar" tables must name exactly the current bands: a new band (or a matrix version widening one)
-	 * that the tables miss would send players looking for a file that isn't there, or leave a stale one listed.
+	 * Phase 12G: a release has one jar per band and (13F) loader ({@code enchanting2-<version>+<band>-<loader>.jar}), so
+	 * the README's and the wiki's "which jar" tables must name exactly the current ones: a new band or loader node (or a
+	 * matrix version widening a band) that the tables miss would send players looking for a file that isn't there, or
+	 * leave a stale one listed.
 	 */
 	@Test
 	void installTablesListExactlyTheCurrentBands() throws IOException {
 		Set<String> bands = new TreeSet<>(Bands.all().values());
 		assertFalse(bands.isEmpty(), "no version nodes under versions/");
-		Pattern jarName = Pattern.compile("enchanting2-<version>\\+([0-9.]+(?:-[0-9.]+)?)\\.jar");
+		// Any name, not just well-formed ones: a stale loader-less "+26.3.jar" or a typo shows up in the mismatch.
+		Pattern jarName = Pattern.compile("enchanting2-<version>\\+([^`\\s|]+?)\\.jar");
 		for (Path doc : List.of(Path.of("README.md"), WIKI.resolve("Installation.md"))) {
 			Set<String> listed = new TreeSet<>();
 			Matcher m = jarName.matcher(read(doc));

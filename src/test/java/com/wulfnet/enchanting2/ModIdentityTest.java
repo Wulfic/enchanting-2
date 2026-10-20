@@ -80,7 +80,17 @@ class ModIdentityTest {
 	}
 
 	/**
-	 * Phase 12G: the shipped version (and so the jar name) is {@code mod_version+band}, the band being this node's
+	 * Phase 13F: docs, release-collect and CI read a node's loader off its name ({@link Bands#loader}); that must be the
+	 * loader its build script really builds for, or a NeoForge jar would be listed (and released) as a Fabric one.
+	 */
+	@Test
+	void nodeNameSaysWhichLoaderItBuildsFor() {
+		assertEquals(loader(), Bands.loader(System.getProperty("enchanting2.node")));
+	}
+
+	/**
+	 * Phase 12G: the shipped version (and so the jar name) is {@code mod_version+band-fabric} (the loader since 13F),
+	 * the band being this node's
 	 * Minecraft version plus every matrix version that runs this node's jar, as "lowest" or "lowest-highest". Derived
 	 * here from the same files as build.gradle does, and every version in it must be inside depends.minecraft: a jar
 	 * named for a version its own metadata refuses would be a broken release.
@@ -95,7 +105,7 @@ class ModIdentityTest {
 		TreeSet<String> versions = Bands.versions(node, ownVersion);
 		String band = Bands.label(versions);
 		String modVersion = gradleProperty("mod_version");
-		assertEquals(modVersion + "+" + band, modJson().get("version").getAsString());
+		assertEquals(modVersion + "+" + band + "-fabric", modJson().get("version").getAsString());
 
 		String range = modJson().getAsJsonObject("depends").get("minecraft").getAsString();
 		for (String version : versions) {
@@ -170,7 +180,7 @@ class ModIdentityTest {
 	}
 
 	/**
-	 * Phase 13C: neoforge.mods.toml names this mod, carries the same derived version as the Fabric jar (mod_version+band),
+	 * Phase 13C: neoforge.mods.toml names this mod, carries the derived version (mod_version+band-neoforge, 13F),
 	 * and its minecraft range admits every version in the band; its NeoForge range is expanded.
 	 */
 	@Test
@@ -180,7 +190,8 @@ class ModIdentityTest {
 		assertEquals(Enchanting2.MOD_ID, toml.get("mods").get("modId"));
 		TreeSet<String> versions = Bands.versions(System.getProperty("enchanting2.node"),
 				System.getProperty("enchanting2.minecraftVersion"));
-		assertEquals(gradleProperty("mod_version") + "+" + Bands.label(versions), toml.get("mods").get("version"));
+		assertEquals(gradleProperty("mod_version") + "+" + Bands.label(versions) + "-neoforge",
+				toml.get("mods").get("version"));
 		String minecraft = toml.get("dependency minecraft").get("versionRange");
 		for (String version : versions) {
 			assertTrue(admits(minecraft, version), "the jar is named for " + version + " but minecraft is " + minecraft);

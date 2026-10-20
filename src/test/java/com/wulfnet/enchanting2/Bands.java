@@ -13,9 +13,10 @@ import java.util.TreeSet;
 import java.util.stream.Stream;
 
 /**
- * The Phase 12G band of each version node, derived the way build.gradle names the jars: the node's own
+ * The Phase 12G band of each version node, derived the way gradle/common.gradle names the jars: the node's own
  * {@code minecraft_version} plus every {@code matrix/<version>/} whose {@code matrix_jar_node} is that node, written as
- * the lowest version or "lowest-highest". Read from the repo files (tests run with the repo root as working directory).
+ * the lowest version or "lowest-highest", then (13F) {@code -<loader>}. Read from the repo files (tests run with the
+ * repo root as working directory).
  */
 final class Bands {
 	private Bands() {
@@ -40,14 +41,25 @@ final class Bands {
 		return versions.size() == 1 ? versions.first() : versions.first() + "-" + versions.last();
 	}
 
-	/** Node name → band label, for every {@code versions/<node>/}. */
+	/**
+	 * The loader a node builds for, from its name: {@code -neoforge} / {@code -forge} nodes, every other node Fabric (the
+	 * rule ci.yml's client-node list uses too). ModIdentityTest checks it against the build script's own loader.
+	 */
+	static String loader(String node) {
+		if (node.endsWith("-neoforge")) {
+			return "neoforge";
+		}
+		return node.endsWith("-forge") ? "forge" : "fabric";
+	}
+
+	/** Node name → {@code <band>-<loader>}, the part of the version after {@code +}, for every {@code versions/<node>/}. */
 	static Map<String, String> all() throws IOException {
 		Map<String, String> bands = new TreeMap<>();
 		try (Stream<Path> dirs = Files.list(Path.of("versions"))) {
 			for (Path dir : dirs.filter(d -> Files.isRegularFile(d.resolve("gradle.properties"))).toList()) {
 				String node = dir.getFileName().toString();
 				String own = properties(dir.resolve("gradle.properties")).getProperty("minecraft_version", "").trim();
-				bands.put(node, label(versions(node, own)));
+				bands.put(node, label(versions(node, own)) + "-" + loader(node));
 			}
 		}
 		return bands;

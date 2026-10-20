@@ -911,3 +911,11 @@ Each found by running the 339 server GameTests on `:26.3-neoforge`; every fix is
   `empty.nbt`, written by `scripts/make-empty-structure.py`. NeoForge mod IDs can't hold `-`: `enchanting2_gametest`.
 **Affects:** src/main/java/.../mixin/{LivingEntityMixin,LavaFluidMixin,SpawnerBlockMixin}.java, mixin/neoforge/,
 platform/{Registration,Attachment}.java, ElytraGameTest, build.neoforge.gradle
+
+## 2026-10-20 — release-collect refuses locally after a rename: stale jars stay in build/libs
+**Context:** 13F put the loader in every jar name. Gradle never removes a jar whose name it no longer produces, so
+`versions/<node>/build/libs/` keeps `enchanting2-1.1.0+26.3.jar` beside `…+26.3-fabric.jar`, and a local
+`scripts/release-collect.sh` refuses ("2 jar(s) … expected 1"). That is the guard working; CI's release is a clean
+checkout. To dry-run locally, copy the current `+<band>-<loader>` jars and each node's gradle.properties into a scratch
+tree with the script and a `changes.md`, and run the copy there; don't delete build/libs to make it pass.
+**Affects:** scripts/release-collect.sh

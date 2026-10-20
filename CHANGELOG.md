@@ -5,6 +5,15 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **NeoForge** (Minecraft 26.3 so far), with every feature the Fabric jar has. The in-game config screen on NeoForge
+  comes later; the config files work as on Fabric.
+
+### Changed
+- **Every jar names its loader:** `+26.3-fabric`, `+26.3-neoforge`, `+1.21.11-fabric`, and so on, in the file name
+  and in the version the game shows. Pick your Minecraft version, then your loader (the
+  [Installation](https://github.com/Wulfic/enchanting-2/wiki/Installation) page has the table).
+
 ## [1.1.0] - 2026-10-19
 
 ### Added
