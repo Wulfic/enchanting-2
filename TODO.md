@@ -215,8 +215,15 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
         today's channel rules); NeoForge server GameTests unchanged (339). Owner `runClient` check: a protocol-5
         client against a protocol-6 server build gets the mismatch text (13E/C7 list).
       Not doing: hello on Fabric (Fabric already sees every channel); cross-loader joins.
+      **Built 2026-10-20** as planned, with two refinements: the channels still decide MATCH (the reported number
+      only fills in MISMATCH's protocol list, so a lying or odd hello can't let a client in), and the frozen-format
+      test is a server GameTest (`ConfigWiringGameTest.helloWireFormatIsFrozen`: ID + exact bytes), because no JUnit
+      test loads Minecraft classes. GameTests now 340 (339 ours + `always_pass`). **Not verified live:** no harness
+      joins a NeoForge client in tests; the owner `runClient` check below covers it (a normal join must not hang in
+      configuration: the server waits for the client's hello).
       Owner check later (13E/C7): `runClient` on NeoForge (tooltips, HUD, table/anvil/grindstone panels, joining a
-      vanilla server gets our message).
+      vanilla server gets our message; singleplayer and a `runServer` join both reach the world, not stuck at
+      "Joining world" — that is the hello round trip).
 - [ ] 13D — **Forge nodes** 26.1.2, 26.2, 26.3: `mods.toml`, `platform/forge` (capabilities for attachments, its
       payload channel, Forge events). Same proof.
 - [ ] 13E — **Config screen for NeoForge + Forge** on vanilla widgets (`client/config/`, drawn from the existing

@@ -92,7 +92,7 @@ public final class ServerNetworking {
 		// Netty thread. Every client goes through configuration, the singleplayer host included.
 		net.onConfigure(connection -> {
 			NetworkProtocol.Verdict verdict = NetworkProtocol.classify(connection.sendableChannels(),
-					ConfigSyncPayload.TYPE.id().toString());
+					ConfigSyncPayload.TYPE.id().toString(), connection.clientProtocol());
 			if (verdict.kind() == NetworkProtocol.Kind.MATCH) {
 				connection.send(ConfigSyncPayload.of(ServerConfigs.get(connection.server())));
 				return;

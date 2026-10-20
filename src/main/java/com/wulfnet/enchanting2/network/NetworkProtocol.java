@@ -3,6 +3,7 @@ package com.wulfnet.enchanting2.network;
 import com.wulfnet.enchanting2.Enchanting2;
 import java.util.Collection;
 import java.util.List;
+import java.util.OptionalInt;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -44,11 +45,22 @@ public final class NetworkProtocol {
 	 * @param requiredChannel the channel the server must be able to send, e.g. {@code enchanting2:v2/config_sync}
 	 */
 	public static Verdict classify(Collection<String> clientChannels, String requiredChannel) {
+		return classify(clientChannels, requiredChannel, OptionalInt.empty());
+	}
+
+	/**
+	 * As {@link #classify(Collection, String)}, plus the protocol the client reported in its {@link HelloPayload}
+	 * (NeoForge reports only the channels both sides share, so a client on another protocol shows none of its own).
+	 * The channels still decide {@link Kind#MATCH}: the number only says which protocol a mismatched client speaks.
+	 */
+	public static Verdict classify(Collection<String> clientChannels, String requiredChannel,
+			OptionalInt reportedProtocol) {
 		if (clientChannels.contains(requiredChannel)) {
 			return new Verdict(Kind.MATCH, List.of());
 		}
-		boolean ours = false;
+		boolean ours = reportedProtocol.isPresent();
 		TreeSet<Integer> versions = new TreeSet<>();
+		reportedProtocol.ifPresent(versions::add);
 		for (String channel : clientChannels) {
 			if (!channel.startsWith(Enchanting2.MOD_ID + ":")) {
 				continue;

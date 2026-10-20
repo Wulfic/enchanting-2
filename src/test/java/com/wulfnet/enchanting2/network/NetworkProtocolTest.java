@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.wulfnet.enchanting2.network.NetworkProtocol.Kind;
 import com.wulfnet.enchanting2.network.NetworkProtocol.Verdict;
 import java.util.List;
+import java.util.OptionalInt;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -85,6 +86,34 @@ class NetworkProtocolTest {
 	void vanillaMessageNamesTheModAndVersion() {
 		String msg = NetworkProtocol.disconnectMessage(new Verdict(Kind.VANILLA, List.of()), "0.1.0");
 		assertTrue(msg.contains("Enchanting 2") && msg.contains("enchanting2") && msg.contains("0.1.0"), msg);
+	}
+
+	/** NeoForge: a client on another protocol shares only the hello channel, and names its number in the hello. */
+	@Test
+	void reportedProtocolNamesTheMismatchWhenNoChannelIsShared() {
+		Verdict v = NetworkProtocol.classify(Set.of("minecraft:brand", "enchanting2:hello"), REQUIRED, OptionalInt.of(7));
+		assertEquals(new Verdict(Kind.MISMATCH, List.of(7)), v);
+		assertTrue(NetworkProtocol.disconnectMessage(v, "0.1.0").contains("uses protocol 7"));
+	}
+
+	@Test
+	void reportedProtocolAloneIsStillOurs() {
+		assertEquals(new Verdict(Kind.MISMATCH, List.of(4)),
+				NetworkProtocol.classify(Set.of(), REQUIRED, OptionalInt.of(4)));
+	}
+
+	@Test
+	void channelsStillDecideAMatchWhateverIsReported() {
+		assertEquals(Kind.MATCH,
+				NetworkProtocol.classify(Set.of(REQUIRED, "enchanting2:hello"), REQUIRED, OptionalInt.of(7)).kind());
+	}
+
+	@Test
+	void noReportKeepsTheChannelRules() {
+		assertEquals(new Verdict(Kind.VANILLA, List.of()),
+				NetworkProtocol.classify(Set.of("minecraft:brand"), REQUIRED, OptionalInt.empty()));
+		assertEquals(new Verdict(Kind.MISMATCH, List.of(3)),
+				NetworkProtocol.classify(Set.of("enchanting2:v3/config_sync"), REQUIRED, OptionalInt.empty()));
 	}
 
 	@Test

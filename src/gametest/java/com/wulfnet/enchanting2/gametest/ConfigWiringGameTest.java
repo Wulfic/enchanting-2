@@ -17,12 +17,15 @@ import com.wulfnet.enchanting2.config.SilkTouchSection;
 import com.wulfnet.enchanting2.config.SmeltingSection;
 import com.wulfnet.enchanting2.config.TableSection;
 import com.wulfnet.enchanting2.network.ConfigSyncPayload;
+import com.wulfnet.enchanting2.network.HelloPayload;
+import com.wulfnet.enchanting2.network.NetworkProtocol;
 import com.wulfnet.enchanting2.platform.Services;
 import io.netty.buffer.Unpooled;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
@@ -58,6 +61,24 @@ public class ConfigWiringGameTest {
 		ConfigSyncPayload received = ConfigSyncPayload.CODEC.decode(buf);
 		helper.assertValueEqual(sent, received, Component.literal("payload"));
 		helper.assertTrue(buf.readableBytes() == 0, Component.literal("decode left bytes behind"));
+		helper.succeed();
+	}
+
+	/**
+	 * The hello is frozen forever (HelloPayload): an old NeoForge client must still be understood by every later
+	 * server, so its ID and its bytes (one VarInt) are pinned here, not just round-tripped.
+	 */
+	@GameTest
+	public void helloWireFormatIsFrozen(GameTestHelper helper) {
+		helper.assertValueEqual("enchanting2:hello", HelloPayload.TYPE.id().toString(), Component.literal("hello ID"));
+		FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
+		HelloPayload.CODEC.encode(buf, new HelloPayload(300));
+		byte[] bytes = new byte[buf.readableBytes()];
+		buf.getBytes(0, bytes);
+		helper.assertValueEqual("[-84, 2]", Arrays.toString(bytes), Component.literal("protocol 300 as one VarInt"));
+		helper.assertValueEqual(300, HelloPayload.CODEC.decode(buf).protocol(), Component.literal("decoded protocol"));
+		helper.assertTrue(buf.readableBytes() == 0, Component.literal("decode left bytes behind"));
+		helper.assertValueEqual(NetworkProtocol.VERSION, HelloPayload.ours().protocol(), Component.literal("ours()"));
 		helper.succeed();
 	}
 

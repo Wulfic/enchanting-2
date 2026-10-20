@@ -2,6 +2,7 @@ package com.wulfnet.enchanting2.platform;
 
 import io.netty.buffer.ByteBuf;
 import java.util.List;
+import java.util.OptionalInt;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import net.minecraft.network.chat.Component;
@@ -43,6 +44,14 @@ public interface Networking {
 		 * this server registered too (it keeps no others), which still tells a matching client from one without the mod.
 		 */
 		List<String> sendableChannels();
+
+		/**
+		 * The protocol the client reported in its {@code HelloPayload}, on loaders whose {@link #sendableChannels} can't
+		 * show a mismatched client's channels (NeoForge). Empty on Fabric, which reports every channel instead.
+		 */
+		default OptionalInt clientProtocol() {
+			return OptionalInt.empty();
+		}
 
 		void send(CustomPacketPayload payload);
 

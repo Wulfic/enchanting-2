@@ -1,9 +1,14 @@
 package com.wulfnet.enchanting2.platform.neoforge;
 
 import com.wulfnet.enchanting2.Enchanting2;
+import com.wulfnet.enchanting2.network.HelloPayload;
 import com.wulfnet.enchanting2.platform.Networking;
 import io.netty.buffer.ByteBuf;
+import java.util.Collections;
 import java.util.List;
+import java.util.OptionalInt;
+import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -22,6 +27,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.configuration.ICustomConfigurationTask;
 import net.neoforged.neoforge.network.event.RegisterConfigurationTasksEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import org.slf4j.Logger;
@@ -38,11 +44,16 @@ public final class NeoForgeNetworking implements Networking {
 	private final List<Consumer<PayloadRegistrar>> registrations = new CopyOnWriteArrayList<>();
 	private final List<Identifier> ourChannels = new CopyOnWriteArrayList<>();
 	private final List<Consumer<ConfigurationConnection>> configureListeners = new CopyOnWriteArrayList<>();
+	/** Connections we sent a hello and haven't heard back from. Weak: a client that leaves first is simply dropped. */
+	private final Set<ServerConfigurationPacketListener> awaitingHello =
+			Collections.synchronizedSet(Collections.newSetFromMap(new WeakHashMap<>()));
 
 	public NeoForgeNetworking() {
 		NeoForgeBus.mod().addListener(RegisterPayloadHandlersEvent.class, event -> {
 			PayloadRegistrar registrar = event.registrar(Enchanting2.MOD_ID).optional();
 			registrations.forEach(registration -> registration.accept(registrar));
+			// The client's half replies with its own protocol (NeoForgeClientNetworking).
+			registrar.configurationBidirectional(HelloPayload.TYPE, HelloPayload.CODEC, this::onClientHello);
 		});
 		NeoForgeBus.mod().addListener(RegisterConfigurationTasksEvent.class, event -> {
 			if (!configureListeners.isEmpty()) {
@@ -99,7 +110,34 @@ public final class NeoForgeNetworking implements Networking {
 		PacketDistributor.sendToPlayer(player, payload);
 	}
 
-	/** Runs the {@link #onConfigure} listeners once per connection, then lets configuration go on unless one refused. */
+	/** The client's answer to our hello: now its protocol is known, so the listeners can judge it. */
+	private void onClientHello(HelloPayload hello, IPayloadContext context) {
+		// Untrusted: only the one answer to our own question counts, so a repeated or unasked hello can't rerun the join
+		// check or finish a task that isn't ours.
+		if (!(context.listener() instanceof ServerConfigurationPacketListener listener) || !awaitingHello.remove(listener)) {
+			LOG.warn("Unexpected Enchanting 2 hello (protocol {}) from {}; ignored", hello.protocol(), context.listener());
+			return;
+		}
+		runConfigureListeners(listener, context::reply, OptionalInt.of(hello.protocol()));
+	}
+
+	/** Runs the {@link #onConfigure} listeners, then lets configuration go on unless one refused. */
+	private void runConfigureListeners(ServerConfigurationPacketListener listener, Consumer<CustomPacketPayload> sender,
+			OptionalInt clientProtocol) {
+		NeoForgeConnection connection = new NeoForgeConnection(listener, sender, clientProtocol);
+		for (Consumer<ConfigurationConnection> configure : configureListeners) {
+			configure.accept(connection);
+			if (connection.disconnected) {
+				return;
+			}
+		}
+		listener.finishCurrentTask(ConfigureTask.TYPE);
+	}
+
+	/**
+	 * Once per connection. A client with our hello channel (any NeoForge build of Enchanting 2 from 1.2.0 on) is asked
+	 * for its protocol first and judged when it answers ({@link #onClientHello}); any other client is judged at once.
+	 */
 	private final class ConfigureTask implements ICustomConfigurationTask {
 		private static final ConfigurationTask.Type TYPE = new ConfigurationTask.Type(Enchanting2.MOD_ID + ":configure");
 		private final ServerConfigurationPacketListener listener;
@@ -110,14 +148,14 @@ public final class NeoForgeNetworking implements Networking {
 
 		@Override
 		public void run(Consumer<CustomPacketPayload> sender) {
-			NeoForgeConnection connection = new NeoForgeConnection(listener, sender);
-			for (Consumer<ConfigurationConnection> configure : configureListeners) {
-				configure.accept(connection);
-				if (connection.disconnected) {
-					return;
-				}
+			if (listener.hasChannel(HelloPayload.TYPE.id())) {
+				// Our client always answers (NeoForgeClientNetworking); configuration waits here until it does.
+				LOG.debug("Asking {} for its Enchanting 2 protocol", describe(listener));
+				awaitingHello.add(listener);
+				sender.accept(HelloPayload.ours());
+				return;
 			}
-			listener.finishCurrentTask(TYPE);
+			runConfigureListeners(listener, sender, OptionalInt.empty());
 		}
 
 		@Override
@@ -126,14 +164,27 @@ public final class NeoForgeNetworking implements Networking {
 		}
 	}
 
+	private static String describe(ServerConfigurationPacketListener listener) {
+		return listener instanceof ServerConfigurationPacketListenerImpl impl
+				? String.valueOf(impl.getOwner()) : String.valueOf(listener);
+	}
+
 	private final class NeoForgeConnection implements ConfigurationConnection {
 		private final ServerConfigurationPacketListener listener;
 		private final Consumer<CustomPacketPayload> sender;
+		private final OptionalInt clientProtocol;
 		private boolean disconnected;
 
-		private NeoForgeConnection(ServerConfigurationPacketListener listener, Consumer<CustomPacketPayload> sender) {
+		private NeoForgeConnection(ServerConfigurationPacketListener listener, Consumer<CustomPacketPayload> sender,
+				OptionalInt clientProtocol) {
 			this.listener = listener;
 			this.sender = sender;
+			this.clientProtocol = clientProtocol;
+		}
+
+		@Override
+		public OptionalInt clientProtocol() {
+			return clientProtocol;
 		}
 
 		@Override
@@ -161,8 +212,7 @@ public final class NeoForgeNetworking implements Networking {
 
 		@Override
 		public String describe() {
-			return listener instanceof ServerConfigurationPacketListenerImpl impl
-					? String.valueOf(impl.getOwner()) : String.valueOf(listener);
+			return NeoForgeNetworking.describe(listener);
 		}
 	}
 }

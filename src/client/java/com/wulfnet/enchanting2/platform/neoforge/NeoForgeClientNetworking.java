@@ -1,5 +1,7 @@
 package com.wulfnet.enchanting2.platform.neoforge;
 
+import com.wulfnet.enchanting2.network.HelloPayload;
+import com.wulfnet.enchanting2.network.NetworkProtocol;
 import com.wulfnet.enchanting2.platform.ClientNetworking;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -11,6 +13,8 @@ import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlersEvent;
 import net.neoforged.neoforge.common.NeoForge;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Client receivers through {@code RegisterClientPayloadHandlersEvent}, which runs them on the main thread as Fabric
@@ -18,11 +22,20 @@ import net.neoforged.neoforge.common.NeoForge;
  * {@code playToClient} in {@link NeoForgeNetworking}), so {@code configuration} needs nothing extra here.
  */
 public final class NeoForgeClientNetworking implements ClientNetworking {
+	private static final Logger LOG = LoggerFactory.getLogger(NeoForgeClientNetworking.class);
+
 	private final List<Consumer<RegisterClientPayloadHandlersEvent>> registrations = new CopyOnWriteArrayList<>();
 
 	public NeoForgeClientNetworking() {
-		NeoForgeBus.mod().addListener(RegisterClientPayloadHandlersEvent.class,
-				event -> registrations.forEach(registration -> registration.accept(event)));
+		NeoForgeBus.mod().addListener(RegisterClientPayloadHandlersEvent.class, event -> {
+			registrations.forEach(registration -> registration.accept(event));
+			// Always answer, whatever the server's number: the server judges, and its configuration waits for this.
+			event.register(HelloPayload.TYPE, (hello, context) -> {
+				LOG.debug("Server speaks Enchanting 2 protocol {}; answering with {}", hello.protocol(),
+						NetworkProtocol.VERSION);
+				context.reply(HelloPayload.ours());
+			});
+		});
 	}
 
 	@Override
