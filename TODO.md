@@ -145,6 +145,13 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
         node. NeoForge-only resources (`META-INF/neoforge.mods.toml`, loot modifier JSON) under
         `src/main/resources-neoforge/`; `fabric.mod.json` excluded there, and the reverse in build.gradle.
         `ModMenuIntegration` and the YACL screen excluded from NeoForge compiles (Stonecutter `//? if fabric`).
+        **C1a first:** move everything in build.gradle that isn't Loom (Stonecutter renames, band version, resource
+        expansion, 26.3 loot upgrade, java/test config) into `gradle/common.gradle`, applied by both scripts. Proof of
+        no change: the 1.21.11 and 26.3 Fabric jars' entry lists + CRC32s identical before and after.
+        NeoForge mod IDs can't contain `-`, so on NeoForge the gametest source set joins mod `enchanting2` in dev runs
+        (never in the jar). Client GameTest files + `SyncMarkerPayload` / `ClientWorlds` / `Delivery`: Fabric only.
+        Server GameTests' other Fabric uses (`FabricLoader` ×3, `AttachmentTarget` ×2, `FakePlayer`,
+        `PlayerBlockBreakEvents`, `EnvType`) go through the seam or a gametest-side helper.
       - C2. `platform/neoforge`: `NeoForgeEntrypoint` (`@Mod`, mod bus), `NeoForgeLoaderInfo` (`FMLPaths`, `ModList`),
         `NeoForgeServerEvents` (`ServerStartingEvent`, `ServerStoppedEvent`, `AddServerReloadListenersEvent` /
         `OnDatapackSyncEvent` for reload-done, `ServerTickEvent.Post`, `EntityJoinLevelEvent` server side,

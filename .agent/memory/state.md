@@ -133,6 +133,8 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
     Owner rulings (decisions.md "Phase 13 owner rulings"): push `port/loaders` after each green stage; every jar
     names its loader (`…+26.3-fabric.jar`); widen NeoForge/Forge B1 in 13F. Next: 13C per TODO.md C1–C7, 26.3 first.
     **Only one session works this tree** (owner 2026-10-20); a second session's builds lock GameTest worlds (gotchas).
+    13B committed 7fdae70 and pushed (`origin/port/loaders`). `ci.yml` only triggers on main/PRs, so each stage's CI
+    is `gh workflow run ci.yml --ref port/loaders` until the PR is opened (13F, ask first).
 0. **v1.1.0 released 2026-10-19** (https://github.com/Wulfic/enchanting-2/releases/tag/v1.1.0): four jars,
    `enchanting2-1.1.0+{1.21.11,26.1-26.1.2,26.2,26.3}.jar`, from main 9246bc4. Phase 12 (12A–12G) done.
 1. **12H is process, not code** (TODO.md): a new Minecraft version gets `matrix/<v>/` on the nearest band's jar plus
