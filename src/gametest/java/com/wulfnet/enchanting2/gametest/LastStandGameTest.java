@@ -60,7 +60,7 @@ public class LastStandGameTest {
 	}
 
 	private static long readyIn(GameTestHelper helper, LivingEntity entity) {
-		return entity.getAttachedOrElse(LastStand.READY_AT, 0L) - helper.getLevel().getGameTime();
+		return LastStand.READY_AT.getOrElse(entity, 0L) - helper.getLevel().getGameTime();
 	}
 
 	@GameTest
@@ -82,7 +82,7 @@ public class LastStandGameTest {
 		husk.setItemSlot(EquipmentSlot.OFFHAND, new ItemStack(Items.TOTEM_OF_UNDYING));
 		hit(helper, husk, helper.getLevel().damageSources().generic());
 		check(helper, husk.isAlive() && husk.getOffhandItem().isEmpty(), "the totem didn't fire first");
-		check(helper, husk.getAttached(LastStand.READY_AT) == null, "the totem's save used Last Stand's cooldown");
+		check(helper, LastStand.READY_AT.get(husk) == null, "the totem's save used Last Stand's cooldown");
 		husk.setHealth(1.0F);
 		husk.removeAllEffects();
 		hit(helper, husk, helper.getLevel().damageSources().generic());

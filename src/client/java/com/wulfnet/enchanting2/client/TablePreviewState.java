@@ -4,11 +4,9 @@ import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.network.TableEnchantPayload;
 import com.wulfnet.enchanting2.network.TablePreviewPayload;
 import com.wulfnet.enchanting2.network.TableSelectPayload;
+import com.wulfnet.enchanting2.platform.ClientServices;
 import com.wulfnet.enchanting2.table.TableSelection;
 import java.util.Optional;
-import net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationConnectionEvents;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,13 +25,13 @@ public final class TablePreviewState {
 
 	public static void register() {
 		// Registering the receiver is also what makes the server's canSend true, so panels start flowing.
-		ClientPlayNetworking.registerGlobalReceiver(TablePreviewPayload.TYPE, (payload, context) -> {
+		ClientServices.NETWORK.onReceive(TablePreviewPayload.TYPE, payload -> {
 			latest = payload;
 			LOG.debug("Table panel for container {}: {}, {} row(s), {} shelves", payload.containerId(),
 					payload.status(), payload.rows().size(), payload.shelves());
 		});
-		ClientConfigurationConnectionEvents.INIT.register((handler, client) -> latest = null);
-		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> latest = null);
+		ClientServices.NETWORK.onConfigurationStart(() -> latest = null);
+		ClientServices.NETWORK.onDisconnect(() -> latest = null);
 	}
 
 	public static Optional<TablePreviewPayload> forContainer(int containerId) {
@@ -50,19 +48,19 @@ public final class TablePreviewState {
 
 	/** Sends the whole selection; the server stores it and answers with a new panel. */
 	public static void sendSelect(int containerId, TableSelection selection) {
-		if (!ClientPlayNetworking.canSend(TableSelectPayload.TYPE)) {
+		if (!ClientServices.NETWORK.canSend(TableSelectPayload.TYPE)) {
 			LOG.warn("The server can't receive a table selection; {} not sent", selection);
 			return;
 		}
-		ClientPlayNetworking.send(new TableSelectPayload(containerId, selection));
+		ClientServices.NETWORK.send(new TableSelectPayload(containerId, selection));
 	}
 
 	/** The Enchant button, with the numbers the player was shown; the server refuses if they no longer match. */
 	public static void sendEnchant(int containerId, TableSelection selection, int levels, int lapis) {
-		if (!ClientPlayNetworking.canSend(TableEnchantPayload.TYPE)) {
+		if (!ClientServices.NETWORK.canSend(TableEnchantPayload.TYPE)) {
 			LOG.warn("The server can't receive a table enchant; {} for {} level(s) not sent", selection, levels);
 			return;
 		}
-		ClientPlayNetworking.send(new TableEnchantPayload(containerId, selection, levels, lapis));
+		ClientServices.NETWORK.send(new TableEnchantPayload(containerId, selection, levels, lapis));
 	}
 }

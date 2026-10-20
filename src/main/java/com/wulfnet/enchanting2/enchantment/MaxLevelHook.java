@@ -5,13 +5,13 @@ import com.wulfnet.enchanting2.config.ConfigFiles;
 import com.wulfnet.enchanting2.config.EnchantmentOverrides;
 import com.wulfnet.enchanting2.config.ServerConfigs;
 import com.wulfnet.enchanting2.mixin.EnchantmentBuilderAccessor;
+import com.wulfnet.enchanting2.platform.Services;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Objects;
 import java.util.OptionalInt;
-import net.fabricmc.fabric.api.item.v1.EnchantmentEvents;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.enchantment.Enchantment;
 
@@ -35,11 +35,7 @@ public final class MaxLevelHook {
 	}
 
 	public static void register() {
-		// Fabric API 26.1 deprecated MODIFY for MODIFY_WITH_LOOKUP (same call, plus a registry lookup unused here).
-		//? if >=26.1 {
-		/*EnchantmentEvents.MODIFY_WITH_LOOKUP.register((key, builder, source, registries) -> apply(key, builder));
-		*///?} else
-		EnchantmentEvents.MODIFY.register((key, builder, source) -> apply(key, builder));
+		Services.ITEMS.onEnchantmentLoad((key, builder, items) -> apply(key, builder));
 	}
 
 	static Path file() {

@@ -2,10 +2,10 @@ package com.wulfnet.enchanting2.enchantment;
 
 import com.wulfnet.enchanting2.bucket.InfiniteBuckets;
 import com.wulfnet.enchanting2.config.AllowTogetherSection;
+import com.wulfnet.enchanting2.platform.Services;
 import java.util.Comparator;
 import java.util.Objects;
 import java.util.Optional;
-import net.fabricmc.fabric.api.item.v1.EnchantingContext;
 import net.minecraft.core.Holder;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -84,7 +84,7 @@ public final class EnchantRules {
 		if (level > enchantment.value().getMaxLevel()) {
 			return verdict(Verdict.ABOVE_MAX, current);
 		}
-		if (!isBook(target) && !target.canBeEnchantedWith(enchantment, EnchantingContext.ACCEPTABLE)) {
+		if (!isBook(target) && !Services.ITEMS.acceptsEnchantment(target, enchantment)) {
 			return verdict(Verdict.NOT_APPLICABLE, current);
 		}
 		if (InfiniteBuckets.isBucket(target) && !enchantment.is(Enchantments.INFINITY)

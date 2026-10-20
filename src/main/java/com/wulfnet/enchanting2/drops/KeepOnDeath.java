@@ -2,9 +2,9 @@ package com.wulfnet.enchanting2.drops;
 
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.effect.ModEffects;
+import com.wulfnet.enchanting2.platform.Services;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
@@ -21,7 +21,7 @@ public final class KeepOnDeath {
 
 	/** Registers the respawn copy. Call once from mod init. */
 	public static void register() {
-		ServerPlayerEvents.COPY_FROM.register(KeepOnDeath::copyFrom);
+		Services.EVENTS.onPlayerCopy(KeepOnDeath::copyFrom);
 	}
 
 	public static boolean keeps(ItemStack stack) {

@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.wulfnet.enchanting2.platform.fabric.FabricEntrypoint;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
@@ -43,8 +44,8 @@ class ModIdentityTest {
 	@Test
 	void entrypointsPointAtRealClasses() throws Exception {
 		JsonObject entrypoints = modJson().getAsJsonObject("entrypoints");
-		assertEquals(Enchanting2.class.getName(), entrypoints.getAsJsonArray("main").get(0).getAsString());
-		assertEquals("com.wulfnet.enchanting2.Enchanting2Client",
+		assertEquals(FabricEntrypoint.class.getName(), entrypoints.getAsJsonArray("main").get(0).getAsString());
+		assertEquals("com.wulfnet.enchanting2.platform.fabric.FabricClientEntrypoint",
 				entrypoints.getAsJsonArray("client").get(0).getAsString());
 	}
 

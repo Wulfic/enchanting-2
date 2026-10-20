@@ -4,6 +4,7 @@ import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.config.ServerConfigs;
 import com.wulfnet.enchanting2.effect.SmeltingDrops;
+import com.wulfnet.enchanting2.platform.Services;
 import com.wulfnet.enchanting2.port.LootTool;
 import com.wulfnet.enchanting2.spawner.CollectedSpawners;
 import java.util.ArrayList;
@@ -11,7 +12,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import net.fabricmc.fabric.api.loot.v3.LootTableEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
@@ -46,7 +46,7 @@ public final class FortuneDrops {
 	}
 
 	public static void register() {
-		LootTableEvents.MODIFY_DROPS.register((table, context, drops) -> {
+		Services.EVENTS.onModifyDrops((table, context, drops) -> {
 			if (!REROLLING.get()) {
 				CommonConfig config = ServerConfigs.get(context.getLevel().getServer());
 				// Before Fortune, so the hard exclusion below is what keeps a collected spawner single.

@@ -190,7 +190,7 @@ public class ItemWideningGameTest {
 		helper.assertValueEqual(3, arrows.size(), Component.literal("arrows from a Multishot crossbow"));
 		for (AbstractArrow arrow : arrows) {
 			check(helper, arrow.getRemainingFireTicks() > 0, "a Flame crossbow arrow isn't lit");
-			check(helper, arrow.isNoGravity() && arrow.hasAttached(SuspendGravity.TICKS_LEFT),
+			check(helper, arrow.isNoGravity() && SuspendGravity.TICKS_LEFT.has(arrow),
 					"a TrueShot crossbow arrow still has gravity");
 		}
 		helper.succeed();

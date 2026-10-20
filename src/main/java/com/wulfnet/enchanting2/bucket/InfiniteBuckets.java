@@ -1,8 +1,8 @@
 package com.wulfnet.enchanting2.bucket;
 
 import com.wulfnet.enchanting2.Enchanting2;
+import com.wulfnet.enchanting2.platform.Services;
 import java.util.List;
-import net.fabricmc.fabric.api.item.v1.DefaultItemComponentEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerLevel;
@@ -34,8 +34,8 @@ public final class InfiniteBuckets {
 	}
 
 	public static void register() {
-		DefaultItemComponentEvents.MODIFY.register(context -> context.modify(BUCKETS,
-				(builder, item) -> builder.set(DataComponents.MAX_DAMAGE, USES).set(DataComponents.DAMAGE, 0)));
+		Services.ITEMS.modifyDefaultComponents(BUCKETS,
+				(builder, item) -> builder.set(DataComponents.MAX_DAMAGE, USES).set(DataComponents.DAMAGE, 0));
 	}
 
 	/** A water or lava bucket, enchanted or not. */

@@ -17,10 +17,10 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"com.wulfnet.enchanting2.Enchanting2"
+			"com.wulfnet.enchanting2.platform.fabric.FabricEntrypoint"
 		],
 		"client": [
-			"com.wulfnet.enchanting2.Enchanting2Client"
+			"com.wulfnet.enchanting2.platform.fabric.FabricClientEntrypoint"
 		],
 		"modmenu": [
 			"com.wulfnet.enchanting2.client.ModMenuIntegration"

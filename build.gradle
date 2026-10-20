@@ -9,6 +9,9 @@ plugins {
 // Pure renames between band A (1.21.11) and band B (26.x), applied to every source file when Stonecutter generates a
 // node's sources. A rename that needs more than a name change gets a //? condition or a port/ adapter instead.
 stonecutter {
+    // This script builds the Fabric nodes; the NeoForge and Forge nodes set their own loader (Phase 13). Loader code
+    // lives in platform/<loader>/ and is picked in platform/Services with //? if fabric (decisions.md 2026-10-20).
+    constants.match('fabric', 'fabric', 'neoforge', 'forge')
     // Fabric API 26.1 renamed its payload registries to Mojang's terms (Fabric "Porting to 26.1").
     replacements.string(sc.current.parsed.matches('>=26.1')) {
         replace 'PayloadTypeRegistry.configurationS2C()', 'PayloadTypeRegistry.clientboundConfiguration()'

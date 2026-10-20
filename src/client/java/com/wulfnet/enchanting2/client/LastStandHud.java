@@ -3,8 +3,7 @@ package com.wulfnet.enchanting2.client;
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.combat.LastStand;
 import com.wulfnet.enchanting2.combat.LastStandClock;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
+import com.wulfnet.enchanting2.platform.ClientServices;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -25,7 +24,7 @@ public final class LastStandHud {
 	}
 
 	public static void register() {
-		HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, ID, LastStandHud::render);
+		ClientServices.HOOKS.addHudLayerAfterHotbar(ID, LastStandHud::render);
 	}
 
 	private static void render(GuiGraphics graphics, DeltaTracker delta) {

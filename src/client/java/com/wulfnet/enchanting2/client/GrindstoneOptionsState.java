@@ -6,11 +6,9 @@ import com.wulfnet.enchanting2.grindstone.GrindstoneChoice;
 import com.wulfnet.enchanting2.grindstone.GrindstoneOutcome.Status;
 import com.wulfnet.enchanting2.network.GrindstoneChoicePayload;
 import com.wulfnet.enchanting2.network.GrindstoneOptionsPayload;
+import com.wulfnet.enchanting2.platform.ClientServices;
 import java.util.Optional;
 import java.util.OptionalInt;
-import net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationConnectionEvents;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,13 +26,13 @@ public final class GrindstoneOptionsState {
 
 	public static void register() {
 		// Registering the receiver is also what makes the server's canSend true, so panels start flowing.
-		ClientPlayNetworking.registerGlobalReceiver(GrindstoneOptionsPayload.TYPE, (payload, context) -> {
+		ClientServices.NETWORK.onReceive(GrindstoneOptionsPayload.TYPE, payload -> {
 			latest = payload;
 			LOG.debug("Grindstone panel for container {}: {}, {} row(s)", payload.containerId(), payload.status(),
 					payload.options().size());
 		});
-		ClientConfigurationConnectionEvents.INIT.register((handler, client) -> latest = null);
-		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> latest = null);
+		ClientServices.NETWORK.onConfigurationStart(() -> latest = null);
+		ClientServices.NETWORK.onDisconnect(() -> latest = null);
 		GrindstoneBridge.setClientPreviewSource(GrindstoneOptionsState::levelsCharged);
 	}
 
@@ -52,11 +50,11 @@ public final class GrindstoneOptionsState {
 
 	/** Sends the player's pick (or none, to clear it). The server validates it against what's in the grindstone. */
 	public static void sendChoice(int containerId, Optional<GrindstoneChoice> choice) {
-		if (!ClientPlayNetworking.canSend(GrindstoneChoicePayload.TYPE)) {
+		if (!ClientServices.NETWORK.canSend(GrindstoneChoicePayload.TYPE)) {
 			LOG.warn("The server can't receive a grindstone pick; {} not sent", choice);
 			return;
 		}
-		ClientPlayNetworking.send(new GrindstoneChoicePayload(containerId, choice));
+		ClientServices.NETWORK.send(new GrindstoneChoicePayload(containerId, choice));
 	}
 
 	private static OptionalInt levelsCharged(int containerId) {

@@ -13,11 +13,13 @@ import com.wulfnet.enchanting2.experience.ExperienceCurve;
 import com.wulfnet.enchanting2.experience.PlayerExperience;
 import com.wulfnet.enchanting2.grindstone.GrindstoneBridge;
 import com.wulfnet.enchanting2.table.TableBridge;
-import net.fabricmc.api.ClientModInitializer;
 
-public final class Enchanting2Client implements ClientModInitializer {
-	@Override
-	public void onInitializeClient() {
+/** Client mod init, after {@link Enchanting2#init()}. Each loader's client entry point calls {@link #init()} once. */
+public final class Enchanting2Client {
+	private Enchanting2Client() {
+	}
+
+	public static void init() {
 		ClientSettings.load();
 		ClientConfigState.register();
 		AnvilPreviewState.register();

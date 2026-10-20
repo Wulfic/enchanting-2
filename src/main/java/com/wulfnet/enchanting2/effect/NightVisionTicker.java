@@ -1,7 +1,7 @@
 package com.wulfnet.enchanting2.effect;
 
 import com.wulfnet.enchanting2.Enchanting2;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import com.wulfnet.enchanting2.platform.Services;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -25,7 +25,7 @@ public final class NightVisionTicker {
 	}
 
 	public static void register() {
-		ServerTickEvents.END_SERVER_TICK.register(server -> {
+		Services.EVENTS.onServerTickEnd(server -> {
 			if (server.getTickCount() % INTERVAL != 0) {
 				return;
 			}

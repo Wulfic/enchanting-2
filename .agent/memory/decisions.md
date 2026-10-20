@@ -1626,3 +1626,23 @@ apply a mixin + MixinExtras in `runGameTestServer`. These are each loader's offi
 evidence it supports Forge's 26.x mavenizer setup); NeoGradle (MDG is NeoForge's default MDK); separate Gradle
 builds per loader (loses shared `verifyAll`, Stonecutter conditions and one-source-tree).
 **Affects:** settings.gradle, stonecutter.gradle, build.neoforge.gradle, build.forge.gradle, versions/26.x-*/
+
+## 2026-10-20 — Phase 13 owner rulings: push each stage, loader in every jar name, widen B1 on NeoForge/Forge
+**Context:** asked before 13C, since pushing is outward-facing and jar names are release-visible.
+**Choice:** push `port/loaders` after each green stage. Every jar names its loader, Fabric included
+(`enchanting2-<v>+<band>-<loader>.jar`). NeoForge/Forge B1 claims are widened in 13F by runtime nodes on NeoForge
+26.1.0/26.1.1 betas and Forge 62/63, not left at 26.1.2.
+**Why:** owner's call. CI on each stage catches Linux-only failures early; one naming rule for all jars is clearer
+on a mod page listing ten files than "no suffix means Fabric".
+**Rejected:** local-only commits until the PR; Fabric jars keeping the 1.1.0 names; B1 = 26.1.2 only.
+**Affects:** release-collect.sh, ReleaseDocsTest, ModIdentityTest, ci.yml, release.yml, README, wiki, matrix/
+
+## 2026-10-20 — Phase 13B: server GameTests keep Fabric's `@GameTest`; other loaders swap the import
+**Context:** 13B planned a loader-neutral `@GameTest` of ours for all 339 server GameTests.
+**Choice:** Fabric nodes keep `net.fabricmc.fabric.api.gametest.v1.GameTest`. NeoForge/Forge nodes get a Stonecutter
+string replacement that swaps that one import for `com.wulfnet.enchanting2.platform.GameTest` (ours, with the
+attributes our tests use: `maxTicks`, `skyAccess`, `environment`), and their registrars scan for it.
+**Why:** Fabric's GameTest runner only discovers its own annotation; using ours on Fabric would mean re-implementing
+Fabric's discovery and its report writer, which `checkGameTestReport` relies on.
+**Rejected:** our annotation everywhere (re-implements Fabric's runner); a second copy of every test class per loader.
+**Affects:** src/gametest/**, build.neoforge.gradle, build.forge.gradle, platform/<loader>/*GameTests

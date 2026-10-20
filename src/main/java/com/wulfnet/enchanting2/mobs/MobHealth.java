@@ -2,7 +2,7 @@ package com.wulfnet.enchanting2.mobs;
 
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.config.ServerConfigs;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
+import com.wulfnet.enchanting2.platform.Services;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -33,7 +33,7 @@ public final class MobHealth {
 	}
 
 	public static void register() {
-		ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
+		Services.EVENTS.onEntityLoad((entity, level) -> {
 			if (entity instanceof Mob mob) {
 				apply(mob, ServerConfigs.get(level.getServer()).mobs().healthMultiplier());
 			}

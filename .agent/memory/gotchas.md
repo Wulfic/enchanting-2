@@ -860,3 +860,29 @@ recognised". Fabric (sponge-mixin 0.17.x) and NeoForge 26.3 accept JAVA_25.
 Forge in dev also needs `--mixin.config=<file>` per config as a run arg; the jar needs a `MixinConfigs` manifest
 attribute (Forge's `mods.toml` has no mixins list, unlike `neoforge.mods.toml`'s `[[mixins]]`).
 **Affects:** build.forge.gradle, src/main/resources/enchanting2.mixins.json, src/client/resources/enchanting2.client.mixins.json
+
+## 2026-10-20 — Two `verifyAll` runs at once lock each other's GameTest worlds
+**Context:** a session's `verifyAll` was still running in its Gradle daemon when the next session started another one.
+**Symptom:** `runGameTest` fails with `IOException: ... another process has locked a portion of the file` at
+`DirectoryLock.create`, `clearGameTestRunDir` fails ("a game from the last run may still hold it"), log4j can't delete
+`build/run/gameTest/logs/latest.log`, and `checkGameTestReport` reads the *other* run's report (339 ran, 0 failed).
+No code is at fault. Both builds use the same `versions/*/build/run/gameTest` and `matrix/*/build/run/gameTest`.
+**Fix:** before starting one, check that no game JVM from another run is alive (`Get-CimInstance Win32_Process
+-Filter "Name='java.exe'"`, look for `KnotServer` / `gametest` in the command line); wait, never kill by name.
+**Affects:** scripts/verify-all.sh, every node's runGameTest
+
+## 2026-10-20 — A passing GameTest run left no report once, under a loaded verifyAll
+**Symptom:** 13B's first `verifyAll`: `:26.2:checkGameTestReport` failed with "No GameTest report", although that
+run logged "All 339 required tests passed" at 02:39:08 and shut down cleanly at 02:42:25 ("Can't keep up" up to
+27 s behind: seven game servers at once plus the owner's other instance).
+**Not reproduced:** `:26.2:runGameTest` alone and a second full `verifyAll` both wrote the report (339/339).
+**Cause (found 2026-10-20, second session):** a second session's `verifyAll` started on the same tree at 02:35. Its
+`:26.2:runGameTest` `doFirst` deleted this run's freshly written report, then its own server couldn't lock the
+world. See "Two `verifyAll` runs at once" above. Our `doFirst` now logs every delete with the file's timestamp, and
+the failure message lists the `gametest*` files present and the check time.
+**If it recurs:** first check for another build on this tree (java command lines containing `Repos/enchanting-2`
+from another session). Then read those two lines. A delete line for that node after its pass means a second
+run; no delete line plus no file means Fabric's `SavingXmlTestReporter` never wrote it (then log around
+`JUnitLikeTestReporter.finish`). Don't paper over it with a retry: the check exists because a run that loads no
+tests also exits 0.
+**Affects:** gradle/gametest-report.gradle

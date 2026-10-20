@@ -5,11 +5,8 @@ import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.config.ConfigFiles;
 import com.wulfnet.enchanting2.network.ConfigSyncPayload;
+import com.wulfnet.enchanting2.platform.ClientServices;
 import java.util.Optional;
-import net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationConnectionEvents;
-import net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationNetworking;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,12 +24,11 @@ public final class ClientConfigState {
 
 	public static void register() {
 		// Registering these is also what tells the server this client has Enchanting 2 (NetworkProtocol).
-		ClientConfigurationNetworking.registerGlobalReceiver(ConfigSyncPayload.TYPE,
-				(payload, context) -> accept(payload));
-		ClientPlayNetworking.registerGlobalReceiver(ConfigSyncPayload.TYPE, (payload, context) -> accept(payload));
+		ClientServices.NETWORK.onReceiveInConfiguration(ConfigSyncPayload.TYPE, payload -> accept(payload));
+		ClientServices.NETWORK.onReceive(ConfigSyncPayload.TYPE, payload -> accept(payload));
 		// Not the configuration DISCONNECT event: it may also fire on the hand-off to play, which would drop the copy.
-		ClientConfigurationConnectionEvents.INIT.register((handler, client) -> clear());
-		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> clear());
+		ClientServices.NETWORK.onConfigurationStart(() -> clear());
+		ClientServices.NETWORK.onDisconnect(() -> clear());
 	}
 
 	/** Empty when not connected, or connected to a server that never sent one (a vanilla server). */

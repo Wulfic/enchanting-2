@@ -3,8 +3,8 @@ package com.wulfnet.enchanting2.client;
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.config.ClientConfig;
 import com.wulfnet.enchanting2.config.ConfigFiles;
+import com.wulfnet.enchanting2.platform.Services;
 import java.nio.file.Path;
-import net.fabricmc.loader.api.FabricLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,6 +49,6 @@ public final class ClientSettings {
 	}
 
 	public static Path file() {
-		return FabricLoader.getInstance().getConfigDir().resolve(Enchanting2.MOD_ID).resolve(ClientConfig.FILE_NAME);
+		return Services.LOADER.configDir().resolve(Enchanting2.MOD_ID).resolve(ClientConfig.FILE_NAME);
 	}
 }

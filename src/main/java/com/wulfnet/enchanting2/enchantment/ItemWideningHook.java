@@ -2,8 +2,8 @@ package com.wulfnet.enchanting2.enchantment;
 
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.mixin.EnchantmentBuilderAccessor;
+import com.wulfnet.enchanting2.platform.Services;
 import java.util.Optional;
-import net.fabricmc.fabric.api.item.v1.EnchantmentEvents;
 import net.minecraft.core.HolderGetter;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.registries.Registries;
@@ -29,18 +29,10 @@ public final class ItemWideningHook {
 	}
 
 	public static void register() {
-		// Fabric API 26.1 deprecated MODIFY for MODIFY_WITH_LOOKUP, which passes the lookup the JSON was parsed with: the
-		// items come from it there. 1.21.11's MODIFY has none, so RegistryDataLoaderMixin lends it (band A only). 26.3's
-		// lookup returns the getter itself instead of a RegistryInfo holding it.
-		//? if >=26.3 {
-		/*EnchantmentEvents.MODIFY_WITH_LOOKUP.register((key, builder, source, registries) -> apply(key, builder,
-				registries.<Item>lookup(Registries.ITEM).orElse(null)));
-		*///?} else if >=26.1 {
-		/*EnchantmentEvents.MODIFY_WITH_LOOKUP.register((key, builder, source, registries) -> apply(key, builder,
-				registries.<Item>lookup(Registries.ITEM).map(net.minecraft.resources.RegistryOps.RegistryInfo::getter)
-						.orElse(null)));
-		*///?} else
-		EnchantmentEvents.MODIFY.register((key, builder, source) -> apply(key, builder, ITEMS.get()));
+		// The loader passes the item lookup the JSON was parsed with where it can (Fabric on 26.x). Fabric on 1.21.11
+		// passes none, so RegistryDataLoaderMixin lends it (band A only).
+		Services.ITEMS.onEnchantmentLoad(
+				(key, builder, items) -> apply(key, builder, items != null ? items : ITEMS.get()));
 	}
 
 	/** 1.21.11: called by the loader mixin before an element loads; {@code null} clears it afterwards. */

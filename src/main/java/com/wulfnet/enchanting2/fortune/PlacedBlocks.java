@@ -2,9 +2,10 @@ package com.wulfnet.enchanting2.fortune;
 
 import com.mojang.serialization.Codec;
 import com.wulfnet.enchanting2.Enchanting2;
+import com.wulfnet.enchanting2.platform.Attachment;
+import com.wulfnet.enchanting2.platform.Attachments;
+import com.wulfnet.enchanting2.platform.Services;
 import java.util.List;
-import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
-import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
@@ -19,20 +20,18 @@ import net.minecraft.world.level.chunk.LevelChunk;
  */
 public final class PlacedBlocks {
 	/** Chunk → its marks. Persistent, never synced. An emptied set is removed, so most chunks carry nothing. */
-	public static final AttachmentType<PlacedMarks> CHUNK = AttachmentRegistry.create(
-			Identifier.fromNamespaceAndPath(Enchanting2.MOD_ID, "placed_blocks"),
-			builder -> builder.persistent(PlacedMarksCodec.INSTANCE));
+	public static final Attachment<PlacedMarks> CHUNK = Services.ATTACHMENTS.register(Attachments.Spec.persistent(
+			Identifier.fromNamespaceAndPath(Enchanting2.MOD_ID, "placed_blocks"), PlacedMarksCodec.INSTANCE));
 	/** A falling block that left a placed position carries the mark here, and writes it back where it lands. */
-	public static final AttachmentType<Boolean> FALLING = AttachmentRegistry.create(
-			Identifier.fromNamespaceAndPath(Enchanting2.MOD_ID, "placed_falling"),
-			builder -> builder.persistent(Codec.BOOL));
+	public static final Attachment<Boolean> FALLING = Services.ATTACHMENTS.register(Attachments.Spec.persistent(
+			Identifier.fromNamespaceAndPath(Enchanting2.MOD_ID, "placed_falling"), Codec.BOOL));
 
 	private PlacedBlocks() {
 	}
 
 	/** Loads the class, which registers both attachment types, during mod init (before any world loads). */
 	public static void register() {
-		Enchanting2.LOGGER.debug("Placed-block attachments: {}, {}", CHUNK.identifier(), FALLING.identifier());
+		Enchanting2.LOGGER.debug("Placed-block attachments: {}, {}", CHUNK.id(), FALLING.id());
 	}
 
 	public static void mark(ServerLevel level, BlockPos pos) {
@@ -71,11 +70,11 @@ public final class PlacedBlocks {
 
 	/** Whether a falling block entity carries a placed mark. */
 	public static boolean isPlacedFalling(Entity entity) {
-		return Boolean.TRUE.equals(entity.getAttached(FALLING));
+		return Boolean.TRUE.equals(FALLING.get(entity));
 	}
 
 	public static void setPlacedFalling(Entity entity) {
-		entity.setAttached(FALLING, Boolean.TRUE);
+		FALLING.set(entity, Boolean.TRUE);
 	}
 
 	/** Marks or clears one position. A block arriving at a position replaces whatever mark was there. */
@@ -88,16 +87,16 @@ public final class PlacedBlocks {
 		if (next == current) {
 			return;
 		}
-		// setAttached marks the chunk unsaved; mutating the stored value in place would not.
+		// set marks the chunk unsaved; mutating the stored value in place would not.
 		if (next.isEmpty()) {
-			chunk.removeAttached(CHUNK);
+			CHUNK.remove(chunk);
 		} else {
-			chunk.setAttached(CHUNK, next);
+			CHUNK.set(chunk, next);
 		}
 	}
 
 	private static PlacedMarks marks(LevelChunk chunk) {
-		PlacedMarks marks = chunk.getAttached(CHUNK);
+		PlacedMarks marks = CHUNK.get(chunk);
 		return marks == null ? PlacedMarks.EMPTY : marks;
 	}
 

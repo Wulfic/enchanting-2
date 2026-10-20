@@ -3,10 +3,10 @@ package com.wulfnet.enchanting2.effect;
 import com.mojang.datafixers.util.Pair;
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.config.ServerConfigs;
+import com.wulfnet.enchanting2.platform.Services;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.DoubleSupplier;
-import net.fabricmc.fabric.api.loot.v3.LootTableEvents;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
@@ -41,7 +41,7 @@ public final class HeadDrops {
 	}
 
 	public static void register() {
-		LootTableEvents.MODIFY_DROPS.register((table, context, drops) -> {
+		Services.EVENTS.onModifyDrops((table, context, drops) -> {
 			if (context.hasParameter(LootContextParams.THIS_ENTITY)
 					&& context.hasParameter(LootContextParams.DAMAGE_SOURCE)) {
 				apply(table, context, drops,

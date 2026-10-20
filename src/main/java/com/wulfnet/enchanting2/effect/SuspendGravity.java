@@ -4,8 +4,9 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.wulfnet.enchanting2.Enchanting2;
-import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
-import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
+import com.wulfnet.enchanting2.platform.Attachment;
+import com.wulfnet.enchanting2.platform.Attachments;
+import com.wulfnet.enchanting2.platform.Services;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
@@ -28,13 +29,12 @@ public record SuspendGravity(LevelBasedValue ticks) implements EnchantmentEntity
 			.apply(instance, SuspendGravity::new));
 
 	/** Ticks left without gravity. Only on arrows whose gravity we took away. */
-	public static final AttachmentType<Integer> TICKS_LEFT = AttachmentRegistry.create(
-			Identifier.fromNamespaceAndPath(Enchanting2.MOD_ID, "gravity_ticks"),
-			builder -> builder.persistent(Codec.INT));
+	public static final Attachment<Integer> TICKS_LEFT = Services.ATTACHMENTS.register(Attachments.Spec.persistent(
+			Identifier.fromNamespaceAndPath(Enchanting2.MOD_ID, "gravity_ticks"), Codec.INT));
 
 	/** Loads the class, which registers the attachment, during mod init. */
 	static void register() {
-		Enchanting2.LOGGER.debug("Gravity countdown attachment: {}", TICKS_LEFT.identifier());
+		Enchanting2.LOGGER.debug("Gravity countdown attachment: {}", TICKS_LEFT.id());
 	}
 
 	@Override
@@ -55,20 +55,20 @@ public record SuspendGravity(LevelBasedValue ticks) implements EnchantmentEntity
 			return;
 		}
 		entity.setNoGravity(true);
-		entity.setAttached(TICKS_LEFT, ticks);
+		TICKS_LEFT.set(entity, ticks);
 	}
 
 	/** One server tick of the countdown; at 0 the arrow gets its gravity back. Called by {@code AbstractArrowMixin}. */
 	public static void tick(AbstractArrow arrow) {
-		Integer left = arrow.getAttached(TICKS_LEFT);
+		Integer left = TICKS_LEFT.get(arrow);
 		if (left == null) {
 			return;
 		}
 		if (left > 1) {
-			arrow.setAttached(TICKS_LEFT, left - 1);
+			TICKS_LEFT.set(arrow, left - 1);
 			return;
 		}
-		arrow.removeAttached(TICKS_LEFT);
+		TICKS_LEFT.remove(arrow);
 		arrow.setNoGravity(false);
 	}
 }

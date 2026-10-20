@@ -16,16 +16,18 @@ import com.wulfnet.enchanting2.mobs.MobHealth;
 import com.wulfnet.enchanting2.network.ServerNetworking;
 import com.wulfnet.enchanting2.shield.BulwarkEffect;
 import com.wulfnet.enchanting2.spawner.CollectedSpawners;
-import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class Enchanting2 implements ModInitializer {
+/** Common mod init. Each loader's entry point ({@code platform/<loader>/}) calls {@link #init()} once. */
+public final class Enchanting2 {
 	public static final String MOD_ID = "enchanting2";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-	@Override
-	public void onInitialize() {
+	private Enchanting2() {
+	}
+
+	public static void init() {
 		ModEffects.register();
 		BulwarkEffect.register();
 		KeepOnDeath.register();

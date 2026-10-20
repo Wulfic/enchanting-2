@@ -302,13 +302,13 @@ public class FortuneDropsGameTest {
 	@GameTest
 	public void anUnreadableChunkGivesNoBonus(GameTestHelper helper) {
 		LevelChunk chunk = helper.getLevel().getChunkAt(helper.absolutePos(POS));
-		PlacedMarks before = chunk.getAttached(PlacedBlocks.CHUNK);
-		chunk.setAttached(PlacedBlocks.CHUNK, PlacedMarks.unreadable("test"));
+		PlacedMarks before = PlacedBlocks.CHUNK.get(chunk);
+		PlacedBlocks.CHUNK.set(chunk, PlacedMarks.unreadable("test"));
 		try {
 			assertSingle(helper, rolls(helper, Blocks.OAK_LOG.defaultBlockState(),
 					tool(helper, Items.IRON_AXE, Enchantments.FORTUNE), Items.OAK_LOG), 1, "oak log in an unreadable chunk");
 		} finally {
-			chunk.setAttached(PlacedBlocks.CHUNK, before);
+			PlacedBlocks.CHUNK.set(chunk, before);
 		}
 		helper.succeed();
 	}

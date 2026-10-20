@@ -251,10 +251,10 @@ public class PlacedBlocksGameTest {
 		LevelChunk chunk = level.getChunkAt(pos);
 		CompoundTag nbt = SerializableChunkData.copyOf(level, chunk).write();
 		Tag stored = nbt.getCompound(AttachmentTarget.NBT_ATTACHMENT_KEY).orElseThrow()
-				.get(PlacedBlocks.CHUNK.identifier().toString());
+				.get(PlacedBlocks.CHUNK.id().toString());
 		helper.assertTrue(stored != null, Component.literal("no placed-block attachment in the chunk NBT: " + nbt.keySet()));
 		PlacedMarks read = PlacedMarksCodec.INSTANCE.parse(NbtOps.INSTANCE, stored).getOrThrow();
-		helper.assertValueEqual(chunk.getAttached(PlacedBlocks.CHUNK), read, Component.literal("decoded marks"));
+		helper.assertValueEqual(PlacedBlocks.CHUNK.get(chunk), read, Component.literal("decoded marks"));
 		helper.assertTrue(read.isMarked(pos.getX() & 15, pos.getY(), pos.getZ() & 15), Component.literal("mark lost"));
 		helper.succeed();
 	}
@@ -272,14 +272,14 @@ public class PlacedBlocksGameTest {
 		ServerLevel level = helper.getLevel();
 		BlockPos pos = helper.absolutePos(new BlockPos(1, 1, 1));
 		LevelChunk chunk = level.getChunkAt(pos);
-		PlacedMarks before = chunk.getAttached(PlacedBlocks.CHUNK);
-		chunk.setAttached(PlacedBlocks.CHUNK, PlacedMarks.unreadable("test"));
+		PlacedMarks before = PlacedBlocks.CHUNK.get(chunk);
+		PlacedBlocks.CHUNK.set(chunk, PlacedMarks.unreadable("test"));
 		try {
 			assertOrigin(helper, Origin.UNREADABLE, new BlockPos(1, 1, 1), "a block in an unreadable chunk");
 			PlacedBlocks.clear(level, pos);
 			assertOrigin(helper, Origin.UNREADABLE, new BlockPos(1, 1, 1), "after a clear (ignored)");
 		} finally {
-			chunk.setAttached(PlacedBlocks.CHUNK, before);
+			PlacedBlocks.CHUNK.set(chunk, before);
 		}
 		helper.succeed();
 	}

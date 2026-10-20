@@ -11,9 +11,9 @@ import com.wulfnet.enchanting2.grindstone.GrindstoneOutcome;
 import com.wulfnet.enchanting2.grindstone.GrindstoneSlotOwner;
 import com.wulfnet.enchanting2.network.GrindstoneOptionsHolder;
 import com.wulfnet.enchanting2.network.GrindstoneOptionsPayload;
+import com.wulfnet.enchanting2.platform.Services;
 import java.util.List;
 import java.util.Optional;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
@@ -196,8 +196,8 @@ abstract class GrindstoneMenuMixin extends AbstractContainerMenu implements Grin
 			return;
 		}
 		enchanting2$lastOptions = options;
-		if (ServerPlayNetworking.canSend(player, GrindstoneOptionsPayload.TYPE)) {
-			ServerPlayNetworking.send(player, options);
+		if (Services.NETWORK.canSend(player, GrindstoneOptionsPayload.TYPE)) {
+			Services.NETWORK.send(player, options);
 		}
 	}
 }

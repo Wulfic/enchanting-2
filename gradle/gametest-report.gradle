@@ -13,7 +13,9 @@ def checkGameTestReport = tasks.register('checkGameTestReport') {
     def nodeName = project.path
     doLast {
         if (!report.isFile()) {
-            throw new GradleException("No GameTest report at ${report}: the GameTest server didn't run")
+            def siblings = report.parentFile.list()?.findAll { it.startsWith('gametest') } ?: []
+            throw new GradleException("No GameTest report at ${report}: the GameTest server didn't run, or its report " +
+                "was removed afterwards (gametest* files there now: ${siblings ?: 'none'}; checked ${new Date()})")
         }
         def suite = new groovy.xml.XmlSlurper().parse(report)
         def cases = suite.'**'.findAll { it.name() == 'testcase' }
@@ -29,7 +31,20 @@ def checkGameTestReport = tasks.register('checkGameTestReport') {
     }
 }
 tasks.named('runGameTest') {
-    // A report left by an earlier run must never pass for this one.
-    doFirst { gameTestReport.delete() }
+    // A report left by an earlier run must never pass for this one. Logged, so a report that vanishes after a passing
+    // run (once under a loaded verifyAll, gotchas.md 2026-10-20) shows whether this delete is what removed it.
+    def deletePath = project.path
+    doFirst {
+        if (gameTestReport.exists()) {
+            logger.lifecycle("${deletePath}: deleting the previous GameTest report ${gameTestReport} " +
+                "(${new Date(gameTestReport.lastModified())})")
+            // Fail closed: a report that can't be deleted (Windows: another process holds it) would pass this run.
+            if (!gameTestReport.delete()) {
+                throw new GradleException("Could not delete the previous GameTest report ${gameTestReport}; another " +
+                    "process may hold it (a second build on this tree? gotchas.md 2026-10-20). Refusing to run, so " +
+                    "the old report can't pass for this run.")
+            }
+        }
+    }
     finalizedBy checkGameTestReport
 }

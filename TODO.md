@@ -45,6 +45,14 @@ Owner 2026-10-20: bring the mod to Quilt, NeoForge and Forge. Answers: NeoForge/
 Fabric/Quilt share a jar, NeoForge and Forge get their own; JUnit + **server GameTests on every loader**; a config
 menu on Forge/NeoForge from something other than YACL. Decision record: decisions.md 2026-10-20 "Phase 13".
 
+Owner 2026-10-20, second round (decisions.md "Phase 13 owner rulings"):
+- **Push `port/loaders` after every green stage** so CI checks it; PR opened at 13F (ask first).
+- **Every jar names its loader, Fabric too:** `enchanting2-1.2.0+26.3-fabric.jar`, `…+1.21.11-fabric.jar`,
+  `…+26.3-neoforge.jar`, `…+26.3-forge.jar`. Breaks the 1.1.0 naming on purpose: `release-collect.sh`,
+  `ReleaseDocsTest`, README/wiki tables and CI artifact paths change in 13F. Node names stay as they are.
+- **Widen B1 now on NeoForge/Forge:** 13F adds runtime nodes for NeoForge 26.1.0 / 26.1.1 (beta builds) and Forge 62 /
+  63 (26.1 / 26.1.1) on the 26.1.2 jars, as `matrix/` does. Green widens the claim; red leaves it at 26.1.2.
+
 **Goal:** each release ships the four Fabric jars (also claimed for Quilt where proven) plus one NeoForge and one
 Forge jar per 26.x band (B1 26.1.2, B2 26.2, B3 26.3). Each new jar passes JUnit and all server GameTests on its own
 loader, and every feature exists on every loader, as in Phase 12.
@@ -97,8 +105,9 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
         1.1.0 Fabric jars (+ Fabric API, YACL, `fabric-gametest-api-v1`). 1.21.11: boots to "Done", config loads, no
         errors; GameTests can't run in *any* production 1.21.11 game. Fabric Loader 0.19.5 fails identically
         (`AnnotationFormatError` on `@GameTest.rotation()`'s intermediary enum default), so this is a harness limit,
-        not a Quilt one. → Quilt is claimed for B1–B3; 1.21.11 Quilt is "boots, not GameTest-proven" unless 13F finds
-        a way. Harness notes in gotchas.md 2026-10-20.
+        not a Quilt one. → Quilt is claimed for B1–B3. **Owner 2026-10-20: 1.21.11 stays Fabric-only** (no Quilt
+        claim, no NeoForge/Forge); Quilt, NeoForge and Forge are for the 26.x bands. Harness notes in gotchas.md
+        2026-10-20.
   - [x] A2. NeoForge 26.3: an empty node in this build (Stonecutter loader axis + ModDevGradle next to
         loom-back-compat, or Architectury Loom for both) that loads `enchanting2.mixins.json` with one MixinExtras
         `@WrapOperation`. Choose the build plugin, `/research-docs` first.
@@ -109,8 +118,16 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
         `runGameTestServer` on both: one `@Inject` + one MixinExtras `@ModifyReturnValue` on `MinecraftServer` apply
         (`neoforge+SPIKE-MIXINEXTRAS`, MixinExtras 0.5.5; `forge+SPIKE-MIXINEXTRAS`, 0.5.4). Forge needs mixin
         `compatibilityLevel` ≤ `JAVA_21` (gotchas.md). decisions.md 2026-10-20 "build plugins".
-- [ ] 13B — **Platform seam, Fabric only, no behaviour change.** `platform/` interfaces + `platform/fabric`; the 28
-      files call the seam; `@GameTest` is ours, registered through `GameTestRegistrar`. Proof: `verifyAll` and every
+- [x] 13B — **Done 2026-10-20.** `verifyAll` green on a quiet tree (435 JUnit + 339 GameTests on every node and on
+      matrix 26.1 / 26.1.1); client GameTests green on 1.21.11, 26.1.2, 26.2, 26.3. `gametest-report.gradle`'s stale-
+      report delete now fails closed (checked by hand: with the report held open, `runGameTest` refuses; build
+      scripts have no test harness). **Platform seam, Fabric only, no behaviour change.** `platform/` interfaces + `platform/fabric`; the 28
+      files call the seam. **Changed 2026-10-20:** server GameTests keep Fabric's `@GameTest` (Fabric's runner only
+      finds its own annotation, so swapping it would mean re-implementing Fabric's test discovery). 13C/13D swap that
+      one import for ours with a Stonecutter string replacement on their nodes, and their registrars scan it.
+      Done so far: `Services` / `ClientServices` (loader picked by `//? if fabric`), `LoaderInfo`, `ServerEvents`,
+      `ItemHooks`, `Attachments`/`Attachment`, `Networking`, `ClientNetworking`, `ClientHooks`; Fabric entry points
+      `platform/fabric/Fabric{,Client}Entrypoint`; `PlatformImportsTest`. Proof: `verifyAll` and every
       node's `runClientGameTest` are as green as on `a071f7f`, with the same test counts (432 JUnit / 339 GameTests).
       Add a JUnit test that fails if any class outside `platform/<loader>/` imports `net.fabricmc` / `net.neoforged` /
       `net.minecraftforge`.
@@ -119,6 +136,46 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
       `RegisterGuiLayersEvent`, `ItemTooltipEvent`). The enchantment `MODIFY` replacement is a registry-load hook like
       10gA's `RegistryDataLoaderMixin`. Fix mixins that miss on NeoForge's patched targets (mixin `require` errors =
       the list), each with a GameTest already covering it. Proof: JUnit + 339 server GameTests on each node.
+      **Plan (2026-10-20, checked against the NeoForge 26.3.0.95 sources jar, not docs):**
+      - C1. Build: `settings.gradle` `vers('26.x-neoforge', '26.x').buildscript('build.neoforge.gradle')` for 26.1.2 /
+        26.2 / 26.3 (start with 26.3 alone, widen once green); `stonecutter.gradle` plugins `moddev` 2.0.148 +
+        `net.minecraftforge.gradle` 7.0.40 `apply false`; `build.neoforge.gradle` from the spike + the gametest source
+        set as a second mod source set, `gameTestServer` run with vanilla `--report <build>/gametest-report.xml` (so
+        `checkGameTestReport` is shared; `gradle/gametest-report.gradle` gets a non-Loom branch), `neo_version` per
+        node. NeoForge-only resources (`META-INF/neoforge.mods.toml`, loot modifier JSON) under
+        `src/main/resources-neoforge/`; `fabric.mod.json` excluded there, and the reverse in build.gradle.
+        `ModMenuIntegration` and the YACL screen excluded from NeoForge compiles (Stonecutter `//? if fabric`).
+      - C2. `platform/neoforge`: `NeoForgeEntrypoint` (`@Mod`, mod bus), `NeoForgeLoaderInfo` (`FMLPaths`, `ModList`),
+        `NeoForgeServerEvents` (`ServerStartingEvent`, `ServerStoppedEvent`, `AddServerReloadListenersEvent` /
+        `OnDatapackSyncEvent` for reload-done, `ServerTickEvent.Post`, `EntityJoinLevelEvent` server side,
+        `PlayerEvent.Clone` with `isWasDeath`), `NeoForgeAttachments` (`AttachmentType.builder(() -> throw)` +
+        `IAttachmentSerializer` writing the codec value as-is, `copyOnDeath`, `sync(targetOnly, codec)`; reads via
+        `getExistingDataOrNull`), `NeoForgeNetworking` (`RegisterPayloadHandlersEvent` → `PayloadRegistrar`
+        `playToClient` / `configurationToClient` / `playToServer`, `executesOn(HandlerThread.MAIN)` to keep the
+        "server thread" contract, payloads marked **optional** so NeoForge doesn't kick a vanilla client with its own
+        message before our `NetworkProtocol` check; `RegisterConfigurationTasksEvent` + an `ICustomConfigurationTask`
+        for `onConfigure`, `hasChannel` for `sendableChannels`), `NeoForgeItemHooks` (`ModifyDefaultComponentsEvent`;
+        `acceptsEnchantment` = `stack.supportsEnchantment`).
+      - C3. Drops: one global loot modifier (`platform/neoforge/DropsLootModifier`, codec in
+        `GLOBAL_LOOT_MODIFIER_SERIALIZERS`, JSON in `resources-neoforge/data/...`) calling the `onModifyDrops`
+        listeners; the table `Holder` resolved from `getQueriedLootTableId()` through `reloadableRegistries()`.
+      - C4. Enchantment load: NeoForge-only mixin (`mixin/neoforge/ResourceManagerRegistryLoadTaskMixin` + builder
+        accessor), copied from Fabric item-api 14.1.0's own (`@WrapOperation` on `new PendingRegistration`), rebuilding
+        only when the result differs (`Enchantment` is a record); lambda target picked by javap on NeoForge's jar.
+        Listed in mixins.json under a loader condition, as band-A mixins are.
+      - C5. Client: `NeoForgeClientEntrypoint`, `NeoForgeClientNetworking`, `NeoForgeClientHooks`
+        (`ItemTooltipEvent`, `RegisterGuiLayersEvent.registerAbove(VanillaGuiLayers.HOTBAR)`). No config screen yet
+        (13E).
+      - C6. GameTests: our `platform/GameTest` annotation (same attributes as Fabric's that our tests use);
+        Stonecutter string replacement swaps the import on non-Fabric nodes; `NeoForgeGameTests` reads the class list
+        from the gametest `fabric.mod.json` entrypoints and registers each method on `RegisterGameTestsEvent`. Our own
+        empty structure (Fabric's `fabric-gametest-api-v1:empty` doesn't exist there). `SaveFormatGameTest` /
+        `PlacedBlocksGameTest` read the attachment NBT key from the seam, not Fabric's constant.
+      - C7. Run the 339 on 26.3-neoforge; each failing mixin or test gets its own fix (budget 3 per failure). Then
+        26.1.2 / 26.2.
+      Blast radius: additive except `build.gradle` / `gametest-report.gradle` / mixins.json edits (git-restorable) and
+      the gametest import swap (Fabric nodes unchanged, guarded by their 339 still running). Rollback: revert the 13C
+      commit.
 - [ ] 13D — **Forge nodes** 26.1.2, 26.2, 26.3: `mods.toml`, `platform/forge` (capabilities for attachments, its
       payload channel, Forge events). Same proof.
 - [ ] 13E — **Config screen for NeoForge + Forge** on vanilla widgets (`client/config/`, drawn from the existing

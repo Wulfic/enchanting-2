@@ -3,11 +3,11 @@ package com.wulfnet.enchanting2.acquisition;
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.config.ServerConfigs;
 import com.wulfnet.enchanting2.mixin.HolderReferenceAccessor;
+import com.wulfnet.enchanting2.platform.Services;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
@@ -27,8 +27,8 @@ public final class Acquisition {
 	}
 
 	public static void register() {
-		ServerLifecycleEvents.SERVER_STARTING.register(server -> stamp(server, server));
-		ServerLifecycleEvents.SERVER_STOPPED.register(server -> stamp(server, null));
+		Services.EVENTS.onServerStarting(server -> stamp(server, server));
+		Services.EVENTS.onServerStopped(server -> stamp(server, null));
 	}
 
 	private static void stamp(MinecraftServer server, MinecraftServer value) {

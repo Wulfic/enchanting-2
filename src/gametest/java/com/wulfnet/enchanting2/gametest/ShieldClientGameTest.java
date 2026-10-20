@@ -80,7 +80,7 @@ public class ShieldClientGameTest implements FabricClientGameTest {
 			chestplate.enchant(server.registryAccess().lookupOrThrow(Registries.ENCHANTMENT)
 					.getOrThrow(ModEnchantments.LAST_STAND), 1);
 			player.setItemSlot(EquipmentSlot.CHEST, chestplate);
-			player.setAttached(LastStand.READY_AT, player.level().getGameTime() + 5432);
+			LastStand.READY_AT.set(player, player.level().getGameTime() + 5432);
 		});
 		Delivery.toClient(context);
 		long remaining = context.computeOnClient(client -> LastStand.remaining(client.player,

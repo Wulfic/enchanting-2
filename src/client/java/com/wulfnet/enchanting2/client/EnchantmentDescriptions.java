@@ -2,6 +2,8 @@ package com.wulfnet.enchanting2.client;
 
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.config.ClientConfig;
+import com.wulfnet.enchanting2.platform.ClientServices;
+import com.wulfnet.enchanting2.platform.Services;
 import com.wulfnet.enchanting2.tooltip.DescriptionPlan;
 import com.wulfnet.enchanting2.tooltip.TooltipFit;
 import java.util.ArrayList;
@@ -9,8 +11,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Holder;
@@ -51,12 +51,12 @@ public final class EnchantmentDescriptions {
 	}
 
 	public static void register() {
-		boolean describe = !FabricLoader.getInstance().isModLoaded(OTHER_MOD_ID);
+		boolean describe = !Services.LOADER.isModLoaded(OTHER_MOD_ID);
 		if (!describe) {
 			Enchanting2.LOGGER.info("Enchantment Descriptions ({}) is loaded; leaving tooltip descriptions to it",
 					OTHER_MOD_ID);
 		}
-		ItemTooltipCallback.EVENT.register((stack, context, flag, lines) -> {
+		ClientServices.HOOKS.onItemTooltip((stack, lines) -> {
 			try {
 				onTooltip(stack, lines, describe, Minecraft.getInstance().hasControlDown(), ClientSettings.get(),
 						Minecraft.getInstance().getWindow().getGuiScaledHeight());

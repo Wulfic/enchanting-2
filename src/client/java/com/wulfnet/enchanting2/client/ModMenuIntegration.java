@@ -3,7 +3,7 @@ package com.wulfnet.enchanting2.client;
 import com.terraformersmc.modmenu.api.ConfigScreenFactory;
 import com.terraformersmc.modmenu.api.ModMenuApi;
 import com.wulfnet.enchanting2.Enchanting2;
-import net.fabricmc.loader.api.FabricLoader;
+import com.wulfnet.enchanting2.platform.Services;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,7 +14,7 @@ public final class ModMenuIntegration implements ModMenuApi {
 
 	@Override
 	public ConfigScreenFactory<?> getModConfigScreenFactory() {
-		if (!FabricLoader.getInstance().isModLoaded(YACL_MOD_ID)) {
+		if (!Services.LOADER.isModLoaded(YACL_MOD_ID)) {
 			LOG.info("YetAnotherConfigLib isn't installed, so Enchanting 2 has no config screen. "
 					+ "Edit config/enchanting2/common.json5 instead.");
 			return ModMenuApi.super.getModConfigScreenFactory();

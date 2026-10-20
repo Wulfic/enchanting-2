@@ -45,9 +45,9 @@ public class SaveFormatGameTest {
 	public void entityAttachmentsKeepTheirSavedFormat(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
 		Husk written = husk(helper);
-		written.setAttached(LastStand.READY_AT, READY_AT);
-		written.setAttached(SuspendGravity.TICKS_LEFT, GRAVITY_TICKS);
-		written.setAttached(PlacedBlocks.FALLING, true);
+		LastStand.READY_AT.set(written, READY_AT);
+		SuspendGravity.TICKS_LEFT.set(written, GRAVITY_TICKS);
+		PlacedBlocks.FALLING.set(written, true);
 		TagValueOutput output = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, level.registryAccess());
 		written.saveWithoutId(output);
 		CompoundTag saved = output.buildResult().getCompoundOrEmpty(AttachmentTarget.NBT_ATTACHMENT_KEY);
@@ -57,10 +57,10 @@ public class SaveFormatGameTest {
 		fixture.put(AttachmentTarget.NBT_ATTACHMENT_KEY, entityAttachments());
 		Husk read = husk(helper);
 		read.load(TagValueInput.create(ProblemReporter.DISCARDING, level.registryAccess(), fixture));
-		helper.assertValueEqual(READY_AT, read.getAttached(LastStand.READY_AT), Component.literal("Last Stand ready at"));
-		helper.assertValueEqual(GRAVITY_TICKS, read.getAttached(SuspendGravity.TICKS_LEFT),
+		helper.assertValueEqual(READY_AT, LastStand.READY_AT.get(read), Component.literal("Last Stand ready at"));
+		helper.assertValueEqual(GRAVITY_TICKS, SuspendGravity.TICKS_LEFT.get(read),
 				Component.literal("gravity ticks"));
-		helper.assertValueEqual(true, read.getAttached(PlacedBlocks.FALLING), Component.literal("placed falling"));
+		helper.assertValueEqual(true, PlacedBlocks.FALLING.get(read), Component.literal("placed falling"));
 		helper.succeed();
 	}
 
@@ -78,7 +78,7 @@ public class SaveFormatGameTest {
 		helper.assertTrue(parsed != null, Component.literal("the written chunk didn't parse"));
 		ProtoChunk read = parsed.read(level, level.getChunkSource().getPoiManager(),
 				level.getChunkSource().chunkMap.storageInfo(), chunk.getPos());
-		PlacedMarks marks = read.getAttached(PlacedBlocks.CHUNK);
+		PlacedMarks marks = PlacedBlocks.CHUNK.get(read);
 		helper.assertTrue(marks != null && marks.isMarked(pos.getX() & 15, pos.getY(), pos.getZ() & 15),
 				Component.literal("the read chunk lost the mark at " + pos + ": " + marks));
 		PlacedBlocks.clear(level, pos);

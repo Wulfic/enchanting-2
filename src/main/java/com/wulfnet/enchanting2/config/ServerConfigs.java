@@ -3,12 +3,11 @@ package com.wulfnet.enchanting2.config;
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.mobs.MobHealth;
 import com.wulfnet.enchanting2.network.ServerNetworking;
+import com.wulfnet.enchanting2.platform.Services;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,8 +28,8 @@ public final class ServerConfigs {
 	}
 
 	public static void register() {
-		ServerLifecycleEvents.SERVER_STARTING.register(ServerConfigs::load);
-		ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resources, success) -> {
+		Services.EVENTS.onServerStarting(ServerConfigs::load);
+		Services.EVENTS.onDataPackReloaded((server, success) -> {
 			if (success) {
 				reload(server);
 			} else {
@@ -75,7 +74,7 @@ public final class ServerConfigs {
 	}
 
 	private static Path configDir() {
-		return FabricLoader.getInstance().getConfigDir().resolve(Enchanting2.MOD_ID);
+		return Services.LOADER.configDir().resolve(Enchanting2.MOD_ID);
 	}
 
 	private static void load(MinecraftServer server) {

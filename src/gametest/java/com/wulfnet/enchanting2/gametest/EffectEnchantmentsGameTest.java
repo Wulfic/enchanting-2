@@ -532,9 +532,9 @@ public class EffectEnchantmentsGameTest {
 		Arrow arrow = shot(helper, bow, new BlockPos(2, 5, 2));
 		Arrow plain = shot(helper, new ItemStack(Items.BOW), new BlockPos(5, 5, 2));
 		helper.assertTrue(arrow.isNoGravity(), Component.literal("a TrueShot arrow has gravity"));
-		helper.assertValueEqual(100, arrow.getAttached(SuspendGravity.TICKS_LEFT), Component.literal("ticks left"));
+		helper.assertValueEqual(100, SuspendGravity.TICKS_LEFT.get(arrow), Component.literal("ticks left"));
 		helper.assertFalse(plain.isNoGravity(), Component.literal("a plain arrow has no gravity"));
-		helper.assertFalse(plain.hasAttached(SuspendGravity.TICKS_LEFT), Component.literal("plain arrow countdown"));
+		helper.assertFalse(SuspendGravity.TICKS_LEFT.has(plain), Component.literal("plain arrow countdown"));
 		helper.succeed();
 	}
 
@@ -549,7 +549,7 @@ public class EffectEnchantmentsGameTest {
 				Component.literal("gravity came back before 100 ticks")));
 		helper.runAfterDelay(101, () -> {
 			helper.assertFalse(arrow.isNoGravity(), Component.literal("no gravity after 100 ticks"));
-			helper.assertFalse(arrow.hasAttached(SuspendGravity.TICKS_LEFT), Component.literal("countdown left over"));
+			helper.assertFalse(SuspendGravity.TICKS_LEFT.has(arrow), Component.literal("countdown left over"));
 			helper.succeed();
 		});
 	}
@@ -560,7 +560,7 @@ public class EffectEnchantmentsGameTest {
 		ServerLevel level = helper.getLevel();
 		Arrow arrow = shot(helper, enchanted(helper, Items.BOW, ModEnchantments.TRUE_SHOT_AURA, 1),
 				new BlockPos(2, 5, 2));
-		arrow.setAttached(SuspendGravity.TICKS_LEFT, 40);
+		SuspendGravity.TICKS_LEFT.set(arrow, 40);
 		TagValueOutput output = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, level.registryAccess());
 		arrow.saveWithoutId(output);
 		CompoundTag saved = output.buildResult();
@@ -568,7 +568,7 @@ public class EffectEnchantmentsGameTest {
 		helper.assertTrue(loaded != null, Component.literal("no arrow created"));
 		loaded.load(TagValueInput.create(ProblemReporter.DISCARDING, level.registryAccess(), saved));
 		helper.assertTrue(loaded.isNoGravity(), Component.literal("the loaded arrow has gravity"));
-		helper.assertValueEqual(40, loaded.getAttached(SuspendGravity.TICKS_LEFT),
+		helper.assertValueEqual(40, SuspendGravity.TICKS_LEFT.get(loaded),
 				Component.literal("ticks left after load"));
 		helper.succeed();
 	}
@@ -580,7 +580,7 @@ public class EffectEnchantmentsGameTest {
 		Arrow arrow = new Arrow(helper.getLevel(), at.x, at.y, at.z, new ItemStack(Items.ARROW), null);
 		arrow.setNoGravity(true);
 		SuspendGravity.suspend(arrow, 100);
-		helper.assertFalse(arrow.hasAttached(SuspendGravity.TICKS_LEFT),
+		helper.assertFalse(SuspendGravity.TICKS_LEFT.has(arrow),
 				Component.literal("countdown on a floating arrow"));
 		helper.assertTrue(arrow.isNoGravity(), Component.literal("the command's NoGravity was cleared"));
 		helper.succeed();

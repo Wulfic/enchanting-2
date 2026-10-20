@@ -3,16 +3,10 @@ package com.wulfnet.enchanting2.network;
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.config.ServerConfigs;
 import com.wulfnet.enchanting2.grindstone.GrindstoneMenuAccess;
+import com.wulfnet.enchanting2.platform.Networking;
+import com.wulfnet.enchanting2.platform.Services;
 import com.wulfnet.enchanting2.table.TableMenuAccess;
-import java.util.List;
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
-import net.fabricmc.fabric.api.networking.v1.ServerConfigurationConnectionEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -29,14 +23,14 @@ public final class ServerNetworking {
 
 	/** Runs on both sides: payload types must be registered wherever they are sent or received. */
 	public static void registerPayloads() {
-		PayloadTypeRegistry.configurationS2C().register(ConfigSyncPayload.TYPE, ConfigSyncPayload.CODEC);
-		PayloadTypeRegistry.playS2C().register(ConfigSyncPayload.TYPE, ConfigSyncPayload.CODEC);
-		PayloadTypeRegistry.playS2C().register(AnvilPreviewPayload.TYPE, AnvilPreviewPayload.CODEC);
-		PayloadTypeRegistry.playS2C().register(GrindstoneOptionsPayload.TYPE, GrindstoneOptionsPayload.CODEC);
-		PayloadTypeRegistry.playC2S().register(GrindstoneChoicePayload.TYPE, GrindstoneChoicePayload.CODEC);
-		PayloadTypeRegistry.playS2C().register(TablePreviewPayload.TYPE, TablePreviewPayload.CODEC);
-		PayloadTypeRegistry.playC2S().register(TableSelectPayload.TYPE, TableSelectPayload.CODEC);
-		PayloadTypeRegistry.playC2S().register(TableEnchantPayload.TYPE, TableEnchantPayload.CODEC);
+		Networking net = Services.NETWORK;
+		net.registerToClient(ConfigSyncPayload.TYPE, ConfigSyncPayload.CODEC, true);
+		net.registerToClient(AnvilPreviewPayload.TYPE, AnvilPreviewPayload.CODEC, false);
+		net.registerToClient(GrindstoneOptionsPayload.TYPE, GrindstoneOptionsPayload.CODEC, false);
+		net.registerToServer(GrindstoneChoicePayload.TYPE, GrindstoneChoicePayload.CODEC);
+		net.registerToClient(TablePreviewPayload.TYPE, TablePreviewPayload.CODEC, false);
+		net.registerToServer(TableSelectPayload.TYPE, TableSelectPayload.CODEC);
+		net.registerToServer(TableEnchantPayload.TYPE, TableEnchantPayload.CODEC);
 	}
 
 	/**
@@ -90,31 +84,28 @@ public final class ServerNetworking {
 	}
 
 	public static void registerServer() {
+		Networking net = Services.NETWORK;
 		// Netty thread. Every client goes through configuration, the singleplayer host included.
-		ServerConfigurationConnectionEvents.CONFIGURE.register((handler, server) -> {
-			List<String> channels = ServerConfigurationNetworking.getSendable(handler).stream()
-					.map(Identifier::toString).toList();
-			NetworkProtocol.Verdict verdict = NetworkProtocol.classify(channels, ConfigSyncPayload.TYPE.id().toString());
+		net.onConfigure(connection -> {
+			NetworkProtocol.Verdict verdict = NetworkProtocol.classify(connection.sendableChannels(),
+					ConfigSyncPayload.TYPE.id().toString());
 			if (verdict.kind() == NetworkProtocol.Kind.MATCH) {
-				ServerConfigurationNetworking.send(handler, ConfigSyncPayload.of(ServerConfigs.get(server)));
+				connection.send(ConfigSyncPayload.of(ServerConfigs.get(connection.server())));
 				return;
 			}
 			String message = NetworkProtocol.disconnectMessage(verdict, modVersion());
-			LOG.info("Disconnecting {} at join ({}, client protocols {}): {}", handler.getOwner(), verdict.kind(),
+			LOG.info("Disconnecting {} at join ({}, client protocols {}): {}", connection.describe(), verdict.kind(),
 					verdict.clientVersions(), message);
-			handler.disconnect(Component.literal(message));
+			connection.disconnect(Component.literal(message));
 		});
-		// Fabric runs play receivers on the server thread.
-		ServerPlayNetworking.registerGlobalReceiver(GrindstoneChoicePayload.TYPE,
-				(payload, context) -> handleGrindstoneChoice(context.player(), payload));
-		ServerPlayNetworking.registerGlobalReceiver(TableSelectPayload.TYPE,
-				(payload, context) -> handleTableSelect(context.player(), payload));
-		ServerPlayNetworking.registerGlobalReceiver(TableEnchantPayload.TYPE,
-				(payload, context) -> handleTableEnchant(context.player(), payload));
+		// Server thread.
+		net.onReceive(GrindstoneChoicePayload.TYPE, ServerNetworking::handleGrindstoneChoice);
+		net.onReceive(TableSelectPayload.TYPE, ServerNetworking::handleTableSelect);
+		net.onReceive(TableEnchantPayload.TYPE, ServerNetworking::handleTableEnchant);
 		// Again at play join: a /reload while this player was still configuring missed them in syncToAll.
-		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-			if (ServerPlayNetworking.canSend(handler.player, ConfigSyncPayload.TYPE)) {
-				ServerPlayNetworking.send(handler.player, ConfigSyncPayload.of(ServerConfigs.get(server)));
+		net.onPlayJoin(player -> {
+			if (net.canSend(player, ConfigSyncPayload.TYPE)) {
+				net.send(player, ConfigSyncPayload.of(ServerConfigs.get(player.level().getServer())));
 			}
 		});
 	}
@@ -124,8 +115,8 @@ public final class ServerNetworking {
 		ConfigSyncPayload payload = ConfigSyncPayload.of(ServerConfigs.get(server));
 		int sent = 0;
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-			if (ServerPlayNetworking.canSend(player, ConfigSyncPayload.TYPE)) {
-				ServerPlayNetworking.send(player, payload);
+			if (Services.NETWORK.canSend(player, ConfigSyncPayload.TYPE)) {
+				Services.NETWORK.send(player, payload);
 				sent++;
 			} else {
 				LOG.warn("{} can't receive the Enchanting 2 config; their client keeps the previous copy",
@@ -136,7 +127,6 @@ public final class ServerNetworking {
 	}
 
 	private static String modVersion() {
-		return FabricLoader.getInstance().getModContainer(Enchanting2.MOD_ID)
-				.map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("(unknown version)");
+		return Services.LOADER.modVersion(Enchanting2.MOD_ID).orElse("(unknown version)");
 	}
 }

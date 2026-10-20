@@ -7,6 +7,7 @@ import com.wulfnet.enchanting2.config.ServerConfigs;
 import com.wulfnet.enchanting2.cost.PricingTable;
 import com.wulfnet.enchanting2.network.TablePreviewHolder;
 import com.wulfnet.enchanting2.network.TablePreviewPayload;
+import com.wulfnet.enchanting2.platform.Services;
 import com.wulfnet.enchanting2.table.TableBridge;
 import com.wulfnet.enchanting2.table.TableCalculator;
 import com.wulfnet.enchanting2.table.TableEquipmentSlot;
@@ -19,7 +20,6 @@ import com.wulfnet.enchanting2.table.TableWindow;
 import com.llamalad7.mixinextras.sugar.Local;
 import java.util.List;
 import java.util.Optional;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
@@ -294,8 +294,8 @@ abstract class EnchantmentMenuMixin extends AbstractContainerMenu implements Tab
 			return;
 		}
 		enchanting2$lastPreview = preview;
-		if (ServerPlayNetworking.canSend(player, TablePreviewPayload.TYPE)) {
-			ServerPlayNetworking.send(player, preview);
+		if (Services.NETWORK.canSend(player, TablePreviewPayload.TYPE)) {
+			Services.NETWORK.send(player, preview);
 		}
 	}
 }

@@ -6,9 +6,9 @@ import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.config.ServerConfigs;
 import com.wulfnet.enchanting2.effect.LastStandEffect;
 import com.wulfnet.enchanting2.effect.ModEffects;
-import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
-import net.fabricmc.fabric.api.attachment.v1.AttachmentSyncPredicate;
-import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
+import com.wulfnet.enchanting2.platform.Attachment;
+import com.wulfnet.enchanting2.platform.Attachments;
+import com.wulfnet.enchanting2.platform.Services;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
@@ -34,17 +34,16 @@ public final class LastStand {
 	 * The game tick Last Stand can save its wearer again. Saved, kept through death (dying another way doesn't reset
 	 * it), and synced to its own player for the HUD.
 	 */
-	public static final AttachmentType<Long> READY_AT = AttachmentRegistry.create(
-			Identifier.fromNamespaceAndPath(Enchanting2.MOD_ID, "last_stand_ready_at"),
-			builder -> builder.persistent(Codec.LONG).copyOnDeath()
-					.syncWith(ByteBufCodecs.VAR_LONG, AttachmentSyncPredicate.targetOnly()));
+	public static final Attachment<Long> READY_AT = Services.ATTACHMENTS.register(new Attachments.Spec<>(
+			Identifier.fromNamespaceAndPath(Enchanting2.MOD_ID, "last_stand_ready_at"), Codec.LONG, true,
+			ByteBufCodecs.VAR_LONG));
 
 	private LastStand() {
 	}
 
 	/** Loads the class, which registers the attachment. Call once from mod init. */
 	public static void register() {
-		Enchanting2.LOGGER.debug("Last Stand cooldown attachment: {}", READY_AT.identifier());
+		Enchanting2.LOGGER.debug("Last Stand cooldown attachment: {}", READY_AT.id());
 	}
 
 	/** The worn chestplate's Last Stand and level, or null. */
@@ -70,7 +69,7 @@ public final class LastStand {
 			return false;
 		}
 		long now = level.getGameTime();
-		if (now < entity.getAttachedOrElse(READY_AT, 0L)) {
+		if (now < READY_AT.getOrElse(entity, 0L)) {
 			return false;
 		}
 		float formula = lastStand.getFirst().cooldown().calculate(lastStand.getSecond());
@@ -82,16 +81,16 @@ public final class LastStand {
 		entity.setHealth(1.0F);
 		entity.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, lastStand.getFirst().absorptionTicks(),
 				lastStand.getFirst().absorptionAmplifier()));
-		entity.setAttached(READY_AT, now + LastStandClock.cooldown(formula));
+		READY_AT.set(entity, now + LastStandClock.cooldown(formula));
 		level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.ANVIL_LAND,
 				entity.getSoundSource(), 0.6F, 1.6F);
 		Enchanting2.LOGGER.debug("Last Stand saved {} from {}; ready again at tick {}", entity.getStringUUID(),
-				source.getMsgId(), entity.getAttached(READY_AT));
+				source.getMsgId(), READY_AT.get(entity));
 		return true;
 	}
 
 	/** Ticks until Last Stand can save {@code entity} again at game time {@code now}; 0 when ready. */
 	public static long remaining(LivingEntity entity, long now) {
-		return Math.max(0L, entity.getAttachedOrElse(READY_AT, 0L) - now);
+		return Math.max(0L, READY_AT.getOrElse(entity, 0L) - now);
 	}
 }

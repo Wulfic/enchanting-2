@@ -14,9 +14,9 @@ import com.wulfnet.enchanting2.config.ServerConfigs;
 import com.wulfnet.enchanting2.cost.PricingTable;
 import com.wulfnet.enchanting2.network.AnvilPreviewHolder;
 import com.wulfnet.enchanting2.network.AnvilPreviewPayload;
+import com.wulfnet.enchanting2.platform.Services;
 import java.util.List;
 import java.util.Optional;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -133,8 +133,8 @@ abstract class AnvilMenuMixin extends ItemCombinerMenu implements AnvilOutcomeHo
 			return;
 		}
 		enchanting2$lastPreview = preview;
-		if (ServerPlayNetworking.canSend(player, AnvilPreviewPayload.TYPE)) {
-			ServerPlayNetworking.send(player, preview);
+		if (Services.NETWORK.canSend(player, AnvilPreviewPayload.TYPE)) {
+			Services.NETWORK.send(player, preview);
 		}
 	}
 
