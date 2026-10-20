@@ -399,7 +399,7 @@ show `git log main..port/26x` first). Nothing is published until 12F.
   - [x] F5. AGENTS.md / state.md "done" definition: green on every node + `verifyAll`; README/wiki build docs.
   - [x] F6. Run `verifyAll` locally, commit, push, dispatch CI; CI green.
         Done: 90a9f1c + 436105d pushed; CI run 39333349438 green (verifyAll ran: 4 nodes, 5 link checks, 2 claimed).
-- [ ] 12G **Release:** `release.yml` builds every node and attaches one jar per band, named from its proven range
+- [x] 12G **Release:** `release.yml` builds every node and attaches one jar per band, named from its proven range
       (`+1.21.11`, `+26.1-26.1.2`, `+26.2`, `+26.3`); `ReleaseDocsTest`, CHANGELOG and README list the supported
       versions per jar; wiki Installation page gets the version table. First band release = 1.1.0.
       Owner 2026-10-19: land port/26x on main by **PR + squash-merge**; tag **v1.1.0 as soon as 12G is green** (no
@@ -423,11 +423,15 @@ show `git log main..port/26x` first). Nothing is published until 12F.
         `scripts/release-collect.sh` (dry-run locally: 8 files + notes table; refuses a mislabeled jar and a second
         jar, exit 1). Meta step dry-run: v1.0.1 passes, v9.9.9 refused. Mutations: unbanded version → ModIdentityTest
         red; README without the 26.3 row → ReleaseDocsTest red. README + `versions/*/gradle.properties` are test inputs.
-  - [ ] G4. `scripts/verify-all.sh` green; client GameTests not needed (no client code); commit; push; CI green.
-  - [ ] G5. PR port/26x → main (gh), CI on the PR green, squash-merge (one `feat:` commit).
-  - [ ] G6. Tag `v1.1.0` on main's squash commit, push the tag; release.yml green; the release has 4 + 4 jars with the
+  - [x] G4. `scripts/verify-all.sh` green; client GameTests not needed (no client code); commit; push; CI green.
+  - [x] G5. PR port/26x → main (gh), CI on the PR green, squash-merge (one `feat:` commit).
+  - [x] G6. Tag `v1.1.0` on main's squash commit, push the tag; release.yml green; the release has 4 + 4 jars with the
         right names; download one and check its fabric.mod.json version + depends.
-  - [ ] G7. state.md / decisions.md; 12H stays as process.
+  - [x] G7. state.md / decisions.md; 12H stays as process.
+  Result 2026-10-19: verify-all 432 JUnit + 339/339 on four nodes, matrix clean; PR #1 CI green; squash-merged as
+  9246bc4; CI + Wiki green on main; annotated tag v1.1.0 → release.yml green; release "Enchanting 2 1.1.0" (Latest)
+  has the 4 jars + 4 sources jars; the downloaded +26.1-26.1.2 jar says version 1.1.0+26.1-26.1.2, minecraft
+  >=26.1 <26.2-, java >=25.
 - [ ] 12H **New Minecraft versions from here on (process, not code):** a new version gets a matrix node on the nearest
       band's jar: `linkCheck` first (seconds), then server + client GameTests. Green → widen that band's range, no new
       jar. Red → a new node (band). Dropping a band (mcMMO "raising the floor") is the owner's call; it becomes a frozen

@@ -5,8 +5,7 @@
 > `gotchas.md`; this file only answers "where am I right now?".
 
 **Last updated:** 2026-10-19
-**Branch:** `port/26x` for Phase 12 (main otherwise: commit straight to main and push). CI on every push (`ci.yml`: build + gitleaks); a release
-is a pushed `v<mod_version>` tag (`release.yml`); `wiki/` syncs to the GitHub wiki (`wiki.yml`). See decisions.md 11e.
+**Branch:** `main` (commit straight to main and push). Phase 12 landed as the squash commit 9246bc4 (PR #1); `port/26x` is merged and kept until the owner deletes it. CI on every push (`ci.yml`: verifyAll + gitleaks); a release is a pushed `v<mod_version>` tag (`release.yml`, one jar per band); `wiki/` syncs to the GitHub wiki (`wiki.yml`). See decisions.md 11e.
 
 ## Where we are
 Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA, CB, CC), 10cD (DA, DB), 10cE (EA, EB, EC), 10cF (FA, FB) and 10cG (GA, GB, GC) done: Phase 10c complete (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
@@ -127,18 +126,13 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
   in processResources (decisions.md "12E").
 
 ## What's next
-0. **v1.0.1** (2026-10-14): the 11f Elytra Slot fix, released from a pushed `v1.0.1` tag (release.yml). Owner: try
-   `enchanting2-1.0.1.jar` in the Prism instance with the Flight elytra in Elytra Slot's slot.
-1. **Phase 12, version bands** (TODO.md; decisions.md 2026-10-15 "One band per 26.x line"): A = 1.21.11, B1 =
-   26.1–26.1.2, B2 = 26.2, B3 = 26.3, one jar each from the shared source; 1.21.11 stays in step (owner 2026-10-14).
-   12A–12D done on `port/26x` (12D 2026-10-15: node `versions/26.2/`, band B2, all green; decisions.md "12D").
-   12E (node `versions/26.3/`, band B3) done 2026-10-19: the work is in the pushed `a489e0f temp` commit (owner: leave
-   it, no rewrite), the E6 fix on top. `./gradlew build` green on all four nodes (427 JUnit + 339 GameTests each),
-   client GameTests green on all four, `:matrix-26.3:linkCheck` 0. 12F done 2026-10-19 (`verifyAll`, CI green).
-   **12G in progress** (2026-10-19): jar names `+<band>` derived (G1), release.yml for every node (G2), docs +
-   `mod_version=1.1.0` (G3) done; next G4 verify + push, G5 PR port/26x → main + **squash-merge** (owner), G6 tag
-   `v1.1.0` once green (owner: no wait for an in-game check). Old scratch worktree of dbf6006 at the 147c41c6 session scratchpad `base/`
-   (`git worktree list`; remove with `git worktree remove <path>` once nothing needs a baseline jar).
+0. **v1.1.0 released 2026-10-19** (https://github.com/Wulfic/enchanting-2/releases/tag/v1.1.0): four jars,
+   `enchanting2-1.1.0+{1.21.11,26.1-26.1.2,26.2,26.3}.jar`, from main 9246bc4. Phase 12 (12A–12G) done.
+1. **12H is process, not code** (TODO.md): a new Minecraft version gets `matrix/<v>/` on the nearest band's jar plus
+   a settings.gradle entry; `linkCheck` first, then GameTests (`verifyAll` runs them). Green widens that band's name
+   by itself (build.gradle derives it); update README + wiki Installation tables (ReleaseDocsTest). Red = a new node.
+   Open follow-ups: client GameTests headless in CI (owner: later); the client GameTest network-synchronizer flake.
+   Old scratch worktree of dbf6006 at the 147c41c6 session scratchpad `base/` (`git worktree list`; no longer needed).
 2. Owner checks and housekeeping: TODO.md "Owner checks (open)" and "Owner housekeeping" (the full list moved there
    from this file on 2026-10-14; TODO.md was trimmed to open work, old notes at `git show fd3504c:TODO.md`).
    A new enchantment still adds a `LevelCeilings` row, a `.desc` line, tags, a price row if single-level, docs rows.
