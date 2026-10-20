@@ -5,6 +5,12 @@
 	"version": "1.0.0",
 	"environment": "*",
 	"entrypoints": {
+		"main": [
+			"com.wulfnet.enchanting2.gametest.SyncMarkerPayload::register"
+		],
+		"client": [
+			"com.wulfnet.enchanting2.gametest.Delivery::registerClient"
+		],
 		"fabric-gametest": [
 			"com.wulfnet.enchanting2.gametest.BootGameTest",
 			"com.wulfnet.enchanting2.gametest.MixinAuditGameTest",
@@ -47,6 +53,7 @@
 			"com.wulfnet.enchanting2.gametest.DoubleJumpGameTest"
 		],
 		"fabric-client-gametest": [
+			"com.wulfnet.enchanting2.gametest.NetworkSynchronizerClientGameTest",
 			"com.wulfnet.enchanting2.gametest.MixinAuditClientGameTest",
 			"com.wulfnet.enchanting2.gametest.AnvilScreenClientGameTest",
 			"com.wulfnet.enchanting2.gametest.GrindstoneScreenClientGameTest",

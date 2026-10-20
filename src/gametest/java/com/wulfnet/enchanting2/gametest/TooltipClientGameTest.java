@@ -45,7 +45,7 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
 			ClientWorlds.waitForChunksRender(world);
 			world.getServer().runCommand("gamemode survival @a");
-			context.waitTicks(2);
+			Delivery.toClient(context);
 
 			String sharpness = I18n.get("enchantment.minecraft.sharpness.desc");
 			String vision = I18n.get("enchantment.enchanting2.vision.desc");
@@ -81,7 +81,15 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 			context.waitTick();
 			manyEnchantmentsGoOnTheirNamesLinesWithCtrl(context);
 			anotherModsTallTooltipStillGetsTheScrollLine(context);
-			everyEnchantmentIsTooTallAndTheWheelScrollsIt(context, world);
+			// Time stands still for the scroll: a tooltip resets after STALE_NANOS of wall time without a frame, and
+			// this client only draws on a tick (TooltipScrollTest covers the stale rule itself).
+			long frozen = context.computeOnClient(client -> TallTooltips.REAL_CLOCK.getAsLong());
+			context.runOnClient(client -> TallTooltips.useClock(() -> frozen));
+			try {
+				everyEnchantmentIsTooTallAndTheWheelScrollsIt(context, world);
+			} finally {
+				context.runOnClient(client -> TallTooltips.useClock(TallTooltips.REAL_CLOCK));
+			}
 			context.runOnClient(client -> {
 				client.options.guiScale().set(0);
 				client.resizeDisplay();
@@ -164,22 +172,18 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 		world.getServer().runOnServer(server -> server.getPlayerList().getPlayers().getFirst().getInventory().setItem(0,
 				withEnchantments(server.registryAccess().lookupOrThrow(Registries.ENCHANTMENT), Items.DIAMOND_PICKAXE,
 						Integer.MAX_VALUE, false)));
-		context.waitTicks(2);
+		Delivery.toClient(context);
 		context.runOnClient(client -> client.setScreen(new InventoryScreen(client.player)));
 		context.waitTick();
 		hoverHotbarSlot(context);
 		context.waitTicks(2);
 		check(TallTooltips.offset() == 0, "starts at the top: " + TallTooltips.offset());
 		context.takeScreenshot("enchanting2-tooltip-tall-top");
-		// A screenshot can take longer than TooltipScroll.STALE_NANOS (208 ms on 26.3, 2026-10-19): draw a frame
-		// before the wheel, or the tooltip starts over.
 		context.waitTick();
 		context.getInput().scroll(-1);
 		context.waitTick();
 		check(TallTooltips.offset() > 0, "one notch down scrolled it: " + TallTooltips.offset());
-		// A notch a frame until it stops moving: the client only draws on a tick here, and a tooltip not drawn for
-		// TooltipScroll.STALE_NANOS starts over, so a hundred notches with no frame between them could reset it on a
-		// loaded machine (failed that way 2026-10-13).
+		// A notch a frame until it stops moving.
 		int bottom = TallTooltips.offset();
 		for (int i = 0; i < 100; i++) {
 			context.getInput().scroll(-1);
@@ -194,7 +198,7 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 		context.waitTick();
 		context.getInput().scroll(1);
 		context.waitTick();
-		// Exactly one notch: a tooltip that went stale would start over at 0, which "less than bottom" let through.
+		// Exactly one notch: a tooltip that started over would be at 0, which "less than bottom" let through.
 		check(TallTooltips.offset() == bottom - TooltipScroll.STEP,
 				"and back up one notch: " + TallTooltips.offset() + " from " + bottom);
 	}
@@ -293,7 +297,7 @@ public class TooltipClientGameTest implements FabricClientGameTest {
 			EnchantmentHelper.setEnchantments(book, stored.toImmutable());
 			server.getPlayerList().getPlayers().getFirst().getInventory().setItem(0, book);
 		});
-		context.waitTicks(2);
+		Delivery.toClient(context);
 		context.runOnClient(client -> client.setScreen(new InventoryScreen(client.player)));
 		context.waitTick();
 		int[] slot = context.computeOnClient(client -> new int[] {

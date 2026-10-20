@@ -29,6 +29,7 @@ public class DoubleJumpClientGameTest implements FabricClientGameTest {
 				player(server).setItemSlot(EquipmentSlot.FEET, boots);
 			});
 			world.getServer().runCommand("execute as @p at @s run tp @s ~ ~30 ~");
+			Delivery.toClient(context);
 			context.waitTicks(8);
 			check(context.computeOnClient(client -> client.player.getDeltaMovement().y < -0.2),
 					"the player isn't falling yet");
@@ -36,7 +37,7 @@ public class DoubleJumpClientGameTest implements FabricClientGameTest {
 			jump(context);
 			check(context.computeOnClient(client -> client.player.getDeltaMovement().y > 0.0),
 					"one jump press in the air didn't lift the player");
-			context.waitTicks(2);
+			Delivery.toServer(context);
 			check(world.getServer().computeOnServer(server -> player(server).fallDistance < 1.0),
 					"the server still counts the fall from before the air jump");
 

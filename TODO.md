@@ -39,6 +39,47 @@ answer, a blank field is not. Destructive steps are marked as such and gated thr
 
 ## Active
 
+## Session 2026-10-19 — cleanup, client GameTest flake, client GameTests in CI (Tier 1 → 2 for CI)
+
+Owner answers 2026-10-19: 26.4 waits for stable (latest release 26.3, snapshot 26.4-snapshot-4); chase the flake now;
+remove the stale worktree and delete `port/26x`; headless client GameTests in CI **after** the flake is fixed.
+
+**Not doing:** 26.4 snapshot nodes; owner in-game checks; Modrinth/CurseForge.
+**Blast radius:** C1 deletes a scratch checkout (clean, `git status` 0 lines; dbf6006 is a commit on port/26x).
+C2 deletes `port/26x` locally and on origin (tip 97e1949, 15 commits not on main; main holds them as squash 9246bc4).
+**Rollback:** C1: `git worktree add <path> dbf6006`. C2: `git fetch origin refs/pull/1/head:port/26x` (GitHub keeps
+`refs/pull/1/head` = 97e1949 read-only), then `git push origin port/26x`.
+
+- [x] C1. `git worktree remove` the 147c41c6 scratchpad `base/` (dbf6006, clean). Git unregistered it, then failed
+      on "Filename too long"; the leftover dir (530 MB, tracked files + build output, no `.git`, no credentials) stays
+      for the owner to delete (`rm -rf` is in the deny list).
+- [x] C2. `port/26x` deleted locally and on origin; `refs/pull/1/head` = 97e1949 confirmed after.
+- [x] F1. Diagnosed + reproduced: Fabric client-gametest 4.3.5 (1.21.11 only; 5+/6.x deleted the class) resets the
+      CLIENTBOUND count at `dropAllTasks`, before `ClientPacketListener.close()`, while the server still ticks; a packet
+      lost with the channel leaves +1 and the next tick waits 10 s → AssertionError. `NetworkSynchronizerClientGameTest`
+      leaks one count by reflection: same two log lines (run 2026-10-19 20:36).
+- [x] F2a. build.gradle band A: `-Dfabric.client.gametest.disableNetworkSynchronizer=true` (Fabric docs' workaround).
+      The leak test passes with it.
+- [x] F2b. Without the synchronizer, fixed `waitTicks(n)` before a cross-side read is a race (it always was on 26.x):
+      repeat runs failed ShieldClientGameTest (Last Stand attachment, S2C) and GrindstoneScreenClientGameTest (result
+      click, C2S). Fix the class: gametest `Delivery` barrier = Fabric 6.x's design (marker payload with a sequence
+      number over the same ordered connection; `toServer` after client input, `toClient` = one tick for the server's
+      broadcast, then a server echo), registered from gametest `main` / `client` entrypoints. 34 cross-side waits
+      replaced (41 barrier calls) in 8 client tests; waits for client-only effects (hover, scroll, physics) stay.
+- [x] F2b'. 26.1.2 then failed TooltipClientGameTest "back up one notch: 0" (wall-clock `STALE_NANOS` race under
+      load, gotchas.md 12E entry). `TallTooltips.useClock` (client, test hook beside `offset()`); the test freezes it
+      for the scroll section.
+- [x] F2c. 1.21.11 client suite green 3 runs in a row (barriers); final code green once on all four nodes.
+- [ ] F3. `scripts/verify-all.sh` green (the gametest mod's new `main` entrypoint loads in server GameTests too);
+      commit `fix:` + push; CI green.
+- [ ] CI1. ci.yml job `client-gametests`: node list derived from `versions/*/` (a `nodes` job → JSON matrix, like
+      the JDK step reads properties), `fail-fast: false`; per node its `java_version` + `gradle_java_version`;
+      `apt-get install xvfb` + Mesa (plus `mesa-vulkan-drivers` if a 26.x client wants Vulkan; check the local log);
+      `xvfb-run -a ./gradlew :<node>:runClientGameTest`; screenshots + logs uploaded `if: always()`.
+      Header comment + AGENTS.md "done" line + state.md updated. Dispatch CI; green on all four, or a documented
+      blocker per node (a node that can't render headless stays local-only, said so in ci.yml).
+      **Blast radius:** none (additive CI job). **Rollback:** `git revert` the commit.
+
 ## Phase 12 — Version bands: one jar per band, as many Minecraft versions per jar as hold up (Tier 2)
 
 **Goal:** every release ships one jar per *band*. Band A = 1.21.11 (obfuscated, intermediary names, Java 21). Band B

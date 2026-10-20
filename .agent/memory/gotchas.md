@@ -535,6 +535,8 @@ in one day now: if it shows a third time, chase it instead of rerunning.
 the anvil test and before any test body ran ("Detected interfacing with packets at a lower level" 10 s after spawn
 prep). Three different spots, so not one test's input; looks like a race in the synchronizer during world load. The
 rerun was green and the commit went ahead on that; chasing it is its own TODO item ("Client GameTest flake").
+**Solved 2026-10-19:** a race inside Fabric's client GameTest API 4.3.5 (1.21.11 only; 5+ deleted
+`NetworkSynchronizer`). See the 2026-10-19 entry below.
 
 ## 2026-10-13 — A full-height box must clear vanilla's part at full height, not just the top band (10oC)
 **Symptom:** the grindstone's picker box covered the inventory's 9th column, and the client GameTest's "a click in
@@ -783,6 +785,10 @@ table scroll tests passed on 26.3, so the wheel reached screens.
 **Fix:** `waitTick` after each screenshot before the next wheel notch. The "back up" check now asserts exactly one
 step (`bottom - STEP`): a stale reset to 0 used to satisfy "less than bottom".
 **Rule:** in a client GameTest, any time-based client state needs a tick after anything slow (screenshots included).
+**Not enough (2026-10-19):** 26.1.2 failed "and back up one notch: 0 from 917" with that tick in place, on a machine
+loaded by another instance's tests: the gap between the fresh frame and the wheel event passed 200 ms anyway. Now
+`TooltipClientGameTest` holds time still (`TallTooltips.useClock`, frozen for the scroll section, restored in
+`finally`); `TooltipScrollTest` still covers the stale rule with explicit times. A test never races the wall clock.
 **Affects:** src/gametest/java/com/wulfnet/enchanting2/gametest/TooltipClientGameTest.java
 
 ## 2026-10-19 — A guard in the root script can be unreachable: subprojects evaluate first (12F)
@@ -796,3 +802,23 @@ blank, `9.9`, `matrix-26.2` each refused with that message.
 `MatrixLayoutTest`'s mutation run was UP-TO-DATE in 2 s and "passed" until `matrix/*/gradle.properties` +
 `settings.gradle` were declared (a `fileTree` limited to the properties files, not the matrix build dirs).
 **Affects:** matrix/matrix.gradle, stonecutter.gradle, build.gradle (test inputs)
+
+## 2026-10-19 — "Network synchronizer in invalid state" is Fabric 4.3.5's race; fixed waits race without it
+**Symptom:** the 1.21.11 client GameTest run failed now and then with "Detected interfacing with packets at a lower
+level" and, 10 s later, `AssertionError: Network synchronizer in invalid state` (three times, three different tests).
+**Cause:** fabric-client-gametest-api 4.3.5 counts every packet sent and makes each client tick wait until it's
+handled. `Minecraft.disconnect` calls `dropAllTasks()` (where Fabric zeroes the clientbound count) *before*
+`ClientPacketListener.close()`, and client and server tick concurrently in Fabric's phases. A packet the server sends
+in that gap dies with the local channel: the count stays at 1, the next tick's `waitForPacketHandlers` waits 10 s and
+throws. Reproduced on purpose: bump `CLIENTBOUND.preSendPacket()` by reflection, wait 3 ticks, same two lines.
+**Fix:** `-Dfabric.client.gametest.disableNetworkSynchronizer=true` on 1.21.11's `clientGameTest` run (build.gradle;
+Fabric's docs give the same workaround). `NetworkSynchronizerClientGameTest` leaks a count and fails if it goes.
+**Second trap:** without the synchronizer, `waitTicks(3)` before reading the other side is a guess. Lockstep ticks
+take milliseconds; the local channel can deliver later on a loaded machine (another instance running tests). The
+first runs failed on Last Stand's attachment (S2C) and a grindstone result click (C2S). 26.x never had a
+synchronizer, so those waits were just as fragile there. Every cross-side read now goes through `Delivery.toServer` /
+`toClient` (a numbered `SyncMarkerPayload` over the same ordered connection; `toClient` ticks once so the server's
+broadcast goes out, then has the server echo the marker). A fixed `waitTicks` stays only for client-only effects
+(hover, scrolling, physics).
+**Rule:** a new client GameTest reads server state only after `Delivery.toServer`, client state set by the server
+only after `Delivery.toClient`.

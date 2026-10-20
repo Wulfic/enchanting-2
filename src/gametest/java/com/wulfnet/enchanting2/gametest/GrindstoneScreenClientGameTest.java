@@ -156,7 +156,7 @@ public class GrindstoneScreenClientGameTest implements FabricClientGameTest {
 					Map.of(Enchantments.SHARPNESS, 5, Enchantments.UNBREAKING, 3)));
 			menu.getSlot(GrindstoneMenu.ADDITIONAL_SLOT).set(new ItemStack(Items.BOOK, 3));
 		});
-		context.waitTicks(2);
+		Delivery.toClient(context);
 		List<String> panel = screen(context, GrindstoneScreenAccess::enchanting2$listText);
 		check(panel.contains("Sharpness V") && panel.contains("Unbreaking III"), "a row per enchantment: " + panel);
 		check(panel.contains(Component.translatable("enchanting2.grindstone.status.pick").getString()),
@@ -175,7 +175,8 @@ public class GrindstoneScreenClientGameTest implements FabricClientGameTest {
 				&& tooltip.get(2).contains("5"), "name, description and price on hover: " + tooltip);
 		context.takeScreenshot("enchanting2-grindstone-rows");
 		click(context, rowX, rowY.getAsInt());
-		context.waitTicks(3);
+		Delivery.toServer(context);
+		Delivery.toClient(context);
 		Optional<GrindstoneChoice> held = world.getServer().computeOnServer(server ->
 				((GrindstoneMenuAccess) serverMenu(server)).enchanting2$choice());
 		check(held.equals(Optional.of(EXTRACT_SHARPNESS)), "the click picked Sharpness on the server: " + held);
@@ -189,7 +190,7 @@ public class GrindstoneScreenClientGameTest implements FabricClientGameTest {
 		int leftPos = screen(context, GrindstoneScreenAccess::enchanting2$leftPos);
 		int height = context.computeOnClient(client -> client.getWindow().getGuiScaledHeight());
 		click(context, leftPos + RESULT_X + 8, (height - IMAGE_HEIGHT) / 2 + RESULT_Y + 8);
-		context.waitTicks(3);
+		Delivery.toServer(context);
 		world.getServer().runOnServer(server -> {
 			GrindstoneMenu menu = serverMenu(server);
 			ItemStack taken = menu.getCarried();
@@ -219,7 +220,7 @@ public class GrindstoneScreenClientGameTest implements FabricClientGameTest {
 			menu.getSlot(GrindstoneMenu.INPUT_SLOT).set(with(server, Items.DIAMOND_SWORD,
 					Map.of(Enchantments.SHARPNESS, 5, Enchantments.VANISHING_CURSE, 1)));
 		});
-		context.waitTicks(2);
+		Delivery.toClient(context);
 		List<String> panel = screen(context, GrindstoneScreenAccess::enchanting2$listText);
 		check(panel.contains(Component.translatable("enchanting2.grindstone.heading.cleanse").getString())
 				&& panel.contains("Curse of Vanishing"), "a Cleanse row for the curse: " + panel);
@@ -243,7 +244,7 @@ public class GrindstoneScreenClientGameTest implements FabricClientGameTest {
 
 		world.getServer().runOnServer(server -> serverMenu(server).getSlot(GrindstoneMenu.ADDITIONAL_SLOT)
 				.set(new ItemStack(Items.BOOK)));
-		context.waitTicks(2);
+		Delivery.toClient(context);
 		checkWraps(context, GrindstoneChoice.of(GrindstoneAction.EXTRACT, "minecraft:vanishing_curse"),
 				Component.translatable("enchanting2.grindstone.row.curse", "Curse of Vanishing").getString());
 		List<String> sharpness = screen(context, access -> access.enchanting2$pickLines(EXTRACT_SHARPNESS));
@@ -269,11 +270,11 @@ public class GrindstoneScreenClientGameTest implements FabricClientGameTest {
 			menu.setCarried(new ItemStack(Items.DIAMOND, 7));
 			menu.broadcastChanges();
 		});
-		context.waitTicks(2);
+		Delivery.toClient(context);
 		// Near the list's bottom, below the rows: inside the box, not a pick.
 		click(context, screen(context, GrindstoneScreenAccess::enchanting2$listLeft) + 10,
 				screen(context, GrindstoneScreenAccess::enchanting2$listTop) + ColumnWindow.BOX_HEIGHT - 5);
-		context.waitTicks(3);
+		Delivery.toServer(context);
 		ItemStack carried = world.getServer().computeOnServer(server -> serverMenu(server).getCarried().copy());
 		check(carried.is(Items.DIAMOND) && carried.getCount() == 7, "the carried diamonds were thrown: " + carried);
 		world.getServer().runOnServer(server -> {

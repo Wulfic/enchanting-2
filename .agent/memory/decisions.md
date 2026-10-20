@@ -1577,3 +1577,20 @@ dry-run locally, and it checks each jar's own fabric.mod.json against its file n
 (only testable by tagging); a jar per node without the band in fabric.mod.json (Mod Menu / crash logs couldn't tell
 the jars apart).
 **Affects:** build.gradle, .github/workflows/release.yml, scripts/release-collect.sh, src/test/.../Bands.java, ModIdentityTest, ReleaseDocsTest
+
+## 2026-10-19 — Client GameTests: no network synchronizer on any node; explicit `Delivery` barriers
+**Context:** the 1.21.11 client GameTest flake was a race in Fabric 4.3.5's `NetworkSynchronizer` (gotchas.md
+2026-10-19). Turning it off exposed fixed `waitTicks(n)` before cross-side reads, which 26.x (no synchronizer) had
+all along.
+**Choice:** Fabric's own switch (`fabric.client.gametest.disableNetworkSynchronizer`) on band A only, plus a GameTest-mod
+barrier `Delivery.toServer` / `toClient` on a `SyncMarkerPayload` (Fabric 6.x's `waitForServerboundPackets` design,
+which the 4.x API lacks), used at every cross-side read in the nine client tests. `NetworkSynchronizerClientGameTest`
+guards the switch.
+**Why:** upstream deleted the synchronizer, so all four nodes now run the same way; barriers make the suite hold on a
+loaded machine and on CI runners (headless client GameTests in CI are next, owner 2026-10-19).
+**Rejected:** a mixin into Fabric's impl to reset the count at `connectToLocalServer` (too late: the title-screen
+tick already stalls on the leak, and it misses the underflow case); polling each condition with `waitFor` (can't prove
+a negative such as "the carried diamonds were not thrown"); raising tick counts (still a guess).
+The tooltip scroll test also stopped racing the wall clock: `TallTooltips.useClock` lets it hold time still
+(a test hook, like `offset()`; play always uses `REAL_CLOCK`).
+**Affects:** build.gradle, src/gametest/.../Delivery.java, SyncMarkerPayload.java, NetworkSynchronizerClientGameTest.java, src/gametest/resources/fabric.mod.json, the nine *ClientGameTest.java, src/client/.../TallTooltips.java

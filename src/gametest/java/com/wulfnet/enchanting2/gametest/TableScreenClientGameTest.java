@@ -192,14 +192,16 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		OptionalInt rowY = screen(context, access -> access.enchanting2$rowY(id));
 		check(rowY.isPresent(), id + " is drawn: " + screen(context, TableScreenAccess::enchanting2$listText));
 		click(context, rowsX(context) + 30, rowY.getAsInt());
-		context.waitTicks(3);
+		Delivery.toServer(context);
+		Delivery.toClient(context);
 	}
 
 	private static void clickEnchant(ClientGameTestContext context) {
 		click(context, screen(context, TableScreenAccess::enchanting2$leftPos) + TableWindow.BUTTON_X
 				+ TableWindow.BUTTON_WIDTH / 2, screen(context, TableScreenAccess::enchanting2$topPos)
 						+ TableWindow.BUTTON_Y + TableWindow.BUTTON_HEIGHT / 2);
-		context.waitTicks(3);
+		Delivery.toServer(context);
+		Delivery.toClient(context);
 	}
 
 	private static void setSlots(TestSingleplayerContext world, ItemStack item, int lapis) {
@@ -248,7 +250,7 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 	/** Sword + 64 lapis at 15 shelves: pick Sharpness (at I), step it to V, pick Mending, Enchant for 17 and 17. */
 	private static void enchantThroughTheList(ClientGameTestContext context, TestSingleplayerContext world) {
 		setSlots(world, new ItemStack(Items.DIAMOND_SWORD), 64);
-		context.waitTicks(3);
+		Delivery.toClient(context);
 		int shelves = context.computeOnClient(client -> TablePreviewState
 				.forContainer(client.player.containerMenu.containerId).map(TablePreviewPayload::shelves).orElse(-1));
 		check(shelves == 15, "15 shelves counted, got " + shelves);
@@ -317,12 +319,13 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		check(arrow.isPresent() && rowY.isPresent(), "the picked row has a stepper: row " + rowY + ", arrow " + arrow
 				+ ", scroll " + screen(context, TableScreenAccess::enchanting2$scrollOffset));
 		click(context, arrow.getAsInt(), rowY.getAsInt());
-		context.waitTicks(3);
+		Delivery.toServer(context);
+		Delivery.toClient(context);
 	}
 
 	private static void stepperChangesTheLevel(ClientGameTestContext context, TestSingleplayerContext world) {
 		setSlots(world, new ItemStack(Items.IRON_SWORD), 64);
-		context.waitTicks(3);
+		Delivery.toClient(context);
 		clickRow(context, SHARPNESS);
 		check(held(world).equals(TableSelection.EMPTY.with(SHARPNESS, 1)), "picked at I: " + held(world));
 		clickArrow(context, SHARPNESS, Zone.DECREASE);
@@ -339,7 +342,7 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 	private static void aPickOnTheLastVisibleRowStaysInView(ClientGameTestContext context,
 			TestSingleplayerContext world) {
 		setSlots(world, new ItemStack(Items.BOOK), 64);
-		context.waitTicks(3);
+		Delivery.toClient(context);
 		scrollToTop(context);
 		int listBottom = listTop(context) + TableWindow.LIST_HEIGHT;
 		String last = screen(context, access -> access.enchanting2$rowIds().stream()
@@ -348,7 +351,8 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 		int lastY = screen(context, access -> access.enchanting2$rowY(last)).orElseThrow();
 		check(lastY + TableWindow.LINE > listBottom, last + " is the last line in view: " + lastY);
 		click(context, rowsX(context) + 30, lastY);
-		context.waitTicks(3);
+		Delivery.toServer(context);
+		Delivery.toClient(context);
 		check(held(world).levels().containsKey(last), last + " picked: " + held(world));
 		OptionalInt after = screen(context, access -> access.enchanting2$rowY(last));
 		check(after.equals(OptionalInt.of(lastY)), "it stays in place: " + after + ", was " + lastY);
@@ -363,7 +367,7 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 	private static void bookTakesSeveralAndItsListScrolls(ClientGameTestContext context,
 			TestSingleplayerContext world) {
 		setSlots(world, new ItemStack(Items.BOOK), 64);
-		context.waitTicks(3);
+		Delivery.toClient(context);
 		clickRow(context, AQUA_AFFINITY);
 		clickRow(context, EFFICIENCY);
 		check(held(world).equals(TableSelection.EMPTY.with(AQUA_AFFINITY, 1).with(EFFICIENCY, 1)),
@@ -416,9 +420,9 @@ public class TableScreenClientGameTest implements FabricClientGameTest {
 			menu.setCarried(new ItemStack(Items.DIAMOND, 7));
 			menu.broadcastChanges();
 		});
-		context.waitTicks(2);
+		Delivery.toClient(context);
 		click(context, rowsX(context) - 1, listTop(context) + 40);
-		context.waitTicks(3);
+		Delivery.toServer(context);
 		ItemStack carried = world.getServer().computeOnServer(server -> serverMenu(server).getCarried().copy());
 		check(carried.is(Items.DIAMOND) && carried.getCount() == 7, "the carried diamonds were dropped: " + carried);
 		world.getServer().runOnServer(server -> {

@@ -29,6 +29,7 @@ public class FlightClientGameTest implements FabricClientGameTest {
 				player(server).setItemSlot(EquipmentSlot.CHEST, elytra);
 			});
 			world.getServer().runCommand("execute as @p at @s run tp @s ~ ~100 ~ 0 -20");
+			Delivery.toClient(context);
 			context.waitTicks(8);
 			context.getInput().holdKeyFor(options -> options.keyJump, 2);
 			check(context.computeOnClient(client -> client.player.isFallFlying()), "a jump press didn't start the glide");

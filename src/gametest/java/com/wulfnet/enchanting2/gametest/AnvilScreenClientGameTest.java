@@ -132,7 +132,7 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 			menu.getSlot(AnvilMenu.INPUT_SLOT).set(new ItemStack(Items.DIAMOND_SWORD));
 			menu.getSlot(AnvilMenu.ADDITIONAL_SLOT).set(book);
 		});
-		context.waitTicks(2);
+		Delivery.toClient(context);
 		int total = total(context);
 		check(total > 0, "a priced preview arrived");
 		String label = screen(context, AnvilScreenAccess::enchanting2$labelText);
@@ -163,7 +163,7 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 	private static void unaffordableShowsCompactLabelAndFullReason(ClientGameTestContext context,
 			TestSingleplayerContext world) {
 		world.getServer().runCommand("xp set @a 0 levels");
-		context.waitTicks(2);
+		Delivery.toClient(context);
 		int total = total(context);
 		String label = screen(context, AnvilScreenAccess::enchanting2$labelText);
 		check(Component.translatable("container.repair.cost", total).getString().equals(label),
@@ -172,7 +172,7 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 		List<String> panel = screen(context, AnvilScreenAccess::enchanting2$boxText);
 		check(panel.contains(insufficient), "box says '" + insufficient + "': " + panel);
 		world.getServer().runCommand("xp set @a 30 levels");
-		context.waitTicks(2);
+		Delivery.toClient(context);
 	}
 
 	/**
@@ -195,7 +195,7 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 			player(server).getInventory().add(menu.getSlot(AnvilMenu.ADDITIONAL_SLOT).getItem().copy());
 			menu.getSlot(AnvilMenu.ADDITIONAL_SLOT).set(book);
 		});
-		context.waitTicks(2);
+		Delivery.toClient(context);
 		int max = screen(context, AnvilScreenAccess::enchanting2$maxScroll);
 		check(max > 0, "nine skipped entries don't fit: " + screen(context, AnvilScreenAccess::enchanting2$boxText));
 		check(screen(context, AnvilScreenAccess::enchanting2$scrollOffset) == 0, "starts at the top");
@@ -229,10 +229,10 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 			menu.setCarried(new ItemStack(Items.DIAMOND, 3));
 			menu.broadcastChanges();
 		});
-		context.waitTicks(2);
+		Delivery.toClient(context);
 		click(context, screen(context, AnvilScreenAccess::enchanting2$boxLeft) + 10,
 				screen(context, AnvilScreenAccess::enchanting2$boxTop) + 30);
-		context.waitTicks(2);
+		Delivery.toServer(context);
 		int carried = world.getServer().computeOnServer(server -> serverMenu(server).getCarried().getCount());
 		check(carried == 3, "the carried diamonds were thrown: " + carried + " left");
 		world.getServer().runOnServer(server -> {
@@ -277,7 +277,7 @@ public class AnvilScreenClientGameTest implements FabricClientGameTest {
 				menu.getSlot(AnvilMenu.ADDITIONAL_SLOT).set(ItemStack.EMPTY);
 				menu.setItemName("Renamed");
 			});
-			context.waitTicks(3);
+			Delivery.toClient(context);
 			check(total(context) == HUGE_RENAME_COST, "preview total " + total(context));
 			int syncedCost = context.computeOnClient(client -> ((AnvilMenu) client.player.containerMenu).getCost());
 			check(syncedCost != HUGE_RENAME_COST, "the short cost slot wrapped (" + syncedCost + "), as expected");

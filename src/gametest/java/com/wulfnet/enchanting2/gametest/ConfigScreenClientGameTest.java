@@ -70,14 +70,15 @@ public class ConfigScreenClientGameTest implements FabricClientGameTest {
 			draft.set(SHARPNESS, EnchantmentFlagsDraft.Flag.TRADE, !wasAllowed);
 			EnchantmentOverrides edited = draft.apply();
 			context.runOnClient(client -> ConfigEditing.saveEnchantments(edited));
-			// The save queues the server's re-read with server.execute, which only runs when the server ticks.
-			context.waitTicks(2);
+			// The save queues the server's re-read with server.execute, which only runs when the server ticks;
+			// queued before the marker, so it has run when the marker has.
+			Delivery.toServer(context);
 			boolean nowAllowed = world.getServer().computeOnServer(server ->
 					new AcquisitionRules(ServerConfigs.enchantments(server)).allows(SHARPNESS, Source.TRADE));
 			check(nowAllowed == !wasAllowed, "the saved trade: " + !wasAllowed + " reached the running server");
 
 			context.runOnClient(client -> ConfigEditing.saveEnchantments(before));
-			context.waitTicks(2);
+			Delivery.toServer(context);
 			EnchantmentOverrides restored = world.getServer().computeOnServer(ServerConfigs::enchantments);
 			check(restored.equals(before), "the previous enchantments.json5 is back: " + restored);
 		}

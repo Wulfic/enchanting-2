@@ -35,7 +35,7 @@ public class ShieldClientGameTest implements FabricClientGameTest {
 			world.getServer().runCommand("execute as @p at @s run summon minecraft:cow ~ ~ ~2 {NoAI:1b}");
 			world.getServer().runOnServer(server -> player(server).setItemSlot(EquipmentSlot.OFFHAND,
 					new ItemStack(Items.SHIELD)));
-			context.waitTicks(5);
+			Delivery.toClient(context);
 
 			raise(context);
 			check(context.computeOnClient(client -> ((LocalPlayerInvoker) client.player)
@@ -53,7 +53,7 @@ public class ShieldClientGameTest implements FabricClientGameTest {
 				shield.enchant(enchantments.getOrThrow(ModEnchantments.SHIELD_BASH), 3);
 				player(server).setItemSlot(EquipmentSlot.OFFHAND, shield);
 			});
-			context.waitTicks(2);
+			Delivery.toClient(context);
 			raise(context);
 			check(context.computeOnClient(client -> ((LocalPlayerInvoker) client.player)
 					.e2test$itemUseSpeedMultiplier() == 1.0F), "Steady Stance still slows the player");
@@ -82,7 +82,7 @@ public class ShieldClientGameTest implements FabricClientGameTest {
 			player.setItemSlot(EquipmentSlot.CHEST, chestplate);
 			player.setAttached(LastStand.READY_AT, player.level().getGameTime() + 5432);
 		});
-		context.waitTicks(3);
+		Delivery.toClient(context);
 		long remaining = context.computeOnClient(client -> LastStand.remaining(client.player,
 				client.level.getGameTime()));
 		check(remaining > 5000 && remaining <= 5432, "the client's Last Stand cooldown: " + remaining);
@@ -98,10 +98,10 @@ public class ShieldClientGameTest implements FabricClientGameTest {
 				&& client.hitResult.getType() == HitResult.Type.ENTITY), "the crosshair isn't on the cow");
 	}
 
-	/** One "attack" click, and time for the attack to reach the server. */
+	/** One "attack" click, and the attack handled on the server. */
 	private static void click(ClientGameTestContext context) {
 		context.getInput().pressKey(options -> options.keyAttack);
-		context.waitTicks(3);
+		Delivery.toServer(context);
 	}
 
 	private static ServerPlayer player(MinecraftServer server) {

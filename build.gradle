@@ -198,6 +198,16 @@ fabricApi {
         clearRunDirectory = true
     }
 }
+// Fabric's client GameTest API 4.x (1.21.11 only; 5+ on 26.x has no synchronizer) counts each packet and makes every
+// client tick wait until it's handled. A world close zeroes the count before the connection closes, while the
+// integrated server still ticks; a packet lost in that gap fails the run 10 s later ("Network synchronizer in invalid
+// state", gotchas.md 2026-10-13, 2026-10-19). Fabric's documented switch turns it off, as 26.x runs anyway.
+// NetworkSynchronizerClientGameTest leaks a count on purpose and fails if this goes.
+if (!sc.current.parsed.matches('>=26.1')) {
+    loom.runs.named('clientGameTest') {
+        vmArg '-Dfabric.client.gametest.disableNetworkSynchronizer=true'
+    }
+}
 // build/gametest-report.xml + the check that fails a run with no test cases (Phase 12F; shared with the matrix).
 apply from: rootProject.file('gradle/gametest-report.gradle')
 
