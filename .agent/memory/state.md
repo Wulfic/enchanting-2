@@ -131,7 +131,10 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
     FG 7.0.40 build beside loom-back-compat and apply mixins. 13B (`platform/` seam, Fabric only): `verifyAll`
     green on the final tree (435 JUnit, 339 GameTests everywhere), client GameTests 1.21.11 green, 26.x running.
     Owner rulings (decisions.md "Phase 13 owner rulings"): push `port/loaders` after each green stage; every jar
-    names its loader (`…+26.3-fabric.jar`); widen NeoForge/Forge B1 in 13F. Next: 13C per TODO.md C1–C7, 26.3 first.
+    names its loader (`…+26.3-fabric.jar`); widen NeoForge/Forge B1 in 13F. 13C: C1a 3ab2af2; **26.3-neoforge green**
+    (verifyAll 2026-10-20: 438 JUnit, 339 GameTests on every node incl. `:26.3-neoforge`), committed as "13C 26.3".
+    Next, in order (TODO.md 13C "Progress"): (1) `enchanting2:hello` (owner: fix the mismatch gap now), (2) 13F jar
+    naming moved up, (3) 26.1.2-neoforge, 26.2-neoforge. Owner: 13E screen mirrors YACL (decisions.md "third round").
     **Only one session works this tree** (owner 2026-10-20); a second session's builds lock GameTest worlds (gotchas).
     13B committed 7fdae70 and pushed (`origin/port/loaders`). `ci.yml` only triggers on main/PRs, so each stage's CI
     is `gh workflow run ci.yml --ref port/loaders` until the PR is opened (13F, ask first).

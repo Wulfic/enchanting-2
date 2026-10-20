@@ -176,8 +176,20 @@ abstract class LivingEntityMixin implements ShieldState {
 
 	/**
 	 * Phase 10cC, Spiked, Bulwark and Riposte: vanilla damages the shield here whether or not anything was blocked, and
-	 * the hit can break it, so its enchantments are read first and acted on after.
+	 * the hit can break it, so its enchantments are read first and acted on after. NeoForge (Phase 13C) patches the call
+	 * to take the shield damage its block event decided as well (an int; javap on 26.3.0.95); it's passed through.
 	 */
+	//? if neoforge {
+	/*@WrapOperation(method = "applyItemBlocking", at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/world/item/component/BlocksAttacks;hurtBlockingItem(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/InteractionHand;FI)V"))
+	private void enchanting2$shieldBlocked(BlocksAttacks blocksAttacks, Level level, ItemStack shield,
+			LivingEntity blocker, InteractionHand hand, float blocked, int shieldDamage, Operation<Void> original,
+			@Local(argsOnly = true) ServerLevel serverLevel, @Local(argsOnly = true) DamageSource source) {
+		ShieldEffects.Snapshot effects = ShieldEffects.read(shield);
+		original.call(blocksAttacks, level, shield, blocker, hand, blocked, shieldDamage);
+		ShieldEffects.afterBlock(blocker, serverLevel, source, blocked, effects);
+	}
+	*///?} else {
 	@WrapOperation(method = "applyItemBlocking", at = @At(value = "INVOKE",
 			target = "Lnet/minecraft/world/item/component/BlocksAttacks;hurtBlockingItem(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/InteractionHand;F)V"))
 	private void enchanting2$shieldBlocked(BlocksAttacks blocksAttacks, Level level, ItemStack shield,
@@ -187,6 +199,7 @@ abstract class LivingEntityMixin implements ShieldState {
 		original.call(blocksAttacks, level, shield, blocker, hand, blocked);
 		ShieldEffects.afterBlock(blocker, serverLevel, source, blocked, effects);
 	}
+	//?}
 
 	/** Phase 10cC, Riposte: the attacker's next melee hit after a block deals more, and uses the bonus up. */
 	@ModifyVariable(method = "hurtServer", at = @At("HEAD"), argsOnly = true)

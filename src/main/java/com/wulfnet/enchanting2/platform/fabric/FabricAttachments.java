@@ -38,7 +38,7 @@ public final class FabricAttachments implements Attachments {
 		}
 
 		@Override
-		public void set(Entity entity, T value) {
+		public void set(Entity entity, @Nullable T value) {
 			entity.setAttached(type, value);
 		}
 
@@ -53,7 +53,7 @@ public final class FabricAttachments implements Attachments {
 		}
 
 		@Override
-		public void set(ChunkAccess chunk, T value) {
+		public void set(ChunkAccess chunk, @Nullable T value) {
 			chunk.setAttached(type, value);
 		}
 

@@ -6,7 +6,6 @@ import com.wulfnet.enchanting2.fortune.PlacedMarks;
 import com.wulfnet.enchanting2.fortune.PlacedMarksCodec;
 import com.wulfnet.enchanting2.gametest.mixin.MobAccessor;
 import java.util.List;
-import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -250,8 +249,8 @@ public class PlacedBlocksGameTest {
 		PlacedBlocks.mark(level, pos);
 		LevelChunk chunk = level.getChunkAt(pos);
 		CompoundTag nbt = SerializableChunkData.copyOf(level, chunk).write();
-		Tag stored = nbt.getCompound(AttachmentTarget.NBT_ATTACHMENT_KEY).orElseThrow()
-				.get(PlacedBlocks.CHUNK.id().toString());
+		Tag stored = TestPlatform.storedAttachment(nbt.getCompound(TestPlatform.attachmentsKey()).orElseThrow(),
+				PlacedBlocks.CHUNK.id().toString());
 		helper.assertTrue(stored != null, Component.literal("no placed-block attachment in the chunk NBT: " + nbt.keySet()));
 		PlacedMarks read = PlacedMarksCodec.INSTANCE.parse(NbtOps.INSTANCE, stored).getOrThrow();
 		helper.assertValueEqual(PlacedBlocks.CHUNK.get(chunk), read, Component.literal("decoded marks"));

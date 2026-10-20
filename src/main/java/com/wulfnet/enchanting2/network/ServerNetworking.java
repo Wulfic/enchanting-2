@@ -21,16 +21,20 @@ public final class ServerNetworking {
 	private ServerNetworking() {
 	}
 
-	/** Runs on both sides: payload types must be registered wherever they are sent or received. */
+	/**
+	 * Runs on both sides: payload types must be registered wherever they are sent or received. The client's payloads
+	 * come with their server-thread handlers.
+	 */
 	public static void registerPayloads() {
 		Networking net = Services.NETWORK;
 		net.registerToClient(ConfigSyncPayload.TYPE, ConfigSyncPayload.CODEC, true);
 		net.registerToClient(AnvilPreviewPayload.TYPE, AnvilPreviewPayload.CODEC, false);
 		net.registerToClient(GrindstoneOptionsPayload.TYPE, GrindstoneOptionsPayload.CODEC, false);
-		net.registerToServer(GrindstoneChoicePayload.TYPE, GrindstoneChoicePayload.CODEC);
+		net.registerToServer(GrindstoneChoicePayload.TYPE, GrindstoneChoicePayload.CODEC,
+				ServerNetworking::handleGrindstoneChoice);
 		net.registerToClient(TablePreviewPayload.TYPE, TablePreviewPayload.CODEC, false);
-		net.registerToServer(TableSelectPayload.TYPE, TableSelectPayload.CODEC);
-		net.registerToServer(TableEnchantPayload.TYPE, TableEnchantPayload.CODEC);
+		net.registerToServer(TableSelectPayload.TYPE, TableSelectPayload.CODEC, ServerNetworking::handleTableSelect);
+		net.registerToServer(TableEnchantPayload.TYPE, TableEnchantPayload.CODEC, ServerNetworking::handleTableEnchant);
 	}
 
 	/**
@@ -98,10 +102,6 @@ public final class ServerNetworking {
 					verdict.clientVersions(), message);
 			connection.disconnect(Component.literal(message));
 		});
-		// Server thread.
-		net.onReceive(GrindstoneChoicePayload.TYPE, ServerNetworking::handleGrindstoneChoice);
-		net.onReceive(TableSelectPayload.TYPE, ServerNetworking::handleTableSelect);
-		net.onReceive(TableEnchantPayload.TYPE, ServerNetworking::handleTableEnchant);
 		// Again at play join: a /reload while this player was still configuring missed them in syncToAll.
 		net.onPlayJoin(player -> {
 			if (net.canSend(player, ConfigSyncPayload.TYPE)) {

@@ -17,6 +17,7 @@ import com.wulfnet.enchanting2.config.SilkTouchSection;
 import com.wulfnet.enchanting2.config.SmeltingSection;
 import com.wulfnet.enchanting2.config.TableSection;
 import com.wulfnet.enchanting2.network.ConfigSyncPayload;
+import com.wulfnet.enchanting2.platform.Services;
 import io.netty.buffer.Unpooled;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -25,7 +26,6 @@ import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -84,7 +84,7 @@ public class ConfigWiringGameTest {
 	public void reloadRereadsTheFileAndKeepsThePreviousConfigOnGarbage(GameTestHelper helper) {
 		MinecraftServer server = helper.getLevel().getServer();
 		Path file = ServerConfigs.commonFile();
-		Path gameDir = FabricLoader.getInstance().getGameDir().toAbsolutePath().normalize();
+		Path gameDir = Services.LOADER.gameDir().toAbsolutePath().normalize();
 		if (!gameDir.endsWith(Path.of("build", "run", "gameTest"))
 				|| !file.toAbsolutePath().normalize().startsWith(gameDir)) {
 			helper.fail("refusing to edit " + file + ": not inside build/run/gameTest");

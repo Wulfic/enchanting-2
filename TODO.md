@@ -183,10 +183,45 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
       Blast radius: additive except `build.gradle` / `gametest-report.gradle` / mixins.json edits (git-restorable) and
       the gametest import swap (Fabric nodes unchanged, guarded by their 339 still running). Rollback: revert the 13C
       commit.
+      **Progress 2026-10-20:** C1a committed (3ab2af2, Fabric jars identical entry for entry). **26.3-neoforge green:**
+      JUnit 438 (5 Fabric-metadata tests skip, 2 NeoForge ones run), server GameTests 339/339 (338 ours +
+      `minecraft:always_pass`, the same set as Fabric). Changed from the plan while doing it:
+      - NeoForge resources live in `src/neoforge/resources` (mod toml, loot modifier JSON) and
+        `src/neoforge/gametest/resources` (GameTest mod toml, `empty.nbt` from `scripts/make-empty-structure.py`), added
+        as source dirs only on NeoForge nodes; nothing to exclude on Fabric.
+      - The GameTest mod stays a separate mod there, `enchanting2_gametest` (no `-` in NeoForge IDs), with its own
+        mixins; `NeoForgeGameTests` reads the `fabric-gametest` list from its fabric.mod.json.
+      - Seam additions: `Registration` (NeoForge freezes built-in registries), `Attachment.set(null)` removes,
+        `registerToServer(type, codec, handler)` and `onReceive(type, configuration, handler)` (typed, no casts).
+      - Mixins that differ on NeoForge, behind `//? if neoforge`: `LivingEntityMixin` shield block (extra `int`),
+        `LavaFluidMixin` (setBlock on 26.3), `SpawnerBlockMixin` (`getExpDrop`); NeoForge-only `mixin/neoforge/`
+        (enchantment load + effects accessor). gotchas.md 2026-10-20 "NeoForge 26.3".
+      - `ElytraGameTest` runs the tick's equipment check before its AI steps (NeoForge glides on an attribute).
+      - CI's client jobs list Fabric nodes only. NeoForge jar name = Fabric's until 13F adds the loader to every name.
+      Next: verifyAll + Fabric client GameTests → commit + push 26.3-neoforge. **Then 13F's jar naming moves up**
+      (loader in every jar name, `ReleaseDocsTest` / README / wiki tables per loader): `ReleaseDocsTest` wants the
+      install tables to list exactly the bands, and a 26.1.2-neoforge node's band (26.1.2) differs from Fabric's
+      (26.1-26.1.2), so it can't pass under today's loader-less names. Then 26.1.2-neoforge, 26.2-neoforge.
+      **Owner 2026-10-20 (decisions.md "third round"): fix the protocol-mismatch gap before the next node.** Plan,
+      its own commit after the 26.3-neoforge one:
+      - `network/HelloPayload` (`enchanting2:hello`, no `v<N>/`: its ID and wire format, one VarInt protocol, never
+        change). NeoForge registers it `configurationBidirectional`, optional.
+      - `NeoForgeNetworking.ConfigureTask`: client has `hello` → send `Hello(VERSION)`, finish only when the reply
+        arrives; the reply handler runs the `onConfigure` listeners with the client's number. Client lacks it → run
+        them at once (vanilla / no mod). Client handler replies with its own `VERSION`, unconditionally.
+      - Seam: `ConfigurationConnection.clientProtocol()` (`OptionalInt`; Fabric empty, it reads channels).
+        `NetworkProtocol.classify(channels, required, clientProtocol)`: a reported number decides MATCH / MISMATCH [N].
+      - Tests: JUnit on the new `classify` overload (reported match, reported mismatch → message names N, no report →
+        today's channel rules); NeoForge server GameTests unchanged (339). Owner `runClient` check: a protocol-5
+        client against a protocol-6 server build gets the mismatch text (13E/C7 list).
+      Not doing: hello on Fabric (Fabric already sees every channel); cross-loader joins.
+      Owner check later (13E/C7): `runClient` on NeoForge (tooltips, HUD, table/anvil/grindstone panels, joining a
+      vanilla server gets our message).
 - [ ] 13D — **Forge nodes** 26.1.2, 26.2, 26.3: `mods.toml`, `platform/forge` (capabilities for attachments, its
       payload channel, Forge events). Same proof.
 - [ ] 13E — **Config screen for NeoForge + Forge** on vanilla widgets (`client/config/`, drawn from the existing
-      `ConfigView` / drafts / `TabRows`; every option the YACL screen has, per DESIGN §1). Entry: NeoForge
+      `ConfigView` / drafts / `TabRows`; every option the YACL screen has, per DESIGN §1). Owner 2026-10-20: it
+      mirrors the YACL screen (categories as tab rows, scrolling option list, per-option reset, Save / Cancel). Entry: NeoForge
       `IConfigScreenFactory`, Forge `ConfigScreenFactory`. JUnit on the model (an option missing from the screen fails),
       plus the owner's `runClient` check on both loaders.
 - [ ] 13F — **Build, CI, release plumbing:** `verifyAll` covers every node + Quilt nodes; `ci.yml` jobs per loader;

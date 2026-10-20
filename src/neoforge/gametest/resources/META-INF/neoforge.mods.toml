@@ -1,0 +1,20 @@
+# The GameTest mod on NeoForge (Phase 13C): Fabric's enchanting2-gametest, renamed because NeoForge mod IDs can't hold
+# '-'. Dev and GameTest runs only (build.neoforge.gradle); never in a shipped jar. Expanded by processResources.
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "MIT"
+
+[[mods]]
+modId = "enchanting2_gametest"
+version = "1.0.0"
+displayName = "Enchanting 2 GameTests"
+
+[[mixins]]
+config = "enchanting2-gametest.mixins.json"
+
+[[dependencies.enchanting2_gametest]]
+modId = "enchanting2"
+type = "required"
+versionRange = "[0,)"
+ordering = "AFTER"
+side = "BOTH"

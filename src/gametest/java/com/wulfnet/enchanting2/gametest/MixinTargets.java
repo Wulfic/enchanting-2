@@ -12,8 +12,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.loader.api.FabricLoader;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AnnotationNode;
@@ -69,7 +67,7 @@ final class MixinTargets {
 
 	/** The config sections Mixin applies in this environment: a dedicated server has no client classes to load. */
 	private static List<String> sections() {
-		return FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT
+		return TestPlatform.isClient()
 				? List.of("mixins", "client")
 				: List.of("mixins", "server");
 	}

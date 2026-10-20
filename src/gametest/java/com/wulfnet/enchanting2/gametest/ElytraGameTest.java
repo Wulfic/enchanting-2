@@ -134,9 +134,12 @@ public class ElytraGameTest {
 
 	/**
 	 * Forty server ticks of {@code player}'s AI step, where vanilla's elytra tick (and Flight's wear after it) runs. The
-	 * step moves the player too, so it starts 40 blocks up: a glide without thrust lands from 5 in 38 ticks.
+	 * step moves the player too, so it starts 40 blocks up: a glide without thrust lands from 5 in 38 ticks. First the
+	 * equipment check a full tick runs before the step: NeoForge glides on the elytra's gliding_flight attribute
+	 * modifier, which only that check applies (Fabric reads the chest item itself).
 	 */
 	private static void glideFortyTicks(GameTestHelper helper, ServerPlayer player) {
+		((LivingEntityInvoker) player).e2test$detectEquipmentUpdates();
 		player.snapTo(player.position().add(0.0, 40.0, 0.0), player.getYRot(), player.getXRot());
 		player.startFallFlying();
 		for (int tick = 0; tick < 40; tick++) {

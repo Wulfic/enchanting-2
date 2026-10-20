@@ -5,17 +5,18 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.wulfnet.enchanting2.platform.fabric.FabricEntrypoint;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
@@ -25,6 +26,17 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 class ModIdentityTest {
+	/** The loader this node builds for (gradle/common.gradle); each loader's metadata tests skip on the others. */
+	private static String loader() {
+		String loader = System.getProperty("enchanting2.loader");
+		assertNotNull(loader, "gradle/common.gradle passes enchanting2.loader to the test task");
+		return loader;
+	}
+
+	private static void onlyOn(String expected) {
+		assumeTrue(loader().equals(expected), "metadata of " + expected + ", not this node's " + loader());
+	}
+
 	private static JsonObject modJson() throws Exception {
 		return resourceJson("/fabric.mod.json");
 	}
@@ -38,19 +50,31 @@ class ModIdentityTest {
 
 	@Test
 	void modIdConstantMatchesFabricModJson() throws Exception {
+		onlyOn("fabric");
 		assertEquals(Enchanting2.MOD_ID, modJson().get("id").getAsString());
 	}
 
 	@Test
 	void entrypointsPointAtRealClasses() throws Exception {
+		onlyOn("fabric");
 		JsonObject entrypoints = modJson().getAsJsonObject("entrypoints");
-		assertEquals(FabricEntrypoint.class.getName(), entrypoints.getAsJsonArray("main").get(0).getAsString());
-		assertEquals("com.wulfnet.enchanting2.platform.fabric.FabricClientEntrypoint",
-				entrypoints.getAsJsonArray("client").get(0).getAsString());
+		String main = entrypoints.getAsJsonArray("main").get(0).getAsString();
+		String client = entrypoints.getAsJsonArray("client").get(0).getAsString();
+		assertEquals("com.wulfnet.enchanting2.platform.fabric.FabricEntrypoint", main);
+		assertEquals("com.wulfnet.enchanting2.platform.fabric.FabricClientEntrypoint", client);
+		assertClassExists(main);
+		assertClassExists(client);
+	}
+
+	/** By its class file, so this compiles on every loader's node. */
+	private static void assertClassExists(String name) {
+		assertNotNull(ModIdentityTest.class.getClassLoader().getResource(name.replace('.', '/') + ".class"),
+				"no class " + name);
 	}
 
 	@Test
 	void versionIsExpandedByTheBuild() throws Exception {
+		onlyOn("fabric");
 		String version = modJson().get("version").getAsString();
 		assertFalse(version.contains("${"), "processResources did not expand version: " + version);
 	}
@@ -63,6 +87,7 @@ class ModIdentityTest {
 	 */
 	@Test
 	void versionNamesTheVersionsThisJarIsProvenOn() throws Exception {
+		onlyOn("fabric");
 		String node = System.getProperty("enchanting2.node");
 		String ownVersion = System.getProperty("enchanting2.minecraftVersion");
 		assertNotNull(node, "build.gradle passes enchanting2.node to the test task");
@@ -86,11 +111,22 @@ class ModIdentityTest {
 		assertTrue(admits(">=26.1 <26.2-", "26.1.2"));
 		assertFalse(admits(">=26.1 <26.2-", "26.2"));
 		assertFalse(admits(">=26.2 <26.3-", "26.1.2"));
+		assertTrue(admits("[26.3,26.4)", "26.3"));
+		assertTrue(admits("[26.3,26.4)", "26.3.1"));
+		assertFalse(admits("[26.3,26.4)", "26.4"));
+		assertFalse(admits("[26.3,26.4)", "26.2"));
 		assertThrows(AssertionError.class, () -> admits("26.1.x", "26.1"), "an unknown range form must fail, not pass");
 	}
 
-	/** Fabric's {@code ~X.Y.Z} (= {@code >=X.Y.Z <X.(Y+1)-}) and {@code >=A <B-}; anything else fails the test. */
+	/**
+	 * Fabric's {@code ~X.Y.Z} (= {@code >=X.Y.Z <X.(Y+1)-}) and {@code >=A <B-}, NeoForge's Maven {@code [A,B)};
+	 * anything else fails the test.
+	 */
 	private static boolean admits(String range, String version) {
+		Matcher maven = Pattern.compile("\\[([\\d.]+),([\\d.]+)\\)").matcher(range);
+		if (maven.matches()) {
+			return Bands.compare(version, maven.group(1)) >= 0 && Bands.compare(version, maven.group(2)) < 0;
+		}
 		Matcher tilde = Pattern.compile("~(\\d+)\\.(\\d+)(\\.\\d+)*").matcher(range);
 		if (tilde.matches()) {
 			String next = tilde.group(1) + "." + (Integer.parseInt(tilde.group(2)) + 1);
@@ -117,13 +153,89 @@ class ModIdentityTest {
 	 */
 	@Test
 	void minecraftRangeAndJavaLevelAreExpandedForThisNode() throws Exception {
+		onlyOn("fabric");
 		JsonObject depends = modJson().getAsJsonObject("depends");
 		String minecraft = depends.get("minecraft").getAsString();
 		assertFalse(minecraft.isBlank() || minecraft.contains("${"),
 				"processResources did not expand depends.minecraft: " + minecraft);
 		int java = Runtime.version().feature();
 		assertEquals(">=" + java, depends.get("java").getAsString());
-		assertEquals("JAVA_" + java, resourceJson("/enchanting2.mixins.json").get("compatibilityLevel").getAsString());
+	}
+
+	/** Every loader: the mixin configs' compatibility level is the node's Java level (Phase 12B). */
+	@Test
+	void mixinCompatibilityLevelIsThisNodesJava() throws Exception {
+		assertEquals("JAVA_" + Runtime.version().feature(),
+				resourceJson("/enchanting2.mixins.json").get("compatibilityLevel").getAsString());
+	}
+
+	/**
+	 * Phase 13C: neoforge.mods.toml names this mod, carries the same derived version as the Fabric jar (mod_version+band),
+	 * and its minecraft range admits every version in the band; its NeoForge range is expanded.
+	 */
+	@Test
+	void neoforgeModsTomlNamesThisModAndItsBand() throws Exception {
+		onlyOn("neoforge");
+		Map<String, Map<String, String>> toml = modsToml();
+		assertEquals(Enchanting2.MOD_ID, toml.get("mods").get("modId"));
+		TreeSet<String> versions = Bands.versions(System.getProperty("enchanting2.node"),
+				System.getProperty("enchanting2.minecraftVersion"));
+		assertEquals(gradleProperty("mod_version") + "+" + Bands.label(versions), toml.get("mods").get("version"));
+		String minecraft = toml.get("dependency minecraft").get("versionRange");
+		for (String version : versions) {
+			assertTrue(admits(minecraft, version), "the jar is named for " + version + " but minecraft is " + minecraft);
+		}
+		String neoforge = toml.get("dependency neoforge").get("versionRange");
+		assertFalse(neoforge.isBlank() || neoforge.contains("${"), "processResources did not expand neoforge: " + neoforge);
+		assertEquals(List.of("enchanting2.mixins.json", "enchanting2.client.mixins.json"),
+				List.of(toml.get("mixins 1").get("config"), toml.get("mixins 2").get("config")));
+	}
+
+	@Test
+	void neoforgeEntryPointsAreRealClasses() {
+		onlyOn("neoforge");
+		assertClassExists("com.wulfnet.enchanting2.platform.neoforge.NeoForgeEntrypoint");
+		assertClassExists("com.wulfnet.enchanting2.platform.neoforge.NeoForgeClientEntrypoint");
+	}
+
+	/**
+	 * Our own neoforge.mods.toml, read just far enough for the tests: each table's {@code key = "value"} lines, keyed
+	 * "mods", "mixins N" and "dependency <modId>". A line this doesn't read fails the test rather than passing.
+	 */
+	private static Map<String, Map<String, String>> modsToml() throws Exception {
+		Map<String, Map<String, String>> tables = new LinkedHashMap<>();
+		Map<String, String> current = new LinkedHashMap<>();
+		tables.put("", current);
+		int mixins = 0;
+		int dependencies = 0;
+		try (InputStream in = ModIdentityTest.class.getResourceAsStream("/META-INF/neoforge.mods.toml")) {
+			assertNotNull(in, "/META-INF/neoforge.mods.toml missing from the main resources");
+			for (String line : new String(in.readAllBytes(), StandardCharsets.UTF_8).split("\\R")) {
+				line = line.strip();
+				if (line.isEmpty() || line.startsWith("#")) {
+					continue;
+				}
+				if (line.startsWith("[[")) {
+					current = new LinkedHashMap<>();
+					String table = line.substring(2, line.length() - 2);
+					tables.put(switch (table) {
+						case "mods" -> "mods";
+						case "mixins" -> "mixins " + ++mixins;
+						default -> table + " " + ++dependencies;
+					}, current);
+					continue;
+				}
+				Matcher pair = Pattern.compile("(\\w+)\\s*=\\s*\"(.*)\"").matcher(line);
+				assertTrue(pair.matches(), "a neoforge.mods.toml line this test doesn't read: " + line);
+				current.put(pair.group(1), pair.group(2));
+			}
+		}
+		Map<String, Map<String, String>> named = new LinkedHashMap<>();
+		tables.forEach((name, values) -> named.put(name.startsWith("dependencies.")
+				? "dependency " + values.get("modId") : name, values));
+		assertTrue(named.containsKey("mods") && named.containsKey("dependency minecraft")
+				&& named.containsKey("dependency neoforge"), "neoforge.mods.toml tables: " + named.keySet());
+		return named;
 	}
 
 	/**
@@ -160,11 +272,12 @@ class ModIdentityTest {
 		assertTrue(key.equals("type") || key.equals("minecraft:entity_type"), "unknown predicate key: " + key);
 	}
 
-	/** This node's Minecraft version as {major, minor}: the lower bound of its expanded {@code depends.minecraft}. */
-	private static int[] nodeVersion() throws Exception {
-		String range = modJson().getAsJsonObject("depends").get("minecraft").getAsString();
-		Matcher version = Pattern.compile("(\\d+)\\.(\\d+)").matcher(range);
-		assertTrue(version.find(), "no version in depends.minecraft: " + range);
+	/** This node's Minecraft version as {major, minor} (the test task's enchanting2.minecraftVersion). */
+	private static int[] nodeVersion() {
+		String own = System.getProperty("enchanting2.minecraftVersion");
+		assertNotNull(own, "the build passes enchanting2.minecraftVersion to the test task");
+		Matcher version = Pattern.compile("(\\d+)\\.(\\d+)").matcher(own);
+		assertTrue(version.find(), "no version in enchanting2.minecraftVersion: " + own);
 		return new int[] {Integer.parseInt(version.group(1)), Integer.parseInt(version.group(2))};
 	}
 

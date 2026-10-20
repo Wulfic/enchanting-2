@@ -1,0 +1,163 @@
+// Phase 13C: the NeoForge nodes (versions/<mc>-neoforge/, settings.gradle). Same source tree as the Fabric nodes; the
+// loader's Gradle plugin is ModDevGradle, NeoForge's official MDK toolchain (decisions.md 2026-10-20 "build plugins").
+// What every loader shares (Minecraft renames, band version, resources, Java, JUnit) is in gradle/common.gradle.
+plugins {
+    id 'net.neoforged.moddev'
+}
+
+stonecutter {
+    // Loader code lives in platform/<loader>/ and is picked in platform/Services with //? if neoforge.
+    constants.match('neoforge', 'fabric', 'neoforge', 'forge')
+    // Server GameTests keep Fabric's @GameTest in src/ (decisions.md 2026-10-20 "13B"); here that one import becomes
+    // ours, which NeoForgeGameTests reads. A test class that misses the swap fails the registrar, not silently.
+    replacements.string(true) {
+        replace 'import net.fabricmc.fabric.api.gametest.v1.GameTest;', 'import com.wulfnet.enchanting2.gametest.platform.GameTest;'
+    }
+}
+
+// The same split as Loom's splitEnvironmentSourceSets plus Fabric's gametest source set, so Stonecutter converts each
+// tree for this node (it only processes declared source sets). client sees main; gametest sees both.
+sourceSets {
+    client {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+    gametest {
+        compileClasspath += sourceSets.main.output + sourceSets.client.output
+        runtimeClasspath += sourceSets.main.output + sourceSets.client.output
+    }
+    // JUnit sees the client classes too, as on Loom (ModIdentityTest checks the client entry point exists).
+    test {
+        compileClasspath += sourceSets.client.output
+        runtimeClasspath += sourceSets.client.output
+    }
+}
+// ...and their dependencies, as Loom's split wires them: client and gametest get main's libraries (Jankson).
+configurations {
+    clientImplementation.extendsFrom implementation
+    clientRuntimeOnly.extendsFrom runtimeOnly
+    gametestImplementation.extendsFrom implementation
+    gametestRuntimeOnly.extendsFrom runtimeOnly
+}
+
+// Code that only compiles against another loader, or against Fabric-only libraries, never reaches this node:
+//   - platform/fabric and platform/forge (PlatformImportsTest keeps every loader API inside its own package),
+//   - the YACL config screen and its Mod Menu entry (NeoForge gets its own screen in 13E),
+//   - the client GameTests and their helpers (FabricClientGameTest has no NeoForge counterpart; TODO.md 13C C6).
+def otherLoaders = ['**/platform/fabric/**', '**/platform/forge/**', '**/mixin/fabric/**', '**/mixin/forge/**']
+def fabricOnlyClient = ['**/client/ModMenuIntegration.java', '**/client/ConfigScreen.java',
+    '**/client/TabbedConfigScreen.java']
+def fabricOnlyGameTests = ['**/*ClientGameTest.java', '**/gametest/ClientWorlds.java', '**/gametest/Delivery.java',
+    '**/gametest/SyncMarkerPayload.java']
+sourceSets.configureEach {
+    java.exclude otherLoaders
+}
+sourceSets.client.java.exclude fabricOnlyClient
+sourceSets.gametest.java.exclude fabricOnlyGameTests
+// NeoForge-only resources: neoforge.mods.toml and the global loot modifier that stands in for Fabric's MODIFY_DROPS.
+sourceSets.main.resources.srcDir rootProject.file('src/neoforge/resources')
+// ...and the GameTest mod's: its neoforge.mods.toml and the empty structure Fabric's API would provide.
+sourceSets.gametest.resources.srcDir rootProject.file('src/neoforge/gametest/resources')
+
+repositories {
+    mavenCentral()
+}
+
+neoForge {
+    version = project.neo_version
+
+    mods {
+        'enchanting2' {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+        // Fabric's enchanting2-gametest; NeoForge mod IDs can't hold '-'. Loaded by the gameTest run only.
+        'enchanting2_gametest' {
+            sourceSet sourceSets.gametest
+        }
+    }
+
+    // Separate run dirs, one root per node (run_root), as build.gradle's Loom runs. The dev server listens on 25566:
+    // the owner often has another mod's server on 25565.
+    runs {
+        client {
+            client()
+            gameDirectory = rootProject.file("${project.run_root}/client")
+        }
+        server {
+            server()
+            gameDirectory = rootProject.file("${project.run_root}/server")
+            programArgument '--port'
+            programArgument '25566'
+        }
+        // ./gradlew :<node>:runGameTest, as on the Fabric nodes: a GameTest server that runs every server GameTest and
+        // exits. Its world is rebuilt by every run (clearGameTestRunDir).
+        gameTest {
+            type = 'gameTestServer'
+            gameDirectory = layout.buildDirectory.dir('run/gameTest')
+            sourceSet = sourceSets.gametest
+            loadedMods = [mods.enchanting2, mods.enchanting2_gametest]
+        }
+        configureEach {
+            if (name != 'gameTest') {
+                loadedMods = [mods.enchanting2]
+            }
+        }
+    }
+}
+neoForge.addModdingDependenciesTo(sourceSets.client)
+neoForge.addModdingDependenciesTo(sourceSets.gametest)
+neoForge.addModdingDependenciesTo(sourceSets.test)
+
+// The client code ships in the one jar, as on Fabric.
+tasks.named('jar', Jar) {
+    from sourceSets.client.output
+}
+
+// The other loaders' metadata stays out of the NeoForge jar. The GameTest mod keeps its fabric.mod.json: its
+// fabric-gametest list is the test class list NeoForgeGameTests reads.
+tasks.named('processResources', ProcessResources) {
+    exclude 'fabric.mod.json'
+}
+
+// A fresh GameTest world every run, as Fabric's clearRunDirectory gives (ConfigWiringGameTest rewrites config files).
+// Same guard as matrix/matrix.gradle: only <node>/build/run/gameTest is ever deleted.
+def buildRoot = layout.buildDirectory.get().asFile.canonicalFile
+def gameTestRunDir = new File(buildRoot, 'run/gameTest').canonicalFile
+def clearGameTestRunDir = tasks.register('clearGameTestRunDir') {
+    doLast {
+        // Fail closed: only a direct child of <node>/build/run/ is ever deleted.
+        if (gameTestRunDir.parentFile != new File(buildRoot, 'run').canonicalFile) {
+            throw new GradleException("Refusing to delete ${gameTestRunDir}: not inside ${buildRoot}/run")
+        }
+        if (gameTestRunDir.exists()) {
+            logger.lifecycle("Clearing GameTest run dir ${gameTestRunDir} (rebuilt by every run)")
+            if (!gameTestRunDir.deleteDir()) {
+                throw new GradleException("Could not clear ${gameTestRunDir}; a game from the last run may still hold it")
+            }
+        }
+        gameTestRunDir.mkdirs()
+    }
+}
+tasks.matching { it.name == 'runGameTest' }.configureEach {
+    dependsOn clearGameTestRunDir
+}
+// GameTests are part of `build`, as on the Fabric nodes (Loom's fabricApi.configureTests wires that there).
+tasks.named('check') {
+    dependsOn 'runGameTest'
+}
+
+dependencies {
+    // JSON5 config reader/writer. Plain Java, nested in the jar (jarJar) so a server needs only NeoForge.
+    implementation "blue.endless:jankson:${project.jankson_version}"
+    jarJar "blue.endless:jankson:${project.jankson_version}"
+
+    testImplementation platform("org.junit:junit-bom:${project.junit_version}")
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+ext.mod_loader = 'neoforge'
+apply from: rootProject.file('gradle/common.gradle')
+// build/gametest-report.xml + the check that fails a run with no test cases (shared with the Fabric and matrix nodes).
+apply from: rootProject.file('gradle/gametest-report.gradle')

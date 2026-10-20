@@ -3,8 +3,9 @@ package com.wulfnet.enchanting2.effect;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.wulfnet.enchanting2.Enchanting2;
-import java.util.stream.Stream;
-import net.minecraft.core.Registry;
+import com.wulfnet.enchanting2.platform.Services;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -17,6 +18,8 @@ import net.minecraft.world.item.enchantment.LevelBasedValue;
  * loads (mod init), as the enchantment registry's codec looks them up while parsing.
  */
 public final class ModEffects {
+	/** What this class registered, in order, for the log line; read back from here (NeoForge fills the registry later). */
+	private static final List<Identifier> REGISTERED = new ArrayList<>();
 	/** Fraction of the health a direct melee hit took from its victim that the attacker heals (Vampirism). */
 	public static final DataComponentType<LevelBasedValue> LIFESTEAL = register("lifesteal", LevelBasedValue.CODEC);
 	/** Chance that a player's direct melee kill drops the victim's head (Beheading). */
@@ -98,36 +101,30 @@ public final class ModEffects {
 	/** One extra jump in the air, ready again on landing (Double Jump, Phase 10c). */
 	public static final DataComponentType<Unit> DOUBLE_JUMP = register("double_jump", Unit.CODEC);
 	/** Entity effect for {@code minecraft:projectile_spawned}: the arrow ignores gravity for a while (TrueShot Aura). */
-	public static final MapCodec<SuspendGravity> SUSPEND_GRAVITY = Registry.register(
-			BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE,
-			Identifier.fromNamespaceAndPath(Enchanting2.MOD_ID, "suspend_gravity"), SuspendGravity.CODEC);
+	private static final Identifier SUSPEND_GRAVITY_ID =
+			Identifier.fromNamespaceAndPath(Enchanting2.MOD_ID, "suspend_gravity");
+	public static final MapCodec<SuspendGravity> SUSPEND_GRAVITY = SuspendGravity.CODEC;
+
+	static {
+		Services.REGISTRY.register(BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE, SUSPEND_GRAVITY_ID, SUSPEND_GRAVITY);
+	}
 
 	private ModEffects() {
 	}
 
 	/** Loads the class, which registers the fields above. Call once from mod init. */
 	public static void register() {
-		Enchanting2.LOGGER.debug("Registered effect components {} and entity effect {}",
-				Stream.of(LIFESTEAL, HEAD_DROP_CHANCE, SMELT_DROPS, NIGHT_VISION, MOVEMENT_PENALTY, EXHAUSTION,
-						GAZE_DISGUISE, IGNORED_BY_PHANTOMS, SHORTEN_EFFECTS, EXHAUSTION_REDUCTION,
-						SPRINT_EXHAUSTION_REDUCTION, LAVA_WALKER, POWDER_SNOW_WALKER, SHIELD_DISABLE_REDUCTION,
-						BLOCK_RETALIATION, BLOCK_ABSORPTION, RIPOSTE, DEFLECT_CHANCE, STEADY_STANCE,
-						SHIELD_BASH, DROPS_TO_INVENTORY, DROPS_TO_ENDER_CHEST, EXPERIENCE_TO_PLAYER, KEEP_ON_DEATH,
-						AREA_MINING, REPLANT, TILL_RADIUS, EXTRA_HIT_CHANCE,
-						LAST_STAND, GLIDE_SPEED, FLIGHT_THRUST,
-						DOUBLE_JUMP)
-						.map(ModEffects::key).toList(),
-				BuiltInRegistries.ENCHANTMENT_ENTITY_EFFECT_TYPE.getKey(SUSPEND_GRAVITY));
+		Enchanting2.LOGGER.debug("Registered effect components {} and entity effect {}", REGISTERED,
+				SUSPEND_GRAVITY_ID);
 		SuspendGravity.register();
 	}
 
 	private static <T> DataComponentType<T> register(String path, Codec<T> codec) {
-		return Registry.register(BuiltInRegistries.ENCHANTMENT_EFFECT_COMPONENT_TYPE,
-				Identifier.fromNamespaceAndPath(Enchanting2.MOD_ID, path),
-				DataComponentType.<T>builder().persistent(codec).build());
+		Identifier id = Identifier.fromNamespaceAndPath(Enchanting2.MOD_ID, path);
+		DataComponentType<T> type = DataComponentType.<T>builder().persistent(codec).build();
+		Services.REGISTRY.register(BuiltInRegistries.ENCHANTMENT_EFFECT_COMPONENT_TYPE, id, type);
+		REGISTERED.add(id);
+		return type;
 	}
 
-	private static Identifier key(DataComponentType<?> type) {
-		return BuiltInRegistries.ENCHANTMENT_EFFECT_COMPONENT_TYPE.getKey(type);
-	}
 }

@@ -17,4 +17,8 @@ public interface LivingEntityInvoker {
 
 	@Invoker("updateFallFlyingMovement")
 	Vec3 e2test$updateFallFlyingMovement(Vec3 velocity);
+
+	/** The worn-equipment check an entity's tick runs first: applies the items' attribute modifiers. */
+	@Invoker("detectEquipmentUpdates")
+	void e2test$detectEquipmentUpdates();
 }

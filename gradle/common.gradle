@@ -304,5 +304,7 @@ tasks.named('test') {
         .withPathSensitivity(PathSensitivity.RELATIVE)
     // ModIdentityTest derives this node's band label (Phase 12G) from the matrix files, as the version above does.
     systemProperty 'enchanting2.node', project.name
+    // ModIdentityTest checks the metadata this loader ships (fabric.mod.json or neoforge.mods.toml).
+    systemProperty 'enchanting2.loader', modLoader
     systemProperty 'enchanting2.minecraftVersion', project.minecraft_version.toString().trim()
 }

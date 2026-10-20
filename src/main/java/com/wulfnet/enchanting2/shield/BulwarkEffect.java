@@ -1,8 +1,8 @@
 package com.wulfnet.enchanting2.shield;
 
 import com.wulfnet.enchanting2.Enchanting2;
+import com.wulfnet.enchanting2.platform.Services;
 import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
@@ -38,7 +38,7 @@ public final class BulwarkEffect extends MobEffect {
 
 	/** Registers the effect. Call once from mod init. */
 	public static void register() {
-		holder = Registry.registerForHolder(BuiltInRegistries.MOB_EFFECT, ID, new BulwarkEffect()
+		holder = Services.REGISTRY.register(BuiltInRegistries.MOB_EFFECT, ID, new BulwarkEffect()
 				.addAttributeModifier(Attributes.MAX_ABSORPTION, ID, 1.0, AttributeModifier.Operation.ADD_VALUE));
 		Enchanting2.LOGGER.debug("Registered mob effect {}", ID);
 	}

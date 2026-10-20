@@ -9,9 +9,10 @@
 #   secrets  gitleaks over the WHOLE history, not just the pushed commits. The repo went public after a history
 #            scrub (TODO 11e); a secret committed again would be public on push, so this job fails the run loudly.
 #
-#   client   ./gradlew :<node>:runClientGameTest on every version node, one job per node, under Xvfb with Mesa's
-#            software renderer. The node list is versions/*/ (the client-nodes job), so a new node is covered
-#            without editing this file. Screenshots and the game log are kept for 14 days, pass or fail.
+#   client   ./gradlew :<node>:runClientGameTest on every Fabric version node, one job per node, under Xvfb with
+#            Mesa's software renderer. The node list is versions/*/ minus the NeoForge and Forge nodes (*-neoforge,
+#            *-forge: client GameTests are Fabric's API, TODO.md Phase 13), so a new Fabric node is covered without
+#            editing this file. Screenshots and the game log are kept for 14 days, pass or fail.
 # Releases are a separate workflow (release.yml), started by pushing a v* tag.
 # ---------------------------------------------------------------------------
 name: CI
@@ -105,7 +106,9 @@ jobs:
             echo "::error::No versions/<node>/gradle.properties found; settings.gradle declares the nodes."
             exit 1
           fi
-          nodes=$(for f in "${props[@]}"; do basename "$(dirname "$f")"; done | jq -R . | jq -cs .)
+          # Fabric nodes only: client GameTests run on Fabric's client GameTest API (Phase 13).
+          nodes=$(for f in "${props[@]}"; do basename "$(dirname "$f")"; done | grep -vE -- '-(neoforge|forge)$' \
+            | jq -R . | jq -cs .)
           echo "Version nodes: $nodes"
           echo "nodes=$nodes" >> "$GITHUB_OUTPUT"
 

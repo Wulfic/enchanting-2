@@ -45,6 +45,8 @@
 		"PowderSnowBlockMixin",
 		"ProjectileMixin",
 <% if (band == 'A') { %>		"RegistryDataLoaderMixin",
+<% } %><% if (loader == 'neoforge') { %>		"neoforge.EnchantmentBuilderEffectsAccessor",
+		"neoforge.ResourceManagerRegistryLoadTaskMixin",
 <% } %>		"ServerPlayerAccessor",
 		"ServerPlayerGameModeMixin",
 		"ServerPlayerMixin",

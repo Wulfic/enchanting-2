@@ -1,7 +1,6 @@
 package com.wulfnet.enchanting2.gametest;
 
 import com.wulfnet.enchanting2.enchantment.ModEnchantments;
-import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
@@ -129,12 +128,12 @@ public class AreaMiningGameTest {
 		helper.succeed();
 	}
 
-	/** A claim mod refusing one block (Fabric's break event, as claim mods use) keeps that block. */
+	/** A claim mod refusing one block (the loader's break event, as claim mods use) keeps that block. */
 	@GameTest
 	public void aRefusedBreakEventKeepsThatBlock(GameTestHelper helper) {
 		floor(helper);
 		BlockPos refused = helper.absolutePos(new BlockPos(3, 1, 2));
-		PlayerBlockBreakEvents.BEFORE.register((level, player, pos, state, blockEntity) -> !pos.equals(refused));
+		TestPlatform.refuseBreaksAt(refused);
 		ServerPlayer player = lookingDown(helper, pickaxe(helper, true));
 		check(helper, player.gameMode.destroyBlock(helper.absolutePos(FLOOR_CENTRE)), "break refused");
 		helper.assertBlockPresent(Blocks.STONE, new BlockPos(3, 1, 2));

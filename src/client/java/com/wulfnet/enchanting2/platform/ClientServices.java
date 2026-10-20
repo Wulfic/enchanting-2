@@ -9,7 +9,10 @@ public final class ClientServices {
 		//? if fabric {
 		NETWORK = new com.wulfnet.enchanting2.platform.fabric.FabricClientNetworking();
 		HOOKS = new com.wulfnet.enchanting2.platform.fabric.FabricClientHooks();
-		//?}
+		//?} else if neoforge {
+		/*NETWORK = new com.wulfnet.enchanting2.platform.neoforge.NeoForgeClientNetworking();
+		HOOKS = new com.wulfnet.enchanting2.platform.neoforge.NeoForgeClientHooks();
+		*///?}
 	}
 
 	private ClientServices() {

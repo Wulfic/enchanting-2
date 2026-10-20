@@ -16,13 +16,12 @@ public interface Networking {
 	<T extends CustomPacketPayload> void registerToClient(CustomPacketPayload.Type<T> type, StreamCodec<ByteBuf, T> codec,
 			boolean configuration);
 
-	/** A payload the client sends in play. */
+	/**
+	 * A payload the client sends in play, and its handler, which runs on the server thread. One call for both: NeoForge
+	 * takes the handler at registration, and keeping the pair together keeps it typed.
+	 */
 	<T extends CustomPacketPayload> void registerToServer(CustomPacketPayload.Type<T> type,
-			StreamCodec<ByteBuf, T> codec);
-
-	/** Handles a client's payload on the server thread. */
-	<T extends CustomPacketPayload> void onReceive(CustomPacketPayload.Type<T> type,
-			BiConsumer<ServerPlayer, T> handler);
+			StreamCodec<ByteBuf, T> codec, BiConsumer<ServerPlayer, T> handler);
 
 	/** Each client in its configuration phase, the singleplayer host included. Netty thread. */
 	void onConfigure(Consumer<ConfigurationConnection> listener);
@@ -39,7 +38,10 @@ public interface Networking {
 	interface ConfigurationConnection {
 		MinecraftServer server();
 
-		/** Every channel the client said it can receive, as {@code namespace:path}. */
+		/**
+		 * Channels the client said it can receive, as {@code namespace:path}. Fabric: every one. NeoForge: only those
+		 * this server registered too (it keeps no others), which still tells a matching client from one without the mod.
+		 */
 		List<String> sendableChannels();
 
 		void send(CustomPacketPayload payload);

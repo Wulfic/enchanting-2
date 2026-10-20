@@ -24,7 +24,7 @@ public final class AnvilPreviewState {
 
 	public static void register() {
 		// Registering the receiver is also what makes the server's canSend true, so previews start flowing.
-		ClientServices.NETWORK.onReceive(AnvilPreviewPayload.TYPE, payload -> {
+		ClientServices.NETWORK.onReceive(AnvilPreviewPayload.TYPE, false, payload -> {
 			latest = payload;
 			LOG.debug("Anvil preview for container {}: {}", payload.containerId(), payload.status());
 		});

@@ -2,12 +2,12 @@ package com.wulfnet.enchanting2.spawner;
 
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.port.LootTool;
+import com.wulfnet.enchanting2.platform.Services;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -47,10 +47,13 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
  */
 public final class CollectedSpawners {
 	/** Set on a spawner item our drop made. Placement restores the mob only from stamped items. */
-	public static final DataComponentType<Unit> STAMP = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE,
-			Identifier.fromNamespaceAndPath(Enchanting2.MOD_ID, "collected_spawner"),
-			DataComponentType.<Unit>builder().persistent(Unit.CODEC).networkSynchronized(StreamCodec.unit(Unit.INSTANCE))
-					.build());
+	public static final DataComponentType<Unit> STAMP = DataComponentType.<Unit>builder().persistent(Unit.CODEC)
+			.networkSynchronized(StreamCodec.unit(Unit.INSTANCE)).build();
+
+	static {
+		Services.REGISTRY.register(BuiltInRegistries.DATA_COMPONENT_TYPE,
+				Identifier.fromNamespaceAndPath(Enchanting2.MOD_ID, "collected_spawner"), STAMP);
+	}
 
 	private CollectedSpawners() {
 	}

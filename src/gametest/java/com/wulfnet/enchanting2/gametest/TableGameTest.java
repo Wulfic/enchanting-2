@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
-import net.fabricmc.fabric.api.entity.FakePlayer;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -235,7 +234,7 @@ public class TableGameTest {
 
 		// The mock player is always creative (gotchas.md 2026-10-07), so the survival check asks a FakePlayer.
 		player.setItemSlot(EquipmentSlot.HEAD, with(helper, Items.IRON_HELMET, Map.of(Enchantments.BINDING_CURSE, 1)));
-		FakePlayer survival = FakePlayer.get(helper.getLevel());
+		ServerPlayer survival = TestPlatform.survivalFakePlayer(helper.getLevel());
 		check(helper, !survival.isCreative(), "the FakePlayer is in survival");
 		check(helper, !menu.getSlot(38).mayPickup(survival), "Curse of Binding keeps the helmet on");
 		check(helper, menu.getSlot(38).mayPickup(player), "but not in creative");

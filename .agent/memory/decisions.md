@@ -1646,3 +1646,44 @@ attributes our tests use: `maxTicks`, `skyAccess`, `environment`), and their reg
 Fabric's discovery and its report writer, which `checkGameTestReport` relies on.
 **Rejected:** our annotation everywhere (re-implements Fabric's runner); a second copy of every test class per loader.
 **Affects:** src/gametest/**, build.neoforge.gradle, build.forge.gradle, platform/<loader>/*GameTests
+
+## 2026-10-20 — 13C networking: optional payloads, our own join check, channel list = the shared subset
+**Context:** Fabric hands `NetworkProtocol.classify` every channel the client declared; NeoForge negotiates and keeps
+only channels both sides registered, and by default kicks a client missing a non-optional payload with its own text.
+**Choice:** every NeoForge payload is `optional()`; a configuration task runs our `onConfigure` listeners, so our
+check (and message) decides who joins. `sendableChannels()` on NeoForge = the subset of our channels the client has.
+Handlers run on the main thread (`HandlerThread.MAIN`, NeoForge's default), as Fabric's do. The seam pairs each
+server-bound type with its handler, and each client receiver with its phases, in one call: no unchecked casts.
+**Why:** a vanilla client or one without the mod gets our "install Enchanting 2 <version>" text on both loaders.
+**Rejected:** required payloads (NeoForge's generic missing-channel kick); reading NeoForge's internal
+`ChannelAttributes` (internal API, and it still lacks unregistered channels).
+**Known gap:** a NeoForge client on another *protocol* version reads as "no mod" there, so it gets the install text,
+not "version mismatch". Every NeoForge build so far is protocol 5; revisit when the protocol next changes.
+**Affects:** platform/Networking.java, platform/ClientNetworking.java, platform/neoforge/NeoForgeNetworking.java
+
+## 2026-10-20 — 13C enchantment load and GameTests on NeoForge
+**Context:** NeoForge has no `EnchantmentEvents.MODIFY` and no Fabric-style GameTest discovery.
+**Choice:** (1) a NeoForge-only mixin copied from Fabric item-api 14.1.0's (`@WrapOperation` on `new
+PendingRegistration` in `ResourceManagerRegistryLoadTask.lambda$load$2`, same name in NeoForge's patched 26.3), which
+rebuilds only definition + exclusive set and *fails the load* if a modifier touched effects. (2) `NeoForgeGameTests`
+(`@Mod enchanting2_gametest`) reads the same `fabric-gametest` class list from fabric.mod.json, registers test functions
+on `RegisterEvent` and instances on `RegisterGameTestsEvent`, with Fabric's IDs and annotation defaults; every test
+environment we use is an empty `all_of`, mirrored as our own (it refuses any that isn't). Report via vanilla
+`--report`, so `checkGameTestReport` is shared. Mixin-listed by `<% if (loader == 'neoforge') %>` in mixins.json.
+**Why:** one test list and one annotation shape for every loader; failures are loud (a listed class without tests,
+a non-empty environment, an effect edit).
+**Rejected:** copying all of Fabric's effect-carrying builder logic (no modifier of ours needs it); an access
+transformer for `PendingRegistration` (the mixin extends `RegistryLoadTask` instead).
+**Affects:** mixin/neoforge/, platform/neoforge/NeoForgeItemHooks.java, src/gametest/.../platform/
+
+## 2026-10-20 — Phase 13 owner rulings, third round: hello channel now; 13E screen mirrors YACL
+**Context:** two choices that are cheap now and expensive later, asked before 26.1.2/26.2-neoforge.
+**Choice:** (1) NeoForge (and Forge in 13D) get an **unversioned `enchanting2:hello` configuration payload** carrying
+only the client's protocol number (one VarInt, a wire format frozen forever), so a client on another protocol gets
+"version mismatch … your client uses protocol N", as on Fabric. It ships in the first NeoForge/Forge release.
+(2) The 13E NeoForge/Forge config screen **mirrors the YACL screen**: the same categories as tab rows (`TabRows`), a
+scrolling option list, per-option reset, Save / Cancel.
+**Why:** (1) a 1.2.0 NeoForge client without the channel could never be told apart from a client with no mod, so
+the gap would be permanent for every pre-fix client. (2) players moving between loaders see the same screen.
+**Rejected:** leaving the "known gap" of "13C networking"; a vanilla Options-style list of sub-screens.
+**Affects:** platform/neoforge/NeoForgeNetworking.java, network/NetworkProtocol.java, client/config/ (13E)

@@ -4,11 +4,13 @@ import com.wulfnet.enchanting2.combat.LastStand;
 import com.wulfnet.enchanting2.effect.SuspendGravity;
 import com.wulfnet.enchanting2.fortune.PlacedBlocks;
 import com.wulfnet.enchanting2.fortune.PlacedMarks;
-import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.ByteTag;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.IntTag;
+import net.minecraft.nbt.LongTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.ProblemReporter;
@@ -22,8 +24,9 @@ import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
 
 /**
- * Phase 12B: a world saved on 1.21.11 and opened on 26.x keeps our data. Every attachment of ours sits under Fabric's
- * {@code fabric:attachments} key in entity and chunk NBT. {@link #entityAttachments} is that subtree exactly as 1.21.11
+ * Phase 12B: a world saved on 1.21.11 and opened on 26.x keeps our data. Every attachment of ours sits under the
+ * loader's attachments key in entity and chunk NBT (Fabric: {@code fabric:attachments}; NeoForge, Phase 13C:
+ * {@code neoforge:attachments}, each value wrapped as {@code {value: ...}}; {@link TestPlatform} knows which). {@link #entityAttachments} is that subtree exactly as 1.21.11
  * writes it, so each version node asserts both directions: what it writes equals the fixture (the 1.21.11 run proves
  * the fixture is real; the 26.x run that nothing changed), and the fixture reads back into the same values. The chunk
  * case round-trips a marked chunk through vanilla's chunk serializer, which is where Fabric hooks chunk attachments.
@@ -35,9 +38,9 @@ public class SaveFormatGameTest {
 	/** The {@code fabric:attachments} compound 1.21.11 writes for a husk carrying three of our attachments. */
 	private static CompoundTag entityAttachments() {
 		CompoundTag attachments = new CompoundTag();
-		attachments.putLong("enchanting2:last_stand_ready_at", READY_AT);
-		attachments.putInt("enchanting2:gravity_ticks", GRAVITY_TICKS);
-		attachments.putBoolean("enchanting2:placed_falling", true);
+		TestPlatform.putAttachment(attachments, "enchanting2:last_stand_ready_at", LongTag.valueOf(READY_AT));
+		TestPlatform.putAttachment(attachments, "enchanting2:gravity_ticks", IntTag.valueOf(GRAVITY_TICKS));
+		TestPlatform.putAttachment(attachments, "enchanting2:placed_falling", ByteTag.valueOf(true));
 		return attachments;
 	}
 
@@ -50,11 +53,11 @@ public class SaveFormatGameTest {
 		PlacedBlocks.FALLING.set(written, true);
 		TagValueOutput output = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, level.registryAccess());
 		written.saveWithoutId(output);
-		CompoundTag saved = output.buildResult().getCompoundOrEmpty(AttachmentTarget.NBT_ATTACHMENT_KEY);
-		helper.assertValueEqual(entityAttachments(), saved, Component.literal("saved fabric:attachments"));
+		CompoundTag saved = output.buildResult().getCompoundOrEmpty(TestPlatform.attachmentsKey());
+		helper.assertValueEqual(entityAttachments(), saved, Component.literal("saved " + TestPlatform.attachmentsKey()));
 
 		CompoundTag fixture = new CompoundTag();
-		fixture.put(AttachmentTarget.NBT_ATTACHMENT_KEY, entityAttachments());
+		fixture.put(TestPlatform.attachmentsKey(), entityAttachments());
 		Husk read = husk(helper);
 		read.load(TagValueInput.create(ProblemReporter.DISCARDING, level.registryAccess(), fixture));
 		helper.assertValueEqual(READY_AT, LastStand.READY_AT.get(read), Component.literal("Last Stand ready at"));
@@ -71,7 +74,7 @@ public class SaveFormatGameTest {
 		PlacedBlocks.mark(level, pos);
 		LevelChunk chunk = level.getChunkAt(pos);
 		CompoundTag written = SerializableChunkData.copyOf(level, chunk).write();
-		helper.assertTrue(written.getCompoundOrEmpty(AttachmentTarget.NBT_ATTACHMENT_KEY)
+		helper.assertTrue(written.getCompoundOrEmpty(TestPlatform.attachmentsKey())
 				.contains("enchanting2:placed_blocks"), Component.literal("chunk NBT has no enchanting2:placed_blocks"));
 
 		SerializableChunkData parsed = SerializableChunkData.parse(level, level.palettedContainerFactory(), written);

@@ -31,13 +31,8 @@ public final class FabricNetworking implements Networking {
 
 	@Override
 	public <T extends CustomPacketPayload> void registerToServer(CustomPacketPayload.Type<T> type,
-			StreamCodec<ByteBuf, T> codec) {
+			StreamCodec<ByteBuf, T> codec, BiConsumer<ServerPlayer, T> handler) {
 		PayloadTypeRegistry.playC2S().register(type, codec);
-	}
-
-	@Override
-	public <T extends CustomPacketPayload> void onReceive(CustomPacketPayload.Type<T> type,
-			BiConsumer<ServerPlayer, T> handler) {
 		// Fabric runs play receivers on the server thread.
 		ServerPlayNetworking.registerGlobalReceiver(type, (payload, context) -> handler.accept(context.player(), payload));
 	}

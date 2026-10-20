@@ -10,14 +10,12 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 public final class FabricClientNetworking implements ClientNetworking {
 	@Override
-	public <T extends CustomPacketPayload> void onReceive(CustomPacketPayload.Type<T> type, Consumer<T> handler) {
-		ClientPlayNetworking.registerGlobalReceiver(type, (payload, context) -> handler.accept(payload));
-	}
-
-	@Override
-	public <T extends CustomPacketPayload> void onReceiveInConfiguration(CustomPacketPayload.Type<T> type,
+	public <T extends CustomPacketPayload> void onReceive(CustomPacketPayload.Type<T> type, boolean configuration,
 			Consumer<T> handler) {
-		ClientConfigurationNetworking.registerGlobalReceiver(type, (payload, context) -> handler.accept(payload));
+		if (configuration) {
+			ClientConfigurationNetworking.registerGlobalReceiver(type, (payload, context) -> handler.accept(payload));
+		}
+		ClientPlayNetworking.registerGlobalReceiver(type, (payload, context) -> handler.accept(payload));
 	}
 
 	@Override

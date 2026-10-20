@@ -5,11 +5,11 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /** Client side of our payloads (registered by {@link Networking}). */
 public interface ClientNetworking {
-	/** Handles a payload the server sends in play. */
-	<T extends CustomPacketPayload> void onReceive(CustomPacketPayload.Type<T> type, Consumer<T> handler);
-
-	/** Handles a payload the server sends in the configuration phase. */
-	<T extends CustomPacketPayload> void onReceiveInConfiguration(CustomPacketPayload.Type<T> type,
+	/**
+	 * Handles a payload the server sends in play, and with {@code configuration} also in the configuration phase (as
+	 * {@code Networking.registerToClient} registered it). One handler for both: NeoForge allows one per type.
+	 */
+	<T extends CustomPacketPayload> void onReceive(CustomPacketPayload.Type<T> type, boolean configuration,
 			Consumer<T> handler);
 
 	/** A new connection entering its configuration phase (not the hand-off from configuration to play). */

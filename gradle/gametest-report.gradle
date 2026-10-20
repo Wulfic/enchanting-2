@@ -4,8 +4,19 @@
 // jar, a wrong entrypoint, a GameTest class left out of fabric.mod.json) also exits 0. verifyReport reads the file.
 def gameTestReport = new File(layout.buildDirectory.get().asFile.canonicalFile, 'gametest-report.xml')
 
-loom.runs.matching { it.name == 'gameTest' }.configureEach {
-    property 'fabric-api.gametest.report-file', gameTestReport.absolutePath
+// Fabric's runner takes the file as a property; NeoForge's GameTest server is vanilla's GameTestMainUtil, whose
+// --report writes the same JUnit-style XML (Phase 13C). Exactly one of the two run systems is on a node.
+if (project.extensions.findByName('loom') != null) {
+    loom.runs.matching { it.name == 'gameTest' }.configureEach {
+        property 'fabric-api.gametest.report-file', gameTestReport.absolutePath
+    }
+} else if (project.extensions.findByName('neoForge') != null) {
+    neoForge.runs.matching { it.name == 'gameTest' }.configureEach {
+        programArgument '--report'
+        programArgument gameTestReport.absolutePath
+    }
+} else {
+    throw new GradleException("${project.path}: gametest-report.gradle needs Loom or ModDevGradle runs")
 }
 
 def checkGameTestReport = tasks.register('checkGameTestReport') {

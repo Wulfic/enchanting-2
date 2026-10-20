@@ -886,3 +886,28 @@ run; no delete line plus no file means Fabric's `SavingXmlTestReporter` never wr
 `JUnitLikeTestReporter.finish`). Don't paper over it with a retry: the check exists because a run that loads no
 tests also exits 0.
 **Affects:** gradle/gametest-report.gradle
+
+## 2026-10-20 — NeoForge 26.3 (13C): what differed from Fabric, and how each showed up
+Each found by running the 339 server GameTests on `:26.3-neoforge`; every fix is behind `//? if neoforge` or the seam.
+- **Patched mixin targets.** Mixin stops at the first required injection that matches nothing, and
+  `-Dmixin.ignoreRequired=true` doesn't help: MixinExtras rejects a `@WrapOperation` with 0 targets at validation.
+  So: one run per mismatch, and read the target in **javap of `build/moddev/artifacts/minecraft-patched-*.jar`**, not
+  the patched sources (I misread `hurtBlockingItem`'s extra parameter as a float from the source; it's an `int`). Found:
+  `BlocksAttacks.hurtBlockingItem(...F)V` → `(...FI)V` (shield damage from its block event); 26.3 `LavaFluid.spreadTo`
+  calls `setBlock(pos, state, 3)` again, not vanilla 26.3's `setBlockAndUpdate`; spawner XP moved from
+  `spawnAfterBreak`'s `popExperience` into NeoForge's `getExpDrop` override.
+- **Built-in registries are frozen at mod construction.** `Registry.register(BuiltInRegistries.X, ...)` from mod init
+  throws "Registry is already frozen". Everything goes through `Services.REGISTRY` (NeoForge: `RegisterEvent` +
+  `DeferredHolder`). The value objects stay usable at once; holders bind before any world.
+- **`setData(type, null)` throws** (an NPE with no message, which the GameTest runner shows as "null"). Fabric's
+  `setAttached(null)` removes; the seam's `Attachment.set(null)` now means remove on every loader.
+- **Gliding is an attribute.** NeoForge's `canGlide()` reads the `gliding_flight` attribute, which the elytra's
+  equipment modifier adds only in the tick's `detectEquipmentUpdates`. A test that calls `aiStep()` right after
+  `setItemSlot` never glides there (Fabric reads the chest item itself).
+- **`RegistryLoadTask.PendingRegistration` is protected.** Fabric reaches it with a class tweaker; our NeoForge mixin
+  extends `RegistryLoadTask<T>` instead (the repo's `AnvilMenuMixin extends ItemCombinerMenu` pattern), no AT.
+- **339 = 338 + `minecraft:always_pass`.** Both loaders' reports include vanilla's own test; our suite is 338.
+- **Datapack structures load only as binary `.nbt`** (`.snbt` only from a dev source dir), so the GameTest mod carries
+  `empty.nbt`, written by `scripts/make-empty-structure.py`. NeoForge mod IDs can't hold `-`: `enchanting2_gametest`.
+**Affects:** src/main/java/.../mixin/{LivingEntityMixin,LavaFluidMixin,SpawnerBlockMixin}.java, mixin/neoforge/,
+platform/{Registration,Attachment}.java, ElytraGameTest, build.neoforge.gradle

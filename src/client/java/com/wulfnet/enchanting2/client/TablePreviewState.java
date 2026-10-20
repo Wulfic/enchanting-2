@@ -25,7 +25,7 @@ public final class TablePreviewState {
 
 	public static void register() {
 		// Registering the receiver is also what makes the server's canSend true, so panels start flowing.
-		ClientServices.NETWORK.onReceive(TablePreviewPayload.TYPE, payload -> {
+		ClientServices.NETWORK.onReceive(TablePreviewPayload.TYPE, false, payload -> {
 			latest = payload;
 			LOG.debug("Table panel for container {}: {}, {} row(s), {} shelves", payload.containerId(),
 					payload.status(), payload.rows().size(), payload.shelves());
