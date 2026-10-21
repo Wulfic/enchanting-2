@@ -12,6 +12,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -242,6 +243,21 @@ class ModIdentityTest {
 		onlyOn("forge");
 		assertClassExists("com.wulfnet.enchanting2.platform.forge.ForgeEntrypoint");
 		assertClassExists("com.wulfnet.enchanting2.platform.forge.ForgeClientEntrypoint");
+	}
+
+	/**
+	 * Phase 13E: ForgeEntrypoint starts the client half by name with its loading context (the config screen registers
+	 * there). Server GameTests never take that path, so a signature that drifts would only fail a real client launch.
+	 * Resolved by name without initialising anything, since this test compiles on every loader.
+	 */
+	@Test
+	void forgeClientEntryPointTakesTheLoadingContext() throws Exception {
+		onlyOn("forge");
+		ClassLoader loader = ModIdentityTest.class.getClassLoader();
+		Class<?> context = Class.forName("net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext", false, loader);
+		Class<?> client = Class.forName("com.wulfnet.enchanting2.platform.forge.ForgeClientEntrypoint", false, loader);
+		assertTrue(Modifier.isStatic(client.getMethod("init", context).getModifiers()),
+				"ForgeClientEntrypoint.init(FMLJavaModLoadingContext) is static");
 	}
 
 	/**

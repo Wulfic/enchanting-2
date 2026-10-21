@@ -9,7 +9,7 @@ enchantment is kept, 49 new ones are added, and almost everything can be configu
 | **Minecraft** | Java Edition 1.21.11, 26.1 to 26.1.2, 26.2, 26.3 ([which jar](Installation)) |
 | **Loader** | Fabric Loader 0.19.5 or newer |
 | **Requires** | Fabric API |
-| **Optional** | Mod Menu + YACL, for the in-game config screen |
+| **Optional** | Fabric: Mod Menu for the in-game config screen (YACL if you'd rather have YACL's). NeoForge and Forge: nothing |
 | **Sides** | Server **and** every player's client |
 | **License** | MIT |
 

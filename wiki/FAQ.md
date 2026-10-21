@@ -7,9 +7,10 @@ uses. See [Installation](Installation#servers-and-lan).
 **The table / anvil / grindstone looks like vanilla.**
 The server you're on doesn't run Enchanting 2. A modded client keeps vanilla screens and rules there.
 
-**There's no config button in Mod Menu.**
-The config screen needs both [Mod Menu](https://modrinth.com/mod/modmenu) and [YACL](https://modrinth.com/mod/yacl).
-Without them, edit the files in `config/enchanting2/` ([Configuration](Configuration)).
+**There's no config button.**
+On Fabric the button comes from [Mod Menu](https://modrinth.com/mod/modmenu); [YACL](https://modrinth.com/mod/yacl) is
+optional (with it you get YACL's screen, without it the mod's own). On NeoForge and Forge it's in the mod list. You can
+always edit the files in `config/enchanting2/` instead ([Configuration](Configuration)).
 
 **The config screen won't let me change anything.**
 On a dedicated server the screen shows the server's settings read-only, for everyone, operators included. Edit the

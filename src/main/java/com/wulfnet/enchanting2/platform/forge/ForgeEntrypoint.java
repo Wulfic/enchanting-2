@@ -18,13 +18,14 @@ public final class ForgeEntrypoint {
 		ForgeBus.set(context.getModBusGroup());
 		Enchanting2.init();
 		if (FMLEnvironment.dist.isClient()) {
-			startClient();
+			startClient(context);
 		}
 	}
 
-	private static void startClient() {
+	/** @param context the client registers its config screen with it (ModIdentityTest checks the signature) */
+	private static void startClient(FMLJavaModLoadingContext context) {
 		try {
-			Class.forName(CLIENT_ENTRYPOINT).getMethod("init").invoke(null);
+			Class.forName(CLIENT_ENTRYPOINT).getMethod("init", FMLJavaModLoadingContext.class).invoke(null, context);
 		} catch (InvocationTargetException e) {
 			Enchanting2.LOGGER.error("Enchanting 2 client init failed", e.getTargetException());
 			throw new IllegalStateException("Enchanting 2 client init failed", e.getTargetException());

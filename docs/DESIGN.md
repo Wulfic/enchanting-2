@@ -27,8 +27,9 @@ how 1.21.x enchantments actually work.
 - The server is authoritative. A client can never override gameplay config.
 - **Highly configurable** (owner, 2026-10-10). Every enchantment, ours and vanilla, can be enabled or disabled,
   have its max level raised or lowered (§8, up to 255 where it still works, with a note where more stops helping),
-  and be priced. Every gameplay option, global or per enchantment, is editable in the in-game config screen (Mod Menu
-  + YACL) as well as the file. A new option isn't done until it's in the screen.
+  and be priced. Every gameplay option, global or per enchantment, is editable in the in-game config screen as well
+  as the file. A new option isn't done until it's in the screen: it goes in `config/form/ConfigForms`, which both
+  screens (YACL's and ours, Phase 13E) draw from.
 
 ### Terminology (enforced in code and config names)
 - **XP level** / **experience level**: the player-facing number. A cost of 17 deducts 17 levels.
@@ -78,9 +79,10 @@ of a rename across the whole codebase.
 - Format: JSON5, read and written by our own code using **Jankson** (plain-Java, bundled
   jar-in-jar). Config loading must never depend on a client-only or GUI library, so a
   dedicated server needs nothing but Fabric API.
-- Screen: **Mod Menu + YACL, both optional client dependencies.** Mod Menu supplies the
-  "Config" button and YACL builds the screen. Without them the mod still runs and is
-  configured by file.
+- Screen: on Fabric, **Mod Menu + YACL, both optional client dependencies.** Mod Menu supplies the
+  "Config" button; YACL builds the screen when installed, otherwise our own does (Phase 13E). On
+  NeoForge and Forge our own screen is the mod list's Config button. Both screens draw one MC-free
+  model (`config/form/`). Without a screen the mod still runs and is configured by file.
 - Files: `config/enchanting2/common.json5` (gameplay, server-authoritative),
   `config/enchanting2/client.json5` (display only), and per-enchantment overrides keyed
   by enchantment ID.

@@ -7,7 +7,7 @@
 | Minecraft | Java Edition **1.21.11**, **26.1 to 26.1.2**, **26.2** or **26.3** (one jar per version line and loader, below) |
 | Loader | [Fabric Loader](https://fabricmc.net/use/) 0.19.5 or newer, [NeoForge](https://neoforged.net/) (26.1.2, 26.2, 26.3) or [Forge](https://files.minecraftforge.net/) (26.1.2, 26.2, 26.3) |
 | Required | Fabric: [Fabric API](https://modrinth.com/mod/fabric-api). NeoForge and Forge: nothing else |
-| Optional | Fabric: [Mod Menu](https://modrinth.com/mod/modmenu) and [YACL](https://modrinth.com/mod/yacl), both needed for the in-game config screen. NeoForge and Forge: config files only for now |
+| Optional | Fabric: [Mod Menu](https://modrinth.com/mod/modmenu) for the in-game config screen, and [YACL](https://modrinth.com/mod/yacl) if you'd rather have YACL's. NeoForge and Forge: nothing, the screen is in the mod list |
 | Java | 21 or newer for 1.21.11, 25 or newer for 26.x |
 
 ## Singleplayer
@@ -24,7 +24,7 @@
    | 26.2 | `enchanting2-<version>+26.2-fabric.jar` | `enchanting2-<version>+26.2-neoforge.jar` | `enchanting2-<version>+26.2-forge.jar` | 25 |
    | 26.3 | `enchanting2-<version>+26.3-fabric.jar` | `enchanting2-<version>+26.3-neoforge.jar` | `enchanting2-<version>+26.3-forge.jar` | 25 |
 
-3. Put it in your `mods` folder. On Fabric, add Fabric API too, and Mod Menu and YACL if you want the config screen.
+3. Put it in your `mods` folder. On Fabric, add Fabric API too, and Mod Menu if you want the config screen.
 
 Your first launch writes the config files to `config/enchanting2/` (see [Configuration](Configuration)).
 

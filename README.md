@@ -76,7 +76,7 @@ on the [wiki](https://github.com/Wulfic/enchanting-2/wiki).
 | Minecraft | Java Edition 1.21.11, 26.1 to 26.1.2, 26.2 or 26.3 (one jar per version line and loader) |
 | Loader | [Fabric Loader](https://fabricmc.net/use/) 0.19.5 or newer, [NeoForge](https://neoforged.net/) (26.1.2, 26.2, 26.3) or [Forge](https://files.minecraftforge.net/) (26.1.2, 26.2, 26.3) |
 | Required | Fabric: [Fabric API](https://modrinth.com/mod/fabric-api). NeoForge and Forge: nothing else |
-| Optional | Fabric: [Mod Menu](https://modrinth.com/mod/modmenu) and [YACL](https://modrinth.com/mod/yacl) for the in-game config screen. NeoForge and Forge: config files only for now |
+| Optional | Fabric: [Mod Menu](https://modrinth.com/mod/modmenu) for the in-game config screen, and [YACL](https://modrinth.com/mod/yacl) if you'd rather have YACL's. NeoForge and Forge: nothing, the screen is in the mod list |
 | Java | 21 for 1.21.11, 25 for 26.x |
 
 ## Installing
@@ -99,7 +99,7 @@ joins a vanilla server gets vanilla screens and rules.
 
 ## Configuring
 
-Settings live in `config/enchanting2/` and in the in-game screen (Mod Menu → Enchanting 2). The server's settings
+Settings live in `config/enchanting2/` and in the in-game screen (Mods → Enchanting 2 → Config). The server's settings
 apply to everyone and are sent to players when they join. Every enchantment can be turned off, kept out of the
 table, loot or trades, repriced, and given a different max level (up to 255).
 

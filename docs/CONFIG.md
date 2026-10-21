@@ -12,8 +12,10 @@ game or server starts. Almost everything can also be changed in-game.
 
 ## Editing in-game
 
-With [Mod Menu](https://modrinth.com/mod/modmenu) and [YACL](https://modrinth.com/mod/yacl) installed, open
-**Mods → Enchanting 2 → Config**. Both are optional; without them, edit the files.
+Open **Mods → Enchanting 2 → Config**: from the mod list on NeoForge and Forge, and on Fabric with
+[Mod Menu](https://modrinth.com/mod/modmenu) installed. With [YACL](https://modrinth.com/mod/yacl) as well, Fabric
+shows YACL's screen; without it, the mod's own, which has the same tabs and options. Without Mod Menu on Fabric,
+edit the files.
 
 The screen has a category for each section of `common.json5` (Experience, Conflicts, Costs, Curses, Anvil,
 Enchanting Table, Fortune, Enchantment effects, Mobs), an **Enchantments** category for `enchantments.json5`, and

@@ -6,10 +6,11 @@ and versions follow [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
-- **NeoForge** for Minecraft 26.1.2, 26.2 and 26.3, with every feature the Fabric jar has. The in-game config
-  screen on NeoForge comes later; the config files work as on Fabric.
-- **Forge** for Minecraft 26.1.2, 26.2 and 26.3, with every feature the Fabric jar has. As on NeoForge, the in-game config screen
-  comes later.
+- **NeoForge** for Minecraft 26.1.2, 26.2 and 26.3, with every feature the Fabric jar has, the config screen included.
+- **Forge** for Minecraft 26.1.2, 26.2 and 26.3, with every feature the Fabric jar has, the config screen included.
+- **The mod's own config screen**, laid out like the YACL one (the same tabs, search box, Reset, Undo and Save). It's
+  the Config button in the NeoForge and Forge mod lists, and on Fabric it's what Mod Menu opens when YACL isn't
+  installed. With YACL, Fabric keeps YACL's screen.
 
 ### Changed
 - **Every jar names its loader:** `+26.3-fabric`, `+26.3-neoforge`, `+1.21.11-fabric`, and so on, in the file name
