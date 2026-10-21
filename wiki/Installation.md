@@ -5,24 +5,24 @@
 | | |
 |---|---|
 | Minecraft | Java Edition **1.21.11**, **26.1 to 26.1.2**, **26.2** or **26.3** (one jar per version line and loader, below) |
-| Loader | [Fabric Loader](https://fabricmc.net/use/) 0.19.5 or newer, or [NeoForge](https://neoforged.net/) (26.1.2, 26.2, 26.3) |
-| Required | Fabric: [Fabric API](https://modrinth.com/mod/fabric-api). NeoForge: nothing else |
-| Optional | Fabric: [Mod Menu](https://modrinth.com/mod/modmenu) and [YACL](https://modrinth.com/mod/yacl), both needed for the in-game config screen. NeoForge: config files only for now |
+| Loader | [Fabric Loader](https://fabricmc.net/use/) 0.19.5 or newer, [NeoForge](https://neoforged.net/) (26.1.2, 26.2, 26.3) or [Forge](https://files.minecraftforge.net/) (26.3) |
+| Required | Fabric: [Fabric API](https://modrinth.com/mod/fabric-api). NeoForge and Forge: nothing else |
+| Optional | Fabric: [Mod Menu](https://modrinth.com/mod/modmenu) and [YACL](https://modrinth.com/mod/yacl), both needed for the in-game config screen. NeoForge and Forge: config files only for now |
 | Java | 21 or newer for 1.21.11, 25 or newer for 26.x |
 
 ## Singleplayer
 
-1. Install Fabric Loader or NeoForge for your Minecraft version.
+1. Install Fabric Loader, NeoForge or Forge for your Minecraft version.
 2. Download the jar for that version and loader from the
    [latest release](https://github.com/Wulfic/enchanting-2/releases/latest) (not a `-sources` jar):
 
-   | Your Minecraft | Fabric | NeoForge | Java |
-   |---|---|---|---|
-   | 1.21.11 | `enchanting2-<version>+1.21.11-fabric.jar` | — | 21 |
-   | 26.1, 26.1.1 | `enchanting2-<version>+26.1-26.1.2-fabric.jar` | — | 25 |
-   | 26.1.2 | `enchanting2-<version>+26.1-26.1.2-fabric.jar` | `enchanting2-<version>+26.1.2-neoforge.jar` | 25 |
-   | 26.2 | `enchanting2-<version>+26.2-fabric.jar` | `enchanting2-<version>+26.2-neoforge.jar` | 25 |
-   | 26.3 | `enchanting2-<version>+26.3-fabric.jar` | `enchanting2-<version>+26.3-neoforge.jar` | 25 |
+   | Your Minecraft | Fabric | NeoForge | Forge | Java |
+   |---|---|---|---|---|
+   | 1.21.11 | `enchanting2-<version>+1.21.11-fabric.jar` | — | — | 21 |
+   | 26.1, 26.1.1 | `enchanting2-<version>+26.1-26.1.2-fabric.jar` | — | — | 25 |
+   | 26.1.2 | `enchanting2-<version>+26.1-26.1.2-fabric.jar` | `enchanting2-<version>+26.1.2-neoforge.jar` | — | 25 |
+   | 26.2 | `enchanting2-<version>+26.2-fabric.jar` | `enchanting2-<version>+26.2-neoforge.jar` | — | 25 |
+   | 26.3 | `enchanting2-<version>+26.3-fabric.jar` | `enchanting2-<version>+26.3-neoforge.jar` | `enchanting2-<version>+26.3-forge.jar` | 25 |
 
 3. Put it in your `mods` folder. On Fabric, add Fabric API too, and Mod Menu and YACL if you want the config screen.
 

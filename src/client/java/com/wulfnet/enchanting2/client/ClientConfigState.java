@@ -24,7 +24,7 @@ public final class ClientConfigState {
 
 	public static void register() {
 		// Registering these is also what tells the server this client has Enchanting 2 (NetworkProtocol).
-		ClientServices.NETWORK.onReceive(ConfigSyncPayload.TYPE, true, ClientConfigState::accept);
+		ClientServices.NETWORK.onReceive(ConfigSyncPayload.TYPE, ConfigSyncPayload.CODEC, true, ClientConfigState::accept);
 		// Not the configuration DISCONNECT event: it may also fire on the hand-off to play, which would drop the copy.
 		ClientServices.NETWORK.onConfigurationStart(() -> clear());
 		ClientServices.NETWORK.onDisconnect(() -> clear());

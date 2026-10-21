@@ -10,6 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 
 /**
@@ -32,6 +33,15 @@ public final class PlacedBlocks {
 	/** Loads the class, which registers both attachment types, during mod init (before any world loads). */
 	public static void register() {
 		Enchanting2.LOGGER.debug("Placed-block attachments: {}, {}", CHUNK.id(), FALLING.id());
+		// Forge places generator output itself (ServerEvents.onFluidPlacesBlock); elsewhere LiquidBlockMixin calls this.
+		Services.EVENTS.onFluidPlacesBlock(PlacedBlocks::markIfGenerated);
+	}
+
+	/** Generator output: marked only when it's in a Fortune tag (DESIGN §6), so cobblestone generators cost nothing. */
+	public static void markIfGenerated(ServerLevel level, BlockPos pos, BlockState state) {
+		if (FortuneTags.inAnyTag(state)) {
+			mark(level, pos);
+		}
 	}
 
 	public static void mark(ServerLevel level, BlockPos pos) {

@@ -292,6 +292,26 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
       Attachments as built: per attachment, a Guava weak-keys (identity) map holder → value, not a mixin field: typed
       without casts, thread-safe for off-thread chunk reads, and identity-keyed (`Entity.equals` compares IDs, which a
       singleplayer client and server share). Mixins only save/load/transfer.
+      **26.3-forge green 2026-10-20** (Forge 26.3-66.0.13): 340/340 server GameTests, log free of ERRORs but our config
+      tests' deliberate ones. D6a held: test instances come from an in-memory datapack (`ForgeGameTests`), discovery
+      shared with NeoForge (`gametest/platform/GameTestDiscovery`). Changed from the plan while doing it (each a red
+      GameTest or a failed launch first; gotchas.md "Forge 26.3 dev runs..."):
+      - Seam: `ClientNetworking.onReceive` takes the codec (Forge pairs a payload's codec and receiving handler in one
+        registration; Fabric/NeoForge ignore it); `ServerEvents.onFluidPlacesBlock` (Forge places generator output
+        itself; never fired elsewhere); `CollectedSpawners.collects(boolean, int)`.
+      - Forge-only: access transformer (`EnchantmentHelper.runIteration*`), `pack.mcmeta` per mod (node's
+        `resource_pack_format` / `data_pack_format`), mixin `minVersion` 0.8, `DataComponentInitializersMixin` (default
+        components; Forge's event doesn't reach ItemStacks), `//? if forge` in BlockMixin (7-arg dropResources),
+        ServerPlayerGameModeMixin (block XP in DropRedirect), SpawnerBlockMixin (`getExpDrop`).
+      - build.forge.gradle: one folder per mod in dev runs, GameTest run timeout 20 min.
+      - JUnit: `ModIdentityTest` Forge metadata tests (mods.toml, entry points, pack.mcmeta), compatibility level capped
+        at 21 on Forge, Forge loot modifiers keep `conditions`. README + wiki: a Forge column. release-collect skips
+        Forge's `-slim.jar`.
+      **Not verified live (owner checks, 13E/C7 list):** a Forge client — `runClient` tooltips, HUD (Last Stand's
+      owner sync), table/anvil/grindstone panels, joining a vanilla server, singleplayer reaching the world. No harness
+      joins a Forge client in tests.
+      verifyAll 2026-10-20: 448 JUnit + 340 GameTests on all 8 nodes (+ matrix); client GameTests green on 1.21.11,
+      26.1.2, 26.2, 26.3. Next: 26.2-forge (Forge 26.2-65.1.5; packs 88 / 107) and 26.1.2-forge (64.1.5; 84 / 101).
 - [ ] 13E — **Config screen for NeoForge + Forge** on vanilla widgets (`client/config/`, drawn from the existing
       `ConfigView` / drafts / `TabRows`; every option the YACL screen has, per DESIGN §1). Owner 2026-10-20: it
       mirrors the YACL screen (categories as tab rows, scrolling option list, per-option reset, Save / Cancel). Entry: NeoForge

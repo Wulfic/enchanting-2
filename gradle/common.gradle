@@ -159,6 +159,16 @@ if (modLoader == 'forge' && forgeDependency.isEmpty()) {
     throw new GradleException("${project.relativePath(file('gradle.properties'))} must declare forge_dependency=" +
         "<Maven range>, e.g. forge_dependency=[66.0.13,67)")
 }
+// pack.mcmeta's format range: Forge loads a mod's data and assets only from a mod with one (13D), and one file serves
+// both pack types, so it spans this Minecraft's resource and data formats (its version.json "pack_version").
+def packFormats = modLoader == 'forge' ? ['resource_pack_format', 'data_pack_format'].collect { key ->
+    def value = project.findProperty(key)?.toString()?.trim()
+    if (!value?.isInteger()) {
+        throw new GradleException("${project.relativePath(file('gradle.properties'))} must declare ${key}=<major " +
+            "number from this Minecraft's version.json pack_version>, e.g. ${key}=121")
+    }
+    value as Integer
+} : [0, 0]
 // band: 'A' = obfuscated 1.21.11, 'B' = 26.x. A mixin that only one band needs is listed inside
 // <% if (band == 'A') { %>...<% } %> in its *.mixins.json (Groovy template, expanded with the values below); one that
 // follows a later game change gets a flag named for that change (fuel_component); one for one loader tests `loader`.
@@ -167,6 +177,8 @@ def resourceValues = [
     loader              : modLoader,
     neoforge_dependency : neoforgeDependency,
     forge_dependency    : forgeDependency,
+    pack_min_format     : packFormats.min().toString(),
+    pack_max_format     : packFormats.max().toString(),
     band                : sc.current.parsed.matches('>=26.1') ? 'B' : 'A',
     minecraft_dependency: project.minecraft_dependency.toString().trim(),
     java_version        : javaLevel.toString(),
@@ -182,7 +194,7 @@ def resourceValues = [
 // The pattern list is an input too: Gradle doesn't fingerprint the filesMatching closure, so without it an edited list
 // leaves processResources UP-TO-DATE with stale output (gotchas.md 2026-10-14).
 def expandedResources = ['fabric.mod.json', 'META-INF/neoforge.mods.toml', 'META-INF/mods.toml', '*.mixins.json',
-    'data/enchanting2/loot_table/beheading/heads.json']
+    'pack.mcmeta', 'data/enchanting2/loot_table/beheading/heads.json']
 tasks.withType(ProcessResources).configureEach {
     inputs.properties resourceValues
     inputs.property 'expandedResources', expandedResources

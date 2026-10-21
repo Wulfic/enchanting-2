@@ -945,3 +945,46 @@ GameTest log, 26.3 included, that no test had noticed (the drops still worked).
 - Forge has no runtime API for GameTest *instances* (`ForgeGameTestHooks.gatherTests` is unused); test_instance is a
   datapack registry.
 **Affects:** build.forge.gradle, gradle/gametest-report.gradle, platform/forge/
+
+## 2026-10-20 — Forge 26.3: access transformers need the plugin AND an explicit path; Forge has no FakePlayer
+- `EnchantmentHelper.runIterationOnItem/OnEquipment` and their visitor interfaces are private in vanilla; Fabric and
+  NeoForge nodes see them public, Forge doesn't → `src/forge/resources/META-INF/accesstransformer.cfg` (+ mods.toml
+  `accessTransformers`).
+- Three tries: (1) `minecraft { accessTransformer = true }` alone — nothing applied, no message; (2) + plugin
+  `net.minecraftforge.accesstransformers` 5.0.3 — still nothing; (3) `accessTransformers = files(<path>)` — works.
+  `accessTransformer = true` only looks in the default resource dirs, not an extra `srcDir` like `src/forge/resources`
+  (`minecraft.accessTransformer.files` printed `[]`). Proof it took: the Mavenizer log prints "Access Transformer: <path>"
+  and re-runs `access-transform`. The plugin stays (FG checks `hasAccessTransformersPlugin`).
+- Forge 26.3 has no `FakePlayer` / `FakePlayerFactory`. A fresh `new ServerPlayer(server, level, profile,
+  ClientInformation.createDefault())` is survival (`GameType.DEFAULT_MODE`) — enough for TestPlatform.
+- Forge 26.3 has no `forge.enabledGameTestNamespaces` property (removed from build.forge.gradle). `ModList` is static
+  (`ModList.isLoaded`), not `ModList.get()`. A cancellable bus's `addListener(lambda)` is ambiguous (Consumer vs
+  Predicate overloads): type the lambda as `Predicate<E>` (returning true cancels).
+**Affects:** build.forge.gradle, stonecutter.gradle, src/forge/resources/META-INF/, gametest/TestPlatform.java
+
+## 2026-10-20 — Forge 26.3 dev runs, data loading and patched game paths (each found by a red GameTest)
+- **Dev runs: one module per classpath folder.** Forge's bootstrap makes each folder its own Java module, named after
+  the folder, so main + client (shared packages) fail with "Modules main and client export package ...". build.forge.gradle
+  syncs each mod's source sets into `build/forgeDevMods/<modId>` and swaps those in for the source-set folders in a
+  `doFirst` (ForgeGradle adds the folders in a configure action that runs after ours; `task.project` at execution
+  breaks the configuration cache). The jar was never affected.
+- **A Forge GameTest server whose mod loading fails never exits** (it hung 10+ minutes). The run task has a 20-minute
+  `timeout`. Find a hung one by its command line (`forge_userdev_server_gametest`), never kill java by name.
+- **No pack.mcmeta → no data.** Forge loads a mod's data and assets only with a `pack.mcmeta` ("Missing metadata in
+  pack mod:<id>"); NeoForge doesn't need one. Ours spans the node's resource and data formats (version.json
+  `pack_version`; 26.3: 97 / 121).
+- **`GatherComponentsEvent.Item` never reaches an ItemStack on 26.3**: Forge patches `Item.components()`, but
+  `ItemStack` reads `Holder<Item>.components()`, which vanilla binds from `DataComponentInitializers`. Our defaults go
+  in at `runInitializers` RETURN (`mixin/forge/DataComponentInitializersMixin`). Item components aren't bound at
+  common setup ("Components not bound yet"); don't read them there.
+- **Block drops**: `playerDestroy` calls Forge's 7-arg `dropResources(..., dropXp)`; the vanilla 6-arg one only
+  delegates, so BlockMixin wraps the 7-arg one on Forge. Block XP is popped later, in `destroyBlock` (`exp` from
+  `getExpDrop`), so ServerPlayerGameModeMixin gives that `popExperience` the same DropRedirect context. Spawner XP is in
+  `getExpDrop(state, level, random, pos, fortune, silkTouch)` (no tool; the Silk Touch level is what our rule reads).
+- **Generator output**: Forge's `FluidInteractionRegistry` replaces `LiquidBlock.shouldSpreadLiquid`'s callers, so our
+  mixin there never runs; `BlockEvent.FluidPlaceBlockEvent` fires before every such placement (seam
+  `ServerEvents.onFluidPlacesBlock`).
+- **Break refusal is a Result, not a cancel**: `ForgeHooks.onBlockBreakEvent` reads `getResult().isDenied()`.
+- `changeGameModeForPlayer` broadcasts a player-info update that reads `connection.latency()`; a connection-less test
+  player sets its mode through an invoker on `setGameModeForPlayer`.
+**Affects:** build.forge.gradle, src/forge/, mixin/forge/, mixin/{BlockMixin,ServerPlayerGameModeMixin,SpawnerBlockMixin}

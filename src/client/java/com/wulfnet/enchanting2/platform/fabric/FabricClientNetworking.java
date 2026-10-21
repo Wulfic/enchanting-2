@@ -1,17 +1,19 @@
 package com.wulfnet.enchanting2.platform.fabric;
 
 import com.wulfnet.enchanting2.platform.ClientNetworking;
+import io.netty.buffer.ByteBuf;
 import java.util.function.Consumer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationNetworking;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 public final class FabricClientNetworking implements ClientNetworking {
 	@Override
-	public <T extends CustomPacketPayload> void onReceive(CustomPacketPayload.Type<T> type, boolean configuration,
-			Consumer<T> handler) {
+	public <T extends CustomPacketPayload> void onReceive(CustomPacketPayload.Type<T> type,
+			StreamCodec<ByteBuf, T> codec, boolean configuration, Consumer<T> handler) {
 		if (configuration) {
 			ClientConfigurationNetworking.registerGlobalReceiver(type, (payload, context) -> handler.accept(payload));
 		}

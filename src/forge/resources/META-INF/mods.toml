@@ -1,0 +1,33 @@
+# Forge's mod metadata (Phase 13D): the same mod, name and text as fabric.mod.json and neoforge.mods.toml. Expanded by
+# processResources (gradle/common.gradle) with the node's values. src/forge/resources is added to main only on Forge
+# nodes. Forge's mods.toml lists no mixin configs: they're named by the jar's MixinConfigs manifest attribute
+# (build.forge.gradle).
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "MIT"
+issueTrackerURL = "https://github.com/Wulfic/enchanting-2/issues"
+# EnchantmentHelper members the shared code calls (accesstransformer.cfg says which and why).
+accessTransformers = ["META-INF/accesstransformer.cfg"]
+
+[[mods]]
+modId = "enchanting2"
+version = "${version}"
+displayName = "Enchanting 2"
+description = "Flat XP curve past level 30, unlimited applicable enchantments, transparent additive costs and a readable enchanting table."
+authors = "Wulfic"
+displayURL = "https://github.com/Wulfic/enchanting-2/wiki"
+logoFile = "assets/enchanting2/icon.png"
+
+[[dependencies.enchanting2]]
+modId = "forge"
+mandatory = true
+versionRange = "${forge_dependency}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.enchanting2]]
+modId = "minecraft"
+mandatory = true
+versionRange = "${minecraft_dependency}"
+ordering = "NONE"
+side = "BOTH"

@@ -1,6 +1,7 @@
 {
 	"required": true,
-	"package": "com.wulfnet.enchanting2.mixin",
+<% if (loader == 'forge') { %>	"minVersion": "0.8",
+<% } %>	"package": "com.wulfnet.enchanting2.mixin",
 	"compatibilityLevel": "JAVA_${mixin_java_level}",
 	"mixins": [
 		"AbstractArrowMixin",
@@ -47,6 +48,10 @@
 <% if (band == 'A') { %>		"RegistryDataLoaderMixin",
 <% } %><% if (loader != 'fabric') { %>		"forgelike.EnchantmentBuilderEffectsAccessor",
 		"forgelike.ResourceManagerRegistryLoadTaskMixin",
+<% } %><% if (loader == 'forge') { %>		"forge.DataComponentInitializersMixin",
+		"forge.EntityAttachmentsMixin",
+		"forge.LevelChunkAttachmentsMixin",
+		"forge.SerializableChunkDataMixin",
 <% } %>		"ServerPlayerAccessor",
 		"ServerPlayerGameModeMixin",
 		"ServerPlayerMixin",

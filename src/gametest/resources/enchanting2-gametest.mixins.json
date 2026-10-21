@@ -1,6 +1,7 @@
 {
 	"required": true,
-	"package": "com.wulfnet.enchanting2.gametest.mixin",
+<% if (loader == 'forge') { %>	"minVersion": "0.8",
+<% } %>	"package": "com.wulfnet.enchanting2.gametest.mixin",
 	"compatibilityLevel": "JAVA_${mixin_java_level}",
 	"mixins": [
 		"ElytraSlotStubMixin",
@@ -12,7 +13,8 @@
 		"LivingEntityInvoker",
 		"MobAccessor",
 		"PacketListenerInvoker",
-		"PhantomInvoker"
+		"PhantomInvoker",
+		"ServerPlayerGameModeInvoker"
 	],
 	"client": [
 		"LocalPlayerInvoker"

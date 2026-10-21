@@ -1,6 +1,7 @@
 {
 	"required": true,
-	"package": "com.wulfnet.enchanting2.mixin.client",
+<% if (loader == 'forge') { %>	"minVersion": "0.8",
+<% } %>	"package": "com.wulfnet.enchanting2.mixin.client",
 	"compatibilityLevel": "JAVA_${mixin_java_level}",
 	"client": [
 		"AbstractContainerScreenAccessor",

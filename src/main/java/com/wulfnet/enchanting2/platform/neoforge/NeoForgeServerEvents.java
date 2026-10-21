@@ -84,4 +84,9 @@ public final class NeoForgeServerEvents implements ServerEvents {
 	public void onModifyDrops(DropsModifier listener) {
 		DROPS.add(listener);
 	}
+
+	@Override
+	public void onFluidPlacesBlock(FluidPlacement listener) {
+		// Never fired here: generators place through vanilla's LiquidBlock and LavaFluid, which mixins hook directly.
+	}
 }

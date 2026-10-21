@@ -48,4 +48,9 @@ public final class FabricServerEvents implements ServerEvents {
 	public void onModifyDrops(DropsModifier listener) {
 		LootTableEvents.MODIFY_DROPS.register(listener::modify);
 	}
+
+	@Override
+	public void onFluidPlacesBlock(FluidPlacement listener) {
+		// Never fired here: generators place through vanilla's LiquidBlock and LavaFluid, which mixins hook directly.
+	}
 }

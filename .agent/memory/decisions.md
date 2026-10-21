@@ -1744,3 +1744,20 @@ LevelChunk); `ImposterProtoChunk` is unwrapped with `getWrapped()` instead of a 
 **Rejected:** a `@Unique` map field (casts, plus a delegating mixin for every chunk wrapper); `WeakHashMap` (uses
 `Entity.equals`, so a client entity and its server twin would share one slot).
 **Affects:** platform/forge/ForgeAttachments.java, mixin/forge/
+
+## 2026-10-20 — 13D seam changes: onReceive takes the codec; onFluidPlacesBlock for Forge's generator path
+**Context:** (1) Forge's payload channel takes a payload's codec and its handler in one `add`, one handler per payload
+for both sides, so the client's handler has to meet the codec the common side registered. Pairing them through a map
+needs an unchecked cast (none exist in this repo). (2) Forge's `FluidInteractionRegistry` places generator output
+instead of vanilla's `LiquidBlock.shouldSpreadLiquid`, so `LiquidBlockMixin` never runs there.
+**Choice:** (1) `ClientNetworking.onReceive(type, codec, configuration, handler)`; the client side registers clientbound
+payloads with their codec, the common side only records them, and a dedicated server gives the unhandled ones a logging
+handler when the channel is built (common setup). Fabric and NeoForge ignore the codec. (2) `ServerEvents
+.onFluidPlacesBlock(level, pos, state)`, fired by Forge from `BlockEvent.FluidPlaceBlockEvent` (just before the block is
+set, lowest priority); a no-op on Fabric and NeoForge. `PlacedBlocks.markIfGenerated` is the one rule both paths call.
+**Why:** typed end to end without casts; no mixin into a Forge-internal lambda (fragile, and PlatformImportsTest keeps
+loader names out of mixin/).
+**Rejected:** a type-erased handler map (casts); Class tokens in the seam; a mixin on Forge's
+`FluidInteractionRegistry$InteractionInformation` lambda.
+**Affects:** platform/ClientNetworking.java, platform/ServerEvents.java, platform/forge/ForgeNetworking.java,
+fortune/PlacedBlocks.java, mixin/LiquidBlockMixin.java

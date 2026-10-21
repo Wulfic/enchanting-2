@@ -1,0 +1,229 @@
+// Phase 13D: the Forge nodes (versions/<mc>-forge/, settings.gradle). Same source tree as the Fabric and NeoForge
+// nodes; the loader's Gradle plugin is ForgeGradle 7, Forge's official MDK toolchain (decisions.md 2026-10-20 "build
+// plugins"). What every loader shares (Minecraft renames, band version, resources, Java, JUnit) is in
+// gradle/common.gradle. Laid out like build.neoforge.gradle; only the plugin's own blocks differ.
+plugins {
+    id 'net.minecraftforge.gradle'
+    id 'net.minecraftforge.jarjar'
+    id 'net.minecraftforge.accesstransformers'
+}
+
+stonecutter {
+    // Loader code lives in platform/<loader>/ and is picked in platform/Services with //? if forge.
+    constants.match('forge', 'fabric', 'neoforge', 'forge')
+    // Server GameTests keep Fabric's @GameTest in src/ (decisions.md 2026-10-20 "13B"); here that one import becomes
+    // ours, which ForgeGameTests reads. A test class that misses the swap fails the registrar, not silently.
+    replacements.string(true) {
+        replace 'import net.fabricmc.fabric.api.gametest.v1.GameTest;', 'import com.wulfnet.enchanting2.gametest.platform.GameTest;'
+    }
+}
+
+// The same split as Loom's splitEnvironmentSourceSets plus Fabric's gametest source set, so Stonecutter converts each
+// tree for this node (it only processes declared source sets). client sees main; gametest sees both.
+sourceSets {
+    client {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+    gametest {
+        compileClasspath += sourceSets.main.output + sourceSets.client.output
+        runtimeClasspath += sourceSets.main.output + sourceSets.client.output
+    }
+    // JUnit sees the client classes too, as on Loom (ModIdentityTest checks the client entry point exists).
+    test {
+        compileClasspath += sourceSets.client.output
+        runtimeClasspath += sourceSets.client.output
+    }
+}
+// ...and their dependencies (Forge itself, Jankson), as Loom's split wires them.
+configurations {
+    clientImplementation.extendsFrom implementation
+    clientRuntimeOnly.extendsFrom runtimeOnly
+    gametestImplementation.extendsFrom implementation
+    gametestRuntimeOnly.extendsFrom runtimeOnly
+}
+
+// Code that only compiles against another loader, or against Fabric-only libraries, never reaches this node: the same
+// list as build.neoforge.gradle's with the loaders swapped.
+def otherLoaders = ['**/platform/fabric/**', '**/platform/neoforge/**', '**/mixin/fabric/**', '**/mixin/neoforge/**']
+def fabricOnlyClient = ['**/client/ModMenuIntegration.java', '**/client/ConfigScreen.java',
+    '**/client/TabbedConfigScreen.java']
+def fabricOnlyGameTests = ['**/*ClientGameTest.java', '**/gametest/ClientWorlds.java', '**/gametest/Delivery.java',
+    '**/gametest/SyncMarkerPayload.java']
+sourceSets.configureEach {
+    java.exclude otherLoaders
+}
+sourceSets.client.java.exclude fabricOnlyClient
+sourceSets.gametest.java.exclude fabricOnlyGameTests
+// Forge-only resources: mods.toml and the global loot modifier that stands in for Fabric's MODIFY_DROPS.
+sourceSets.main.resources.srcDir rootProject.file('src/forge/resources')
+// ...and the GameTest mod's: its mods.toml, and (shared with NeoForge) the empty structure Fabric's API would provide.
+sourceSets.gametest.resources.srcDir rootProject.file('src/forge/gametest/resources')
+sourceSets.gametest.resources.srcDir rootProject.file('src/forgelike/gametest/resources')
+
+repositories {
+    minecraft.mavenizer(it)
+    maven fg.forgeMaven
+    maven fg.minecraftLibsMaven
+    mavenCentral()
+}
+
+// Forge names a jar's mixin configs in its manifest, not in mods.toml (gotchas.md 2026-10-20 "Forge's Mixin 0.8.7"); a
+// dev run takes them as arguments instead.
+def mixinConfigs = ['enchanting2.mixins.json', 'enchanting2.client.mixins.json']
+def gameTestMixinConfigs = mixinConfigs + ['enchanting2-gametest.mixins.json']
+
+minecraft {
+    // Applies our access transformer to Minecraft on the compile classpath; mods.toml names it for the runtime. Named
+    // explicitly: `accessTransformer = true` only searches the default resource dirs, not src/forge/resources.
+    accessTransformers = files(rootProject.file('src/forge/resources/META-INF/accesstransformer.cfg'))
+
+    // Separate run dirs, one root per node (run_root), as the other loaders' runs. The dev server listens on 25566:
+    // the owner often has another mod's server on 25565.
+    runs {
+        configureEach {
+            // Forge's EventBus checks listener shapes at registration (the MDK's default).
+            systemProperty 'eventbus.api.strictRuntimeChecks', 'true'
+            mods {
+                'enchanting2' {
+                    sources sourceSets.main, sourceSets.client
+                }
+            }
+        }
+        register('client') {
+            workingDir = rootProject.layout.projectDirectory.dir("${project.run_root}/client")
+            mixinConfigs.each { args "--mixin.config=${it}" }
+        }
+        register('server') {
+            workingDir = rootProject.layout.projectDirectory.dir("${project.run_root}/server")
+            args '--nogui', '--port', '25566'
+            mixinConfigs.each { args "--mixin.config=${it}" }
+        }
+        // ./gradlew :<node>:runGameTest (an alias below), as on the other nodes: a GameTest server that runs every
+        // server GameTest and exits. Its world is rebuilt by every run (clearGameTestRunDir). ForgeGradle makes one run
+        // task per source set; runGametestGameTestServer is this one on the gametest classpath.
+        register('gameTestServer') {
+            workingDir = layout.buildDirectory.dir('run/gameTest')
+            gameTestMixinConfigs.each { args "--mixin.config=${it}" }
+            mods {
+                // Fabric's enchanting2-gametest; Forge mod IDs can't hold '-'. Loaded by the GameTest run only.
+                'enchanting2_gametest' {
+                    source sourceSets.gametest
+                }
+            }
+        }
+    }
+}
+
+// Forge's dev bootstrap makes every classpath folder its own Java module, named after the folder. main and client share
+// packages (platform, platform/forge, the mod root), which one jar allows and two modules don't ("Modules main and client
+// export package ..."), so the dev runs get the jar's layout instead: one folder per mod, classes and resources
+// together, in place of the source sets' own folders. The gametest mod's folder joins only the gametest source set's
+// runs (runGametest*), as ForgeGradle's per-source-set run tasks pick their classpath.
+def devModSourceSets = [enchanting2: [sourceSets.main, sourceSets.client], enchanting2_gametest: [sourceSets.gametest]]
+def devModDirs = devModSourceSets.collectEntries { modId, sets ->
+    [(modId): layout.buildDirectory.dir("forgeDevMods/${modId}").get().asFile]
+}
+def devModTasks = devModSourceSets.collectEntries { modId, sets ->
+    [(modId): tasks.register("forgeDevMod_${modId}", Sync) {
+        from sets.collect { it.output }
+        into devModDirs[modId]
+        // Two source sets writing the same path would hide one of them; refuse instead.
+        duplicatesStrategy = DuplicatesStrategy.FAIL
+    }]
+}
+def sourceSetOutputDirs = devModSourceSets.values().flatten().collectMany { it.output.files }.collect { it.canonicalFile } as Set
+tasks.withType(JavaExec).matching { it.name.startsWith('run') }.configureEach { task ->
+    def mods = task.name.startsWith('runGametest') ? ['enchanting2', 'enchanting2_gametest'] : ['enchanting2']
+    task.dependsOn mods.collect { devModTasks[it] }
+    def modDirs = mods.collect { devModDirs[it] }
+    def modDirFiles = files(modDirs)
+    // At execution: ForgeGradle adds the source sets' folders in a configure action that runs after this one.
+    task.doFirst {
+        def kept = task.classpath.filter { !sourceSetOutputDirs.contains(it.canonicalFile) }
+        task.classpath = modDirFiles + kept
+        logger.info("Forge dev run {}: one folder per mod, {}", task.name, modDirs)
+    }
+}
+
+// The client code ships in the one jar, as on Fabric.
+tasks.named('jar', Jar) {
+    from sourceSets.client.output
+    manifest {
+        attributes['MixinConfigs'] = mixinConfigs.join(',')
+    }
+}
+
+// The other loaders' metadata stays out of the Forge jar. The GameTest mod keeps its fabric.mod.json: its
+// fabric-gametest list is the test class list ForgeGameTests reads.
+tasks.named('processResources', ProcessResources) {
+    exclude 'fabric.mod.json'
+}
+
+// Same name on every node: verifyAll and the matrix call :<node>:runGameTest. gradle/gametest-report.gradle hooks the
+// run task itself, so its report check runs after the server, not after this alias.
+ext.forge_game_test_run_task = 'runGametestGameTestServer'
+tasks.register('runGameTest') {
+    group = 'verification'
+    description = 'Runs every server GameTest on this node (the gameTestServer run on the gametest classpath)'
+    dependsOn forge_game_test_run_task
+}
+
+// A fresh GameTest world every run, as Fabric's clearRunDirectory gives (ConfigWiringGameTest rewrites config files).
+// Same guard as build.neoforge.gradle: only <node>/build/run/gameTest is ever deleted.
+def buildRoot = layout.buildDirectory.get().asFile.canonicalFile
+def gameTestRunDir = new File(buildRoot, 'run/gameTest').canonicalFile
+def clearGameTestRunDir = tasks.register('clearGameTestRunDir') {
+    doLast {
+        // Fail closed: only a direct child of <node>/build/run/ is ever deleted.
+        if (gameTestRunDir.parentFile != new File(buildRoot, 'run').canonicalFile) {
+            throw new GradleException("Refusing to delete ${gameTestRunDir}: not inside ${buildRoot}/run")
+        }
+        if (gameTestRunDir.exists()) {
+            logger.lifecycle("Clearing GameTest run dir ${gameTestRunDir} (rebuilt by every run)")
+            if (!gameTestRunDir.deleteDir()) {
+                throw new GradleException("Could not clear ${gameTestRunDir}; a game from the last run may still hold it")
+            }
+        }
+        gameTestRunDir.mkdirs()
+    }
+}
+tasks.matching { it.name == forge_game_test_run_task }.configureEach {
+    dependsOn clearGameTestRunDir
+    // A Forge GameTest server whose mod loading fails logs the crash and never exits (13D); fail the run instead of
+    // hanging verifyAll or CI. A full run takes ~2 minutes.
+    timeout = java.time.Duration.ofMinutes(20)
+}
+// GameTests are part of `build`, as on the other nodes.
+tasks.named('check') {
+    dependsOn 'runGameTest'
+}
+
+// Jankson nested in the jar (Forge's JarJar), so a server needs only Forge; the jarJar jar is the one shipped.
+jarJar.register()
+tasks.named('jar') {
+    archiveClassifier = 'slim'
+}
+tasks.named('jarJar') {
+    archiveClassifier = null
+}
+tasks.named('assemble') {
+    dependsOn 'jarJar'
+}
+
+dependencies {
+    implementation minecraft.dependency("net.minecraftforge:forge:${project.minecraft_version}-${project.forge_version}")
+
+    // JSON5 config reader/writer. Plain Java.
+    implementation "blue.endless:jankson:${project.jankson_version}"
+    jarJar "blue.endless:jankson:${project.jankson_version}"
+
+    testImplementation platform("org.junit:junit-bom:${project.junit_version}")
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+ext.mod_loader = 'forge'
+apply from: rootProject.file('gradle/common.gradle')
+// build/gametest-report.xml + the check that fails a run with no test cases (shared with the other nodes).
+apply from: rootProject.file('gradle/gametest-report.gradle')

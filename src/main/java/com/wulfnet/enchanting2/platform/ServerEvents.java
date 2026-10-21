@@ -3,12 +3,14 @@ package com.wulfnet.enchanting2.platform;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.LootTable;
 
@@ -34,9 +36,21 @@ public interface ServerEvents {
 	/** Every loot table roll, after the table's own functions ran. The listener may change {@code drops}. */
 	void onModifyDrops(DropsModifier listener);
 
+	/**
+	 * A fluid about to set {@code state} at {@code pos} (a cobblestone, stone, basalt or obsidian generator; lava's fire),
+	 * on a loader that places these outside vanilla's own calls: Forge, whose FluidInteractionRegistry replaces
+	 * {@code LiquidBlock.shouldSpreadLiquid}. Fabric and NeoForge never fire it; mixins on vanilla's calls cover them.
+	 */
+	void onFluidPlacesBlock(FluidPlacement listener);
+
 	@FunctionalInterface
 	interface PlayerCopy {
 		void copy(ServerPlayer oldPlayer, ServerPlayer newPlayer, boolean alive);
+	}
+
+	@FunctionalInterface
+	interface FluidPlacement {
+		void place(ServerLevel level, BlockPos pos, BlockState state);
 	}
 
 	@FunctionalInterface

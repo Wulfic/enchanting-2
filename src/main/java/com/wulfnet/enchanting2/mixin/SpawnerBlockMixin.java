@@ -15,6 +15,11 @@ import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jspecify.annotations.Nullable;
+*///?} else if forge {
+/*import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.block.state.BlockState;
 *///?} else {
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.sugar.Local;
@@ -25,6 +30,8 @@ import com.llamalad7.mixinextras.sugar.Local;
  * through {@code block_experience}, so Silk Touch's own XP-to-zero effect never reaches it. Same condition as the
  * drop ({@link CollectedSpawners#collects}), read from the same server config. NeoForge (Phase 13C) moves that XP into
  * its {@code getExpDrop} override instead (its fix for MC-273642), so there the same rule zeroes what that returns.
+ * Forge (13D) does the same with a {@code getExpDrop} that gets only the tool's Silk Touch level, which is all the rule
+ * reads ({@link CollectedSpawners#collects(boolean, int)}).
  */
 @Mixin(SpawnerBlock.class)
 abstract class SpawnerBlockMixin {
@@ -33,6 +40,13 @@ abstract class SpawnerBlockMixin {
 	private int enchanting2$noXpWhenCollected(int xp, BlockState state, LevelAccessor level, BlockPos pos,
 			@Nullable BlockEntity blockEntity, @Nullable Entity breaker, ItemStack tool) {
 		return level instanceof ServerLevel serverLevel && collects(serverLevel, tool) ? 0 : xp;
+	}
+	*///?} else if forge {
+	/*@ModifyReturnValue(method = "getExpDrop", at = @At("RETURN"))
+	private int enchanting2$noXpWhenCollected(int xp, BlockState state, LevelReader level, RandomSource random,
+			BlockPos pos, int fortuneLevel, int silkTouchLevel) {
+		return level instanceof ServerLevel serverLevel && CollectedSpawners.collects(
+				ServerConfigs.get(serverLevel.getServer()).silkTouch().collectSpawners(), silkTouchLevel) ? 0 : xp;
 	}
 	*///?} else {
 	@WrapWithCondition(method = "spawnAfterBreak", at = @At(value = "INVOKE",

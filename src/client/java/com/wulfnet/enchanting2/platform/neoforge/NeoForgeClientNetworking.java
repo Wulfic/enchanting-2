@@ -3,11 +3,13 @@ package com.wulfnet.enchanting2.platform.neoforge;
 import com.wulfnet.enchanting2.network.HelloPayload;
 import com.wulfnet.enchanting2.network.NetworkProtocol;
 import com.wulfnet.enchanting2.platform.ClientNetworking;
+import io.netty.buffer.ByteBuf;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
@@ -39,8 +41,8 @@ public final class NeoForgeClientNetworking implements ClientNetworking {
 	}
 
 	@Override
-	public <T extends CustomPacketPayload> void onReceive(CustomPacketPayload.Type<T> type, boolean configuration,
-			Consumer<T> handler) {
+	public <T extends CustomPacketPayload> void onReceive(CustomPacketPayload.Type<T> type,
+			StreamCodec<ByteBuf, T> codec, boolean configuration, Consumer<T> handler) {
 		registrations.add(event -> event.register(type, (payload, context) -> handler.accept(payload)));
 	}
 

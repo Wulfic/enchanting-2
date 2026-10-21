@@ -5,7 +5,6 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.wulfnet.enchanting2.effect.Footing;
-import com.wulfnet.enchanting2.fortune.FortuneTags;
 import com.wulfnet.enchanting2.fortune.PlacedBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -29,8 +28,8 @@ abstract class LiquidBlockMixin {
 			require = 2)
 	private boolean enchanting2$markGenerated(Level level, BlockPos pos, BlockState state, Operation<Boolean> original) {
 		boolean placed = original.call(level, pos, state);
-		if (placed && level instanceof ServerLevel serverLevel && FortuneTags.inAnyTag(state)) {
-			PlacedBlocks.mark(serverLevel, pos);
+		if (placed && level instanceof ServerLevel serverLevel) {
+			PlacedBlocks.markIfGenerated(serverLevel, pos, state);
 		}
 		return placed;
 	}

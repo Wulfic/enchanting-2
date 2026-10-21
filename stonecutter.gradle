@@ -3,6 +3,13 @@ plugins {
     // NeoForge's official MDK toolchain (Phase 13C), applied by build.neoforge.gradle only. Version checked 2026-10-20
     // against the NeoForge 26.3 MDK (decisions.md "build plugins").
     id 'net.neoforged.moddev' version '2.0.148' apply false
+    // Forge's (Phase 13D), applied by build.forge.gradle only: ForgeGradle 7.0.40 (the 26.3 MDK asks for [7.0.17,8))
+    // and the JarJar plugin from Forge's MDKExamples, which nests Jankson as NeoForge's jarJar does. Checked 2026-10-20.
+    id 'net.minecraftforge.gradle' version '7.0.40' apply false
+    id 'net.minecraftforge.jarjar' version '0.2.3' apply false
+    // Forge's AccessTransformers plugin (5.0.3, Forge maven 2025-12): ForgeGradle 7 applies a mod's
+    // META-INF/accesstransformer.cfg to Minecraft only when this plugin is on the project (build.forge.gradle).
+    id 'net.minecraftforge.accesstransformers' version '5.0.3' apply false
 }
 
 // The node whose code src/ currently holds. Stonecutter rewrites this line when the active project is switched; set it

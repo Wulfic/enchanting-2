@@ -68,8 +68,13 @@ public final class CollectedSpawners {
 		if (!collectSpawners || tool == null || tool.isEmpty()) {
 			return false;
 		}
-		return EnchantmentHelper.getItemEnchantmentLevel(
-				registries.lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.SILK_TOUCH), tool) > 0;
+		return collects(true, EnchantmentHelper.getItemEnchantmentLevel(
+				registries.lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.SILK_TOUCH), tool));
+	}
+
+	/** The same rule from the tool's Silk Touch level, all Forge's {@code getExpDrop} is given (Phase 13D). */
+	public static boolean collects(boolean collectSpawners, int silkTouchLevel) {
+		return collectSpawners && silkTouchLevel > 0;
 	}
 
 	/**

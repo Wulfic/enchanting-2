@@ -9,6 +9,11 @@ pluginManagement {
             forRepository { maven { name = 'KikuGie Releases'; url = 'https://maven.kikugie.dev/releases' } }
             filter { includeGroupAndSubgroups 'dev.kikugie' }
         }
+        // ForgeGradle and Forge's JarJar plugin (Phase 13D), only from Forge's own maven.
+        exclusiveContent {
+            forRepository { maven { name = 'Forge'; url = 'https://maven.minecraftforge.net/' } }
+            filter { includeGroupAndSubgroups 'net.minecraftforge' }
+        }
         mavenCentral()
         gradlePluginPortal()
     }
@@ -34,6 +39,8 @@ stonecutter {
         vers('26.1.2-neoforge', '26.1.2').buildscript('build.neoforge.gradle')
         vers('26.2-neoforge', '26.2').buildscript('build.neoforge.gradle')
         vers('26.3-neoforge', '26.3').buildscript('build.neoforge.gradle')
+        // Phase 13D: Forge nodes, the same way (ForgeGradle).
+        vers('26.3-forge', '26.3').buildscript('build.forge.gradle')
         // The version the committed src/ is written for. Run "Reset active project" before committing.
         vcsVersion = '1.21.11'
     }

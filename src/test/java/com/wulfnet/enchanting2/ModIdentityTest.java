@@ -172,10 +172,14 @@ class ModIdentityTest {
 		assertEquals(">=" + java, depends.get("java").getAsString());
 	}
 
-	/** Every loader: the mixin configs' compatibility level is the node's Java level (Phase 12B). */
+	/**
+	 * Every loader: the mixin configs' compatibility level is the node's Java level (Phase 12B), capped at 21 on Forge,
+	 * whose Mixin 0.8.7 refuses JAVA_25 (gotchas.md "Forge's Mixin 0.8.7").
+	 */
 	@Test
 	void mixinCompatibilityLevelIsThisNodesJava() throws Exception {
-		assertEquals("JAVA_" + Runtime.version().feature(),
+		int java = Runtime.version().feature();
+		assertEquals("JAVA_" + (loader().equals("forge") ? Math.min(java, 21) : java),
 				resourceJson("/enchanting2.mixins.json").get("compatibilityLevel").getAsString());
 	}
 
@@ -186,7 +190,7 @@ class ModIdentityTest {
 	@Test
 	void neoforgeModsTomlNamesThisModAndItsBand() throws Exception {
 		onlyOn("neoforge");
-		Map<String, Map<String, String>> toml = modsToml();
+		Map<String, Map<String, String>> toml = modsToml("/META-INF/neoforge.mods.toml", "neoforge");
 		assertEquals(Enchanting2.MOD_ID, toml.get("mods").get("modId"));
 		TreeSet<String> versions = Bands.versions(System.getProperty("enchanting2.node"),
 				System.getProperty("enchanting2.minecraftVersion"));
@@ -210,17 +214,65 @@ class ModIdentityTest {
 	}
 
 	/**
-	 * Our own neoforge.mods.toml, read just far enough for the tests: each table's {@code key = "value"} lines, keyed
-	 * "mods", "mixins N" and "dependency <modId>". A line this doesn't read fails the test rather than passing.
+	 * Phase 13D: Forge's mods.toml names this mod, carries the derived version (mod_version+band-forge), admits every
+	 * version in the band, expands its Forge range and names the access transformer. No mixin tables: Forge reads a
+	 * jar's mixin configs from its manifest (build.forge.gradle).
 	 */
-	private static Map<String, Map<String, String>> modsToml() throws Exception {
+	@Test
+	void forgeModsTomlNamesThisModAndItsBand() throws Exception {
+		onlyOn("forge");
+		Map<String, Map<String, String>> toml = modsToml("/META-INF/mods.toml", "forge");
+		assertEquals(Enchanting2.MOD_ID, toml.get("mods").get("modId"));
+		TreeSet<String> versions = Bands.versions(System.getProperty("enchanting2.node"),
+				System.getProperty("enchanting2.minecraftVersion"));
+		assertEquals(gradleProperty("mod_version") + "+" + Bands.label(versions) + "-forge",
+				toml.get("mods").get("version"));
+		String minecraft = toml.get("dependency minecraft").get("versionRange");
+		for (String version : versions) {
+			assertTrue(admits(minecraft, version), "the jar is named for " + version + " but minecraft is " + minecraft);
+		}
+		String forge = toml.get("dependency forge").get("versionRange");
+		assertFalse(forge.isBlank() || forge.contains("${"), "processResources did not expand forge: " + forge);
+		assertEquals("[\"META-INF/accesstransformer.cfg\"]", toml.get("").get("accessTransformers"));
+		assertFalse(toml.keySet().stream().anyMatch(table -> table.startsWith("mixins")), "mixin tables: " + toml.keySet());
+	}
+
+	@Test
+	void forgeEntryPointsAreRealClasses() {
+		onlyOn("forge");
+		assertClassExists("com.wulfnet.enchanting2.platform.forge.ForgeEntrypoint");
+		assertClassExists("com.wulfnet.enchanting2.platform.forge.ForgeClientEntrypoint");
+	}
+
+	/**
+	 * Phase 13D: Forge loads a mod's data only from a mod with a pack.mcmeta; ours spans this node's resource and data
+	 * pack formats (versions/<node>/gradle.properties), so neither pack type reads it as incompatible.
+	 */
+	@Test
+	void forgePackMetadataSpansThisNodesFormats() throws Exception {
+		onlyOn("forge");
+		JsonObject pack = resourceJson("/pack.mcmeta").getAsJsonObject("pack");
+		var node = Bands.properties(Path.of("versions", System.getProperty("enchanting2.node"), "gradle.properties"));
+		int resource = Integer.parseInt(node.getProperty("resource_pack_format").trim());
+		int data = Integer.parseInt(node.getProperty("data_pack_format").trim());
+		assertEquals(Math.min(resource, data), pack.get("min_format").getAsInt());
+		assertEquals(Math.max(resource, data), pack.get("max_format").getAsInt());
+	}
+
+	/**
+	 * Our own neoforge.mods.toml or mods.toml, read just far enough for the tests: each table's {@code key = "value"}
+	 * lines (and a {@code key = [...]} list or bare value, kept as written), keyed "mods", "mixins N" and
+	 * "dependency <modId>". A line this doesn't read fails the test rather than passing. {@code loaderModId} is the
+	 * loader's own dependency.
+	 */
+	private static Map<String, Map<String, String>> modsToml(String resource, String loaderModId) throws Exception {
 		Map<String, Map<String, String>> tables = new LinkedHashMap<>();
 		Map<String, String> current = new LinkedHashMap<>();
 		tables.put("", current);
 		int mixins = 0;
 		int dependencies = 0;
-		try (InputStream in = ModIdentityTest.class.getResourceAsStream("/META-INF/neoforge.mods.toml")) {
-			assertNotNull(in, "/META-INF/neoforge.mods.toml missing from the main resources");
+		try (InputStream in = ModIdentityTest.class.getResourceAsStream(resource)) {
+			assertNotNull(in, resource + " missing from the main resources");
 			for (String line : new String(in.readAllBytes(), StandardCharsets.UTF_8).split("\\R")) {
 				line = line.strip();
 				if (line.isEmpty() || line.startsWith("#")) {
@@ -237,15 +289,21 @@ class ModIdentityTest {
 					continue;
 				}
 				Matcher pair = Pattern.compile("(\\w+)\\s*=\\s*\"(.*)\"").matcher(line);
-				assertTrue(pair.matches(), "a neoforge.mods.toml line this test doesn't read: " + line);
-				current.put(pair.group(1), pair.group(2));
+				// A list or a bare value (Forge's mandatory = true), kept as written.
+				Matcher list = Pattern.compile("(\\w+)\\s*=\\s*(\\[.*]|[\\w.]+)").matcher(line);
+				if (pair.matches()) {
+					current.put(pair.group(1), pair.group(2));
+				} else {
+					assertTrue(list.matches(), "a " + resource + " line this test doesn't read: " + line);
+					current.put(list.group(1), list.group(2));
+				}
 			}
 		}
 		Map<String, Map<String, String>> named = new LinkedHashMap<>();
 		tables.forEach((name, values) -> named.put(name.startsWith("dependencies.")
 				? "dependency " + values.get("modId") : name, values));
 		assertTrue(named.containsKey("mods") && named.containsKey("dependency minecraft")
-				&& named.containsKey("dependency neoforge"), "neoforge.mods.toml tables: " + named.keySet());
+				&& named.containsKey("dependency " + loaderModId), resource + " tables: " + named.keySet());
 		return named;
 	}
 
@@ -307,7 +365,14 @@ class ModIdentityTest {
 		int[] counts = new int[2];
 		try (Stream<Path> files = Files.walk(Path.of(data.toURI()))) {
 			for (Path file : files.filter(f -> f.toString().endsWith(".json")).toList()) {
-				checkConditions(JsonParser.parseString(Files.readString(file)), upgraded, file, counts);
+				JsonElement json = JsonParser.parseString(Files.readString(file));
+				if (loader().equals("forge") && file.toString().replace('\\', '/').contains("/loot_modifiers/")) {
+					// Forge's LootModifier codec still takes the old required "conditions" array on every node (13D).
+					assertTrue(file.endsWith("global_loot_modifiers.json") || json.getAsJsonObject().has("conditions"),
+							"a Forge loot modifier without its \"conditions\" array: " + file);
+					continue;
+				}
+				checkConditions(json, upgraded, file, counts);
 			}
 		}
 		assertTrue(counts[0] >= 8, "found only " + counts[0] + " loot conditions; the heads, Cushion and Critical"

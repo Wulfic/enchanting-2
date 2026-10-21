@@ -3,6 +3,13 @@ package com.wulfnet.enchanting2.mixin;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.wulfnet.enchanting2.fortune.PlacedBlocks;
+//? if forge {
+/*import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
+import com.wulfnet.enchanting2.drops.DropRedirect;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
+*///?}
 import com.wulfnet.enchanting2.tool.AreaMining;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -60,4 +67,19 @@ abstract class ServerPlayerGameModeMixin {
 			PlacedBlocks.clear(level, pos);
 		}
 	}
+
+	//? if forge {
+	/*// Forge (13D) pops a broken block's XP here, after playerDestroy's drops (BlockMixin), so Magnetic and Ender Link
+	// get the same context around it. destroyedWith (the second ItemStack local) is the tool as it was, even if the
+	// break used it up.
+	@WrapOperation(method = "destroyBlock", at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/world/level/block/Block;popExperience(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;I)V"))
+	private void enchanting2$redirectBlockXp(Block block, ServerLevel xpLevel, BlockPos pos, int amount,
+			Operation<Void> original, @Local(ordinal = 1) ItemStack destroyedWith) {
+		DropRedirect.within(DropRedirect.forTool(player, destroyedWith), () -> {
+			original.call(block, xpLevel, pos, amount);
+			return null;
+		});
+	}
+	*///?}
 }

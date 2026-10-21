@@ -60,7 +60,8 @@ for props in "${nodes[@]}"; do
 	jars=()
 	for f in "$node/build/libs/enchanting2-${VERSION}+"*.jar; do
 		case "$f" in
-			*-sources.jar | *-gametest.jar) ;;
+			# -slim: Forge's jar before JarJar nests Jankson in it (build.forge.gradle); the shipped one has no classifier.
+			*-sources.jar | *-gametest.jar | *-slim.jar) ;;
 			*) jars+=("$f") ;;
 		esac
 	done

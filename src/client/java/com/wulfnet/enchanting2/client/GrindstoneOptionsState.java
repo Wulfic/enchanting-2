@@ -26,7 +26,7 @@ public final class GrindstoneOptionsState {
 
 	public static void register() {
 		// Registering the receiver is also what makes the server's canSend true, so panels start flowing.
-		ClientServices.NETWORK.onReceive(GrindstoneOptionsPayload.TYPE, false, payload -> {
+		ClientServices.NETWORK.onReceive(GrindstoneOptionsPayload.TYPE, GrindstoneOptionsPayload.CODEC, false, payload -> {
 			latest = payload;
 			LOG.debug("Grindstone panel for container {}: {}, {} row(s)", payload.containerId(), payload.status(),
 					payload.options().size());

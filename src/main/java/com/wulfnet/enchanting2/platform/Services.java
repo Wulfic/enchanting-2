@@ -28,6 +28,15 @@ public final class Services {
 		ATTACHMENTS = new com.wulfnet.enchanting2.platform.neoforge.NeoForgeAttachments();
 		NETWORK = new com.wulfnet.enchanting2.platform.neoforge.NeoForgeNetworking();
 		REGISTRY = new com.wulfnet.enchanting2.platform.neoforge.NeoForgeRegistration();
+		*///?} else if forge {
+		/*LOADER = new com.wulfnet.enchanting2.platform.forge.ForgeLoaderInfo();
+		EVENTS = new com.wulfnet.enchanting2.platform.forge.ForgeServerEvents();
+		ITEMS = new com.wulfnet.enchanting2.platform.forge.ForgeItemHooks();
+		// Attachments send owner syncs through the network, so it comes first.
+		com.wulfnet.enchanting2.platform.forge.ForgeNetworking network = new com.wulfnet.enchanting2.platform.forge.ForgeNetworking();
+		NETWORK = network;
+		ATTACHMENTS = new com.wulfnet.enchanting2.platform.forge.ForgeAttachments(network);
+		REGISTRY = new com.wulfnet.enchanting2.platform.forge.ForgeRegistration();
 		*///?}
 	}
 

@@ -20,6 +20,18 @@ import org.spongepowered.asm.mixin.Mixin;
  */
 @Mixin(Block.class)
 abstract class BlockMixin {
+	//? if forge {
+	/*// Forge (13D): playerDestroy calls an overload with a dropXp flag, which the vanilla six-argument one delegates to.
+	@WrapMethod(method = "dropResources(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/entity/BlockEntity;Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/item/ItemStack;Z)V")
+	private static void enchanting2$redirectDrops(BlockState state, Level level, BlockPos pos, BlockEntity blockEntity,
+			Entity breaker, ItemStack tool, boolean dropXp, Operation<Void> original) {
+		DropRedirect.within(DropRedirect.forTool(breaker, tool), () -> {
+			Replant.around(state, level, pos, breaker, tool,
+					() -> original.call(state, level, pos, blockEntity, breaker, tool, dropXp));
+			return null;
+		});
+	}
+	*///?} else {
 	@WrapMethod(method = "dropResources(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/entity/BlockEntity;Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/item/ItemStack;)V")
 	private static void enchanting2$redirectDrops(BlockState state, Level level, BlockPos pos, BlockEntity blockEntity,
 			Entity breaker, ItemStack tool, Operation<Void> original) {
@@ -29,6 +41,7 @@ abstract class BlockMixin {
 			return null;
 		});
 	}
+	//?}
 
 	@WrapMethod(method = "popResource(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/item/ItemStack;)V")
 	private static void enchanting2$popRedirected(Level level, BlockPos pos, ItemStack stack, Operation<Void> original) {

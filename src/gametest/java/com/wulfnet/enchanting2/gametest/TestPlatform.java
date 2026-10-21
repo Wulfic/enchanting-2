@@ -19,6 +19,17 @@ import net.neoforged.neoforge.attachment.AttachmentHolder;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.common.util.FakePlayerFactory;
 import net.neoforged.neoforge.event.level.block.BreakBlockEvent;
+*///?} else if forge {
+/*import com.mojang.authlib.GameProfile;
+import com.wulfnet.enchanting2.gametest.mixin.ServerPlayerGameModeInvoker;
+import com.wulfnet.enchanting2.platform.forge.ForgeAttachments;
+import java.util.UUID;
+import java.util.function.Consumer;
+import net.minecraft.server.level.ClientInformation;
+import net.minecraft.world.level.GameType;
+import net.minecraftforge.common.util.Result;
+import net.minecraftforge.event.level.BlockEvent;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 *///?}
 
 /**
@@ -35,6 +46,8 @@ final class TestPlatform {
 		return FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT;
 		//?} else if neoforge {
 		/*return FMLEnvironment.getDist() == Dist.CLIENT;
+		*///?} else if forge {
+		/*return FMLEnvironment.dist.isClient();
 		*///?}
 	}
 
@@ -44,12 +57,14 @@ final class TestPlatform {
 		return AttachmentTarget.NBT_ATTACHMENT_KEY;
 		//?} else if neoforge {
 		/*return AttachmentHolder.ATTACHMENTS_NBT_KEY;
+		*///?} else if forge {
+		/*return ForgeAttachments.NBT_KEY;
 		*///?}
 	}
 
 	/** Puts one attachment's saved value into an {@link #attachmentsKey} compound, as the loader writes it. */
 	static void putAttachment(CompoundTag attachments, String id, Tag value) {
-		//? if fabric {
+		//? if fabric || forge {
 		attachments.put(id, value);
 		//?} else if neoforge {
 		/*// NeoForgeAttachments saves {"value": <codec output>} (a MapCodec field).
@@ -61,7 +76,7 @@ final class TestPlatform {
 
 	/** One attachment's saved value from an {@link #attachmentsKey} compound; {@code null} when it isn't there. */
 	static @Nullable Tag storedAttachment(CompoundTag attachments, String id) {
-		//? if fabric {
+		//? if fabric || forge {
 		return attachments.get(id);
 		//?} else if neoforge {
 		/*return attachments.getCompoundOrEmpty(id).get("value");
@@ -74,6 +89,14 @@ final class TestPlatform {
 		return FakePlayer.get(level);
 		//?} else if neoforge {
 		/*return FakePlayerFactory.getMinecraft(level);
+		*///?} else if forge {
+		/*// Forge 26.3 has no fake player: a fresh ServerPlayer, never added to the world. It starts in the world's
+		// default mode (creative on the GameTest server), so set survival directly: changeGameModeForPlayer would
+		// broadcast a player-list update that reads the connection this player doesn't have.
+		ServerPlayer player = new ServerPlayer(level.getServer(), level,
+				new GameProfile(UUID.randomUUID(), "enchanting2_test"), ClientInformation.createDefault());
+		((ServerPlayerGameModeInvoker) player.gameMode).e2test$setGameModeForPlayer(GameType.SURVIVAL, null);
+		return player;
 		*///?}
 	}
 
@@ -87,6 +110,15 @@ final class TestPlatform {
 				event.setCanceled(true);
 			}
 		});
+		*///?} else if forge {
+		/*// Forge's destroyBlock reads the event's result, not its cancellation (ForgeHooks.onBlockBreakEvent), so a
+		// claim mod denies. Typed: a bare lambda also fits the bus's Predicate overload.
+		Consumer<BlockEvent.BreakEvent> refuse = event -> {
+			if (event.getPos().equals(pos)) {
+				event.setResult(Result.DENY);
+			}
+		};
+		BlockEvent.BreakEvent.BUS.addListener(refuse);
 		*///?}
 	}
 }

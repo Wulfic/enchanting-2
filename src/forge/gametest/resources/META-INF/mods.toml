@@ -1,0 +1,17 @@
+# The GameTest mod on Forge (Phase 13D), as on NeoForge: Fabric's enchanting2-gametest, renamed because Forge mod IDs
+# can't hold '-'. Dev and GameTest runs only (build.forge.gradle); never in a shipped jar.
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "MIT"
+
+[[mods]]
+modId = "enchanting2_gametest"
+version = "1.0.0"
+displayName = "Enchanting 2 GameTests"
+
+[[dependencies.enchanting2_gametest]]
+modId = "enchanting2"
+mandatory = true
+versionRange = "[0,)"
+ordering = "AFTER"
+side = "BOTH"

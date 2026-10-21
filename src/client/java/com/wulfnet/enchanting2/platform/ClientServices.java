@@ -12,6 +12,9 @@ public final class ClientServices {
 		//?} else if neoforge {
 		/*NETWORK = new com.wulfnet.enchanting2.platform.neoforge.NeoForgeClientNetworking();
 		HOOKS = new com.wulfnet.enchanting2.platform.neoforge.NeoForgeClientHooks();
+		*///?} else if forge {
+		/*NETWORK = new com.wulfnet.enchanting2.platform.forge.ForgeClientNetworking();
+		HOOKS = new com.wulfnet.enchanting2.platform.forge.ForgeClientHooks();
 		*///?}
 	}
 
