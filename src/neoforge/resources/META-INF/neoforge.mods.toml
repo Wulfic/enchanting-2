@@ -12,7 +12,10 @@ displayName = "Enchanting 2"
 description = "Flat XP curve past level 30, unlimited applicable enchantments, transparent additive costs and a readable enchanting table."
 authors = "Wulfic"
 displayURL = "https://github.com/Wulfic/enchanting-2/wiki"
+# Both keys: NeoForge 26.1.2 reads only logoFile; 26.2+ reads iconFile (square icon), and a dev client stops on a
+# warning screen when logoFile has no iconFile/bannerFile beside it (LogoFileWarningsHandler, TODO.md 13G).
 logoFile = "assets/enchanting2/icon.png"
+iconFile = "assets/enchanting2/icon.png"
 
 [[mixins]]
 config = "enchanting2.mixins.json"

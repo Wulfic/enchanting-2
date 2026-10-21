@@ -23,7 +23,7 @@ stonecutter {
         replace 'graphics.drawString(', 'graphics.text('
         replace 'method = "renderBg"', 'method = "extractBackground"'
         replace 'method = "renderLabels"', 'method = "extractLabels"'
-        replace 'method = "renderTooltip"', 'method = "tooltip"'
+        replace 'method = "renderTooltip*"', 'method = "tooltip*"'
         replace 'protected void renderLabels(', 'protected void extractLabels('
         replace 'super.renderLabels(', 'super.extractLabels('
         // Same method, new names (GameTests only): Minecraft.resizeDisplay, Fabric's client GameTest world accessor.
