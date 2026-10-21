@@ -1,6 +1,7 @@
 package com.wulfnet.enchanting2.platform.forge;
 
 import com.wulfnet.enchanting2.Enchanting2;
+import com.wulfnet.enchanting2.platform.Services;
 import java.lang.reflect.InvocationTargetException;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
@@ -16,6 +17,9 @@ public final class ForgeEntrypoint {
 
 	public ForgeEntrypoint(FMLJavaModLoadingContext context) {
 		ForgeBus.set(context.getModBusGroup());
+		// Before any data pack loads: our entries load stable, with no experimental-settings warning (ForgeKnownPacks).
+		ForgeKnownPacks.claim(Enchanting2.MOD_ID, Services.LOADER.modVersion(Enchanting2.MOD_ID)
+				.orElseThrow(() -> new IllegalStateException("Forge lists no version for " + Enchanting2.MOD_ID)));
 		Enchanting2.init();
 		if (FMLEnvironment.dist.isClient()) {
 			startClient(context);

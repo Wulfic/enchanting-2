@@ -51,6 +51,7 @@
 <% } %><% if (loader == 'forge') { %>		"forge.DataComponentInitializersMixin",
 		"forge.EntityAttachmentsMixin",
 		"forge.LevelChunkAttachmentsMixin",
+		"forge.PackLocationInfoMixin",
 		"forge.SerializableChunkDataMixin",
 <% } %>		"ServerPlayerAccessor",
 		"ServerPlayerGameModeMixin",
