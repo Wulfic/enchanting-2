@@ -93,6 +93,21 @@ minecraft {
         register('client') {
             workingDir = rootProject.layout.projectDirectory.dir("${project.run_root}/client")
             mixinConfigs.each { args "--mixin.config=${it}" }
+            // The client on the gametest classpath (runGametestClient, aliased runClientBootCheck below) is the release
+            // gate's client world check: it creates and joins a world by itself and quits (ClientBootCheck, TODO.md
+            // 13G). A run of another name has no template in Forge's runs.json, so it is this run's variant.
+            with(sourceSets.gametest) {
+                workingDir = layout.buildDirectory.dir('run/clientBoot')
+                systemProperty 'enchanting2.clientBootCheck', 'true'
+                // -PclientBootJoin=<host:port> joins that server instead of creating a world (client_boot_check.py --join).
+                systemProperty 'enchanting2.clientBootCheck.join', project.findProperty('clientBootJoin') ?: ''
+                args '--mixin.config=enchanting2-gametest.mixins.json'
+                mods {
+                    'enchanting2_gametest' {
+                        source sourceSets.gametest
+                    }
+                }
+            }
         }
         register('server') {
             workingDir = rootProject.layout.projectDirectory.dir("${project.run_root}/server")
@@ -168,6 +183,11 @@ tasks.register('runGameTest') {
     description = 'Runs every server GameTest on this node (the gameTestServer run on the gametest classpath)'
     dependsOn forge_game_test_run_task
 }
+tasks.register('runClientBootCheck') {
+    group = 'verification'
+    description = 'Creates and joins a world on a dev client, then quits (the client run on the gametest classpath)'
+    dependsOn 'runGametestClient'
+}
 
 // A fresh GameTest world every run, as Fabric's clearRunDirectory gives (ConfigWiringGameTest rewrites config files).
 // Same guard as build.neoforge.gradle: only <node>/build/run/gameTest is ever deleted.
@@ -227,3 +247,6 @@ ext.mod_loader = 'forge'
 apply from: rootProject.file('gradle/common.gradle')
 // build/gametest-report.xml + the check that fails a run with no test cases (shared with the other nodes).
 apply from: rootProject.file('gradle/gametest-report.gradle')
+// The client boot check's fresh run dir, its options and its timeout (shared with NeoForge).
+ext.client_boot_run_task = 'runGametestClient'
+apply from: rootProject.file('gradle/client-boot.gradle')

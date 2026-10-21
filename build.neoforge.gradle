@@ -100,8 +100,19 @@ neoForge {
             sourceSet = sourceSets.gametest
             loadedMods = [mods.enchanting2, mods.enchanting2_gametest]
         }
+        // ./gradlew :<node>:runClientBootCheck (gradle/client-boot.gradle): the release gate's client world check, a
+        // dev client that creates and joins a world by itself and quits (ClientBootCheck, TODO.md 13G).
+        clientBootCheck {
+            client()
+            gameDirectory = layout.buildDirectory.dir('run/clientBoot')
+            sourceSet = sourceSets.gametest
+            loadedMods = [mods.enchanting2, mods.enchanting2_gametest]
+            systemProperty 'enchanting2.clientBootCheck', 'true'
+            // -PclientBootJoin=<host:port> joins that server instead of creating a world (client_boot_check.py --join).
+            systemProperty 'enchanting2.clientBootCheck.join', project.findProperty('clientBootJoin') ?: ''
+        }
         configureEach {
-            if (name != 'gameTest') {
+            if (!(name in ['gameTest', 'clientBootCheck'])) {
                 loadedMods = [mods.enchanting2]
             }
         }
@@ -163,3 +174,6 @@ ext.mod_loader = 'neoforge'
 apply from: rootProject.file('gradle/common.gradle')
 // build/gametest-report.xml + the check that fails a run with no test cases (shared with the Fabric and matrix nodes).
 apply from: rootProject.file('gradle/gametest-report.gradle')
+// The client boot check's fresh run dir, its options and its timeout (shared with Forge).
+ext.client_boot_run_task = 'runClientBootCheck'
+apply from: rootProject.file('gradle/client-boot.gradle')

@@ -1,0 +1,6 @@
+# Phase 13G: the server side of scripts/client_boot_check.py --join (server_boot_check.py --commands). The server
+# waits while the dev client joins and leaves, then stops; its log must show both. The client starts only once this
+# server listens, and needs about two minutes from Gradle to Disconnect.
+@sh sleep 300
+@expect Dev joined the game
+@expect Dev left the game

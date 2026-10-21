@@ -1,0 +1,20 @@
+# Phase 13G: the client world check's fingerprint (scripts/client_boot_check.py, NeoForge/Forge nodes). Each line is
+# logged by ClientBootCheck (gametest source set) at one stage of the path a player takes:
+#   - armed: the GameTest mod's client half loaded on this loader and read the property.
+#   - title screen, Create New World: vanilla's create-world flow, the button a player clicks.
+#   - joined: our enchantments reached the client's registry, Knockback's max is 5 (the enchantment-load hook ran on the
+#     integrated server; vanilla's is 2), and the server's config sync payload arrived (networking on this loader).
+#   - config screen: the factory the mod registered with the loader builds our FormScreen and it stays open.
+#   - PASS: Save and Quit left the world in the saves folder and the title screen came back.
+# NeoForge's early loading screen logs how long SDL took to start at ERROR, prefixed WARNING: timing, not a fault.
+@allow-error \[EARLYDISPLAY/\]: WARNING : SDL_Init took
+# A dev client plays on an offline session, so vanilla's Realms checks can't authenticate (Forge's dev run makes them).
+@allow-error \[com\.mojang\.realmsclient\.client\.RealmsClient/\]: Failed to fetch Realms feature flags$
+@allow-error \[com\.mojang\.realmsclient\.RealmsAvailability/\]: Couldn't connect to realms$
+@expect Enchanting 2 initialized
+@expect enchanting2 client boot: armed on (NeoForge|Forge)
+@expect enchanting2 client boot: title screen reached
+@expect enchanting2 client boot: pressed Create New World
+@expect enchanting2 client boot: joined world .*: [1-9][0-9]* enchanting2 enchantments, Knockback max level 5, server config received
+@expect enchanting2 client boot: config screen opened and closed \(FormScreen\)
+@expect enchanting2 client boot: PASS

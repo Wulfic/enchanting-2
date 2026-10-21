@@ -1,0 +1,14 @@
+# Phase 13G: the client side of the dedicated-server join (scripts/client_boot_check.py --join): a dev client joins
+# the node's built jar on a real loader server (server_boot_check.py, port 25567) and leaves through Disconnect. Same
+# fingerprint as client-boot.txt, from a server: our enchantments and the max-level hook's Knockback V arrived over
+# the network, the config sync payload arrived, the config screen opens in a remote world.
+@allow-error \[EARLYDISPLAY/\]: WARNING : SDL_Init took
+# A dev client plays on an offline session, so vanilla's Realms checks can't authenticate (Forge's dev run makes them).
+@allow-error \[com\.mojang\.realmsclient\.client\.RealmsClient/\]: Failed to fetch Realms feature flags$
+@allow-error \[com\.mojang\.realmsclient\.RealmsAvailability/\]: Couldn't connect to realms$
+@expect Enchanting 2 initialized
+@expect enchanting2 client boot: armed on (NeoForge|Forge)
+@expect enchanting2 client boot: title screen reached, joining server 127\.0\.0\.1:25567
+@expect enchanting2 client boot: joined server 127\.0\.0\.1:25567: [1-9][0-9]* enchanting2 enchantments, Knockback max level 5, server config received
+@expect enchanting2 client boot: config screen opened and closed \(FormScreen\)
+@expect enchanting2 client boot: PASS \(left server 127\.0\.0\.1:25567

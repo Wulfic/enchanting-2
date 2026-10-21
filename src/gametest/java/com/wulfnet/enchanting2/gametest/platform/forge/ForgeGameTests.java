@@ -5,6 +5,8 @@ import com.mojang.serialization.JsonOps;
 import com.wulfnet.enchanting2.gametest.platform.GameTest;
 import com.wulfnet.enchanting2.gametest.platform.GameTestDiscovery;
 import com.wulfnet.enchanting2.gametest.platform.GameTestDiscovery.TestMethod;
+import com.wulfnet.enchanting2.gametest.platform.forgelike.ClientBootCheck;
+import com.wulfnet.enchanting2.platform.forge.ForgeKnownPacks;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -31,6 +33,7 @@ import net.minecraft.world.level.block.Rotation;
 import net.minecraftforge.event.AddPackFindersEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.gametest.ForgeGameTestHooks;
 import net.minecraftforge.registries.RegisterEvent;
 import org.jspecify.annotations.Nullable;
@@ -50,6 +53,16 @@ public final class ForgeGameTests {
 	private static final String PACK_ID = GameTestDiscovery.MOD_ID + ":test_instances";
 
 	public ForgeGameTests(FMLJavaModLoadingContext context) {
+		// Client first: ClientBootCheck names client classes, so a dedicated server must never load it. The boot check
+		// takes a player's path, so no tests: Forge enables GameTests in every dev run, and the test_instance pack below
+		// loads as Lifecycle.experimental(), which puts vanilla's experimental-settings warning in front of the world.
+		if (FMLEnvironment.dist.isClient() && ClientBootCheck.enabled()) {
+			// This mod's own data (e2test:*) gets the identity the shipped mod gives its pack, or it alone would bring
+			// the warning back into a world no player has.
+			ForgeKnownPacks.claim(GameTestDiscovery.MOD_ID, "gametest");
+			ForgeClientBootCheck.arm();
+			return;
+		}
 		if (!ForgeGameTestHooks.isGametestEnabled()) {
 			return;
 		}

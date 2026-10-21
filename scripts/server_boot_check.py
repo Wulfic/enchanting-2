@@ -232,9 +232,10 @@ def boot(a):
 
     if port_listening(PORT):
         raise NothingProven("port %d is already in use; refusing to start a second server" % PORT)
+    # 26.3 defaults white-list to true; the join check's client must get in (loopback, offline mode).
     with open(os.path.join(server_dir, "server.properties"), "w") as f:
         f.write("server-ip=127.0.0.1\nserver-port=%d\nonline-mode=false\nsync-chunk-writes=false\n"
-                "spawn-protection=0\nlevel-seed=13\n" % PORT)
+                "spawn-protection=0\nlevel-seed=13\nwhite-list=false\nenforce-whitelist=false\n" % PORT)
     with open(os.path.join(server_dir, "eula.txt"), "w") as f:
         f.write("eula=true\n")  # This automated test server only, as the dev server and GameTests do.
 

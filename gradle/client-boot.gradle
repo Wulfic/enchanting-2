@@ -1,0 +1,33 @@
+// Phase 13G: the client boot check's run (`:<node>:runClientBootCheck`, NeoForge and Forge nodes), the release gate's
+// client world check where there are no client GameTests. The loader script defines the run and names its task in
+// ext.client_boot_run_task; this file gives it a fresh game dir, the options a fresh client needs to reach the title
+// screen and stay unpaused, and a timeout. scripts/client_boot_check.py runs it and reads the log.
+
+def bootBuildRoot = layout.buildDirectory.get().asFile.canonicalFile
+def clientBootRunDir = new File(bootBuildRoot, 'run/clientBoot').canonicalFile
+// options.txt before the first start: no accessibility onboarding screen in front of the title screen, no pause menu
+// when the window loses focus (the owner works in other windows meanwhile), sound off, no tutorial toasts.
+def clientBootOptions = ['onboardAccessibility:false', 'pauseOnLostFocus:false', 'soundCategory_master:0.0',
+    'tutorialStep:none', 'joinedFirstServer:true']
+
+def prepareClientBootRunDir = tasks.register('prepareClientBootRunDir') {
+    doLast {
+        // Fail closed: only a direct child of <node>/build/run/ is ever deleted.
+        if (clientBootRunDir.parentFile != new File(bootBuildRoot, 'run').canonicalFile) {
+            throw new GradleException("Refusing to delete ${clientBootRunDir}: not inside ${bootBuildRoot}/run")
+        }
+        if (clientBootRunDir.exists()) {
+            logger.lifecycle("Clearing client boot run dir ${clientBootRunDir} (rebuilt by every run)")
+            if (!clientBootRunDir.deleteDir()) {
+                throw new GradleException("Could not clear ${clientBootRunDir}; a game from the last run may still hold it")
+            }
+        }
+        clientBootRunDir.mkdirs()
+        new File(clientBootRunDir, 'options.txt').text = clientBootOptions.join('\n') + '\n'
+    }
+}
+tasks.matching { it.name == project.client_boot_run_task }.configureEach {
+    dependsOn prepareClientBootRunDir
+    // ClientBootCheck's own watchdog closes the game after 5 minutes; this catches a game that can't even get there.
+    timeout = java.time.Duration.ofMinutes(15)
+}
