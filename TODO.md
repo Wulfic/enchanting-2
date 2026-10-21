@@ -311,7 +311,10 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
       owner sync), table/anvil/grindstone panels, joining a vanilla server, singleplayer reaching the world. No harness
       joins a Forge client in tests.
       verifyAll 2026-10-20: 448 JUnit + 340 GameTests on all 8 nodes (+ matrix); client GameTests green on 1.21.11,
-      26.1.2, 26.2, 26.3. Next: 26.2-forge (Forge 26.2-65.1.5; packs 88 / 107) and 26.1.2-forge (64.1.5; 84 / 101).
+      26.1.2, 26.2, 26.3. Committed d9d1c1b.
+      **26.2-forge green 2026-10-20** (Forge 26.2-65.1.5, packs 88 / 107): 340/340 first run; one change, the GameTest
+      pack's `Pack.ResourcesSupplier` (`openPrimary` / `openFull` before 26.3). verifyAll: 448 JUnit + 340 GameTests on
+      all 9 nodes. Next: 26.1.2-forge (64.1.5; packs 84 / 101).
 - [ ] 13E — **Config screen for NeoForge + Forge** on vanilla widgets (`client/config/`, drawn from the existing
       `ConfigView` / drafts / `TabRows`; every option the YACL screen has, per DESIGN §1). Owner 2026-10-20: it
       mirrors the YACL screen (categories as tab rows, scrolling option list, per-option reset, Save / Cancel). Entry: NeoForge

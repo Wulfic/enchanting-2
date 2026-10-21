@@ -97,7 +97,8 @@ public final class ForgeGameTests {
 	private static Pack pack(Map<Identifier, byte[]> files) {
 		PackLocationInfo location = new PackLocationInfo(PACK_ID, Component.literal("Enchanting 2 GameTest instances"),
 				PackSource.BUILT_IN, Optional.empty());
-		Pack.ResourcesSupplier resources = new Pack.ResourcesSupplier() {
+		//? if >=26.3 {
+		/*Pack.ResourcesSupplier resources = new Pack.ResourcesSupplier() {
 			@Override
 			public InstancePack openMetadata(PackLocationInfo info) {
 				return new InstancePack(info, files);
@@ -108,6 +109,20 @@ public final class ForgeGameTests {
 				return Stream.of(new InstancePack(info, files));
 			}
 		};
+		*///?} else {
+		// Before 26.3: one pack for both its metadata and its resources.
+		Pack.ResourcesSupplier resources = new Pack.ResourcesSupplier() {
+			@Override
+			public PackResources openPrimary(PackLocationInfo info) {
+				return new InstancePack(info, files);
+			}
+
+			@Override
+			public PackResources openFull(PackLocationInfo info, Pack.Metadata metadata) {
+				return new InstancePack(info, files);
+			}
+		};
+		//?}
 		// Metadata given here, not read from a pack.mcmeta: the pack is generated for this game version only.
 		Pack.Metadata metadata = new Pack.Metadata(location.title(), PackCompatibility.COMPATIBLE, FeatureFlagSet.of(),
 				List.of());

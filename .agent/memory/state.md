@@ -143,7 +143,8 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
     2026-10-20 (340/340 GameTests, TODO.md 13D "26.3-forge green" for what changed; gotchas.md "Forge 26.3 dev
     runs..."): verifyAll 2026-10-20 448 JUnit + 340 GameTests on all 8 nodes, client GameTests green on the 4 Fabric
     nodes; committed as "13D 26.3" and pushed.
-    **Next:** nodes 26.2-forge (Forge 26.2-65.1.5) and 26.1.2-forge (26.1.2-64.1.5):
+    **26.2-forge green** (verifyAll 2026-10-20, 9 nodes), committed as "13D 26.2".
+    **Next:** node 26.1.2-forge (26.1.2-64.1.5, packs 84 / 101):
     each a versions/<node>/gradle.properties (forge_version, forge_dependency, minecraft_dependency,
     resource_pack_format / data_pack_format from that Minecraft's version.json) + settings.gradle line; expect older
     API differences (`//? if >=26.3` in platform/forge, mixin targets), README/wiki Forge column. Owner `runClient`
