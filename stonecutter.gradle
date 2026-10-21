@@ -45,14 +45,29 @@ def matrixRole = { Project node ->
         'control' : 'claimed'
 }
 
+// Phase 13F: -Ploaders=fabric,neoforge (comma list) narrows verifyAll to those loaders' nodes, so CI builds each loader
+// in its own job. Absent = every loader. The loader comes from the node name (-neoforge / -forge, else Fabric; the rule
+// ci.yml and the Bands test helper use). Matrix nodes run Fabric jars, so they go with fabric. Refuses an empty or
+// unknown list rather than verifying nothing.
+def allLoaders = ['fabric', 'neoforge', 'forge']
+def loaderOf = { Project node ->
+    node.name.endsWith('-neoforge') ? 'neoforge' : node.name.endsWith('-forge') ? 'forge' : 'fabric'
+}
+def loadersProperty = providers.gradleProperty('loaders').orNull
+def verifyLoaders = loadersProperty == null ? allLoaders : loadersProperty.split(',')*.trim().findAll { it }
+if (verifyLoaders.isEmpty() || !allLoaders.containsAll(verifyLoaders)) {
+    throw new GradleException("-Ploaders='${loadersProperty}': give a comma list of ${allLoaders.join(', ')}")
+}
+
 tasks.register('verifyAll') {
     group = 'verification'
     description = 'Builds and tests every version node, link-checks every matrix node, GameTests the claimed versions'
-    def nodes = versionNodes()
+    def nodes = versionNodes().findAll { loaderOf(it) in verifyLoaders }
     if (nodes.isEmpty()) {
-        throw new GradleException('verifyAll found no version nodes under versions/; refusing to report a pass')
+        throw new GradleException("verifyAll found no version nodes under versions/ for loaders ${verifyLoaders}; " +
+            'refusing to report a pass')
     }
-    def roles = matrixNodes().collectEntries { [(it.path): matrixRole(it)] }
+    def roles = ('fabric' in verifyLoaders ? matrixNodes() : []).collectEntries { [(it.path): matrixRole(it)] }
     def claimed = roles.findAll { it.value == 'claimed' }.keySet().toList()
     dependsOn nodes.collect { "${it.path}:build" }
     dependsOn roles.keySet().collect { "${it}:linkCheck" }
@@ -67,10 +82,11 @@ tasks.register('verifyReport') {
     description = 'One line per version and matrix node from the last results (run after verifyAll)'
     // Results older than this (epoch ms; scripts/verify-all.sh passes its start time) weren't rewritten by this run.
     def since = providers.gradleProperty('verifySince').map { it as long }.getOrElse(0L)
-    def rows = versionNodes().collect { n ->
+    // The same -Ploaders filter as verifyAll, so a per-loader CI job reports its own nodes only.
+    def rows = versionNodes().findAll { loaderOf(it) in verifyLoaders }.collect { n ->
         def build = new File(n.projectDir, 'build')
         [label: n.path, junit: new File(build, 'test-results/test'), gameTests: new File(build, 'gametest-report.xml')]
-    } + matrixNodes().collect { n ->
+    } + ('fabric' in verifyLoaders ? matrixNodes() : []).collect { n ->
         def build = new File(n.projectDir, 'build')
         def role = matrixRole(n)
         [label: "${n.path} (${role})", linkCheck: new File(build, 'linkcheck/report.txt'),

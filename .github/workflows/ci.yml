@@ -4,8 +4,14 @@
 #   build    ./gradlew verifyAll (Phase 12F, stonecutter.gradle): every version node's build (compile, JUnit, server
 #            GameTests), every runtime-matrix node's static link check, and the server GameTests of each matrix version
 #            a jar claims without being built for. The same task as scripts/verify-all.sh, so CI and a local run can't
-#            drift. verifyReport writes one line per node to the job summary. The jars (versions/<node>/build/libs/)
-#            are kept as a run artifact for 14 days, so any commit can be tried in game without building it.
+#            drift. One job per loader (13F: -Ploaders=<loader>; the matrix nodes go with fabric). verifyReport writes
+#            one line per node to the job summary. The jars (versions/<node>/build/libs/) are kept as a run artifact
+#            (enchanting2-<loader>-<sha>) for 14 days, so any commit can be tried in game without building it.
+#   boot     Phase 13F: scripts/boot-all.sh boots the built jars on real loader servers (scripts/boot-matrix.txt,
+#            scripts/server_boot_check.py) and checks the scripts/checks/boot.txt fingerprint. On a push or pull
+#            request, the "shipped" rows (each jar on its own loader and Minecraft); on workflow_dispatch, every row
+#            (older NeoForge/Forge builds, Quilt boots and Quilt server GameTests). Owner 2026-10-21. One job per loader;
+#            Quilt has no shipped rows, so its job only runs on dispatch. Server logs are kept for 14 days.
 #   secrets  gitleaks over the WHOLE history, not just the pushed commits. The repo went public after a history
 #            scrub (TODO 11e); a secret committed again would be public on push, so this job fails the run loudly.
 #
@@ -32,8 +38,12 @@ concurrency:
 
 jobs:
   build:
-    name: Build and test
+    name: Build and test (${{ matrix.loader }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        loader: [fabric, neoforge, forge]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -51,7 +61,7 @@ jobs:
       # --continue: every node runs even after one fails, so the report below shows all of them.
       - name: Build, test and check every node (verifyAll)
         run: >-
-          ./gradlew verifyAll --continue --no-daemon --stacktrace
+          ./gradlew verifyAll --continue --no-daemon --stacktrace -Ploaders=${{ matrix.loader }}
           -Porg.gradle.java.installations.fromEnv=${{ steps.jdk.outputs.from_env }}
 
       # Reads the result files only; runs after a failure too. The step's own status never decides the run.
@@ -60,7 +70,7 @@ jobs:
         run: |
           {
             echo '```'
-            ./gradlew verifyReport -q --no-daemon \
+            ./gradlew verifyReport -q --no-daemon -Ploaders=${{ matrix.loader }} \
               -Porg.gradle.java.installations.fromEnv=${{ steps.jdk.outputs.from_env }} || echo "verifyReport failed"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
@@ -68,7 +78,7 @@ jobs:
       - name: Upload jar
         uses: actions/upload-artifact@v7
         with:
-          name: enchanting2-${{ github.sha }}
+          name: enchanting2-${{ matrix.loader }}-${{ github.sha }}
           path: versions/*/build/libs/*.jar
           retention-days: 14
           if-no-files-found: error
@@ -77,13 +87,61 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: test-reports-${{ github.sha }}
+          name: test-reports-${{ matrix.loader }}-${{ github.sha }}
           path: |
             versions/*/build/reports/
             versions/*/build/test-results/
             versions/*/build/gametest-report.xml
             matrix/*/build/gametest-report.xml
             matrix/*/build/linkcheck/report.txt
+          retention-days: 14
+          if-no-files-found: ignore
+
+  boot:
+    name: Real-server boot (${{ matrix.loader }})
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        loader: [fabric, neoforge, forge, quilt]
+    env:
+      # Quilt runs the Fabric jars.
+      JAR_LOADER: ${{ matrix.loader == 'quilt' && 'fabric' || matrix.loader }}
+      TIER: ${{ github.event_name == 'workflow_dispatch' && 'all' || 'shipped' }}
+    steps:
+      - name: Checkout
+        if: matrix.loader != 'quilt' || github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v7
+
+      # The servers run on the newest JDK the nodes ask for (setup-jdks puts it on PATH last).
+      - name: Set up JDKs
+        if: matrix.loader != 'quilt' || github.event_name == 'workflow_dispatch'
+        uses: ./.github/actions/setup-jdks
+
+      # Unpacks to versions/<node>/build/libs/, where boot-all.sh looks.
+      - name: Download jars
+        if: matrix.loader != 'quilt' || github.event_name == 'workflow_dispatch'
+        uses: actions/download-artifact@v8
+        with:
+          name: enchanting2-${{ env.JAR_LOADER }}-${{ github.sha }}
+          path: versions
+
+      - name: Boot on real servers (${{ env.TIER }} rows)
+        if: matrix.loader != 'quilt' || github.event_name == 'workflow_dispatch'
+        env:
+          PYTHON: python3
+        run: bash scripts/boot-all.sh "$TIER" "${{ matrix.loader }}"
+
+      - name: Upload server logs
+        if: always() && (matrix.loader != 'quilt' || github.event_name == 'workflow_dispatch')
+        uses: actions/upload-artifact@v7
+        with:
+          name: boot-logs-${{ matrix.loader }}-${{ github.sha }}
+          path: |
+            build/boot/*/*.out
+            build/boot/*/*/server.log
+            build/boot/*/*/build/run/gameTest/gametest-report.xml
           retention-days: 14
           if-no-files-found: ignore
 
