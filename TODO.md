@@ -231,7 +231,7 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
       Owner check later (13E/C7): `runClient` on NeoForge (tooltips, HUD, table/anvil/grindstone panels, joining a
       vanilla server gets our message; singleplayer and a `runServer` join both reach the world, not stuck at
       "Joining world" — that is the hello round trip).
-- [ ] 13D — **Forge nodes** 26.1.2, 26.2, 26.3: `mods.toml`, `platform/forge`, Forge events. Same proof: JUnit +
+- [x] 13D — **Forge nodes** 26.1.2, 26.2, 26.3: `mods.toml`, `platform/forge`, Forge events. Same proof: JUnit +
       340 server GameTests on each node, log free of foreign ERRORs.
       **Plan (2026-10-20, read from the Forge 26.3-66.0.13 sources jar, not docs):** Forge 26.x = EventBus 7 (static
       `XEvent.BUS` per game event; mod-bus events via `XEvent.getBus(context.getModBusGroup())`), still capabilities,
@@ -314,7 +314,10 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
       26.1.2, 26.2, 26.3. Committed d9d1c1b.
       **26.2-forge green 2026-10-20** (Forge 26.2-65.1.5, packs 88 / 107): 340/340 first run; one change, the GameTest
       pack's `Pack.ResourcesSupplier` (`openPrimary` / `openFull` before 26.3). verifyAll: 448 JUnit + 340 GameTests on
-      all 9 nodes. Next: 26.1.2-forge (64.1.5; packs 84 / 101).
+      all 9 nodes. Committed 0abf6a6.
+      **26.1.2-forge green 2026-10-20** (Forge 26.1.2-64.1.5, packs 84 / 101, range 26.1.2 alone as NeoForge's):
+      340/340 first run, no source change. verifyAll: 448 JUnit + 340 GameTests on all 10 nodes. **13D done** but the
+      owner's Forge `runClient` checks above. CI on d9d1c1b green (run 39534737507).
 - [ ] 13E — **Config screen for NeoForge + Forge** on vanilla widgets (`client/config/`, drawn from the existing
       `ConfigView` / drafts / `TabRows`; every option the YACL screen has, per DESIGN §1). Owner 2026-10-20: it
       mirrors the YACL screen (categories as tab rows, scrolling option list, per-option reset, Save / Cancel). Entry: NeoForge

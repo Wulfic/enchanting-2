@@ -138,18 +138,12 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
     **26.2-neoforge green** (9550c7d, loot modifier fixes, gotchas.md "NeoForge loot modifiers").
     **26.1.2-neoforge green** (verifyAll 2026-10-20: 445 JUnit + 340 GameTests on all 7 nodes). **13C done.**
     **13C committed 7e5baa1, pushed, CI dispatched (run 39495322387).**
-    **13D IN PROGRESS.** Plan: TODO.md 13D; decisions.md "13D attachments", "13D owner rulings" (no hello on Forge),
-    "13D attachment storage", "13D seam changes". Groundwork committed fd399bf and pushed. **26.3-forge green**
-    2026-10-20 (340/340 GameTests, TODO.md 13D "26.3-forge green" for what changed; gotchas.md "Forge 26.3 dev
-    runs..."): verifyAll 2026-10-20 448 JUnit + 340 GameTests on all 8 nodes, client GameTests green on the 4 Fabric
-    nodes; committed as "13D 26.3" and pushed.
-    **26.2-forge green** (verifyAll 2026-10-20, 9 nodes), committed as "13D 26.2".
-    **Next:** node 26.1.2-forge (26.1.2-64.1.5, packs 84 / 101):
-    each a versions/<node>/gradle.properties (forge_version, forge_dependency, minecraft_dependency,
-    resource_pack_format / data_pack_format from that Minecraft's version.json) + settings.gradle line; expect older
-    API differences (`//? if >=26.3` in platform/forge, mixin targets), README/wiki Forge column. Owner `runClient`
-    checks on Forge are open (TODO.md 13D). Forge sources: scratchpad 7f5be36b.../forge-src (26.3 Forge + patches),
-    e3bcfb9d.../mc-src (vanilla 26.3).
+    **13D done 2026-10-20**: Forge nodes 26.1.2 / 26.2 / 26.3 (fd399bf groundwork, d9d1c1b 26.3, 0abf6a6 26.2,
+    then "13D 26.1.2"), all pushed; verifyAll 448 JUnit + 340 GameTests on all 10 nodes; CI green on d9d1c1b.
+    Decisions: "13D attachments", "13D owner rulings", "13D attachment storage", "13D seam changes"; gotchas
+    "Forge 26.3 dev runs..." and "Forge 26.3: access transformers...". Open: owner `runClient` checks on Forge
+    (TODO.md 13D). **Next: 13E** (config screen for NeoForge + Forge), then 13F (Quilt nodes, CI per loader, widen
+    NeoForge/Forge B1), 13G release (owner confirms first).
     Owner: 13E screen
     mirrors YACL (decisions.md "third round").
     **Only one session works this tree** (owner 2026-10-20); a second session's builds lock GameTest worlds (gotchas).
