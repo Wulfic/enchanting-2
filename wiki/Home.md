@@ -13,6 +13,8 @@ enchantment is kept, 49 new ones are added, and almost everything can be configu
 | **Sides** | Server **and** every player's client |
 | **License** | MIT |
 
+> NeoForge and Forge support arrives with 1.2.0; the latest release, 1.1.0, is Fabric only ([details](Installation)).
+
 **[Download the latest release](https://github.com/Wulfic/enchanting-2/releases/latest)**, then see
 [Installation](Installation).
 

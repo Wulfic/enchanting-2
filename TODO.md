@@ -419,6 +419,8 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
       jar names carry the loader (proposed `enchanting2-1.2.0+26.3-neoforge.jar`; Fabric names unchanged); `release-collect.sh`,
       `ModIdentityTest`, `ReleaseDocsTest`; README / wiki Installation tables per loader; CHANGELOG [Unreleased].
 - [ ] 13G — **Release 1.2.0.** Owner confirms first (outward-facing). Tag, ten jars, mod pages list the loaders.
+      In the release commit: remove the "Until 1.2.0 is released" notes from README.md, wiki/Installation.md and
+      wiki/Home.md (owner 2026-10-21: main is pushed, and with it the wiki, before 1.2.0 ships).
 
 **Rollback:** `git revert` the stage's commit(s) on main (Phase 13 is per-stage commits, no squash). A bad release is fixed by a patch release, never by deleting tags.
 
