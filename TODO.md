@@ -418,7 +418,9 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
       Proof: verifyAll green; release-collect dry run lists 5 jars with the right names; ModIdentityTest fails if
       the loader is dropped from the version (checked by reverting the common.gradle line once).
       Blast radius: names only, nothing released (13G). Rollback: revert the commit.
-- [x] 13F — **Build, CI, release plumbing:** (done 2026-10-21; CI's first boot run checked after the push) `verifyAll` covers every node + Quilt nodes; `ci.yml` jobs per loader;
+- [x] 13F — **Build, CI, release plumbing:** (done 2026-10-21. CI push run 39662858364 green: boot 10 rows
+      PASS (fabric 4, neoforge 3, forge 3), Quilt skipped as designed; dispatch run 39664300606 green: 20 rows PASS incl.
+      Forge 62/63 and Quilt GameTests 340/340 ×3, every job green.) `verifyAll` covers every node + Quilt nodes; `ci.yml` jobs per loader;
       jar names carry the loader (proposed `enchanting2-1.2.0+26.3-neoforge.jar`; Fabric names unchanged); `release-collect.sh`,
       `ModIdentityTest`, `ReleaseDocsTest`; README / wiki Installation tables per loader; CHANGELOG [Unreleased].
       **Plan (2026-10-21).** Fact that changed it (NeoForge 26.3.0.95 / Forge 26.3-66.0.13 sources): production servers
@@ -494,6 +496,17 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
       **Blast radius:** additive (scripts, a CI job, docs). Work dirs are new scratch dirs under `build/boot/` (refused
       unless empty). Nothing in the owner's saves or instances. Rollback: revert the commits.
 - [ ] 13G — **Release 1.2.0.** Owner confirms first (outward-facing). Tag, ten jars, mod pages list the loaders.
+      **Draft plan, rung 5 on NeoForge/Forge (owner 2026-10-21: scripted client boot).** NeoForge and Forge have no
+      client GameTest API, and a client has no console to type into. Proposal: G1. a `gametest`-side (never shipped)
+      client hook, enabled by `-Denchanting2.clientBootCheck=<world>`: on the title screen it creates a new world through
+      vanilla's `CreateWorldScreen` flow (same path a player takes), waits for the player to be in it, logs a
+      fingerprint line (`enchanting2 client boot: joined <world>, <n> enchantments registered, config screen opens`),
+      then quits through `Minecraft.stop()`. G2. `scripts/client_boot_check.sh NODE=<node>` runs `:<node>:runClient`
+      with that property in a fresh run dir, `@expect`s the line, exit 0/1/2 as the server check. G3. run on the 6
+      NeoForge/Forge nodes; Fabric keeps its client GameTests. Rung 6 = `boot-all.sh all` (13F) on the release jars.
+      **Open (ask the owner):** this proves the dev client with our jar's classes, not the built jar in a launcher
+      instance; the latter means installing NeoForge/Forge clients headless (installer `--installClient`) and launching
+      with hand-built args. Which one counts as rung 5 here?
       In the release commit: remove the "Until 1.2.0 is released" notes from README.md, wiki/Installation.md and
       wiki/Home.md (owner 2026-10-21: main is pushed, and with it the wiki, before 1.2.0 ships).
 

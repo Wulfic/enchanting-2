@@ -138,8 +138,9 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
     [shipped|full|all] [loader]`, `BootMatrixTest`, a boot row = a claim (decisions.md 2026-10-21). Shipped 10/10
     green; Forge B1 widened to 26.1–26.1.2; NeoForge 26.1.0/26.1.1 betas red (LootModifier API, gotchas) so NeoForge
     B1 stays 26.1.2; Quilt green on 26.x (340/340 production GameTests). ci.yml: build per loader (`-Ploaders`),
-    `boot` job (shipped on push, all on dispatch). **If resuming:** verifyAll, then `bash scripts/boot-all.sh
-    shipped` on the final jars, commit, push, watch CI (the boot job's first run). Then **13G**: owner confirms the
+    `boot` job (shipped on push, all on dispatch). Committed 1826c34 + ed03d51, CI green on push (10 boot
+    rows) and on dispatch (20 rows). Next: **13G** (TODO.md draft; open question on what rung 5 means for
+    NeoForge/Forge): owner confirms the
     release; scripted NeoForge/Forge client boot for rung 5 (owner 2026-10-21); release gate recorded in TODO.md.
     Open owner checks: `runClient` on NeoForge + Forge (config screen, tooltips, HUD, panels, joins).
     **Only one session works this tree** (owner 2026-10-20); a second session's builds lock GameTest worlds (gotchas).
