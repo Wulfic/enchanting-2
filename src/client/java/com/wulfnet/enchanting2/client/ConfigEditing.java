@@ -1,6 +1,7 @@
 package com.wulfnet.enchanting2.client;
 
 import com.wulfnet.enchanting2.Enchanting2;
+import com.wulfnet.enchanting2.config.ClientConfig;
 import com.wulfnet.enchanting2.config.CommonConfig;
 import com.wulfnet.enchanting2.config.ConfigCodec;
 import com.wulfnet.enchanting2.config.ConfigFiles;
@@ -8,9 +9,11 @@ import com.wulfnet.enchanting2.config.ConfigView;
 import com.wulfnet.enchanting2.config.ConfigView.Connection;
 import com.wulfnet.enchanting2.config.EnchantmentOverrides;
 import com.wulfnet.enchanting2.config.ServerConfigs;
+import com.wulfnet.enchanting2.config.form.ConfigForms;
 import com.wulfnet.enchanting2.enchantment.DefaultCurses;
 import com.wulfnet.enchanting2.enchantment.ModEnchantments;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -51,6 +54,29 @@ public final class ConfigEditing {
 				() -> ConfigFiles.load(ServerConfigs.enchantmentsFile(), EnchantmentOverrides.CODEC),
 				() -> ServerConfigs.enchantments(server), ClientConfigState.serverCopy().isPresent());
 	}
+
+	/** What the config screen's model needs from the running client, for both screens. */
+	public static ConfigForms.Inputs formInputs(Collection<String> enchantmentIds) {
+		return new ConfigForms.Inputs(currentView(), currentEnchantmentsView(), enchantmentIds,
+				ConfigEditing::isCurse, ConfigEditing::registryMaxLevel, ClientSettings.get(), SAVER);
+	}
+
+	private static final ConfigForms.Saver SAVER = new ConfigForms.Saver() {
+		@Override
+		public void saveCommon(CommonConfig config) {
+			save(config);
+		}
+
+		@Override
+		public void saveEnchantments(EnchantmentOverrides enchantments) {
+			ConfigEditing.saveEnchantments(enchantments);
+		}
+
+		@Override
+		public void saveClient(ClientConfig config) {
+			ClientSettings.save(config);
+		}
+	};
 
 	/**
 	 * Writes {@code config} to the shared file (backed up first). When this client hosts the world, the integrated

@@ -142,8 +142,12 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
     then "13D 26.1.2"), all pushed; verifyAll 448 JUnit + 340 GameTests on all 10 nodes; CI green on d9d1c1b.
     Decisions: "13D attachments", "13D owner rulings", "13D attachment storage", "13D seam changes"; gotchas
     "Forge 26.3 dev runs..." and "Forge 26.3: access transformers...". Open: owner `runClient` checks on Forge
-    (TODO.md 13D). **Next: 13E** (config screen for NeoForge + Forge), then 13F (Quilt nodes, CI per loader, widen
-    NeoForge/Forge B1), 13G release (owner confirms first).
+    (TODO.md 13D). **13E in progress (2026-10-21, plan in TODO.md 13E: E1 model, E2 screen, E3 loader entries).**
+    Owner: full YACL mirror incl. search/Undo, Fabric falls back to our screen without YACL, one MC-free model
+    (decisions.md "13E owner rulings", "13E screen"). **E1 done**: `config/form/` (ConfigForms builds what both
+    screens show), YACL `ConfigScreen` draws from it; verifyAll 457 JUnit + 340 GameTests on all 10 nodes, client
+    GameTests 1.21.11 + 26.3 green. Next E2 (`client/config/FormScreen`; drafts in this session's scratchpad `e2/`),
+    then 13F (Quilt nodes, CI per loader, widen NeoForge/Forge B1), 13G release (owner confirms first).
     Owner: 13E screen
     mirrors YACL (decisions.md "third round").
     **Only one session works this tree** (owner 2026-10-20); a second session's builds lock GameTest worlds (gotchas).

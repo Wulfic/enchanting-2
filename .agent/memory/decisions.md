@@ -1761,3 +1761,33 @@ loader names out of mixin/).
 `FluidInteractionRegistry$InteractionInformation` lambda.
 **Affects:** platform/ClientNetworking.java, platform/ServerEvents.java, platform/forge/ForgeNetworking.java,
 fortune/PlacedBlocks.java, mixin/LiquidBlockMixin.java
+
+## 2026-10-21 — 13E owner rulings: full YACL mirror, Fabric falls back to it, one option model for both screens
+**Context:** 13E's NeoForge/Forge screen "mirrors YACL" (third round). Three open choices, asked before code.
+**Choice:** (1) the right pane copies YACL's whole pane: search box, the hovered/focused option's description, and
+Undo / Cancel-or-Reset / Save-or-Done, with YACL's rules (Esc with pending changes keeps the screen open and says
+"Save before exiting"). (2) On Fabric/Quilt, Mod Menu without YACL opens our screen; with YACL, YACL's as before.
+(3) The option list moves out of `ConfigScreen` into an MC-free model (`config/form/`) that both the YACL screen and
+ours draw from; JUnit fails when a config key has no option.
+**Why:** owner's calls. (1) the Enchantments tab has ~70 groups, so search earns its place; (2) YACL stays optional
+on Fabric, but its absence no longer means no screen; (3) one list means an option added once shows on every loader.
+**Rejected:** description pane without search/Undo; tooltips instead of a pane; Fabric unchanged (our screen only
+for tests there); a second hand-kept option list compared by a test.
+**Affects:** config/form/, client/ConfigScreen.java, client/config/, client/ModMenuIntegration.java,
+platform/neoforge/NeoForgeClientEntrypoint.java, platform/forge/
+
+## 2026-10-21 — 13E screen: vanilla list + widgets, our own tab buttons, pending values in the model
+**Context:** the screen has to compile on 1.21.11 (Fabric fallback, and Fabric client GameTests are the only
+automated way to drive it) and 26.1.2 / 26.2 / 26.3. javap of all four: `ContainerObjectSelectionList`,
+`AbstractSliderButton`, `CycleButton`, `EditBox`, `AbstractButton` are the same apart from 26.1's render→extract
+names. `TabButton` turned abstract in 26.2 and `Tab` gained `getLayout()`.
+**Choice:** a `ContainerObjectSelectionList` for the option rows, vanilla widgets for the controls, our own
+`AbstractButton` for tabs (vanilla's tab sprites, placed by `TabRows`), no `TabManager`. Version differences are
+`//?` conditions on the overridden render hooks (as `TabbedConfigScreen`), not new replacements. Pending values,
+Undo, Reset and "changed" live in the model's `FormOption`, so their rules are JUnit-tested; the YACL screen ignores
+them (YACL keeps its own) and binds the same getter/setter/default.
+**Why:** the fewest version-specific lines; nothing borrowed from classes that changed shape in 26.2.
+**Rejected:** vanilla `TabNavigationBar`/`TabButton` (abstract on 26.2+, `MenuTabBar`); hand-drawn rows with manual
+scroll and focus (re-implements keyboard navigation and narration); new `render(`→`extractRenderState(` string
+replacements (their automatic reverse would rewrite `TabbedConfigScreen`'s commented branches).
+**Affects:** client/config/*.java

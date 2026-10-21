@@ -323,6 +323,39 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
       mirrors the YACL screen (categories as tab rows, scrolling option list, per-option reset, Save / Cancel). Entry: NeoForge
       `IConfigScreenFactory`, Forge `ConfigScreenFactory`. JUnit on the model (an option missing from the screen fails),
       plus the owner's `runClient` check on both loaders.
+      Owner 2026-10-21 (decisions.md "13E owner rulings"): **full mirror** of YACL's right pane (search, description,
+      Undo / Cancel-Reset / Save-Done, "Save before exiting" on Esc); **Fabric falls back** to it when Mod Menu has no
+      YACL; **one MC-free option model** for both screens. API check (javap, 4 versions): decisions.md "13E screen".
+      - **E1 — model, YACL screen on it (no behaviour change).**
+        - `src/main/.../config/form/`: `FormText` (key + args), `FormControl` (tick box, int field, int slider, cycle),
+          `FormOption<T>` (key, description lines, control, default, get/set, editable; pending / changed / undo /
+          reset / apply), `FormEntry` (label, option, group of one enchantment's options), `FormCategory`,
+          `ConfigForm` (categories + save: writes only the files that changed, as today), `ConfigForms.build(Inputs)`
+          (today's `ConfigScreen.build` body and its `Draft`; MC lookups come in as functions), `FormSearch`.
+        - `client/ConfigScreen.java`: translates a `ConfigForm` to YACL; `build()` keeps its signature (the client
+          GameTest reads it). `ConfigEditing.formInputs()` gathers the MC side.
+        - JUnit `ConfigFormTest`: every `common.json5` leaf key has exactly one option, and changing that option
+          changes exactly that key in the saved file; every enchantment × flag × number field (curse fields on curses
+          only) maps onto `enchantments.json5`; display options onto `client.json5`; read-only views have no editable
+          option and save nothing; save writes only changed files; undo / reset / apply. `FormSearchTest`.
+          `ConfigLangKeysTest` walks the form (every option name + `.desc`, every cycle value's text).
+        - Proof: verifyAll + `ConfigScreenClientGameTest` on 1.21.11 and 26.3 unchanged and green.
+      - **E2 — our screen (`client/config/`), Fabric fallback.** `FormScreen` (tabs by `TabRows` via
+        `FormTabButton`, `FormOptionList` left, pane right: search `EditBox`, wrapped description, three buttons),
+        rows `OptionRow` (name, control, ↺ reset) / `GroupRow` (collapsible) / `LabelRow`; controls: tick box,
+        `CycleButton` for enums, `EditBox` int field (out-of-range = red, not applied), slider. `ModMenuIntegration`:
+        no YACL → `FormScreen`. Lang `enchanting2.config.gui.*`. Client GameTest `FormScreenClientGameTest` (1080p,
+        scale 3): tabs in two rows, second-row click opens; toggle → pending, Undo restores; Esc with pending stays
+        open; search "sharp" on Enchantments shows the Sharpness group; hosted save reaches the server, then restore.
+        Screenshots for the owner. Proof: verifyAll + client GameTests on every Fabric node.
+      - **E3 — NeoForge + Forge entries.** NeoForge `container.registerExtensionPoint(IConfigScreenFactory.class, …)`;
+        Forge `ConfigScreenHandler.ConfigScreenFactory` (same record on Forge 62–66). README/wiki Requirements,
+        CHANGELOG [Unreleased], `docs/CONFIG.md` if it names YACL. Proof: verifyAll; owner `runClient` on both.
+      **Not doing:** replacing YACL on Fabric when it's installed; YACL on NeoForge; client GameTests on
+      NeoForge/Forge; any new option or config-format change; YACL's restart prompt (no option needs a restart).
+      **Blast radius:** E1 rewrites how `ConfigScreen` builds YACL (edits; back from git at `ae17c11`); the save path
+      (`ConfigEditing.save*` → `saveWithBackup`) is unchanged. The client GameTest writes the run dir's config and puts
+      the old file back, as `ConfigScreenClientGameTest` already does. Nothing destructive. Rollback: revert the stage.
 - [x] 13F-names **done 2026-10-20**: verifyAll green (443 JUnit, 340 GameTests everywhere); release-collect dry run
       on a scratch copy of the jars: 10 files / 5 bands, and it refuses a stale loader-less jar, a jar on another
       loader's node, and a name that disagrees with the shipped metadata; ModIdentityTest went red on both loaders

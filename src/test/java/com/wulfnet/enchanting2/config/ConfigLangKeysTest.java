@@ -8,12 +8,22 @@ import blue.endless.jankson.Jankson;
 import blue.endless.jankson.JsonObject;
 import com.wulfnet.enchanting2.acquisition.EnchantmentFlagsDraft;
 import com.wulfnet.enchanting2.anvil.InvalidBookMode;
+import com.wulfnet.enchanting2.config.form.ConfigForm;
+import com.wulfnet.enchanting2.config.form.ConfigForms;
+import com.wulfnet.enchanting2.config.form.FormCategory;
+import com.wulfnet.enchanting2.config.form.FormEntry;
+import com.wulfnet.enchanting2.config.form.FormOption;
+import com.wulfnet.enchanting2.config.form.FormText;
 import com.wulfnet.enchanting2.effect.SmeltingSilkPriority;
 import com.wulfnet.enchanting2.enchantment.ConflictFamily;
 import com.wulfnet.enchanting2.fortune.SilkFortuneMode;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -125,6 +135,61 @@ class ConfigLangKeysTest {
 			assertTrue(lang.containsKey(key), key);
 			assertTrue(lang.containsKey(key + ".desc"), key + ".desc");
 		}
+	}
+
+	/**
+	 * Phase 13E: both screens draw every text from the form, so walking it in each mode finds any key a new option, value
+	 * or category forgot. Piercing has a ceiling note; Binding is a curse (discount fields).
+	 */
+	@Test
+	void everyTextOnTheFormIsInTheLangFile() throws Exception {
+		JsonObject lang = lang();
+		ConfigForms.Saver nowhere = new ConfigForms.Saver() {
+			@Override
+			public void saveCommon(CommonConfig config) {
+				throw new AssertionError("no save here");
+			}
+
+			@Override
+			public void saveEnchantments(EnchantmentOverrides enchantments) {
+				throw new AssertionError("no save here");
+			}
+
+			@Override
+			public void saveClient(ClientConfig config) {
+				throw new AssertionError("no save here");
+			}
+		};
+		for (ConfigView.Mode mode : ConfigView.Mode.values()) {
+			ConfigForm form = ConfigForms.build(new ConfigForms.Inputs(
+					new ConfigView<>(mode, Optional.of(CommonConfig.defaults())),
+					new ConfigView<>(mode, Optional.of(EnchantmentOverrides.defaults())),
+					List.of("minecraft:sharpness", "minecraft:piercing", "minecraft:binding_curse"),
+					"minecraft:binding_curse"::equals, id -> OptionalInt.empty(), ClientConfig.DEFAULTS, nowhere));
+			List<FormText> texts = new ArrayList<>(List.of(form.title()));
+			for (FormCategory category : form.categories()) {
+				texts.add(category.name());
+				category.entries().stream().filter(FormEntry.Label.class::isInstance)
+						.forEach(label -> texts.add(((FormEntry.Label) label).text()));
+			}
+			for (FormOption<?> option : form.options()) {
+				texts.add(option.name());
+				texts.addAll(option.description());
+				if (option instanceof FormOption.Int ints) {
+					ints.sliderValueKey().ifPresent(key -> texts.add(FormText.of(key, 1)));
+				}
+				if (option instanceof FormOption.Choice<?> choice) {
+					addValues(choice, texts);
+				}
+			}
+			for (FormText text : texts) {
+				assertTrue(lang.containsKey(text.key()), mode + ": " + text.key());
+			}
+		}
+	}
+
+	private static <E extends Enum<E>> void addValues(FormOption.Choice<E> choice, List<FormText> texts) {
+		choice.values().forEach(value -> texts.add(choice.valueText(value)));
 	}
 
 	/** Both files share the mode texts, so none may name common.json5 itself; the screen passes the file name. */
