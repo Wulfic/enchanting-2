@@ -1,217 +1,191 @@
 ---
 name: test-iterate
-description: "Write tests, run them, fix failures, repeat until green — with a hard attempt budget. Use when: implementing a feature, fixing a bug (write the failing test first), a suite is red, adding coverage, doing TDD, or running E2E flows."
-argument-hint: "What to test, and the type (unit / integration / E2E)"
+description: "Write tests, run them, fix failures, repeat until green — with a hard attempt budget. Use when: implementing a feature, fixing a bug (write the failing test first), a suite is red, adding coverage, doing TDD, writing JUnit, server GameTests or client GameTests for a Minecraft mod."
+argument-hint: "What to test, and the layer (JUnit / server GameTest / client GameTest)"
 ---
 
-# Test-Iterate — Red, Green, Refactor
+# Test-Iterate: Red, Green, and Prove It Can Fail
 
 No feature is done without a test that **fails when the feature breaks**. The loop is:
 write test → watch it fail for the right reason → fix the code → green.
 
-Note the middle step. A test that has never failed has proven nothing — it may be
-asserting something trivially true, and you'd never know.
+The middle step is the one that matters most here. The owner's repos are full of tests
+that could not fail: a GameTest class that was never listed and never ran, a guard whose
+input file wasn't a Gradle input so it served a cached pass, a "refuses" test that passed
+because the mock player was creative. **A test you haven't seen fail has proven nothing.**
+
+Tests are rungs 1, 2 and 5 of the verification ladder in `dev-server`. They are necessary
+and **not sufficient**: a gameplay change also runs on the dev server before it's done.
 
 ## When to Use
 
-- Implementing any new feature or function
-- Fixing a bug — **write the failing test first**, it's how you prove the fix works
+- Implementing any feature, fixing any bug (**the failing test comes first**)
 - A red suite
-- Verifying a refactor changed nothing observable
-- Adding E2E coverage for a user flow
+- Verifying a refactor or a port changed nothing observable
 
-## Test Types
+## The layers
 
-| Type | When |
-|---|---|
-| Unit | Pure functions, business logic, isolated components |
-| Integration | Units working together, DB queries, API handlers |
-| E2E | Full user flows — run through the project's own E2E runner in the terminal |
+| Layer | Where | For | Can't see |
+|---|---|---|---|
+| JUnit | `src/test` | Pure logic, codecs, data-file shape, config parsing, anything with no world | Registries loaded from datapacks, ticks, players |
+| Server GameTest | `src/gametest` (Fabric) | Behaviour in a running server: blocks, entities, loot, events, mixins | Real players, real terrain, clients |
+| Client GameTest | `src/gametest` client entrypoint | Screens, rendering, input, HUD, the create-world flow, client↔server sync | The shipped jar |
+
+Pick the lowest layer that can actually observe the behaviour. A JUnit test of a codec
+won't catch a registry-load failure (the-continent: a density function that read an
+unbound holder in its constructor passed JUnit and broke the server). Only a GameTest or
+a real server load exercises datapack registry loading.
 
 ---
 
 ## The Budget
 
-**3 fix attempts per failing test.** On the 4th, stop and ask.
-
-The question to answer before attempt 3: *is the test wrong, or is the design wrong?*
-A test that is hard to write is usually reporting a real problem — too many dependencies,
-hidden global state, a function doing four things. **Fighting a test for three rounds is
-a design smell, not a testing problem**, and the fix is often to change the code's shape
-rather than the test.
-
-**Never delete a failing test to get green.** If it must be skipped, mark it skipped with
-a comment naming the reason and the issue number — a silently deleted test is a lie told
-to everyone who reads the suite afterward.
+**3 fix attempts per failing test.** On the 4th, stop and ask: *is the test wrong, or is
+the design wrong?* **Never delete a failing test to get green.** If it must be skipped,
+skip it with a comment naming the reason and the issue.
 
 ---
 
 ## Procedure
 
-### Step 1 — Read the code, then decide what matters
+### Step 1: Read the code, decide what matters
 
-You cannot write a good test for code you haven't read.
+The contract, the edges (empty, zero, max, malformed), the failure modes, and for a bug the
+exact input that broke it. Test behaviour, not implementation.
 
-```
-read_file(filePath, startLine, endLine)
-```
+### Step 2: Write the test
 
-Then decide explicitly what's worth testing:
+- JUnit: `src/test/java/<package>/<Class>Test.java`. Name tests after behaviour:
+  `aLoweredMaxLevelNeverTouchesExistingItems`, not `test2`.
+- GameTest: a method on a class **listed in the gametest `fabric.mod.json` entrypoint list**
+  (`fabric-gametest` / `fabric-client-gametest`). An unlisted class compiles and never runs.
+- A test that mutates shared server state (config, `/reload`, gamerules) gets its **own test
+  environment**, so its batch doesn't leak into others. Readers of shared state assert the
+  default first, so a leak fails loudly.
 
-- **The contract** — what does this promise callers?
-- **The edges** — empty, null, zero, one, many, max, malformed, wrong type
-- **The failure modes** — what should throw, and what should it say?
-- **The regression** — for a bug fix, the exact input that broke it
+### Step 3: Run it, scoped
 
-Test behaviour, not implementation. A test asserting internal call order breaks on every
-refactor while catching no real bugs.
-
-### Step 2 — Write the test
-
-For new code, test first. For a bug, write the test that reproduces it and **confirm it
-fails** before fixing anything.
-
-Conventions:
-- Jest/Vitest: `<file>.test.ts` or `__tests__/<file>.test.ts`
-- Pytest: `test_<file>.py` or `tests/<file>_test.py`
-- Go: `<file>_test.go`, same package
-
-Structure — Arrange, Act, Assert:
-```
-// Arrange — set up inputs
-// Act — call the thing under test
-// Assert — verify the observable result
+```bash
+./gradlew test --tests '*ThatClass' > build/agent-test.log 2>&1; echo "EXIT: $?"
+./gradlew runGameTest > build/agent-gt.log 2>&1; echo "EXIT: $?"   # see build-run for counting
 ```
 
-Name the test after the behaviour: `returns 400 when email is malformed`, not `test email 2`.
-The name is what you read when it fails in CI six months from now.
+Read the result per `build-run` ("Capturing a result you can trust"). **A new GameTest
+class must raise the required-test count by exactly the tests you added.**
 
-### Step 3 — Run it, scoped
+### Step 4: Confirm it fails for the right reason
 
-Run the single test first — a 30-second full suite between attempts destroys the feedback loop.
+It must fail *because the behaviour is missing*, not a typo, a bad fixture, or a mock
+quirk (see the traps below). If the message isn't the one you expected, fix the test first.
+**Never change an assertion to match wrong output.**
 
-```powershell
-npx vitest run <test-file>
-npx jest <test-file> --no-coverage
-pytest tests/<file>.py::<test_name> -v
-go test ./pkg/... -run TestName
-```
+### Step 5: Fix, re-run, one change at a time
 
-### Step 4 — Confirm it fails for the right reason
+Exceptions rather than assertion failures → `debug-errors`.
 
-**This step is the one people skip, and it's the one that matters.**
+### Step 6: Mutation check: prove the test guards the code
 
-A new test must fail *because the behaviour is missing*, not because of a typo, a bad
-import, or a broken mock. If the failure message isn't the one you expected, fix the test
-before touching the implementation.
+For every test that guards a fix or a feature: **break the code, watch the test go red,
+restore**. This is the check that caught most of the vacuous tests in the owner's repos.
 
-Then classify honestly:
+1. Copy the file to the scratchpad first. `git checkout -- <file>` does nothing for a new,
+   untracked file.
+2. Apply the mutation and **assert the bytes changed** and the anchor matched exactly once.
+   A heredoc that collapsed a backslash once "mutated" nothing and scored a pass.
+3. Delete stale reports, run, check the exit code **and** that the named test failed. A
+   run with exit ≠ 0 and no named failing test is a harness failure (compile error, Gradle
+   never started), not a kill.
+4. Restore from the copy and `cmp` it.
 
-| The failure means | Do this |
-|---|---|
-| The implementation is wrong | Fix the code — most common, and the point of the exercise |
-| The test is wrong | Fix the test — your understanding of the spec was off |
-| The setup/mock is wrong | Fix the test infrastructure |
+When a guard survives a mutation, check for a second guard masking it before calling it
+vacuous.
 
-**Never change an assertion to match wrong output.** That's not fixing, that's writing
-down the bug and calling it the spec.
+### Step 7: Full suite
 
-### Step 5 — Fix and re-run
+`./gradlew build` (every node), or the repo's `scripts/verify-all.sh`. Client changes also
+run `:<node>:runClientGameTest` on each node, one at a time. New failures elsewhere are
+yours. Don't assume they were "already failing" without checking `git stash` / the last
+green commit.
 
-One change, re-run the scoped test. Repeat within budget. If the error is an exception
-rather than an assertion failure, hand off to `debug-errors`.
+### Step 8: Test the guards, not just the happy path
 
-### Step 6 — Full suite
+Any code that deletes, overwrites, resets or migrates (config writers, world-data
+migrations, cleanup commands, release scripts) gets tests that feed it the bad input and
+**assert the surviving state**: the empty filter refused, the path outside the root
+refused, the dry run touching nothing, the backup written before the overwrite. A guard can
+throw after it destroyed half the data, so `assertThrows` alone proves nothing.
 
-Once the target is green:
+**Tests never touch real state.** Temp dirs, the GameTest run dir, fixtures. Never
+`run/` worlds, never the owner's saves or instance.
 
-```powershell
-npm test
-```
+---
 
-New failures elsewhere mean your change broke something. **They are your problem** — do
-not commit red, and do not assume they were "already failing" without checking.
+## GameTest traps (measured in the owner's repos)
 
-### Step 7 — E2E through the project's own runner
+**The mock player** (`makeMockServerPlayerInLevel`):
 
-E2E tests are **committed test files run from the terminal**, not ad-hoc browser driving.
-A run you can't repeat in CI proved nothing.
+| Trap | Consequence | Fix |
+|---|---|---|
+| Hard-wired **creative** | Costs are 0, mobs never target it, "refuses" tests pass vacuously | `getAbilities().instabuild = false` / `invulnerable = false`; test targeting on a zombie; `isCreative()` stays true |
+| **Never ticked** | Water/lava state, equipment attribute modifiers, held-weapon damage never update | Invoke the specific update in a test-only mixin; give targets ~0.01 health; add modifiers by hand |
+| Starts at world **(0, 0, 0)** | Projectiles and drops spawn nowhere near the test | `player.setPos(helper.absoluteVec(...))` |
+| Can't be hurt until its client "loads" | A lethal hit leaves it at full health | Mark the connection loaded through a test invoker |
+| Starts in the air | Mining speed ÷ 5 | `setOnGround(true)` |
 
-```powershell
-npx playwright test                          # whole suite
-npx playwright test tests/login.spec.ts      # one spec, while iterating
-npx playwright test --headed                 # watch it, when debugging a selector
-npx cypress run --spec "cypress/e2e/login.cy.ts"
-```
+**The test world:**
 
-1. Start the dev server via `build-run` (async), or let the runner's `webServer` config
-   start it — don't do both, that's an `EADDRINUSE` waiting to happen
-2. Run the spec and read the full output
-3. On failure, open the runner's own artifacts — Playwright's trace viewer
-   (`npx playwright show-trace`) and screenshots-on-failure beat guessing
-4. **Kill any dev server you started**
+- Batches share **one live server**; structures are rotated and laid over the same ground,
+  never cleared. Lay out in absolute coordinates against the structure box.
+- The empty structure is 8 high with a ceiling; arenas sit near world bottom. Zombies
+  burn in its daylight (use husks for anything reading health or fire).
+- `TestWorldBuilder` defaults to "consistent settings": flat world, `advance_time` off.
+  Time or worldgen tests need `setUseConsistentSettings(false)`.
+- **`maxTicks` is not a time limit.** The test server runs hundreds of ticks per second.
+  Off-thread work needs a wall-clock deadline inside `succeedWhen`, with a large `maxTicks`
+  as backstop.
+- `assertValueEqual(expected, actual, name)`: expected first, or the message lies.
+- A `startSequence()` reports its **last** failing step, not its first.
+- Setup commands through `CommandManager.execute` swallow refusals silently. Use the
+  dispatcher directly so a refused command throws.
+- Rolling a loot table in a test also runs the mod's live loot listeners.
+- Seeded "N rolls must include X" tests break when the pool grows. Roll until each case is
+  seen, with a cap.
+- A missing loot table is `LootTable.EMPTY`, silently.
+- A test that fails in its own setup (e.g. `NoSuchFieldError` on a new version) hides every
+  real break behind it. On a new version, link-check first (`mc-port`).
 
-Prefer role- and text-based selectors (`getByRole`, `getByText`) over CSS or XPath — they
-survive markup changes, which is where brittle E2E suites actually die.
+**Client GameTests:**
 
-### Step 8 — Test the guards, not just the happy path
+- The client draws only on a tick. Any time-based client state needs a tick after anything
+  slow (screenshots included), or better a test clock. **A test never races the wall clock.**
+- `pressKey` is a click; held keys (jump, sneak) need `holdKeyFor`.
+- `server.execute` work waits for a server tick. Cross-side reads go through an explicit
+  delivery barrier (a numbered marker payload echoed over the same connection), never a
+  fixed `waitTicks` guess.
+- On slow machines (CI's llvmpipe) the integrated server starves and the world never
+  loads: `requestGameToSprint` on server start, and **stop the sprint before closing the
+  world** or 26.1+ deadlocks on close.
+- 1.21.11's client GameTest API (4.3.5) has a network-synchronizer race; disable it with
+  `-Dfabric.client.gametest.disableNetworkSynchronizer=true`.
+- `I18n.get` runs `String.format`; compare against `Component.translatable(key).getString()`.
 
-Any code that deletes, overwrites, resets, or migrates needs tests that attack it. A test
-proving `deleteExpiredSessions()` deletes expired sessions proves nothing about the case
-that matters — **the one where the filter is wrong.**
+**JUnit:**
 
-For every destructive path, assert that the guard *holds*:
-
-```
-// the case that actually loses data
-it('refuses to delete when the filter is empty', async () => {
-  await expect(purge({ filter: {} })).rejects.toThrow(/filter required/)
-  expect(await count()).toBe(3)          // ← assert nothing was destroyed
-})
-
-it('does not delete on a dry run', async () => {
-  await purge({ filter: { expired: true }, dryRun: true })
-  expect(await count()).toBe(3)
-})
-
-it('refuses a path outside the target root', async () => {
-  await expect(removeUpload('../../etc/passwd')).rejects.toThrow(/outside/)
-})
-```
-
-**Always assert the surviving count**, not just that an error was thrown. A guard can
-throw *after* it has already deleted half the rows, and a `rejects.toThrow` alone passes
-happily on that.
-
-Also cover: the empty/null filter, the `..` and absolute path, the over-the-cap batch, the
-missing `--force` in a non-interactive run, and the migration `down` — run `up` then `down`
-and assert the schema and data came back.
-
-**Tests must never touch real state.** A test DB the suite creates and drops, a temp
-directory, a fixture — never the dev database, never a path outside the test root, never a
-live API. A test suite that can destroy your data is a destructive operation you run on
-every commit.
-
-### Step 9 — Coverage, honestly
-
-```powershell
-npm test -- --coverage
-pytest --cov=src --cov-report=term-missing
-```
-
-Target: every new function gets a happy path and at least one edge case. **100% coverage
-is a vanity metric** — fully covered code with weak assertions catches nothing. Look at
-what's uncovered and ask whether it matters, rather than chasing the number.
+- Touching a vanilla class before `Bootstrap.bootStrap()` poisons every later test class
+  in the JVM (static init failed once = broken for the JVM's life). Bootstrap in the first
+  static field's class; static fields initialise in source order.
+- `Bootstrap` doesn't load tags. Anything reading tags belongs in a GameTest.
+- A resource test reading a path vanilla also ships (`data/minecraft/...`) gets vanilla's
+  copy depending on classpath order. Read all `getResources` matches, keep yours.
+- Path behaviour differs by OS (`Files.notExists` under a regular file: true on Windows,
+  false on Linux). Suspect anything path-shaped until CI has run it.
 
 ## Rules
 
 - **Budget of 3** per failing test, then stop and ask.
-- **Watch every new test fail before you make it pass.**
+- **Watch every new test fail**, and mutation-check every guard.
+- **Count what ran.** A green run with the old count proves nothing.
 - **Never delete a failing test.** Fix it, or skip it with a documented reason.
-- **Don't mock what you can test directly** — over-mocking tests the mock.
-- **One concept per test.** A test asserting ten things tells you nothing when it fails.
-- **A passing test on broken code means the test is wrong.** Go verify it can fail.
-- **Every destructive path gets a test that feeds it the bad input and asserts nothing was
-  destroyed** — assert the surviving count, not just that it threw.
-- **Tests never touch real state.** Test DB, temp dir, fixtures. Never the dev database.
-- Bug fixes require a regression test. No exceptions — that's how the bug stays fixed.
+- **Every destructive path gets a test that asserts nothing was destroyed.**
+- **Tests never touch real state.**
+- **Green tests are not done for gameplay changes.** Next stop: `dev-server`.

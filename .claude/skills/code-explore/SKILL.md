@@ -42,9 +42,30 @@ list_dir("<project>/src")
 ```
 
 Read the entry points, in this order:
-- `package.json` / `pyproject.toml` / `go.mod` — deps, scripts, and how it's actually run
-- `README.md` — intended usage
-- The main entry file — how it wires together
+- `gradle.properties`: Minecraft version(s), loader and dependency pins, per-band keys,
+  the dev-server port
+- `settings.gradle` + `stonecutter.gradle` / `build.gradle`: projects, Stonecutter nodes,
+  loaders, run configs, GameTest wiring
+- The mod metadata: `fabric.mod.json` / `neoforge.mods.toml` / `mods.toml`, which holds
+  entrypoints, mixin configs, dependencies and declared version ranges
+- `*.mixins.json`: every class this mod patches in Minecraft
+- `README.md`: intended usage
+- The main and client entrypoint classes: how it wires together
+
+### Step 1b: Minecraft's own code is part of the codebase
+
+The code you change calls into, and patches, Minecraft. Search it like your own:
+
+| Need | Where |
+|---|---|
+| How vanilla does X | Decompiled sources (`./gradlew genSources` → `minecraft-merged-deobf-<v>-sources.jar` in the Loom cache). Unzip to the scratchpad and grep |
+| Exact signature, anonymous class numbering, what a method calls | `javap -p -c '<Class>$N'` on that version's jar |
+| Vanilla data (tags, loot, recipes, worldgen) | `data/minecraft/` inside the version jar |
+| Who in *this* mod touches a vanilla class | grep the mixin configs and `@Mixin(` targets first |
+| A dependency's API at the version in use | its sources jar at the version `./gradlew dependencies` resolves, not the newest one in the shared cache |
+
+Under Stonecutter, the committed source shows one band; another band's real code is under
+`versions/<band>/build/generated/stonecutter/` (or switch the active project, see `mc-port`).
 
 ### Step 2 — Check memory first
 
@@ -58,9 +79,9 @@ how this area works, start from that instead of reverse-engineering it.
 ### Step 3 — Find the relevant code
 
 ```
-grep_search(query: "class AuthService|function handleAuth", isRegexp: true)
-file_search(query: "**/auth/**")
-semantic_search("authentication middleware user login")
+grep_search(query: "@Mixin\\(.*AnvilMenu|class AnvilRules", isRegexp: true)
+file_search(query: "**/anvil/**")
+semantic_search("anvil repair cost calculation")
 ```
 
 Start with the narrowest query that could work, then widen. A regex that returns 200 hits
@@ -72,13 +93,16 @@ Read **at least two examples** before concluding you understand a convention. On
 is an anecdote; the second tells you which parts are the pattern and which were incidental.
 
 Note specifically:
-- **Naming** — files, functions, types, test files
-- **Imports** — relative vs alias, barrel files
-- **Errors** — throw vs return, Result type vs try/catch, custom error classes
-- **Logging** — which logger, what levels, what gets included
-- **Async** — promises, async/await, callbacks
-- **Tests** — co-located or separate, what's mocked
-- **Config** — env vars, config objects, defaults
+- **Naming**: packages, classes, mixin classes and their handler prefixes, test classes
+- **Side**: what lives in common vs client source sets; how client-only code is kept off
+  the server
+- **Loader seam**: how registration, events, networking and attachments reach each loader
+- **Errors**: throw vs return, how failures are reported to the player vs the log
+- **Logging**: which logger, the mod's log prefix, what's at INFO vs DEBUG
+- **State**: per-server/per-world state vs statics (statics leak between integrated
+  server sessions)
+- **Tests**: which layer covers what, test environments, test-only mixins
+- **Config**: file format, who writes it, how it reloads, how it syncs to clients
 
 ### Step 5 — Find every caller before changing a signature
 
@@ -92,9 +116,11 @@ server can't resolve; `grep_search` catches the rest, including comments and doc
 reference the old name.
 
 **Every caller gets updated or explicitly confirmed compatible.** Also check for dynamic
-callers a symbol search won't find: string-keyed dispatch, DI containers, reflection,
-config-driven routing. Those are exactly the ones that fail in production rather than at
-compile time.
+callers a symbol search won't find. In a mod those are: entrypoints and mixin classes named
+as strings in `fabric.mod.json` / `*.mixins.json`, GameTest classes in the gametest
+`fabric.mod.json`, `@Mixin(targets = "...")` strings, `@At` descriptor strings, access
+widener / transformer entries, lang keys, and resource paths (`modid:path`) in data files.
+Those fail at load or in game, not at compile time.
 
 ### Step 6 — Summarise before you build
 

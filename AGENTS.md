@@ -12,8 +12,19 @@ broken until a test proves otherwise. Never pad a report with praise — silence
 - **Write the plan down before you write code.** A plan that lives only in chat did not happen.
 - **Record what you learn.** Decisions and gotchas go in `.agent/memory/` — see [Memory](#memory) below. Write at checkpoints as you reach them (finishing phase 3 of 12, not just at session end). Not optional.
 - **Tests before "done".** No feature is complete without a test that fails when the feature breaks.
+- **Proven on the live dev server.** A change that touches gameplay, server logic, data
+  files, mixins, config or networking is not done until it ran on the dev server and the log
+  shows it working. Green tests are the entry ticket, not the verdict. See
+  [Minecraft Mod Development](#minecraft-mod-development).
+- **Launch the game before any release push.** The real client creates and joins a new
+  world, and the built jar boots on a real server, on every band and loader being released,
+  recorded in `TODO.md`. Nothing substitutes for it.
+- **Commit to `main`.** No branches or PRs unless the owner asks for one. This outranks any
+  harness-assigned branch.
+- **Never commit a secret.** Every repo must be safe to make public: real values live only
+  in git-ignored files; the tracked `*.example*` files hold placeholders.
 - **Log every error path.** If it can fail and there's no log, that's a bug.
-- **Zero suppressions.** No `@ts-ignore`, `as any`, `# type: ignore`, empty `catch`, `eslint-disable`, or `--no-verify`. If you think you need one, you've misdiagnosed the problem.
+- **Zero suppressions.** No empty `catch`, unexplained `@SuppressWarnings`, mixin `require = 0` / `-Dmixin.ignoreRequired`, unexplained `@allow-error`, or `--no-verify`. If you think you need one, you've misdiagnosed the problem.
 - **Never commit red.** Zero errors and green tests, or it doesn't get committed.
 
 ---
@@ -56,7 +67,8 @@ what's on disk and committed.** Not "sounds dangerous" — that test, mechanical
 `reset --hard` or `clean -fd` with uncommitted work · dropping or truncating a database
 this session didn't create · `docker volume rm` / `compose down -v` · `terraform destroy` ·
 deleting `.agent/memory/`, `.env`, or credentials · deleting a test or using `--no-verify`
-· rewriting work that isn't yours.
+· rewriting work that isn't yours · killing `java` by name · writing into the owner's saves
+or launcher instance · moving or deleting a published tag or release.
 
 **"I assumed that's what you meant" is not authorization.** Ambiguous instruction plus
 irreversible action means stop and ask. Approval for one destructive action never carries
@@ -108,6 +120,98 @@ context gets truncated without warning. The rules below are written to survive t
 
 ---
 
+## Minecraft Mod Development
+
+These rules come from the owner's mod repos (mcMMO-Singleplayer, enchanting-2, the-continent,
+real-villages, diagonal-fences). Each one is there because skipping it shipped a defect.
+Detail lives in the `dev-server`, `mc-port`, `test-iterate` and `build-run` skills.
+
+### The verification ladder: climb as high as the change reaches
+
+| # | Rung | Required for |
+|---|---|---|
+| 1 | JUnit | Logic, codecs, data-file shape |
+| 2 | Server GameTests | Anything that runs in a world |
+| 3 | **Dev-server smoke** (`scripts/dev-server-smoke.sh` + a committed commands file) | **Every gameplay, server, data, mixin, config or networking change** |
+| 4 | **Live-world run** on a copy of the owner's save | Owner bug reports; anything needing time, terrain, players or many entities |
+| 5 | Client world check (client GameTest creates and joins a new world) | Client-side changes; **every release** |
+| 6 | Built jar on a real loader server, world fingerprinted | **Every release** |
+| 7 | Owner's instance | When the owner reports what the tests can't see |
+
+**Why the live dev server is mandatory.** mcMMO v1.5.1 shipped with an advancement that
+Minecraft 26.3 refused at registry load: no player could create or join a world, with a
+green suite and every structural gate green. A hunger deadlock in real-villages survived
+unit tests, GameTests and reasoning, and one run on a copy of the owner's save found it in
+minutes. A Forge build of the-continent booted with no ERROR line and generated a
+**vanilla** world. Tests run a Minecraft that was set up for the test; the dev server runs
+the real one.
+
+- **Fingerprint the effect, not the absence of errors.** "No ERROR" is also what a mod that
+  did nothing prints. The dev-server check `@expect`s the log line or command reply that
+  proves the change. A check that stays green with the change reverted is vacuous.
+- **Exit codes mean one thing:** 0 proven · 1 the mod is bad · **2 nothing proven** (port
+  busy, Gradle failed before launch). Exit 2 is never a pass. Neither is Gradle's exit 0
+  without the harness's own PASS marker.
+- **Record every run** (rung, command, exit code, matched lines) in `TODO.md` against the step.
+- Live-world runs work on **copies**: never the owner's save or instance in place.
+
+### The release gate
+
+**Before any push that can publish a release** (a version bump, a tag, a push to a branch
+whose version has no release, or any push in a repo whose CI releases on `feat`/`fix`; when
+unsure, treat it as one), run rungs 5 and 6 on **every band and loader being released** and
+record the results in `TODO.md`. Exit 1 or 2 blocks the push. A skip that is written down is
+still a skip. There's no exception for a "small" change: #20 was one missing line in one
+data file.
+
+### Bands: fixes go to the current band only
+
+The repo ships one **current band** (today the **26.x** band, which may span several
+Minecraft versions as Stonecutter nodes). Older bands are **frozen**: releases stay up, no
+fixes, features or back-ports unless the owner explicitly asks for a specific one. A fix is
+done when every node of the current band is green and smoked.
+
+**The README always states the current band**, the Minecraft versions it covers, and that
+older bands get no fixes. It's updated in the same commit that changes the band, and a test
+pins the README to `gradle.properties`.
+
+**This repo is the exception (owner, 2026-10-21):** 1.21.11 is **not** frozen here. Every
+node is current: 1.21.11 (Fabric) and the 26.x lines (Fabric/Quilt, NeoForge, Forge) all get
+every fix and feature, in the same commit, as Phase 12 set up. The source is written for
+1.21.11 (Stonecutter `vcsVersion`). Where `mc-port` says "current band only", read "every
+node" in this repo. `ReleaseDocsTest` pins the README's install tables to the built nodes.
+
+### Facts come from the jar, never from memory
+
+- Minecraft signatures, anonymous-class numbering, what a method calls: `javap` or decompiled
+  sources of **that version** (`mc-port`). A mixin that "applied" can be on the wrong `$N`.
+- Data formats change between versions and stale keys are **ignored, not rejected**. Read
+  one vanilla file of each kind you ship from that version's jar.
+- Dependency and loader versions come from official metadata, dated in a comment, with the
+  Maven coordinate checked to resolve. Never bump from memory.
+- **Never write a comment saying which Minecraft version this build targets.** It's false on
+  every other band, and nothing reads comments.
+
+### Count what ran
+
+A green build has meant "ran zero tests" here more than once: an unlisted GameTest class, a
+registered `Test` task with no classpath, a test reading a file Gradle didn't declare as an
+input, `./gradlew | tail` reporting `tail`'s exit code. **Read the log, count the tests, and
+watch the count move when you add one.** Mutation-check every guard (break it, watch it go
+red, restore).
+
+### Machine reality
+
+- The owner works on **Windows 11 + Git Bash**, often with their own game and other repos'
+  dev servers running. **Never kill `java` by name.** Find processes by command line and stop
+  a verified PID you started. The dev server has its own port (not 25565) and its own run dir.
+- **Never compile under a live `runServer`** (it runs from `build/classes`). Never run two
+  builds on one tree.
+- Under Stonecutter, **qualify run tasks** (`:<node>:runServer`); a bare one starts every node.
+- Long runs go in the background with a monitor that reports failures, hangs and silence.
+
+---
+
 ## Workflow — Scale the Process to the Task
 
 ### Tier 0 — Trivial
@@ -132,14 +236,18 @@ Bug fix, bounded feature, refactor under ~5 files. **This is the default tier.**
         ↳ fail → /debug-errors → back to 6   (budget: 3)
 7. Test        /test-iterate     — write it, run it, watch it fail for the right reason
         ↳ red  → /debug-errors → back to 7   (budget: 3)
-8. Review      /code-review      — read your own diff like you're rejecting it
-9. Record      /save-memory      — decisions + gotchas → .agent/memory/
-10. Commit     /git-github       — conventional commit, clean diff
+8. Prove live  /dev-server       — dev-server smoke (+ live world / client as the change reaches)
+        ↳ fail → /debug-errors → back to 7   (budget: 3)
+9. Review      /code-review      — read your own diff like you're rejecting it
+10. Record     /save-memory      — decisions + gotchas → .agent/memory/
+11. Commit     /git-github       — conventional commit on main, clean diff
+        ↳ push that can release → release gate (/dev-server Part D) first
 ```
 
 ### Tier 2 — Complex
 New subsystem, architecture change, migration, anything over ~5 files or crossing a
-service boundary.
+service boundary. **In a mod, always Tier 2:** a new Minecraft version or band, a new loader,
+a new networking protocol, a world-data or config-format migration, a release.
 
 Tier 1, plus:
 - **A written plan reviewed before any code.** File-by-file, with the rollback path.
@@ -164,6 +272,7 @@ Unbounded "repeat until green" is an invitation to grind. Every loop stops:
 | Same build/type error | 3 fixes | Stop. Write the failure + all 3 attempts to `gotchas.md`. Report to the user. |
 | Same failing test | 3 fixes | Stop. Is the test wrong, or the design? Ask — do not delete the test. |
 | Same runtime exception | 3 fixes | Stop. Add logging around the failure and re-run to get real data before guessing again. |
+| Same dev-server / live-run failure | 3 fixes | Stop. Read the whole log from that run, not the verdict line; check the environment (port, stale log, other JVMs) before the mod. |
 | Exploration with no useful hit | ~10 min | Stop searching. Say what you looked for and where. Ask. |
 
 **"Budget exhausted" is a valid, professional outcome.** Reporting a hard blocker with
@@ -234,9 +343,11 @@ Invoke explicitly with `/skill-name`, or let the agent select on the trigger.
 | `plan-work` | Any Tier 1+ task, before the first edit |
 | `code-explore` | "Where is X?", "does this already exist?", finding the pattern to follow |
 | `research-docs` | Any third-party API, SDK, or config option |
-| `build-run` | Install, build, typecheck, lint, dev server |
+| `build-run` | Gradle builds, tests, GameTests, run tasks, long background runs |
 | `debug-errors` | Build fails, type errors, exceptions, red diagnostics |
-| `test-iterate` | Writing tests, fixing a red suite, TDD, E2E |
+| `test-iterate` | Writing tests, fixing a red suite, TDD; JUnit, server and client GameTests |
+| `dev-server` | **Proving a change live** — dev-server smoke, live-world runs, client world check, built-jar boot, the release gate, the owner's instance |
+| `mc-port` | Minecraft versions, bands, loaders, mappings, dependency pins, mixin targets that move, the current-band support policy |
 | `code-review` | Before commit, before PR, security or OWASP pass |
 | `save-memory` | Recording a decision, gotcha, or session state |
 | `git-github` | Branch, commit, tag, issues, PRs, CI status |
@@ -256,8 +367,9 @@ native tools cannot. Exactly two currently qualify:
 
 Config lives in `.mcp.json` (Claude Code) and `.claude/mcp.vscode-reference.json` (VS Code
 format). Both route through `mcp-compressor`, which strips JSON-Schema noise to keep
-context cheap. **Both are git-ignored and hold real tokens — never commit them.** The repo is
-public: copy the tracked `.mcp.example.json` to `.mcp.json` and fill in your own values.
+context cheap. **Both are git-ignored and hold real tokens — never commit them.** Copy the
+tracked `.mcp.example.json` / `.claude/mcp.vscode-reference.example.json` and fill in your
+own values. Same for `.env` from `.env.example`.
 
 **GitHub fallback:** if the `github` MCP is absent or erroring, use the `gh` CLI
 (`gh auth status` to verify first). Never report a GitHub action as done without knowing
@@ -291,8 +403,15 @@ Not done until **all** of these are true:
 - [ ] Zero errors in diagnostics; build exits 0
 - [ ] Lint and typecheck pass with no new suppressions
 - [ ] A test exists that fails if this change is reverted
-- [ ] Full suite green — no regressions. Here that is `scripts/verify-all.sh` (`./gradlew verifyAll`: every version
-      node + the runtime matrix), plus `./gradlew :<node>:runClientGameTest` on each node for client-side changes
+- [ ] Full suite green — no regressions, on every node of the current band, test counts read
+      from the run (not inferred from the exit code). Here that is `scripts/verify-all.sh`
+      (`./gradlew verifyAll`: every version node + the runtime matrix), plus
+      `./gradlew :<node>:runClientGameTest` on each Fabric node for client-side changes
+- [ ] **Proven on the dev server** for any gameplay/server/data/mixin/config/networking change;
+      the run (command, exit code, matched `@expect` lines) recorded in `TODO.md`
+- [ ] **If it ships in a release: the game was launched** — client world check and built-jar
+      boot, exit 0 on every band and loader being released, recorded in `TODO.md`
+- [ ] README's band statement matches what the build ships
 - [ ] Every error path logs something useful
 - [ ] **Every destructive path is guarded** — dry-run default, confirmation showing counts,
       refusal on an empty filter, logging with the recovery path
@@ -301,7 +420,8 @@ Not done until **all** of these are true:
       written down in `TODO.md` rather than remembered
 - [ ] `TODO.md` reflects reality
 - [ ] `.agent/memory/` updated if anything non-obvious was decided or discovered
-- [ ] Diff self-reviewed — no debug code, no commented-out blocks, no secrets
+- [ ] Diff self-reviewed — no debug code, no commented-out blocks, no secrets, Stonecutter
+      active project reset
 
 "It works on my machine", "I'll add tests later", and "the delete path is obviously fine"
 are not entries on this list.

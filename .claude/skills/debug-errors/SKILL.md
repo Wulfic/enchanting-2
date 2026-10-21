@@ -34,9 +34,12 @@ budget of 3** — see below. Grinding past it produces worse code than stopping 
 here are three hypotheses I tested, here is what each ruled out, here is where I'd look
 next" — is far more useful than a fourth guess that mutates unrelated code.
 
-**What is never acceptable** is widening the fix so the symptom disappears: adding
-`@ts-ignore` / `as any` / `# type: ignore`, an empty `catch`, an `eslint-disable`, or
-deleting the code that surfaced the error. That converts a visible bug into an invisible one.
+**What is never acceptable** is widening the fix so the symptom disappears: an empty
+`catch`, a `@SuppressWarnings` with no written reason, a mixin made `require = 0` or run
+with `-Dmixin.ignoreRequired=true`, an `@allow-error` in a dev-server check for an error
+nobody has explained, or deleting the code that surfaced the error. That converts a
+visible bug into an invisible one, and a mixin that silently stopped applying is a feature
+that silently stopped working.
 
 ---
 
@@ -57,15 +60,20 @@ usually the true one.
 
 ### Step 2 — Read the actual output
 
-For runtime errors, get the full stack trace:
+For runtime errors, get the full log, not the console tail:
 
-```powershell
-Get-Content .\logs\app.log -Tail 50
-```
+| Run | Log |
+|---|---|
+| Dev server / client | `run/server/logs/latest.log`, `run/client/logs/latest.log` (per node under Stonecutter); `debug.log` beside it holds DEBUG lines |
+| GameTests | the node's `build/run/gameTest/logs/` and the Gradle log you redirected |
+| Crash | `crash-reports/crash-*.txt` in the run dir; `hs_err_pid*.log` for a JVM crash |
+| Owner's game | the instance's `logs/latest.log`. Read its `mods/` list too |
 
 Read the **whole** trace, not the last line. The root cause is usually several frames up,
-in the caller. If the trace is truncated or unhelpful, that's a signal to add logging
-(step 5) rather than to guess.
+in the caller. For Minecraft, also read **the WARN lines before the first ERROR**: a mod's
+data that failed to load is often only WARN ("Missing metadata in pack", "Failed to parse
+level-type ... defaulting"), and the ERROR is the consequence. If the trace is truncated or
+unhelpful, add logging (step 5) rather than guess.
 
 ### Step 3 — Read the code in context
 
@@ -76,11 +84,10 @@ read_file(filePath, startLine, endLine)
 At least 20 lines either side. The reported line is where the problem *surfaced*, not
 where it *originated* — that's usually the caller or the type definition.
 
-For type errors, read the type itself before touching anything:
-
-```
-grep_search(query: "interface <TypeName>|type <TypeName>", isRegexp: true)
-```
+For an error in or against Minecraft code, read **that version's** class, not your memory
+of it: `javap -p -c` on the Loom-cached jar, or the decompiled sources from `genSources`
+(see `mc-port`). A method you "know" may have moved, changed its signature, or stopped
+calling the thing your mixin wraps.
 
 ### Step 4 — State the hypothesis before editing
 
@@ -125,8 +132,10 @@ writing it. Inventing an API signature from memory is how attempt 2 gets burned.
 ### Step 7 — Verify to zero
 
 Repeat 3–6 until `get_errors()` is clean, then run the real build via `build-run`.
-Zero diagnostics **and** a clean build. Diagnostics alone are not proof — they don't
-catch everything a bundler does.
+Zero diagnostics **and** a clean Gradle build. The IDE's Java diagnostics go stale after
+branch or node switches. When they disagree with a forced Gradle compile, Gradle is right.
+A runtime error found on the dev server is fixed when the same dev-server run is clean,
+not when the suite is.
 
 ### Step 8 — Record it
 
@@ -150,12 +159,21 @@ session from burning an hour on X.
 
 | Pattern | Likely cause |
 |---|---|
-| `Cannot find module` | Missing install, wrong path, missing path alias in tsconfig |
-| `Property X does not exist on type Y` | Stale type, wrong generic, needs a narrowing guard |
-| `is not assignable to type` | Read **both** types fully before touching either |
-| `undefined is not a function` | Wrong import shape (default vs named), or missing `await` |
-| `Cannot read properties of undefined` | Missing null check, or an async result used before it resolved |
-| `ENOENT: no such file` | Wrong CWD — check where the process actually starts |
-| `EADDRINUSE` | Leaked dev server from an earlier run; kill it |
-| Works locally, fails in CI | Env var, case-sensitive path, or install-order difference |
-| Intermittent failure | Race condition, shared state between tests, or real clock/timezone dependency |
+| `cannot find symbol` against a Minecraft class | Renamed between versions or mappings (`ResourceLocation` → `Identifier` in 1.21.11 official names). `javap` the jar |
+| Mixin `Scanned 0 target(s)` / `Critical injection failure` | The target method no longer calls what `@At` names, or the descriptor string holds an old class name. Diff the method body per version |
+| Mixin applied, feature does nothing | Wrong anonymous class / lambda number (`$3` vs `$4`), or another mod cancels the method at HEAD. `javap -c -p` the `$N` classes |
+| `invalid signature ... expected <Owner>$4` | `@WrapOperation`/`@Redirect` can't name an anonymous receiver; use `@ModifyArg` |
+| `NoSuchFieldError` / `NoSuchMethodError` at runtime | Compiled against another version than the one running; or a dependency mismatch. Link-check against the runtime version |
+| `ExceptionInInitializerError: Not bootstrapped` | A vanilla class touched before `Bootstrap.bootStrap()`; poisons every later class in that JVM |
+| `Registry is already frozen` | Registering after construction (NeoForge: use `RegisterEvent`/`DeferredHolder`) |
+| `Trying to access unbound value` at registry load | A codec evaluated another registry entry while the registry was still loading. Defer to first use |
+| `Failed to load datapacks, can't proceed` / world won't load | A bad tag, loot table, advancement or worldgen file. Read the ERROR above it; a missing tag is a hard failure |
+| `No key <x> in MapLike` | Data file in another version's format |
+| World loads **vanilla** with no ERROR | Forge without `pack.mcmeta`; level-type failed to parse (WARN). Fingerprint the world |
+| `FAILED TO BIND TO PORT` | Another server on the port. Environment, not the mod (exit 2) |
+| `NoClassDefFoundError` from a library only in dev | A Loom-remapped dependency's nested jars aren't loaded in dev; add them to `localRuntime` |
+| `paging file is too small` / `The pipe is being closed` | Out of memory with several JVMs up; not a test failure |
+| "Network synchronizer in invalid state" (client GameTest, 1.21.11) | Fabric 4.3.5 race; disable the synchronizer for that node |
+| Works for tests, broken in the owner's game | Another mod in their instance. Read `mods/` and `latest.log` first |
+| Works locally, fails in CI | Line endings (CRLF in Windows resources), case-sensitive paths, OS path semantics, a slow GPU-less runner |
+| Intermittent failure | Shared GameTest batch state, wall-clock timing in a test, multithreaded worldgen order, XP orb merging |

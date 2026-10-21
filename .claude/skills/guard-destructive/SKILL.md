@@ -31,7 +31,9 @@ isn't reproducible from what's on disk and committed?** If yes, it's destructive
 | Data | `DROP`, `TRUNCATE`, `DELETE`/`UPDATE` without a `WHERE`, migration `down`, seed/reset scripts, `FLUSHALL`, index rebuilds |
 | Containers / infra | `docker system prune`, `docker volume rm`, `compose down -v`, `kubectl delete`, `terraform apply` or `destroy`, any cloud console/CLI delete |
 | Outward-facing | Publishing a package, closing an issue or PR, commenting publicly, cutting a release, anything other people see |
-| Process / service | `kill -9` on something you didn't start, stopping a service, restarting a shared daemon |
+| Process / service | `kill -9` on something you didn't start, stopping a service, restarting a shared daemon. **`taskkill /IM java.exe` / `Stop-Process -Name java`**: kills the owner's game, other repos' dev servers, other sessions' builds |
+| Minecraft state | Deleting or overwriting `run/` worlds, copies of the owner's save, `run/harness/`, `.PREV-*` backups; anything in the owner's **saves or instance** (`%APPDATA%/PrismLauncher/instances/...`), including replacing a jar in its `mods/`; `./gradlew clean` with unread GameTest logs; a config writer or world-data migration in mod code; `stop` without `save-all flush` mid live-run |
+| Secrets | Committing a credential (history keeps it for good); untracking without rotating; rewriting history to scrub one |
 
 **Overwriting counts as deleting.** Writing a file you never read is destruction with
 extra steps — the previous contents are gone and you never knew what they were.
@@ -76,12 +78,13 @@ find out the target list isn't what you assumed.
 git clean -nd                     # -n = dry run; ALWAYS before -f
 rsync --dry-run ...
 terraform plan
-kubectl delete --dry-run=client ...
-npm publish --dry-run
+git rm --cached -n <file>          # untrack: what would leave the index
+gh release view <tag>             # before moving or deleting a tag: what is published there
 ```
 
 Tool has no dry-run? Build one: run the `SELECT` before the `DELETE`, the `Get-ChildItem`
-before the `Remove-Item`, the `COUNT(*)` before the `TRUNCATE`. **Print what would be
+before the `Remove-Item`, the `COUNT(*)` before the `TRUNCATE`, the `ls mods/` of the
+owner's instance before replacing a jar there. **Print what would be
 affected and read it.**
 
 ### 4. Narrow the scope to the smallest thing that works.
@@ -131,6 +134,9 @@ A general "go fix the build" is not authorization. Neither is a plan you wrote y
   the repo can't regenerate
 - Deleting a test, adding a suppression, or using `--no-verify` to get past a gate
 - Reverting, amending, or rebasing away work that isn't yours
+- Killing `java` by name, or any game/Gradle process you didn't start
+- Writing into, or deleting from, the owner's saves or launcher instances
+- Rewriting history to scrub a secret, moving or deleting a published tag or release
 
 **"I assumed that's what you meant" is not authorization.** When the instruction is
 ambiguous and the action is irreversible, the correct move is to stop and ask — the cost
@@ -177,6 +183,19 @@ is done when it is hard to misuse. Every one of these applies to code you write:
 - The post-log states the actual count affected. A mismatch against the pre-log is how
   you find out the filter was wrong while it's still fixable.
 
+**In a mod, these are the destructive paths.**
+- Config writers: never rewrite an existing config on load; write only on an explicit save,
+  with a `.bak` first. A parse failure on `/reload` keeps the live config; it never resets a
+  running server to defaults. Fail closed when a path check can't decide.
+- World and player data: an unknown or removed registry entry degrades (drop the entry, keep
+  the item and the world), never corrupts. A data migration keeps a copy of the old data and
+  is tested on a copy of a real save.
+- Commands that clear, reset or bulk-edit: refuse an empty selector, state the count, and
+  require an explicit confirm argument.
+- Harness and release scripts: refuse a non-empty work dir, never overwrite an output file,
+  refuse when they can't prove a removal happened (a file Windows held open survived `rm`,
+  and a gate graded the previous run's log).
+
 **Prove the guard works.**
 - A test that calls the destructive path with a bad input and asserts **nothing was
   destroyed.** Not just that the happy path deletes correctly.
@@ -194,7 +213,7 @@ Claude Code without depending on any agent remembering this file.
 **Know what they don't cover**, so you don't trust them past their range:
 
 - They match on **command prefix**. `cd sub && rm -rf ../..` does not look like `rm` to a
-  prefix matcher. Wrapping a command in `sh -c`, a script, or an npm task hides it too.
+  prefix matcher. Wrapping a command in `sh -c`, a script, or a Gradle task hides it too.
 - Coverage for the `PowerShell` tool is **unverified** — the `Bash(...)` rules are the
   reliable path. Assume PowerShell is ungated.
 - Copilot has no permission layer at all. There, this document is the *only* guard.

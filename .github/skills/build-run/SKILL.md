@@ -1,194 +1,146 @@
 ---
 name: build-run
-description: "Execute build commands, dev servers, scripts, and interpret their output. Use when: running builds, starting/stopping dev servers, executing install commands, running linters or type-checkers, interpreting non-zero exit codes, or orchestrating multi-step command sequences. Manages terminal lifecycle and output parsing."
-argument-hint: "What to run (e.g. 'build the project', 'start dev server', 'run lint and typecheck')"
+description: "Run Gradle builds, tests, GameTests, dev servers and scripts, and interpret their output. Use when: building the mod, running JUnit or GameTests, starting/stopping runServer or runClient, running a long background task, interpreting non-zero exit codes, or orchestrating multi-step command sequences. Manages process lifecycle and output parsing."
+argument-hint: "What to run (e.g. 'build every node', 'run the server GameTests', 'start the dev server')"
 ---
 
-# Build and Run — Command Execution
+# Build and Run: Gradle, the Game, and Reading the Result
 
-Running a command without reading its output is worthless. Every command has an exit code and output that tells you what happened. Read both.
+Running a command without reading its output is worthless. And in this stack, **the exit
+code and the log disagree often enough that the exit code alone is not a result.** Every
+item in the traps table below shipped a false green in one of the owner's mod repos.
 
 ## When to Use
 
-- Installing dependencies
-- Running the build (`tsc`, `vite build`, `go build`, `cargo build`, etc.)
-- Starting the dev server for testing
-- Running linters (`eslint`, `ruff`, `golangci-lint`)
-- Running type-checkers (`tsc --noEmit`, `mypy`)
-- Any multi-command sequence (install + build + test)
+- Building the mod (`./gradlew build`, one node or all)
+- Running JUnit, server GameTests, client GameTests
+- Starting the dev server or client (hand off to `dev-server` for what to prove there)
+- Any long background run (builds, GameTests, smokes, live-world runs)
 - Interpreting why a CI step failed
 
-## Command Execution Rules
+## Standard commands
 
-### Sync vs Async
-
-| Scenario | Mode |
-|----------|------|
-| Install, build, lint, typecheck, one-off scripts | `mode=sync` with timeout |
-| Dev server, watcher, long-running process | `mode=async` |
-
-Never use `mode=async` for a build you need to wait for. Never use `mode=sync` for a server that should stay running.
-
-### Timeouts
-
-Set generous timeouts — don't let installs time out:
-- `npm install` / `pip install`: 300000 (5 min)
-- Build commands: 120000 (2 min)
-- Tests: 180000 (3 min)
-- Simple scripts: 30000 (30 sec)
-
-## Standard Sequences by Project Type
-
-### Node.js / TypeScript
-
-```powershell
-# Install
-npm install
-
-# Type-check only (no emit)
-npx tsc --noEmit
-
-# Lint
-npx eslint src --ext .ts,.tsx --max-warnings 0
-
-# Build
-npm run build
-
-# Dev server (async)
-npm run dev
+```bash
+./gradlew build                          # compile + JUnit + server GameTests (as wired); all nodes under Stonecutter
+./gradlew :<node>:build                  # one Stonecutter node
+./gradlew test                           # JUnit only
+./gradlew runGameTest                    # server GameTests (Fabric: runGametest / runGameTest; NeoForge: runGameTestServer)
+./gradlew :<node>:runClientGameTest      # client GameTests: opens a game window, ~3 min, one node at a time
+./gradlew :<node>:runServer              # the dev server: always qualified, see dev-server
+./gradlew dependencies --configuration compileClasspath   # what is actually on the classpath
+./gradlew genSources                     # decompile Minecraft for reading (~8 min)
 ```
 
-### Python
+Prefer the repo's own wrapper scripts (`scripts/verify-all.sh`, `scripts/dev-server-smoke.sh`)
+over hand-typed Gradle when they exist: they carry the verdict logic.
 
-```powershell
-# Install
-pip install -r requirements.txt
+**Never `./gradlew runServer` or `runClient` unqualified under Stonecutter.** It starts every
+node's game, all on the same port.
 
-# Type-check
-mypy src/
+## Capturing a result you can trust
 
-# Lint
-ruff check src/
+Redirect to a file and read Gradle's own status. **Never a bare pipe:**
 
-# Build / package
-python -m build
+```bash
+./gradlew <tasks> --console=plain > build/agent-build.log 2>&1; echo "GRADLE EXIT: $?"
+grep -n '^BUILD\|^FAILURE\|tests completed\|required tests' build/agent-build.log
 ```
 
-### Go
+Then count what ran:
 
-```powershell
-# Build
-go build ./...
+- JUnit: the XML under `build/test-results/*/TEST-*.xml` (**all** test tasks, not just
+  `test/`; a second `Test` task has its own dir). Check the newest file's mtime is from
+  this run.
+- GameTests: the "N required tests passed" line, and the count **went up by the number of
+  tests you added**.
+- Wrapper scripts: their PASS marker, not Gradle's exit code.
 
-# Vet
-go vet ./...
+## The traps (each one shipped a false green)
 
-# Lint (if golangci-lint installed)
-golangci-lint run
-```
+| Trap | What happened | Do this |
+|---|---|---|
+| `./gradlew ... \| tail` | `$?` is `tail`'s. A BUILD FAILED arrived as "exit code 0" | Redirect to a file; or `set -o pipefail` |
+| Stale results | Compile failed, tests never ran, the previous run's XML was read as this run's | Check `^BUILD` and the XML mtime; a failure quoting text you already changed is stale |
+| Registered `Test` task | `tasks.register('x', Test)` inherits no `testClassesDirs`/`classpath`: runs 0 tests, BUILD SUCCESSFUL in 6 s | Set both, plus `filter { failOnNoMatchingTests = true }` |
+| Unlisted GameTest class | Fabric finds GameTests from `fabric.mod.json` entrypoints, not by scanning. New class compiled, never ran, count unchanged | List it, then check the count rose |
+| Undeclared test input | A test reading `README.md`/`docs/`/`scripts/` stayed UP-TO-DATE (or got a build-cache hit) after only that file changed | `inputs.files(...)` on the `test` task for every repo file a test reads |
+| `processResources` closure | Editing a `filesMatching` pattern list left the task UP-TO-DATE | Declare the values it reads with `inputs.property` |
+| Chained commit | `./gradlew test; grep "required tests" && git commit` committed a red run (grep succeeds either way) | Gate on the build's exit code: `./gradlew build && git commit` |
+| Fast = empty | A suite that normally takes minutes finished in seconds | The clock is evidence. Count what executed |
+| Lower count, 0 failures | A forked JVM crashed and a whole class wrote no XML | Copy `build/test-results/` before re-running; compare declared vs executed |
 
-## Interpreting Output
+## Long runs
 
-### Exit Codes
+Builds with GameTests, client GameTests, smokes and live-world runs take minutes to hours.
+Run them in the background **and** watch them with a monitor that prints on failure, on
+hang and periodically (so silence is visible). Specifics:
 
-| Code | Meaning |
-|------|---------|
-| 0 | Success |
-| 1 | General error — read stderr |
-| 2 | Misuse of command / config error |
-| 127 | Command not found — tool not installed or not in PATH |
-| Non-zero from `tsc` | Type errors — use `debug-errors` skill |
-| Non-zero from eslint | Lint errors — read the list, fix each one |
+- A client GameTest whose log ends at "Stopping singleplayer server" is hung: `jstack`
+  the `-Dfabric.client.gametest` JVM, then stop that PID.
+- A Forge GameTest server whose mod loading failed never exits: give the run task a
+  timeout.
+- Monitor with a Python poll (seek to the last offset every ~30 s). `tail -F` over several
+  files delivered nothing in this Git Bash, and there's no `jq` (use `gh ... --jq`). Make
+  every poll loop print when its own command fails, or it looks exactly like "still running".
 
-### What to Look For in Output
+## Machine reality (the owner's Windows box)
 
-1. **First error in the output** — not the last. Subsequent errors are often cascades from the first.
-2. **File + line number** — always present for compiler errors
-3. **"Cannot find"** / **"not found"** — missing dependency or wrong path
-4. **WARN vs ERROR** — warnings can often be deferred; errors cannot
+- **Never kill java by name.** The owner's game, other repos' dev servers and other
+  sessions' Gradle runs are all `java.exe`. Find processes by command line
+  (`Get-CimInstance Win32_Process -Filter "Name='java.exe'"`) and stop a verified PID you
+  started.
+- **Another build on the same tree** (a previous session's `verifyAll` still in its daemon)
+  locks GameTest worlds and deletes your reports. Check before starting; wait, don't kill.
+- **"The paging file is too small" (DOS error 1455) or "Could not write standard input to
+  Gradle Test Executor"** is memory, not a test failure. Several JVMs are up. Run
+  `test`, then `runGameTest`, then `build` separately, or pass a smaller
+  `-Dorg.gradle.jvmargs`.
+- **VS Code's Java Problems panel lies after branch switches** (stale language-server
+  model). Don't fix a diagnostic until a forced Gradle compile (`--rerun-tasks`) agrees it
+  exists. Keep `java.jdt.ls.vmargs` at `-Xmx4G`; a 128 GB cap once ate the machine.
+- **Shell traps:** Git Bash heredocs collapse backslashes even with a quoted delimiter,
+  so put edit scripts in the scratchpad and run them by path. From Windows Python,
+  `subprocess.run(["bash", ...])` resolves to **WSL** (`execvpe` failure, empty stdout); use
+  `C:\Program Files\Git\usr\bin\bash.exe`, or drive Gradle from the shell, not from Python.
+  Python `write_text` writes CRLF here, and `sed -i`/`perl -i` under MSYS rewrite line
+  endings or silently write nothing, so assert every scripted edit changed what you
+  meant. Commands on separate lines run even if the one above failed; only `&&` chains.
+- Long paths: `git -c core.longpaths=true` (Loom caches inside a worktree exceed MAX_PATH).
+- Symlinks need Developer Mode; a test that needs one falls back to a junction (`mklink /J`).
+- Workflow YAML and release-script tests: run them in Docker (`ubuntu:24.04`, `rhysd/actionlint`),
+  not Git Bash, which lacks `jq`/`shellcheck` and fakes `ln -s`.
 
-### When Build Fails
+## When the build fails
 
-1. Read the full output — don't just look at the last line
-2. Find the **first** error, not the last — the rest are usually cascades from it
-3. If it's a type/compile error → hand off to `debug-errors` (which enforces the 3-attempt budget)
-4. If it's a missing package → `npm install <package>` or equivalent
-5. If it's a config error → read the config file the error references
-6. Re-run after each fix — **never stack multiple untested changes**
+1. Read the log file. Find the **first** error, not the last.
+2. Compile or type error → `debug-errors` (budget of 3).
+3. Dependency resolution failure (403/429/timeout, Mavenizer `HttpTimeoutException`) is
+   usually the network: a run far shorter than normal is the tell. Read why before
+   suspecting the change; re-run once.
+4. Re-run after each fix. **Never stack untested changes.**
 
-Exit code 0 does not mean success on its own. Some tools print errors to stdout and still
-exit clean. Read the output, not just the code.
+## Commands that destroy state
 
-## Dev Server Management
-
-Starting a dev server (async mode):
-
-```powershell
-# Returns a terminal ID — save it
-npm run dev
-```
-
-The terminal ID lets you:
-- Check output: `get_terminal_output(id)`
-- Kill it when done: `kill_terminal(id)`
-
-**Always kill dev servers** when done with testing. Leaked servers consume ports and cause `EADDRINUSE` errors on next run.
-
-Verify the server is actually up before testing:
-
-```powershell
-# Wait for the server to log its URL, then verify
-Invoke-WebRequest http://localhost:3000 -Method Head
-```
-
-## Commands That Destroy State
-
-A build command is safe to re-run. These are not — they are the ones that turn "the build
-is weird, let me clean" into an afternoon of lost work. **Run the `guard-destructive` five
-gates before any of them**, and never chain one behind `&&`.
+Run the `guard-destructive` five gates first, and never chain one behind `&&`.
 
 | Command | What it actually does |
 |---|---|
-| `npm ci` | **Deletes `node_modules` entirely** before installing. Fine — unless something in there was patched by hand |
-| `git clean -xfd` | Deletes ignored files too: `.env`, local configs, certs, uncommitted scratch work |
-| `rm -rf node_modules dist build` | Fine *if* the paths resolved to what you think. Print them first |
-| `docker system prune -a` | Every stopped container, unused image, and build cache on the machine — not just this project's |
-| `docker compose down -v` | **`-v` deletes the volumes.** That's the database |
-| `npx prisma migrate reset`, `rails db:reset`, `alembic downgrade` | Drops and recreates the schema. Data gone |
-| `terraform apply` | Destroys and recreates any resource the plan marks as replaced. **Read the plan** |
-| `npm publish` | Outward-facing and effectively permanent — unpublish windows are narrow |
+| `./gradlew clean` | Deletes every node's `build/`, including GameTest worlds, screenshots, logs you haven't read |
+| `rm -rf run/` or a run dir | **Dev worlds, copies of the owner's save, harness scripts, `.PREV-*` backups** |
+| `clearRunDirectory = true` on a run you point elsewhere | Wipes that directory each run |
+| `git clean -xfd` | Ignored files too: `run/`, `.env`, local configs |
+| Copying into the owner's instance `mods/` | Outside the repo; see `dev-server` Part E |
+| `> file` | Truncates before the command runs; a failed command leaves it empty |
 
-**Before "let me just clean and rebuild":** a broken build is a diagnosis problem, and
-`debug-errors` handles it with a budget. Wiping state is not a debugging step — it destroys
-the evidence that would have told you the cause, and it usually doesn't fix anything. If
-you've reached for a clean twice, the problem is somewhere else.
-
-**Redirection is destruction.** `> file` truncates before the command even runs — if the
-command then fails, the file is empty and its contents are gone. Use `>>` when appending,
-and never redirect over a file you haven't read.
-
-## Linting as a Gate
-
-Lint before every commit. Zero warnings policy:
-
-```powershell
-npx eslint src --ext .ts,.tsx --max-warnings 0
-```
-
-If lint fails:
-- **Don't add `eslint-disable` comments** — fix the code
-- Exception: external library type issues that can't be fixed without patching the library
+"Clean and rebuild" is not a debugging step. It destroys the evidence. If you reached for a
+clean twice, the problem is somewhere else.
 
 ## Rules
 
-- **Always read exit code AND output** — exit 0 with error messages in stdout is a thing
-- **Never suppress warnings** to make a build pass — fix them
-- **Never chain a destructive command behind `&&`** — run it alone and read the result
-- **"Clean and rebuild" is not a debugging step.** It destroys the evidence. Use `debug-errors`
-- **Kill async terminals** when done — don't litter background processes
-- **Run typecheck before build** — catching type errors before bundler errors saves time
-- **Verify before you build, don't build before you verify** — run the cheap check
-  (typecheck) before the expensive one (full bundle)
-- If a command times out repeatedly, check if it's hanging on user input — some tools prompt interactively
-- If an install or build fails 3 times in a row, stop guessing and hand off to
-  `debug-errors`; repeated identical failures are a diagnosis problem, not a retry problem
+- **Read the log, not just the exit code.** Count what ran.
+- **Never a bare pipe on a command whose status matters.**
+- **Qualify run tasks** under Stonecutter.
+- **Never kill java by name.**
+- **Never suppress a warning** to get green. Fix it.
+- **Never chain a destructive command behind `&&`.**
+- If an install or build fails 3 times in a row, stop and hand off to `debug-errors`.

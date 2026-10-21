@@ -25,7 +25,8 @@ read_file(".agent/memory/state.md")
 ```
 
 This is deliberately short. It tells you the current task, the next action, open blockers,
-and anything short-lived worth knowing (a running dev server, a disabled test).
+and anything short-lived worth knowing (a running dev server, a live-world run in progress,
+the dev-server port, the current band, a disabled test).
 
 If it doesn't exist, this is a fresh project — go to `plan-work`.
 
@@ -63,6 +64,30 @@ git status
 Uncommitted work is a strong signal that the last session ended mid-task. Cross-reference
 it against `state.md` — if they disagree, **`git status` is the truth** and `state.md`
 is stale.
+
+Also compare against the remote. `git status -sb` compares against a stale ref, and in
+real-villages `state.md` said "local only" for work CI had already released:
+
+```powershell
+git fetch origin
+git rev-list --left-right --count origin/main...HEAD
+```
+
+A dirty tree can also mean **another session is working right now**. Don't stage, revert
+or "clean up" files you didn't change.
+
+### Step 4b — Check the running world
+
+Minecraft work leaves processes and state outside git:
+
+- **Live game JVMs.** List them by command line (`Get-CimInstance Win32_Process -Filter
+  "Name='java.exe'"`): a dev server, client or GameTest run from this tree, another
+  session's `verifyAll`, the owner's game. Never kill any of them by name.
+- **Stonecutter active project:** is the tree switched away from the committed node?
+- **`run/`:** live-world copies, `.PREV-*` backups not yet restored, `run/harness/` scripts.
+  `state.md` should say which; if it doesn't, list them before starting anything.
+- **Install state**, if the work is meant to be in the owner's game: is the current jar in
+  their instance's `mods/`, and does that instance's `latest.log` show it loaded?
 
 ### Step 5 — Produce the session brief
 

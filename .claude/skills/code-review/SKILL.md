@@ -43,10 +43,42 @@ Don't freestyle. Freestyle review finds whatever you happened to think of that d
 
 **Correctness**
 - [ ] Off-by-one, boundaries, empty collections, null/undefined
-- [ ] Every `async` awaited; no floating promises
+- [ ] Right thread: world and entity access on the server thread (or `server.execute`),
+      render state on the render thread; every `CompletableFuture` result handled
 - [ ] Errors handled at the right level — not swallowed, not blindly rethrown
 - [ ] Early returns leave state consistent
 - [ ] Concurrency: shared mutable state, race conditions, non-atomic read-modify-write
+
+**Minecraft**
+- [ ] **Side safety:** no client-only class (`Minecraft`, screens, renderers, `KeyMapping`)
+      reachable from common/server code; client code lives in the client source set
+- [ ] **Per-server state, not statics.** A static survives into the next singleplayer world
+      and leaks between integrated-server sessions. Per-connection client state is cleared on
+      a new connection (configuration `INIT`), not only on disconnect
+- [ ] **Server is authoritative.** Every C2S payload validated on the server (the player
+      can reach it, owns it, the values are in range); nothing trusts a client-computed price,
+      position or result
+- [ ] **Networking versioned:** payload ids or a handshake carry a protocol number, and a
+      mismatched or vanilla client gets a clean disconnect with a message, not a crash
+- [ ] **Mixins:** each target picked by `javap` on every band's jar (anonymous `$N` and
+      `lambda$x$N` included); `require`/`defaultRequire` left at 1 so a missed target fails
+      loudly; injection point still called in each version's method body; no `@Overwrite`
+      where an inject works; handler names prefixed with the mod id
+- [ ] **Other mods:** does a common mod cancel or replace the method this hooks? Use events
+      or the narrowest injection; never assume an item sits in a vanilla slot
+- [ ] **Data files** in each band's format (read one vanilla file from that jar); every tag,
+      loot table, recipe and advancement loaded by a GameTest or a dev-server boot, since a
+      bad one is a hard load failure, or worse, silently ignored keys
+- [ ] **Add/remove safety:** loading a world after the mod is removed keeps the world
+      loadable; registry entries the mod adds degrade, don't corrupt
+- [ ] **Per-tick cost:** nothing allocating, reflecting or scanning per tick or per block;
+      caches keyed on value-equal keys
+- [ ] **No comment states which Minecraft version this build targets.** It's false on the
+      next band. State the code fact
+- [ ] **Bands:** a fix touches the current band only; frozen bands untouched unless the
+      owner asked; README band statement still true
+- [ ] **Proven live:** the change ran on the dev server and `TODO.md` records the run.
+      Gameplay code with only GameTests behind it → HIGH
 
 **Security (OWASP)**
 - [ ] Injection — SQL/command/LDAP; parameterised queries, never string concatenation
@@ -141,7 +173,12 @@ If the review reveals a pattern worth enforcing, or a trap likely to recur, appe
 - **An unguarded destructive path → automatic CRITICAL.** See `guard-destructive`.
 - **A guard with no test proving it blocks → automatic HIGH.** Untested guards get deleted
   by the next person as dead code, and nothing fails.
-- **A suppression** (`@ts-ignore`, `as any`, empty `catch`, `eslint-disable`) **→ automatic
-  HIGH** unless there's a written justification next to it.
+- **A suppression** (empty `catch`, `@SuppressWarnings`, a mixin with `require = 0`, an
+  unexplained `@allow-error`) **→ automatic HIGH** unless there's a written justification
+  next to it.
+- **A gameplay, data, mixin or networking change never run on the dev server → automatic
+  HIGH.** A release push without the release gate recorded → **CRITICAL**.
+- **A test that can't fail** (unlisted GameTest class, undeclared Gradle input, an assertion
+  that passes with the change reverted) **→ HIGH**, the same as no test.
 - Don't invent problems to look thorough. A short review of clean code is a fine outcome —
   say what you checked, so the scope of that "clean" is clear.

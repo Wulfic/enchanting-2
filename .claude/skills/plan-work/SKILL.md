@@ -33,6 +33,8 @@ Answer these explicitly. Vagueness here produces a plan that dissolves on contac
 
 - **What is actually being asked?** Restate it in one sentence.
 - **What does done look like?** How will you *prove* it works — which test, which command?
+  For a mod: which rungs of the `dev-server` ladder does it reach, and what does the
+  dev-server check `@expect`? If you can't name the log line that proves it, plan to add one.
 - **What constraints are real?** Existing patterns, stack, performance, backward compat.
 - **What is unknown?** Anything requiring `code-explore` or `research-docs` first.
 
@@ -59,6 +61,8 @@ Not to the chat. To the file.
 **Not doing:** <explicit out-of-scope list — this is what stops scope creep>
 **Blast radius:** <what this destroys or overwrites, and where it comes back from —
                   or "none: additive only">
+**Proof:** <the rungs this reaches (JUnit / GameTest / dev server / live world / client /
+           built jar) and the exact check for each, e.g. `scripts/checks/anvil-cap.txt`>
 
 - [ ] 1. <concrete step — names a real file>
 - [ ] 2. <concrete step>
@@ -74,6 +78,10 @@ Rules for the step list:
 - **Any destructive step is called out as destructive**, with its own undo command. Run
   `guard-destructive` when you reach it — planning it is not the same as gating it.
 - **More than ~8 steps means it's Tier 2** — split it into stages with commits between.
+
+**`Proof:` is mandatory too.** A gameplay, data, mixin, config or networking change names a
+dev-server step; a release names the release gate. "Tests pass" alone is not a proof line
+for anything that runs in the game.
 
 **`Blast radius:` and `Rollback:` are mandatory fields**, including when the answer is
 "none, this is purely additive". Writing "none" is a claim you've checked; leaving it blank
@@ -107,8 +115,10 @@ is always thinner and less honest.
 
 - **The plan goes in `TODO.md`.** If it's only in chat, the step didn't happen.
 - **Always name a rejected alternative.** No alternative means no decision was made.
-- **`Blast radius:` and `Rollback:` are never blank** — "none, additive only" is a valid
-  answer; an empty field is not.
+- **`Blast radius:`, `Proof:` and `Rollback:` are never blank** — "none, additive only" is a
+  valid blast radius; an empty field is not.
+- **The current band only.** A plan that touches a frozen band needs the owner's explicit ask,
+  quoted in the plan.
 - **Irreversible steps go last**, after everything reversible has been verified.
 - **Check `.agent/memory/decisions.md` first** — don't re-plan something already settled.
 - **Update `TODO.md` as you execute.** A plan that doesn't track reality is worse than none,

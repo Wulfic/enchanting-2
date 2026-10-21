@@ -1,25 +1,25 @@
 {
-  "// usage": "Optional, for AI coding agents only (see AGENTS.md → Tools). Copy to .mcp.json (git-ignored) and replace the placeholders. Never commit .mcp.json.",
+  "// usage": "Template for .mcp.json, which is git-ignored because it holds real tokens. Copy this file to .mcp.json and replace each <...> placeholder. Never commit the filled-in copy; CI's secret scan fails on it. mcp-compressor is fetched on demand via uvx, so `uv` on PATH is the only install (https://docs.astral.sh/uv/).",
 
-  "// cli-syntax": "mcp-compressor 0.31.4 requires `--compression` (not --compression-level), `-H` (not --header), and a `--` separator before the backend URL/args.",
+  "// cli-syntax": "mcp-compressor 0.31.4 requires `--compression` (not --compression-level), `-H` (not --header), and a `--` separator before the backend URL/args. Backends with no real Authorization header also need a placeholder `-H Authorization=Bearer unused` — without any Authorization header mcp-compressor auto-attempts OAuth discovery and fails, since these backends don't support OAuth.",
 
   "mcpServers": {
 
     "github": {
-      "// note": "A github-mcp-server over HTTP, compressed. Point the URL at your own instance.",
+      "// note": "Self-hosted github-mcp-server (native HTTP) → compressed. <github-mcp-url> is the backend's /mcp endpoint; <github-pat> is a fine-grained PAT scoped to the repos you work on.",
       "command": "uvx",
       "args": [
         "mcp-compressor",
         "--server-name", "github",
         "--compression", "high",
         "--",
-        "http://<your-github-mcp-host>:8000/mcp",
-        "-H", "Authorization=Bearer <github-token>"
+        "<github-mcp-url>",
+        "-H", "Authorization=Bearer <github-pat>"
       ]
     },
 
     "context7": {
-      "// note": "Upstash Context7 (live library docs), compressed.",
+      "// note": "Upstash SaaS — no self-hosting option. Compresses 17k → ~300 tokens. Key from https://context7.com.",
       "command": "uvx",
       "args": [
         "mcp-compressor",

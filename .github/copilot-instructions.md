@@ -30,7 +30,8 @@ or closing anything other people can see.
 root or the repo root · `push --force` to a shared branch · `reset --hard` or `clean -fd`
 with uncommitted work · dropping a database this session didn't create · `docker volume rm`
 · `terraform destroy` · deleting `.agent/memory/`, `.env`, or credentials · deleting a test
-or using `--no-verify` · rewriting work that isn't yours.
+or using `--no-verify` · rewriting work that isn't yours · killing `java` by name · writing
+into the owner's saves or launcher instance · moving or deleting a published tag or release.
 
 **"I assumed that's what you meant" is not authorization.** Ambiguous instruction plus
 irreversible action means stop and ask. Approval for one destructive action never carries
@@ -44,6 +45,30 @@ nothing was destroyed** — a guard with no test gets refactored away as dead co
 
 There is no permission layer in Copilot. This section is the only guard. Full procedure:
 [`guard-destructive`](skills/guard-destructive/SKILL.md).
+
+## Minecraft rules — these override habit
+
+- **Proven on the live dev server.** Any gameplay, server, data, mixin, config or networking
+  change runs on the dev server (`scripts/dev-server-smoke.sh` + a committed commands file
+  that `@expect`s the log line proving the effect) before it's done. Green tests are not the
+  verdict. Owner bug reports and long behaviour run on a **copy** of the owner's save.
+  Procedure: [`dev-server`](skills/dev-server/SKILL.md).
+- **Launch the game before any push that can release.** The client creates and joins a new
+  world, and the built jar boots on a real server, on every band and loader released,
+  recorded in `TODO.md`. Exit 1 or 2 blocks the push; exit 2 ("nothing proven") is never a pass.
+- **Every node is current in this repo** (owner 2026-10-21; the template's "current band only"
+  does not apply here): 1.21.11 and every 26.x node get each fix and feature in the same
+  commit. The README always states the bands and versions it ships.
+- **Facts from the jar.** `javap` / decompiled sources of the exact Minecraft version for
+  signatures and mixin targets (`$N` numbering moves); vanilla data files from that jar; pins
+  from official metadata, never memory. [`mc-port`](skills/mc-port/SKILL.md).
+- **Count what ran.** Read the Gradle log, not just the exit code; never `./gradlew | tail`;
+  a new GameTest class must be listed in the gametest `fabric.mod.json` and must raise the count.
+- **Commit to `main`.** No branches or PRs unless the owner asks.
+- **No secrets in tracked files.** Real values only in git-ignored `.env` / `.mcp.json`;
+  tracked `*.example*` files hold placeholders. Every repo must be safe to make public.
+- **Never kill `java` by name**, never compile under a live `runServer`, always qualify run
+  tasks under Stonecutter (`:<node>:runServer`).
 
 ## Before the first edit
 
@@ -65,7 +90,8 @@ There is no permission layer in Copilot. This section is the only guard. Full pr
 - **Two failed fixes means the diagnosis is wrong, not the fix.** Re-diagnose from
   scratch instead of patching again.
 - **Never widen the fix to make a symptom disappear.** Deleting the failing test, adding
-  `@ts-ignore` / `as any` / `# type: ignore`, or an empty `catch` is not a fix.
+  an empty `catch`, an unexplained `@SuppressWarnings`, a mixin `require = 0`, or an
+  unexplained `@allow-error` is not a fix.
 - Update `.agent/memory/state.md` at each phase boundary, not just at the end — if
   context gets truncated, that file is how the next turn recovers.
 
@@ -73,7 +99,8 @@ There is no permission layer in Copilot. This section is the only guard. Full pr
 
 - [ ] Build exits 0, zero diagnostics, lint and typecheck clean
 - [ ] A test exists that fails if the change is reverted
-- [ ] Full suite green
+- [ ] Full suite green, on every node of the current band, with the test count read from the run
+- [ ] Proven on the dev server (and the release gate, if it ships), recorded in `TODO.md`
 - [ ] Every error path logs something useful
 - [ ] Every destructive path is guarded, and a test proves the guard blocks
 - [ ] Every destructive step taken had a verified rollback, written into `TODO.md`
@@ -90,7 +117,8 @@ praise — silence means "no objection". When something is wrong, say so plainly
 
 Detailed procedures live in [`.github/skills/`](skills/). Invoke with `/skill-name`:
 `guard-destructive`, `recall-session`, `plan-work`, `code-explore`, `research-docs`,
-`build-run`, `debug-errors`, `test-iterate`, `code-review`, `save-memory`, `git-github`.
+`build-run`, `debug-errors`, `test-iterate`, `dev-server`, `mc-port`, `code-review`,
+`save-memory`, `git-github`.
 
 **Prefer native tools** — file editing, search, terminal, git, and web fetch are all
 built in. Only two MCP servers exist: `github` (fall back to the `gh` CLI if it's
