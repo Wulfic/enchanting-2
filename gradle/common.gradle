@@ -128,6 +128,27 @@ if (!(modLoader in ['fabric', 'neoforge', 'forge'])) {
 version = "${project.mod_version}+${bandLabel}-${modLoader}"
 group = project.maven_group
 
+// The dev server (scripts/dev-server-smoke.sh) on every loader. It refuses to start until eula.txt says true; same
+// acceptance as the GameTest runs' `eula = true`. Writes only when the file is absent, so it never overwrites an
+// existing eula.txt. matching, not named: ForgeGradle registers its run tasks after this script has run.
+def devServerEula = rootProject.file("${project.run_root}/server/eula.txt")
+def acceptDevServerEula = tasks.register('acceptDevServerEula') {
+    onlyIf { !devServerEula.exists() }
+    doLast {
+        devServerEula.parentFile.mkdirs()
+        devServerEula.text = '# Accepted for the local dev server (see gradle/common.gradle).\neula=true\n'
+        logger.lifecycle("Wrote ${devServerEula}")
+    }
+}
+tasks.matching { it.name == 'runServer' }.configureEach {
+    dependsOn acceptDevServerEula
+    // The smoke types console commands (and `stop`) into Gradle's stdin. Loom hands it to the game itself; ModDevGradle's
+    // and ForgeGradle's run tasks leave the game's stdin empty, so the server never stops (2026-10-21).
+    if (modLoader != 'fabric') {
+        standardInput = System.in
+    }
+}
+
 base {
     archivesName = project.archives_base_name
 }

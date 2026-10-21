@@ -24,6 +24,18 @@ stonecutter.active '1.21.11'
 // Not client GameTests (they open a game window): ./gradlew :<node>:runClientGameTest, one node at a time; CI runs
 // them headless per node (ci.yml `client`).
 // `./gradlew verifyReport` prints one line per node from the result files; scripts/verify-all.sh runs both.
+// At most this many GameTest servers at once, across every node (gradle/gametest-report.gradle makes each node's run
+// task hold a slot). Unbounded, verifyAll started all 11 together and the machine ran out of commit memory: a different
+// JVM died each run, with no report (TODO.md 13E, gotchas.md 2026-10-21). Override with -Pgametest_max_parallel=<n>.
+abstract class GameTestServerSlots implements BuildService<org.gradle.api.services.BuildServiceParameters.None> {}
+def gameTestMaxParallel = providers.gradleProperty('gametest_max_parallel').map { it as int }.getOrElse(4)
+if (gameTestMaxParallel < 1) {
+    throw new GradleException("gametest_max_parallel must be at least 1, not ${gameTestMaxParallel}")
+}
+gradle.sharedServices.registerIfAbsent('gameTestServers', GameTestServerSlots) {
+    maxParallelUsages = gameTestMaxParallel
+}
+
 def versionNodes = { subprojects.findAll { it.projectDir.parentFile == file('versions') }.sort { it.name } }
 def matrixNodes = { subprojects.findAll { it.projectDir.parentFile == file('matrix') }.sort { it.name } }
 

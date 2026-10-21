@@ -49,7 +49,10 @@ def checkGameTestReport = tasks.register('checkGameTestReport') {
     }
 }
 // matching, not named: ForgeGradle registers its run tasks after this script has run.
+// The root's slot limit on GameTest servers (stonecutter.gradle); a node configured without it fails here, not later.
+def gameTestServers = gradle.sharedServices.registrations.getByName('gameTestServers').service
 tasks.matching { it.name == gameTestRunTask }.configureEach {
+    usesService gameTestServers
     // A report left by an earlier run must never pass for this one. Logged, so a report that vanishes after a passing
     // run (once under a loaded verifyAll, gotchas.md 2026-10-20) shows whether this delete is what removed it.
     def deletePath = project.path
