@@ -133,7 +133,10 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
     JUnit + 340 GameTests on all 10 nodes + matrix 26.1 / 26.1.1. e4838d4: GameTest servers capped at 4 at once
     (`gametest_max_parallel`; unbounded, the box ran out of commit memory, gotchas.md 2026-10-21) and the dev-server
     smoke works on NeoForge/Forge (EULA + stdin); smoke green on 26.3, 26.3-neoforge, 26.3-forge.
-    **Next: 13F** (TODO.md): Quilt runtime nodes, `ci.yml` per loader, widen NeoForge/Forge B1 (NeoForge 26.1.0 /
+    **13F in progress (plan in TODO.md, decisions.md "13F proof").** Resume at F2: `scripts/checks/boot.txt` is
+    written but UNTESTED and uncommitted; first run `NODE=26.3 scripts/dev-server-smoke.sh scripts/checks/boot.txt` and
+    fix the `@expect` reply texts, then F1 (`scripts/server_boot_check.py` from the-continent's `tools/server_smoke.py`).
+    Was: **Next: 13F** (TODO.md): Quilt runtime nodes, `ci.yml` per loader, widen NeoForge/Forge B1 (NeoForge 26.1.0 /
     26.1.1 betas, Forge 62/63 on the 26.1.2 jars). No PR any more. Then 13G release (owner confirms; template's
     release gate: client world check + built jar on a real server, every band × loader, recorded in TODO.md).
     Open owner checks: `runClient` on NeoForge + Forge (config screen, tooltips, HUD, panels, joins).
