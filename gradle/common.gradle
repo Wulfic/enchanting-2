@@ -91,7 +91,8 @@ stonecutter {
 // its loader: enchanting2-<mod_version>+<band>-<loader>.jar, e.g. +1.21.11-fabric or +26.1-26.1.2-fabric (also the
 // version in the shipped metadata; decisions.md 2026-10-20 "13F naming"). The band is
 // derived, never typed: this node's minecraft_version plus every runtime-matrix version whose matrix_jar_node is this
-// node (verifyAll GameTests each claimed one), lowest, or "lowest-highest". A new matrix/<version>/ widens the name.
+// node (verifyAll GameTests each claimed one) and every boot row on this node and loader (below), lowest, or
+// "lowest-highest". A new matrix/<version>/ or boot row widens the name.
 // ModIdentityTest derives it again from the same files and checks minecraft_dependency admits every version in it.
 def mcVersionParts = { String v ->
     if (!(v ==~ /\d+(\.\d+)*/)) {
@@ -117,14 +118,23 @@ rootProject.file('matrix').eachDir { dir ->
         }
     }
 }
-bandVersions = bandVersions.unique().sort(compareMcVersions)
-def bandLabel = bandVersions.size() == 1 ? bandVersions.first() : "${bandVersions.first()}-${bandVersions.last()}"
 // The node script names its loader before applying this one (ext.mod_loader); refuses rather than guessing Fabric.
 def modLoader = project.findProperty('mod_loader')?.toString()
 if (!(modLoader in ['fabric', 'neoforge', 'forge'])) {
     throw new GradleException("${project.path}: the node script must set ext.mod_loader to fabric, neoforge or forge " +
         "before applying gradle/common.gradle (got ${modLoader})")
 }
+// Phase 13F: production NeoForge/Forge servers never run GameTests, so their older Minecraft versions are claimed by a
+// real-server boot row instead (scripts/boot-matrix.txt, booted by scripts/boot-all.sh in CI and before a tag). A row
+// on this node's loader widens the band as a matrix node does; BootMatrixTest keeps Fabric rows matrix-backed.
+rootProject.file('scripts/boot-matrix.txt').eachLine { line ->
+    def cells = line.trim().split(/\s+/)
+    if (cells.size() == 7 && !cells[0].startsWith('#') && cells[1] == modLoader && cells[4] == project.name) {
+        bandVersions << cells[2]
+    }
+}
+bandVersions = bandVersions.unique().sort(compareMcVersions)
+def bandLabel = bandVersions.size() == 1 ? bandVersions.first() : "${bandVersions.first()}-${bandVersions.last()}"
 version = "${project.mod_version}+${bandLabel}-${modLoader}"
 group = project.maven_group
 
@@ -348,6 +358,10 @@ tasks.named('test') {
     // Only the properties files: the matrix nodes' build dirs change on every run.
     inputs.files(rootProject.fileTree('matrix') { include '*/gradle.properties' }, rootProject.files('settings.gradle'))
         .withPropertyName('matrixLayout')
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    // BootMatrixTest (Phase 13F): the real-server boot rows against the nodes they boot.
+    inputs.files(rootProject.files('scripts/boot-matrix.txt', 'scripts/checks/boot.txt'))
+        .withPropertyName('bootMatrix')
         .withPathSensitivity(PathSensitivity.RELATIVE)
     // ModIdentityTest derives this node's band label (Phase 12G) from the matrix files, as the version above does.
     systemProperty 'enchanting2.node', project.name

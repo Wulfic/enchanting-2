@@ -418,7 +418,7 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
       Proof: verifyAll green; release-collect dry run lists 5 jars with the right names; ModIdentityTest fails if
       the loader is dropped from the version (checked by reverting the common.gradle line once).
       Blast radius: names only, nothing released (13G). Rollback: revert the commit.
-- [ ] 13F — **Build, CI, release plumbing:** `verifyAll` covers every node + Quilt nodes; `ci.yml` jobs per loader;
+- [x] 13F — **Build, CI, release plumbing:** (done 2026-10-21; CI's first boot run checked after the push) `verifyAll` covers every node + Quilt nodes; `ci.yml` jobs per loader;
       jar names carry the loader (proposed `enchanting2-1.2.0+26.3-neoforge.jar`; Fabric names unchanged); `release-collect.sh`,
       `ModIdentityTest`, `ReleaseDocsTest`; README / wiki Installation tables per loader; CHANGELOG [Unreleased].
       **Plan (2026-10-21).** Fact that changed it (NeoForge 26.3.0.95 / Forge 26.3-66.0.13 sources): production servers
@@ -437,9 +437,15 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
         `(/|\[)(ERROR|FATAL)\]` line outside `@allow-error`, every `@expect`, `stop` → exit 0. **Exit 0 proven · 1 mod
         bad · 2 nothing proven** (download / installer / port). `--self-test` feeds synthetic logs both ways, one with an
         ERROR line. Never kills a process (stop on stdin, timeout, then report exit 2 and the PID).
-      - F2. `scripts/checks/boot.txt`: the fingerprint (init line; the enchantment-load hook's default max-level lines;
+      - [x] F2. `scripts/checks/boot.txt`: the fingerprint (init line; the enchantment-load hook's default max-level lines;
         `reload` → "Reloaded … common.json5"). Checked against a revert: run once on a jar with the registry mixin left
         out (scratch build) and watch it go red.
+        **Done 2026-10-21.** Rung 3: `NODE=26.3 scripts/dev-server-smoke.sh scripts/checks/boot.txt` → exit 0, matched
+        "Applied enchantment Knockback V to Zombie's item", "6 is higher than the maximum level of 5 supported…",
+        "Applied enchantment Vampirism I to Zombie's item", "Reloaded .\config\enchanting2\common.json5 (FILE, 0
+        issue(s))". Mutant (cheaper than a scratch build, same effect on the hook's output): Knockback
+        `max_level_override: 2` in the run dir's enchantments.json5 (backed up to build/, restored, `cmp` equal) →
+        exit 1, both Knockback `@expect`s red ("5 is higher than the maximum level of 2"), Vampirism still green.
       - F3. `scripts/boot-matrix.txt` (loader, Minecraft, loader version, jar node; pins dated from official metadata)
         and `scripts/boot-all.sh` (sequential, one table, exit = worst). Rows: each shipped node on its own version and
         loader (Fabric ×4, NeoForge ×3, Forge ×3), Fabric on matrix 26.1 / 26.1.1, NeoForge 26.1.0 / 26.1.1 (betas) and
@@ -451,8 +457,40 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
       - F5. `ci.yml`: `build` split per loader (verifyAll gets `-Ploaders=<list>`, refusing an empty or unknown list), a
         `boot` job running `boot-all.sh` on the built jars (uploads each `smoke.log`), client jobs stay Fabric.
       - F6. Docs: README / wiki / CHANGELOG [Unreleased], `state.md`, gotchas per loader surprise.
+      **F1–F6 results (2026-10-21):**
+      - F1 `scripts/server_boot_check.py`: `--self-test` 12/12 (synthetic logs both ways: ERROR, FATAL, allowed ERROR,
+        no init, no Done, missing @expect, unclean stop; report pass/failure/empty/missing). Only `@sh sleep N` runs;
+        any other `@sh` → exit 2. Installers get stdin DEVNULL; boot-all closes the check's stdin.
+      - F2 needed waits after `forceload` / `summon` on a fresh real server (gotchas.md 2026-10-21).
+      - F3 pins from official metadata 2026-10-21 (in the file's header). `BootMatrixTest` (6 tests: columns, node and
+        loader per row, Fabric API = the node's pin, GameTests on 26.x Fabric/Quilt only, exactly one shipped row per
+        node with its own pins, Fabric rows off the node's version need `matrix/<v>`, NeoForge/Forge ranges admit each
+        row) → JUnit 463 → 469 per node. Mutation: Forge 26.3 pin 66.0.13 → 66.0.12 red at line 102, restored.
+      - Rung 6, shipped (`bash scripts/boot-all.sh shipped`, run 20261021-143925): **10/10 PASS** (Fabric 1.21.11 /
+        26.1.2 / 26.2 / 26.3, NeoForge 26.1.2.122 / 26.2.0.93 / 26.3.0.95, Forge 64.1.5 / 65.1.5 / 66.0.13), exit 0;
+        each matched Knockback V, "6 is higher than the maximum level of 5", Vampirism I, "Reloaded … common.json5".
+      - Full tier (`bash scripts/boot-all.sh full`, run 20261021-145233), exit 1: Fabric 26.1 / 26.1.1 PASS; **Forge
+        62.0.9 (26.1) / 63.0.2 (26.1.1) PASS** on the widened `+26.1-26.1.2-forge` jar; **NeoForge 26.1.0.19-beta /
+        26.1.1.15-beta FAIL** (NoSuchMethodError `LootModifier.codecStart`: P1 there, P2 with priority from 26.1.2;
+        javap of both universal jars) → per the owner's rule (red leaves it at 26.1.2) the NeoForge rows are removed and
+        its range reverted. Fix route if the owner wants 26.1/26.1.1 NeoForge later: `DropsLootModifier` implements
+        `IGlobalLootModifier` directly via `LOOT_CONDITIONS_CODEC` (in both). **Quilt 0.31.0-beta.4 on 26.1.2 / 26.2 /
+        26.3: boot PASS ×3, production server GameTests 340/340 ×3.** → README/wiki "Fabric / Quilt" (26.x), Forge
+        26.1–26.3, NeoForge stays 26.1.2/26.2/26.3.
+      - F4 mutation: NeoForge `minecraft_dependency` narrowed while rows claimed 26.1 → `ModIdentityTest
+        neoforgeModsTomlNamesThisModAndItsBand` red, restored.
+      - F5 `-Ploaders`: `bogus` and empty refused ("give a comma list"); `neoforge` dry run = the 3 NeoForge nodes'
+        build + runGameTest, no matrix. ci.yml YAML parses (jobs build×3, boot×4, client-nodes, client, secrets).
+        CI itself unproven until the push.
+      - Final gate on the commit's tree: `scripts/verify-all.sh` exit 0 (469 JUnit + 340 GameTests on all 10 nodes,
+        matrix 26.1 / 26.1.1 claimed 340/340, 5 link checks 0 problems); then `bash scripts/boot-all.sh shipped` on
+        those jars (run 20261021-152208) **10/10 PASS**, exit 0. `save_log()` now also writes server.log on exit 2.
       **Not doing:** GameTests on production NeoForge/Forge; Quilt on 1.21.11; QSL; the client world check (rung 5,
       13G); widening without a green row.
+      **Owner 2026-10-21 (third round, decisions.md "13F/13G owner rulings"):** CI `boot` runs the shipped rows (10)
+      on every push; the full matrix (old loader versions, Quilt GameTests) on `workflow_dispatch` and before a tag.
+      Quilt is expected to work (the owner's other 26.x mods run on it): a red Quilt row is a bug to fix, not a
+      dropped claim. 13G: rung 5 on NeoForge/Forge is a scripted client boot (create + join a world, fingerprint).
       **Blast radius:** additive (scripts, a CI job, docs). Work dirs are new scratch dirs under `build/boot/` (refused
       unless empty). Nothing in the owner's saves or instances. Rollback: revert the commits.
 - [ ] 13G — **Release 1.2.0.** Owner confirms first (outward-facing). Tag, ten jars, mod pages list the loaders.

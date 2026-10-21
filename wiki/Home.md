@@ -1,19 +1,19 @@
 # Enchanting 2
 
-**A Fabric mod for Minecraft 1.21.11 and 26.1 through 26.3 that reworks XP and enchanting.** You choose your enchantments instead of rolling
+**A mod for Fabric, Quilt, NeoForge and Forge, on Minecraft 1.21.11 (Fabric) and 26.1 through 26.3, that reworks XP and enchanting.** You choose your enchantments instead of rolling
 for them, you see every price before you pay, and an item can hold every enchantment that fits it. Every vanilla
 enchantment is kept, 49 new ones are added, and almost everything can be configured in-game.
 
 | | |
 |---|---|
 | **Minecraft** | Java Edition 1.21.11, 26.1 to 26.1.2, 26.2, 26.3 ([which jar](Installation)) |
-| **Loader** | Fabric Loader 0.19.5 or newer |
-| **Requires** | Fabric API |
+| **Loader** | Fabric Loader 0.19.5 or newer; Quilt Loader 0.31.0-beta.4 or newer, NeoForge or Forge on 26.x ([which versions](Installation)) |
+| **Requires** | Fabric and Quilt: Fabric API. NeoForge and Forge: nothing |
 | **Optional** | Fabric: Mod Menu for the in-game config screen (YACL if you'd rather have YACL's). NeoForge and Forge: nothing |
 | **Sides** | Server **and** every player's client |
 | **License** | MIT |
 
-> NeoForge and Forge support arrives with 1.2.0; the latest release, 1.1.0, is Fabric only ([details](Installation)).
+> Quilt, NeoForge and Forge support arrive with 1.2.0; the latest release, 1.1.0, is Fabric only ([details](Installation)).
 
 **[Download the latest release](https://github.com/Wulfic/enchanting-2/releases/latest)**, then see
 [Installation](Installation).

@@ -1825,3 +1825,27 @@ toolchains supporting old loader versions.
 **Rejected:** spiking dev-runtime GameTest nodes per NeoForge/Forge version (strongest proof, unproven feasibility);
 not widening at all.
 **Affects:** TODO.md 13F, scripts/
+
+## 2026-10-21 — 13F/13G owner rulings (CI boot cadence, Quilt, NeoForge/Forge rung 5)
+**Context:** 13F's boot matrix is ~16 real-server rows (downloads + installers); 1.2.0's release gate needs rung 5
+(client creates + joins a world) on NeoForge and Forge, where this repo has no client GameTests.
+**Choice:** (1) CI `boot` job runs the 10 shipped rows on every push; the full matrix on dispatch and before a tag.
+(2) Quilt on 26.x must work: the owner's other 26.x mods ship Quilt compatibility, so a red Quilt row is a bug to
+fix, not a reason to drop the claim. (3) 13G adds a scripted NeoForge/Forge client boot (runClient, create + join a
+world, fingerprint the log, quit) rather than relying on a manual owner run.
+**Why:** push-time signal on every jar players download without tripling CI time; Quilt is known-good elsewhere.
+**Rejected:** full matrix on every push (slow); dispatch-only (a broken loader surfaces at release); manual rung 5.
+**Affects:** TODO.md 13F/13G, .github/workflows/ci.yml, scripts/
+
+## 2026-10-21 — 13F: a boot-matrix row is the claim (NeoForge/Forge widening, Quilt)
+**Context:** NeoForge/Forge jars declare a Minecraft range; a boot row on an older version can't pass unless the jar
+already admits it, so "prove first, widen after" was circular.
+**Choice:** listing a row in `scripts/boot-matrix.txt` claims it, as `matrix/<v>` does for Fabric: common.gradle (and
+the `Bands` test helper) add each row on the node's own loader to the band, the node's `minecraft_dependency` /
+loader range must admit it (`ModIdentityTest`, `BootMatrixTest`), and `boot-all.sh` (full tier) must be green before a
+tag. A red row is removed, with its failure noted in the file's header. Result: Forge B1 = 26.1–26.1.2 (Forge 62/63
+green); NeoForge B1 stays 26.1.2 (26.1.0/26.1.1 betas red, gotchas.md); Quilt claimed for 26.x (boot + 340/340
+production GameTests on each band). Quilt rows don't widen anything (the Fabric jar's range comes from `matrix/`).
+**Rejected:** a separate "green rows" list written by the boot run (state the build would read from a run artifact);
+typing the widened range by hand without a row (nothing would hold it to a proof).
+**Affects:** gradle/common.gradle, src/test/.../Bands.java, BootMatrixTest.java, scripts/boot-matrix.txt, versions/26.1.2-forge

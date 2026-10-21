@@ -14,8 +14,9 @@ import java.util.stream.Stream;
 
 /**
  * The Phase 12G band of each version node, derived the way gradle/common.gradle names the jars: the node's own
- * {@code minecraft_version} plus every {@code matrix/<version>/} whose {@code matrix_jar_node} is that node, written as
- * the lowest version or "lowest-highest", then (13F) {@code -<loader>}. Read from the repo files (tests run with the
+ * {@code minecraft_version} plus every {@code matrix/<version>/} whose {@code matrix_jar_node} is that node and (13F)
+ * every {@code scripts/boot-matrix.txt} row on that node and its loader, written as the lowest version or
+ * "lowest-highest", then (13F) {@code -<loader>}. Read from the repo files (tests run with the
  * repo root as working directory).
  */
 final class Bands {
@@ -32,6 +33,11 @@ final class Bands {
 				if (values.getProperty("matrix_jar_node", "").trim().equals(node)) {
 					versions.add(values.getProperty("minecraft_version", "").trim());
 				}
+			}
+		}
+		for (BootMatrixTest.Row row : BootMatrixTest.rows()) {
+			if (row.node().equals(node) && row.loader().equals(loader(node))) {
+				versions.add(row.minecraft());
 			}
 		}
 		return versions;

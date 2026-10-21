@@ -1,0 +1,35 @@
+# Phase 13F: every (loader, Minecraft) a release jar is claimed for, booted by scripts/boot-all.sh through
+# scripts/server_boot_check.py. Pins checked 2026-10-21 against official metadata: meta.fabricmc.net (loader 0.19.5,
+# latest stable), meta.quiltmc.org (0.31.0-beta.4, latest), maven.neoforged.net (26.1.0 / 26.1.1 builds are beta
+# only), files.minecraftforge.net promotions_slim.json (26.1-latest 62.0.9, 26.1.1-latest 63.0.2). Shipped nodes use
+# their own gradle.properties pins.
+#
+# Not listed because they failed (a row is a claim; gotchas.md 2026-10-21): NeoForge 26.1.0.19-beta / 26.1.1.15-beta
+# with the 26.1.2-neoforge jar (NoSuchMethodError, LootModifier.codecStart changed in 26.1.2).
+#
+# Columns: tier loader minecraft loader_version jar_node fabric_api mode
+#   tier       shipped = every CI push (the jar on its own loader and version); full = dispatch and before a tag
+#   jar_node   versions/<node>/build/libs/ holds the jar
+#   fabric_api Fabric API from maven.fabricmc.net (fabric/quilt), "-" otherwise
+#   mode       boot = scripts/checks/boot.txt; gametests = the server GameTests on the production server (26.x Fabric
+#              and Quilt only; production NeoForge/Forge servers never run them)
+shipped fabric   1.21.11 0.19.5          1.21.11          0.141.6+1.21.11 boot
+shipped fabric   26.1.2  0.19.5          26.1.2           0.155.3+26.1.2  boot
+shipped fabric   26.2    0.19.5          26.2             0.161.0+26.2    boot
+shipped fabric   26.3    0.19.5          26.3             0.163.0+26.3    boot
+shipped neoforge 26.1.2  26.1.2.122      26.1.2-neoforge  -               boot
+shipped neoforge 26.2    26.2.0.93       26.2-neoforge    -               boot
+shipped neoforge 26.3    26.3.0.95       26.3-neoforge    -               boot
+shipped forge    26.1.2  64.1.5          26.1.2-forge     -               boot
+shipped forge    26.2    65.1.5          26.2-forge       -               boot
+shipped forge    26.3    66.0.13         26.3-forge       -               boot
+full    fabric   26.1    0.19.5          26.1.2           0.155.3+26.1.2  boot
+full    fabric   26.1.1  0.19.5          26.1.2           0.155.3+26.1.2  boot
+full    forge    26.1    62.0.9          26.1.2-forge     -               boot
+full    forge    26.1.1  63.0.2          26.1.2-forge     -               boot
+full    quilt    26.1.2  0.31.0-beta.4   26.1.2           0.155.3+26.1.2  boot
+full    quilt    26.2    0.31.0-beta.4   26.2             0.161.0+26.2    boot
+full    quilt    26.3    0.31.0-beta.4   26.3             0.163.0+26.3    boot
+full    quilt    26.1.2  0.31.0-beta.4   26.1.2           0.155.3+26.1.2  gametests
+full    quilt    26.2    0.31.0-beta.4   26.2             0.161.0+26.2    gametests
+full    quilt    26.3    0.31.0-beta.4   26.3             0.163.0+26.3    gametests

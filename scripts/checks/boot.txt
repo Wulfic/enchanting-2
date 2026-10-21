@@ -1,0 +1,27 @@
+# Phase 13F: the boot fingerprint. Proves the mod is loaded *and working* on a server, with vanilla commands only:
+#   - Knockback V applies, and VI is refused at max level 5: the enchantment-load hook ran on this loader and version
+#     (vanilla's max is 2; DESIGN §8 raises it to 5).
+#   - Vampirism applies to a sword: our enchantments and our item tags loaded (Forge drops a mod's data without a
+#     pack.mcmeta, and every step of that is only a WARN).
+#   - reload re-reads our config.
+# Used by scripts/server_boot_check.py (built jar on a real loader server) and by the dev server:
+#   NODE=26.3 scripts/dev-server-smoke.sh scripts/checks/boot.txt
+# The zombie lives at 0 100 0 in a force-loaded chunk for a few commands and is killed; the chunk is unloaded again.
+# On a fresh world the force-loaded chunk's entities go live a moment after the command: without the waits, `item
+# replace` answered "No entity was found" on a real Fabric 26.3 server while `enchant` found the zombie a second later.
+forceload add 0 0
+@sh sleep 3
+summon minecraft:zombie 0 100 0 {NoAI:1b,PersistenceRequired:1b,Silent:1b,Tags:["enchanting2_boot"]}
+@sh sleep 2
+item replace entity @e[tag=enchanting2_boot,limit=1] weapon.mainhand with minecraft:iron_sword
+enchant @e[tag=enchanting2_boot,limit=1] minecraft:knockback 5
+enchant @e[tag=enchanting2_boot,limit=1] minecraft:knockback 6
+enchant @e[tag=enchanting2_boot,limit=1] enchanting2:vampirism 1
+kill @e[tag=enchanting2_boot]
+forceload remove 0 0
+reload
+@sh sleep 5
+@expect Applied enchantment .*Knockback.* to
+@expect 6 is higher than the maximum level of 5
+@expect Applied enchantment .*([Vv]ampirism|enchanting2\.vampirism).* to
+@expect Reloaded .*common\.json5

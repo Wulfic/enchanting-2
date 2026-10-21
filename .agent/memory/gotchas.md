@@ -1016,3 +1016,31 @@ default 4) that every node's GameTest run task holds (`gradle/gametest-report.gr
 at most 4 overlapping, all 340/340. In a `--console=plain` log, a task's `> Task` header repeats whenever its output
 interleaves, so count overlap from each task's first-to-last header, not by counting headers.
 **Affects:** stonecutter.gradle, gradle/gametest-report.gradle
+
+## 2026-10-21 — Real-server boot check (13F): fresh-world entity race, editing a running bash script
+**Context:** first runs of `scripts/server_boot_check.py` + `scripts/checks/boot.txt` on real loader servers.
+**Gotchas:**
+- The dev server passed `boot.txt` first try; a real Fabric 26.3 server (fresh world) did not: `item replace entity
+  @e[tag=…]` right after `forceload add` + `summon` answered "No entity was found", while `enchant` one second later
+  found the zombie. A force-loaded chunk's entities go live a moment after the command. `@sh sleep` after `forceload`
+  and after `summon` fixed it. A warm dev world hides this; only a fresh server shows it.
+- **Never edit a bash script while it runs.** Bash parses a `while … done` loop whole, but reads what follows by byte
+  offset after the loop ends; an edit that shifts bytes makes it execute garbage. Caught mid-run on `boot-all.sh`
+  and restored the original bytes before the loop ended; change it only after the run.
+- NeoForge's dedicated server logs command replies as `[minecraft/MinecraftServer]: Applied …` (no "System chat:"),
+  Fabric's as `System chat: Applied …`: `@expect`s must not anchor on either prefix.
+- NeoForge/Forge jars declare a Minecraft range (`minecraft_dependency`); a boot row on an older version can only pass
+  if the jar already admits it, so a row in `scripts/boot-matrix.txt` *is* the claim (it widens the band in
+  common.gradle, as `matrix/<v>` does for Fabric) and boot-all must be green before a tag.
+**Affects:** scripts/checks/boot.txt, scripts/boot-all.sh, scripts/boot-matrix.txt, gradle/common.gradle
+
+## 2026-10-21 — NeoForge's LootModifier API changed inside the 26.1 line
+**Context:** 13F booted the 26.1.2-neoforge jar (built on 26.1.2.122) on NeoForge 26.1.0.19-beta and 26.1.1.15-beta.
+**Gotcha:** both fail at mod loading with `NoSuchMethodError: DropsLootModifier.codecStart(...)Products$P2`. javap of
+the universal jars: 26.1.0 beta `LootModifier.codecStart` returns `Products.P1` (conditions) and the constructor takes
+`(LootItemCondition[])`; 26.1.2.122 returns `P2` (conditions + int priority) with `(LootItemCondition[], int)`, and
+`IGlobalLootModifier` gained `priority()` / `DEFAULT_PRIORITY`. A NeoForge jar does not span patch lines the way a
+Fabric jar does. Boot check caught it; GameTests on the dev node never could.
+**Not done (owner rule: red leaves the claim at 26.1.2):** implementing `IGlobalLootModifier` directly with
+`LOOT_CONDITIONS_CODEC` (present in both) would likely span them.
+**Affects:** versions/26.1.2-neoforge/gradle.properties, scripts/boot-matrix.txt
