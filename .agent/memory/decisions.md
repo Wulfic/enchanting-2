@@ -1791,3 +1791,22 @@ them (YACL keeps its own) and binds the same getter/setter/default.
 scroll and focus (re-implements keyboard navigation and narration); new `render(`→`extractRenderState(` string
 replacements (their automatic reverse would rewrite `TabbedConfigScreen`'s commented branches).
 **Affects:** client/config/*.java
+
+## 2026-10-21 — One branch (main), agent files from Minecraft-Template, 1.21.11 stays current here
+**Context:** the owner's new `Wulfic/Minecraft-Template` (48ca808) generalises this repo's agent rules for every mod
+repo: commit to `main` with no branches, dev-server smoke for gameplay/config changes, a release gate (client world
+check + built jar on a real server per band and loader), and "current band only" (older bands frozen). Asked about
+the `port/loaders` PR, the owner said: as few branches as possible, merge into main, delete unneeded branches, and
+take the template's skills.
+**Choice:** (1) Fast-forward `main` to `port/loaders` (main was its ancestor; per-node commits kept), delete
+`port/loaders` and `ci/client-gametests` (both fully in main), and commit straight to main from here on. 13F's "open
+a PR" step is dropped. (2) `.claude/skills/` and `.github/skills/` = the template's, byte for byte (adds `dev-server`
+and `mc-port`); AGENTS.md, copilot-instructions.md, `.claude/settings.json` and `.mcp.example.json` from the template
+too, with repo-specific lines kept in AGENTS.md (verifyAll as "full suite"). (3) **Owner: keep 1.21.11 current** —
+the template's freeze does not apply here; every node gets every fix and feature, as Phase 12 set up. Written into
+AGENTS.md "Bands" and copilot-instructions.md, not into `mc-port` (so the skill stays a clean copy of the template).
+**Why:** one branch is what the owner works with across repos; skills edited per repo drift, and AGENTS.md is the
+repo-specific layer every tool loads.
+**Rejected:** squash-merging Phase 13 so far (loses the per-node commits that each record a green node); freezing
+1.21.11 with the node kept or dropped (owner chose neither: `vcsVersion` is 1.21.11 and the band still ships).
+**Affects:** AGENTS.md, .github/copilot-instructions.md, .claude/, .github/skills/, branches

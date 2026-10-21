@@ -988,3 +988,31 @@ GameTest log, 26.3 included, that no test had noticed (the drops still worked).
 - `changeGameModeForPlayer` broadcasts a player-info update that reads `connection.latency()`; a connection-less test
   player sets its mode through an invoker on `setGameModeForPlayer`.
 **Affects:** build.forge.gradle, src/forge/, mixin/forge/, mixin/{BlockMixin,ServerPlayerGameModeMixin,SpawnerBlockMixin}
+
+## 2026-10-21 — Vanilla GUI APIs that moved between 1.21.11 and 26.x (13E)
+**Context:** writing a screen on vanilla widgets that compiles on 1.21.11, 26.1.2, 26.2 and 26.3.
+**Gotcha:** (1) `EditBox.setFilter` is gone from 26.1 on: validate in the responder. (2) `Minecraft.setScreen` is gone
+on 26.2 (it's `minecraft.gui.setScreen`; 26.3 has both); the `client.setScreen(` replacement only fixes code whose
+variable is named `client`, so non-test code uses a `//?` condition. (3) `TabButton` is abstract and `Tab` gained
+`getLayout()` on 26.2: we draw our own tab buttons. (4) Every render hook is a rename on 26.1 (`render`→
+`extractRenderState`, `renderContent`→`extractContent`, `renderContents`→`extractContents`), uniform across 26.x.
+`drawString`/`fill`/`blitSprite` and `CycleButton`, `AbstractSliderButton`, `ContainerObjectSelectionList` are stable.
+(5) Forge's client half starts by reflection from `ForgeEntrypoint`, and server GameTests never take that path: a
+signature change there only fails a real client launch. `ModIdentityTest.forgeClientEntryPointTakesTheLoadingContext`
+now resolves it by name.
+**Affects:** client/config/, platform/forge/ForgeEntrypoint.java, platform/forge/ForgeClientEntrypoint.java
+
+## 2026-10-21 — verifyAll's GameTest JVMs died at random: the machine ran out of commit memory
+**Context:** with 10 version nodes + 2 claimed matrix versions, verifyAll went red twice on the E2/E3 tree, each time
+on a *different* pair of nodes (26.1.2-neoforge + 26.2-forge, then 26.1.2-forge + matrix-26.1.1): the GameTest server
+"finished with non-zero exit value 1" and left no report. Rerun alone, each node passed 340/340.
+**Gotcha:** the cause is in the middle of the Gradle log, not in the failure summary: "There is insufficient memory for
+the Java Runtime Environment to continue. Native memory allocation (mmap) failed ... G1 virtual space" with an
+`hs_err_pid*.log` in the node's `build/run/gameTest/`. `org.gradle.parallel` started every GameTest server at once
+(12 JVMs, each reserving its own heap) on a 32 GB box with a 9 GB page file (commit limit 41 GB, ~12 GB free at idle).
+Whichever JVM reserved last died, so the failure moved around and looked like flakiness.
+**Fix:** a root build service `gameTestServers` (`stonecutter.gradle`, `maxParallelUsages` = `gametest_max_parallel`,
+default 4) that every node's GameTest run task holds (`gradle/gametest-report.gradle`). Verified from the log: 12 runs,
+at most 4 overlapping, all 340/340. In a `--console=plain` log, a task's `> Task` header repeats whenever its output
+interleaves, so count overlap from each task's first-to-last header, not by counting headers.
+**Affects:** stonecutter.gradle, gradle/gametest-report.gradle

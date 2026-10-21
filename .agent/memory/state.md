@@ -4,8 +4,8 @@
 > cheap to read at the start of every session. History belongs in `decisions.md` and
 > `gotchas.md`; this file only answers "where am I right now?".
 
-**Last updated:** 2026-10-20
-**Branch:** `main` (commit straight to main and push). Phase 12 landed as the squash commit 9246bc4 (PR #1); `port/26x` is merged and kept until the owner deletes it. CI on every push (`ci.yml`: verifyAll + gitleaks + client GameTests headless per node, 2026-10-19); a release is a pushed `v<mod_version>` tag (`release.yml`, one jar per band); `wiki/` syncs to the GitHub wiki (`wiki.yml`). See decisions.md 11e.
+**Last updated:** 2026-10-21
+**Branch:** `main` only (owner 2026-10-21: as few branches as possible). `port/loaders` was fast-forwarded into main and deleted; commit straight to main and push. CI on every push (`ci.yml`: verifyAll + gitleaks + client GameTests headless per Fabric node); a release is a pushed `v<mod_version>` tag (`release.yml`); `wiki/` syncs to the GitHub wiki (`wiki.yml`). Agent skills/AGENTS.md come from `Wulfic/Minecraft-Template` (decisions.md "One branch (main)").
 
 ## Where we are
 Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA, CB, CC), 10cD (DA, DB), 10cE (EA, EB, EC), 10cF (FA, FB) and 10cG (GA, GB, GC) done: Phase 10c complete (TODO.md has each stage's notes; owner `runClient` checks still open, listed below).
@@ -126,33 +126,18 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
   in processResources (decisions.md "12E").
 
 ## What's next
-00. **Phase 13 (branch `port/loaders`), 2026-10-20.** Owner: 1.21.11 stays Fabric-only; 26.x bands get Quilt,
-    NeoForge, Forge. 13A done (126e7b8): Quilt passes 339/339 on 26.1.2/26.2/26.3 with the Fabric jars; MDG 2.0.148 +
-    FG 7.0.40 build beside loom-back-compat and apply mixins. 13B (`platform/` seam, Fabric only): `verifyAll`
-    green on the final tree (435 JUnit, 339 GameTests everywhere), client GameTests 1.21.11 green, 26.x running.
-    Owner rulings (decisions.md "Phase 13 owner rulings"): push `port/loaders` after each green stage; every jar
-    names its loader (`…+26.3-fabric.jar`); widen NeoForge/Forge B1 in 13F. 13C: C1a 3ab2af2; **26.3-neoforge green**
-    (verifyAll 2026-10-20: 438 JUnit, 339 GameTests on every node incl. `:26.3-neoforge`), committed as "13C 26.3".
-    `enchanting2:hello` done (owner: fix the mismatch gap now; 442 JUnit, 340 GameTests; live join = owner check).
-    13F naming done (owner: loader in the version, `1.1.0+26.3-neoforge`; tables have a column per loader).
-    **26.2-neoforge green** (9550c7d, loot modifier fixes, gotchas.md "NeoForge loot modifiers").
-    **26.1.2-neoforge green** (verifyAll 2026-10-20: 445 JUnit + 340 GameTests on all 7 nodes). **13C done.**
-    **13C committed 7e5baa1, pushed, CI dispatched (run 39495322387).**
-    **13D done 2026-10-20**: Forge nodes 26.1.2 / 26.2 / 26.3 (fd399bf groundwork, d9d1c1b 26.3, 0abf6a6 26.2,
-    then "13D 26.1.2"), all pushed; verifyAll 448 JUnit + 340 GameTests on all 10 nodes; CI green on d9d1c1b.
-    Decisions: "13D attachments", "13D owner rulings", "13D attachment storage", "13D seam changes"; gotchas
-    "Forge 26.3 dev runs..." and "Forge 26.3: access transformers...". Open: owner `runClient` checks on Forge
-    (TODO.md 13D). **13E in progress (2026-10-21, plan in TODO.md 13E: E1 model, E2 screen, E3 loader entries).**
-    Owner: full YACL mirror incl. search/Undo, Fabric falls back to our screen without YACL, one MC-free model
-    (decisions.md "13E owner rulings", "13E screen"). **E1 done**: `config/form/` (ConfigForms builds what both
-    screens show), YACL `ConfigScreen` draws from it; verifyAll 457 JUnit + 340 GameTests on all 10 nodes, client
-    GameTests 1.21.11 + 26.3 green. Next E2 (`client/config/FormScreen`; drafts in this session's scratchpad `e2/`),
-    then 13F (Quilt nodes, CI per loader, widen NeoForge/Forge B1), 13G release (owner confirms first).
-    Owner: 13E screen
-    mirrors YACL (decisions.md "third round").
+00. **Phase 13 (on `main`), 2026-10-20/21.** Owner: 1.21.11 stays Fabric-only *and current* (not frozen, unlike the
+    template's policy); 26.x bands get Quilt, NeoForge, Forge. Done: 13A spikes, 13B seam, 13C NeoForge ×3, 13D Forge
+    ×3, 13F-names, **13E config screen** (E1 9ed8c91 model, E2 26905e7 `client/config/FormScreen` + Mod Menu
+    fallback, E3 894f632 NeoForge `IConfigScreenFactory` / Forge `ConfigScreenFactory`). verifyAll 2026-10-21: 463
+    JUnit + 340 GameTests on all 10 nodes + matrix 26.1 / 26.1.1. e4838d4: GameTest servers capped at 4 at once
+    (`gametest_max_parallel`; unbounded, the box ran out of commit memory, gotchas.md 2026-10-21) and the dev-server
+    smoke works on NeoForge/Forge (EULA + stdin); smoke green on 26.3, 26.3-neoforge, 26.3-forge.
+    **Next: 13F** (TODO.md): Quilt runtime nodes, `ci.yml` per loader, widen NeoForge/Forge B1 (NeoForge 26.1.0 /
+    26.1.1 betas, Forge 62/63 on the 26.1.2 jars). No PR any more. Then 13G release (owner confirms; template's
+    release gate: client world check + built jar on a real server, every band × loader, recorded in TODO.md).
+    Open owner checks: `runClient` on NeoForge + Forge (config screen, tooltips, HUD, panels, joins).
     **Only one session works this tree** (owner 2026-10-20); a second session's builds lock GameTest worlds (gotchas).
-    13B committed 7fdae70 and pushed (`origin/port/loaders`). `ci.yml` only triggers on main/PRs, so each stage's CI
-    is `gh workflow run ci.yml --ref port/loaders` until the PR is opened (13F, ask first).
 0. **v1.1.0 released 2026-10-19** (https://github.com/Wulfic/enchanting-2/releases/tag/v1.1.0): four jars,
    `enchanting2-1.1.0+{1.21.11,26.1-26.1.2,26.2,26.3}.jar`, from main 9246bc4. Phase 12 (12A–12G) done.
 1. **12H is process, not code** (TODO.md): a new Minecraft version gets `matrix/<v>/` on the nearest band's jar plus

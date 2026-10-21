@@ -46,7 +46,9 @@ Fabric/Quilt share a jar, NeoForge and Forge get their own; JUnit + **server Gam
 menu on Forge/NeoForge from something other than YACL. Decision record: decisions.md 2026-10-20 "Phase 13".
 
 Owner 2026-10-20, second round (decisions.md "Phase 13 owner rulings"):
-- **Push `port/loaders` after every green stage** so CI checks it; PR opened at 13F (ask first).
+- ~~Push `port/loaders` after every green stage; PR at 13F~~ **Superseded 2026-10-21:** `port/loaders` fast-forwarded
+  into `main` and deleted; Phase 13 continues on `main`, no PR (owner: as few branches as possible; decisions.md
+  "One branch (main)").
 - **Every jar names its loader, Fabric too:** `enchanting2-1.2.0+26.3-fabric.jar`, `…+1.21.11-fabric.jar`,
   `…+26.3-neoforge.jar`, `…+26.3-forge.jar`. Breaks the 1.1.0 naming on purpose: `release-collect.sh`,
   `ReleaseDocsTest`, README/wiki tables and CI artifact paths change in 13F. Node names stay as they are.
@@ -96,7 +98,8 @@ format change (json5 stays, so `docs/CONFIG.md` holds for every loader); Archite
 deletions, and they come back from git (`a071f7f` is the base). Everything else is additive (new nodes, packages,
 CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmation.
 
-**Work on branch `port/loaders`** (PR + squash, as Phase 12). Each stage = one commit, `verifyAll` green before it.
+**Work on `main`** (until 2026-10-21 on `port/loaders`, then fast-forwarded into main). Each stage = one commit,
+`verifyAll` green before it.
 
 - [ ] 13A — **Spikes, throwaway, nothing merged.** These decide whether the rest holds.
   - [x] A1. Quilt: run the 1.21.11 and 26.x Fabric jars' server GameTests on Quilt Loader 0.31.0-beta.4 + Fabric API
@@ -318,7 +321,7 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
       **26.1.2-forge green 2026-10-20** (Forge 26.1.2-64.1.5, packs 84 / 101, range 26.1.2 alone as NeoForge's):
       340/340 first run, no source change. verifyAll: 448 JUnit + 340 GameTests on all 10 nodes. **13D done** but the
       owner's Forge `runClient` checks above. CI on d9d1c1b green (run 39534737507).
-- [ ] 13E — **Config screen for NeoForge + Forge** on vanilla widgets (`client/config/`, drawn from the existing
+- [x] 13E — **Config screen for NeoForge + Forge** on vanilla widgets (`client/config/`, drawn from the existing
       `ConfigView` / drafts / `TabRows`; every option the YACL screen has, per DESIGN §1). Owner 2026-10-20: it
       mirrors the YACL screen (categories as tab rows, scrolling option list, per-option reset, Save / Cancel). Entry: NeoForge
       `IConfigScreenFactory`, Forge `ConfigScreenFactory`. JUnit on the model (an option missing from the screen fails),
@@ -351,6 +354,38 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
       - **E3 — NeoForge + Forge entries.** NeoForge `container.registerExtensionPoint(IConfigScreenFactory.class, …)`;
         Forge `ConfigScreenHandler.ConfigScreenFactory` (same record on Forge 62–66). README/wiki Requirements,
         CHANGELOG [Unreleased], `docs/CONFIG.md` if it names YACL. Proof: verifyAll; owner `runClient` on both.
+      **E1 done 2026-10-21** (9ed8c91): verifyAll 457 JUnit + 340 GameTests ×10; YACL client GameTests 1.21.11 + 26.3
+      unchanged. ConfigFormTest went red with one option removed.
+      **E2 built 2026-10-21:** `client/config/` (FormScreen, FormOptionList, RowButton, FormTabButton, FormWidgets),
+      `FormSearch` (+ JUnit), Mod Menu fallback, lang `enchanting2.config.gui.*`. `FormScreenClientGameTest` green on
+      1.21.11 / 26.1.2 / 26.2 / 26.3 (red when Esc closed with a change pending). Screenshots matched YACL's except a
+      search-result header drawn disabled: now a normal header, matches start open and can be closed.
+      **E3 built 2026-10-21:** NeoForge `IConfigScreenFactory` in `NeoForgeClientEntrypoint(ModContainer)`; Forge
+      `ConfigScreenFactory` in `ForgeClientEntrypoint.init(FMLJavaModLoadingContext)` (ForgeEntrypoint passes its
+      context by reflection; `ModIdentityTest.forgeClientEntryPointTakesTheLoadingContext` guards the signature, red
+      with the old `init()`). Docs: README, CHANGELOG, docs/CONFIG.md, DESIGN §1/§2, wiki FAQ/Home/Installation.
+      **verifyAll red twice on E2/E3 (2026-10-21): not the code.** A different pair of GameTest JVMs died each run
+      (26.1.2-neoforge + 26.2-forge, then 26.1.2-forge + matrix-26.1.1); the second run's log says "insufficient
+      memory for the Java Runtime Environment" (G1 heap mmap) in both. Rerun alone, the first pair passed 340/340.
+      `org.gradle.parallel` starts all 11 GameTest servers at once (commit limit 41 GB, 12 GB free at idle).
+      Fix (Tier 1, build only): a root build service `gameTestServers` (`stonecutter.gradle`, `maxParallelUsages` =
+      `gametest_max_parallel`, default 4) that every GameTest run task `usesService` (`gradle/gametest-report.gradle`).
+      Proof: verifyAll green; the log shows no more than 4 GameTest servers overlapping.
+      Blast radius: none (build scheduling only). Rollback: revert the two script edits.
+      **Done 2026-10-21:** verifyAll green (463 JUnit + 340/340 GameTests on all 10 nodes and matrix 26.1 / 26.1.1;
+      12 GameTest runs, at most 4 overlapping, no memory errors). `-Pgametest_max_parallel=0` refuses at configuration.
+      **Dev-server smoke on NeoForge/Forge (rung 3, new template rule, 2026-10-21):** `NODE=26.3-forge|26.3-neoforge
+      scripts/dev-server-smoke.sh` both exit 1, neither a mod fault: Forge stops at "You need to agree to the EULA"
+      (only build.gradle had `acceptDevServerEula`), NeoForge reaches `Done (` but never reads `stop` (Loom forwards
+      stdin to the game; MDG's `RunGameTask` and Forge's `JavaExec` don't). Fix: `acceptDevServerEula` moves to
+      `gradle/common.gradle` for every loader (writes only when absent, as before); NeoForge/Forge `runServer` get
+      `standardInput = System.in`. The server-generated `run/26.3-forge/server/eula.txt` (`eula=false`, disposable,
+      git-ignored) is deleted once by hand so the task writes it. Proof: both smokes exit 0 with the init line.
+      Blast radius: that one generated file. Rollback: revert the two script edits.
+      **Done 2026-10-21:** `NODE=26.3-forge`, `26.3-neoforge`, `26.3` `scripts/dev-server-smoke.sh` all exit 0 ("OK":
+      `Done (`, init line, no enchanting2 ERROR, clean stop); verifyAll green again on the final tree.
+      **13E done 2026-10-21**: E2 26905e7, E3 894f632, build fixes e4838d4. Open: owner `runClient` checks on NeoForge
+      and Forge (Owner checks below).
       **Not doing:** replacing YACL on Fabric when it's installed; YACL on NeoForge; client GameTests on
       NeoForge/Forge; any new option or config-format change; YACL's restart prompt (no option needs a restart).
       **Blast radius:** E1 rewrites how `ConfigScreen` builds YACL (edits; back from git at `ae17c11`); the save path
@@ -385,8 +420,7 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
       `ModIdentityTest`, `ReleaseDocsTest`; README / wiki Installation tables per loader; CHANGELOG [Unreleased].
 - [ ] 13G — **Release 1.2.0.** Owner confirms first (outward-facing). Tag, ten jars, mod pages list the loaders.
 
-**Rollback:** before merge, delete the branch (`git branch -D port/loaders`, after checking it's merged or unwanted).
-After merge, `git revert <squash commit>`. A bad release is fixed by a patch release, never by deleting tags.
+**Rollback:** `git revert` the stage's commit(s) on main (Phase 13 is per-stage commits, no squash). A bad release is fixed by a patch release, never by deleting tags.
 
 ## Session 2026-10-19 — cleanup, client GameTest flake, client GameTests in CI (Tier 1 → 2 for CI)
 
@@ -844,6 +878,12 @@ GameTest API changes in the gametest source set (it must also compile against th
 In-game checks only the owner can do, collected from Phases 1–11f. Each one was GameTested where a test could reach it;
 these cover look, feel and real clients. Superseded checks (the old side panels, `anvil.show_preview_panel`) are gone.
 
+- [ ] **13E config screen on NeoForge and Forge:** `./gradlew :26.3-neoforge:runClient` and `:26.3-forge:runClient`,
+      Mods → Enchanting 2 → Config. It should match the YACL screen (Fabric `runClient`): tabs in two rows, each tab's
+      options, a group opens, search "sharp", Esc with a change says "Save before exiting!", Save writes
+      `config/enchanting2/common.json5` (+ `.bak`), Done goes back to the mod list. Also once on Fabric with YACL
+      moved out of the dev run: Mod Menu's button opens our screen. Fabric's client GameTest already drives the screen
+      itself (`FormScreenClientGameTest`, screenshots `form-screen-*`).
 - [ ] **1.0.1 jar with Elytra Slot (11f):** put `enchanting2-1.0.1.jar` in the Prism instance and hold jump with the
       Flight elytra in Elytra Slot's slot (thrust, Speed, the durability bar).
 - [ ] **Basics (1.6, 2B.9, 2C.7, 4A.7, 3B.6):** `runClient` to the title screen; a singleplayer world opened to LAN,
