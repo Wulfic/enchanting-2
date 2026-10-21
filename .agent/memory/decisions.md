@@ -1810,3 +1810,18 @@ repo-specific layer every tool loads.
 **Rejected:** squash-merging Phase 13 so far (loses the per-node commits that each record a green node); freezing
 1.21.11 with the node kept or dropped (owner chose neither: `vcsVersion` is 1.21.11 and the band still ships).
 **Affects:** AGENTS.md, .github/copilot-instructions.md, .claude/, .github/skills/, branches
+
+## 2026-10-21 — 13F proof: NeoForge/Forge 26.1.x claims by a real-server boot check, not GameTests
+**Context:** 13F was to widen the NeoForge/Forge 26.1.2 jars to 26.1 / 26.1.1 by running their GameTests there, as
+the Fabric matrix does. Read from the NeoForge 26.3.0.95 and Forge 26.3-66.0.13 sources: production servers never
+run GameTests (`isGametestEnabled()` / `isGametestServer()` both require `!isProduction()`), and ModDevGradle /
+ForgeGradle pin one loader version per node (Forge 62/63 are separate majors).
+**Choice (owner, 2026-10-21):** a real-server boot check: install the real loader server, add the built jar, boot,
+run committed fingerprint commands, stop cleanly (`scripts/server_boot_check.py`, from the-continent's
+`tools/server_smoke.py`). Green widens the claim. The same harness is the template's release-gate rung 6. Quilt keeps
+the full server GameTests on its production server (13A1 proved that path).
+**Why:** it's needed for 1.2.0 anyway, it tests the artifact players download, and it doesn't depend on dev
+toolchains supporting old loader versions.
+**Rejected:** spiking dev-runtime GameTest nodes per NeoForge/Forge version (strongest proof, unproven feasibility);
+not widening at all.
+**Affects:** TODO.md 13F, scripts/

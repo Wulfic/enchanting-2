@@ -48,7 +48,10 @@ menu on Forge/NeoForge from something other than YACL. Decision record: decision
 Owner 2026-10-20, second round (decisions.md "Phase 13 owner rulings"):
 - ~~Push `port/loaders` after every green stage; PR at 13F~~ **Superseded 2026-10-21:** `port/loaders` fast-forwarded
   into `main` and deleted; Phase 13 continues on `main`, no PR (owner: as few branches as possible; decisions.md
-  "One branch (main)").
+  "One branch (main)"). Pushed main a071f7f..467e0d1, then deleted (all already in main, checked with
+  `merge-base --is-ancestor`; `ls-remote` shows only main): `port/loaders` (local cba2589, remote 9ed8c91) and
+  `ci/client-gametests` (local a071f7f, remote 4e1659c). Undo: `git push origin cba2589:refs/heads/port/loaders`,
+  `git push origin 4e1659c:refs/heads/ci/client-gametests`.
 - **Every jar names its loader, Fabric too:** `enchanting2-1.2.0+26.3-fabric.jar`, `…+1.21.11-fabric.jar`,
   `…+26.3-neoforge.jar`, `…+26.3-forge.jar`. Breaks the 1.1.0 naming on purpose: `release-collect.sh`,
   `ReleaseDocsTest`, README/wiki tables and CI artifact paths change in 13F. Node names stay as they are.
@@ -418,6 +421,40 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
 - [ ] 13F — **Build, CI, release plumbing:** `verifyAll` covers every node + Quilt nodes; `ci.yml` jobs per loader;
       jar names carry the loader (proposed `enchanting2-1.2.0+26.3-neoforge.jar`; Fabric names unchanged); `release-collect.sh`,
       `ModIdentityTest`, `ReleaseDocsTest`; README / wiki Installation tables per loader; CHANGELOG [Unreleased].
+      **Plan (2026-10-21).** Fact that changed it (NeoForge 26.3.0.95 / Forge 26.3-66.0.13 sources): production servers
+      never run GameTests (`GameTestHooks.isGametestEnabled()` and `ForgeGameTestHooks.isGametestServer()` both start
+      with `!isProduction()`), and MDG/FG pin one loader version per node. **Owner 2026-10-21: NeoForge 26.1.0/26.1.1
+      and Forge 62/63 claims are proven by a real-server boot check**, not GameTests (decisions.md "13F proof"). Quilt
+      keeps full GameTests (13A1 ran them on a production Quilt server). The same harness is the template's release-gate
+      rung 6 (built jar on a real server, every band × loader) that 13G needs.
+      - F1. `scripts/server_boot_check.py`, from the owner's `the-continent/tools/server_smoke.py` (installs Fabric /
+        Quilt / NeoForge / Forge servers from official metadata; Forge Maven needs a User-Agent). Args: `--loader`,
+        `--minecraft`, `--loader-version`, `--mod JAR…`, `--work EMPTY_DIR` (refuses a non-empty one), `--commands FILE`
+        (same directives as `dev-server-smoke.sh`: `@expect`, `@allow-error`, `#`), `--gametests JAR` (Fabric/Quilt on
+        26.x only: adds `fabric-gametest-api-v1` from the fabric-api POM, `-Dfabric-api.gametest`, absolute report path,
+        game dir ending `build/run/gameTest`; gotchas.md 13A1). `server-port=25567` written before the first start;
+        refuses if 25567 is listening. Verdict from the log, never the exit code: `Done (`, init line, no
+        `(/|\[)(ERROR|FATAL)\]` line outside `@allow-error`, every `@expect`, `stop` → exit 0. **Exit 0 proven · 1 mod
+        bad · 2 nothing proven** (download / installer / port). `--self-test` feeds synthetic logs both ways, one with an
+        ERROR line. Never kills a process (stop on stdin, timeout, then report exit 2 and the PID).
+      - F2. `scripts/checks/boot.txt`: the fingerprint (init line; the enchantment-load hook's default max-level lines;
+        `reload` → "Reloaded … common.json5"). Checked against a revert: run once on a jar with the registry mixin left
+        out (scratch build) and watch it go red.
+      - F3. `scripts/boot-matrix.txt` (loader, Minecraft, loader version, jar node; pins dated from official metadata)
+        and `scripts/boot-all.sh` (sequential, one table, exit = worst). Rows: each shipped node on its own version and
+        loader (Fabric ×4, NeoForge ×3, Forge ×3), Fabric on matrix 26.1 / 26.1.1, NeoForge 26.1.0 / 26.1.1 (betas) and
+        Forge 62 / 63 on the 26.1.2 jars, Quilt (latest Loader) on 26.1.2 / 26.2 / 26.3 with `--gametests`.
+      - F4. Claims: a green NeoForge/Forge 26.1.x row widens that jar's band (`common.gradle` reads the boot matrix's green
+        rows next to `matrix/*`; `minecraft_dependency` must admit them, as `ModIdentityTest` already checks); red rows
+        stay listed as unsupported in the plan, not in the tables. Quilt green → "Fabric / Quilt" for 26.x in README +
+        wiki (1.21.11 stays Fabric-only). `ReleaseDocsTest` follows.
+      - F5. `ci.yml`: `build` split per loader (verifyAll gets `-Ploaders=<list>`, refusing an empty or unknown list), a
+        `boot` job running `boot-all.sh` on the built jars (uploads each `smoke.log`), client jobs stay Fabric.
+      - F6. Docs: README / wiki / CHANGELOG [Unreleased], `state.md`, gotchas per loader surprise.
+      **Not doing:** GameTests on production NeoForge/Forge; Quilt on 1.21.11; QSL; the client world check (rung 5,
+      13G); widening without a green row.
+      **Blast radius:** additive (scripts, a CI job, docs). Work dirs are new scratch dirs under `build/boot/` (refused
+      unless empty). Nothing in the owner's saves or instances. Rollback: revert the commits.
 - [ ] 13G — **Release 1.2.0.** Owner confirms first (outward-facing). Tag, ten jars, mod pages list the loaders.
       In the release commit: remove the "Until 1.2.0 is released" notes from README.md, wiki/Installation.md and
       wiki/Home.md (owner 2026-10-21: main is pushed, and with it the wiki, before 1.2.0 ships).
