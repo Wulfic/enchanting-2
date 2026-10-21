@@ -1,6 +1,6 @@
-// Shared by every loader's node script (Phase 13C): build.gradle (Fabric, Loom) and build.neoforge.gradle. Only what
-// doesn't depend on the loader's Gradle plugin: Minecraft renames, the band version, resource expansion, the 26.3 data
-// upgrade, Java level and the JUnit task. Applied at the end of each node script.
+// Shared by every loader's node script (Phase 13C/13D): build.gradle (Fabric, Loom), build.neoforge.gradle and
+// build.forge.gradle. Only what doesn't depend on the loader's Gradle plugin: Minecraft renames, the band version,
+// resource expansion, the 26.3 data upgrade, Java level and the JUnit task. Applied at the end of each node script.
 
 // Pure renames between band A (1.21.11) and band B (26.x), applied to every source file when Stonecutter generates a
 // node's sources. A rename that needs more than a name change gets a //? condition or a port/ adapter instead.
@@ -153,6 +153,12 @@ if (modLoader == 'neoforge' && neoforgeDependency.isEmpty()) {
     throw new GradleException("${project.relativePath(file('gradle.properties'))} must declare neoforge_dependency=" +
         "<Maven range>, e.g. neoforge_dependency=[26.3.0.95,26.4)")
 }
+// mods.toml's Forge range; only Forge nodes declare it (Phase 13D).
+def forgeDependency = project.findProperty('forge_dependency')?.toString()?.trim() ?: ''
+if (modLoader == 'forge' && forgeDependency.isEmpty()) {
+    throw new GradleException("${project.relativePath(file('gradle.properties'))} must declare forge_dependency=" +
+        "<Maven range>, e.g. forge_dependency=[66.0.13,67)")
+}
 // band: 'A' = obfuscated 1.21.11, 'B' = 26.x. A mixin that only one band needs is listed inside
 // <% if (band == 'A') { %>...<% } %> in its *.mixins.json (Groovy template, expanded with the values below); one that
 // follows a later game change gets a flag named for that change (fuel_component); one for one loader tests `loader`.
@@ -160,9 +166,13 @@ def resourceValues = [
     version             : project.version.toString(),
     loader              : modLoader,
     neoforge_dependency : neoforgeDependency,
+    forge_dependency    : forgeDependency,
     band                : sc.current.parsed.matches('>=26.1') ? 'B' : 'A',
     minecraft_dependency: project.minecraft_dependency.toString().trim(),
     java_version        : javaLevel.toString(),
+    // The mixin configs' compatibilityLevel. Forge's Mixin 0.8.7 knows no JAVA_25 and refuses the config; JAVA_21 still
+    // applies our Java 25 classes there (gotchas.md 2026-10-20 "Forge's Mixin 0.8.7").
+    mixin_java_level    : modLoader == 'forge' ? Math.min(javaLevel, 21).toString() : javaLevel.toString(),
     // 26.2 keys entity predicates by sub-predicate ID: {"type": "minecraft:zombie"} became
     // {"minecraft:entity_type": "minecraft:zombie"} (vanilla's charged_creeper/root.json changed the same way).
     entity_type_predicate: sc.current.parsed.matches('>=26.2') ? 'minecraft:entity_type' : 'type',
@@ -171,7 +181,7 @@ def resourceValues = [
 ]
 // The pattern list is an input too: Gradle doesn't fingerprint the filesMatching closure, so without it an edited list
 // leaves processResources UP-TO-DATE with stale output (gotchas.md 2026-10-14).
-def expandedResources = ['fabric.mod.json', 'META-INF/neoforge.mods.toml', '*.mixins.json',
+def expandedResources = ['fabric.mod.json', 'META-INF/neoforge.mods.toml', 'META-INF/mods.toml', '*.mixins.json',
     'data/enchanting2/loot_table/beheading/heads.json']
 tasks.withType(ProcessResources).configureEach {
     inputs.properties resourceValues
@@ -189,7 +199,9 @@ tasks.withType(ProcessResources).configureEach {
 // an upgraded copy. Fails the build on a file it can't read rather than shipping it unchanged.
 def upgradeLootFormat = sc.current.parsed.matches('>=26.3')
 // loot_modifiers: NeoForge's (13C). Its LootModifier codec moved to the same shape in 26.3 (one optional "condition").
-def upgradedDataDirs = ['loot_table', 'enchantment', 'predicate', 'item_modifier', 'loot_modifiers']
+// Forge 26.3's did not (still a required "conditions" array, 13D), so Forge nodes ship that folder as written.
+def upgradedDataDirs = ['loot_table', 'enchantment', 'predicate', 'item_modifier'] +
+    (modLoader == 'neoforge' ? ['loot_modifiers'] : [])
 tasks.withType(ProcessResources).configureEach {
     inputs.property 'upgradeLootFormat', upgradeLootFormat
     inputs.property 'upgradedDataDirs', upgradedDataDirs

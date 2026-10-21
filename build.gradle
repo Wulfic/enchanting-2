@@ -149,7 +149,8 @@ dependencies {
 // The other loaders' code stays out of the Fabric nodes (Phase 13C; PlatformImportsTest keeps every loader API inside
 // its own platform/<loader>/ package). Their resources live in src/<loader>/resources, which only their nodes read.
 sourceSets.configureEach {
-    java.exclude '**/platform/neoforge/**', '**/platform/forge/**', '**/mixin/neoforge/**', '**/mixin/forge/**'
+    java.exclude '**/platform/neoforge/**', '**/platform/forge/**', '**/platform/forgelike/**', '**/mixin/neoforge/**',
+        '**/mixin/forge/**', '**/mixin/forgelike/**'
 }
 
 // Minecraft renames, band version, resources, Java and JUnit: the same for every loader (gradle/common.gradle).

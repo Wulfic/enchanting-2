@@ -2,6 +2,7 @@ package com.wulfnet.enchanting2.shield;
 
 import com.wulfnet.enchanting2.Enchanting2;
 import com.wulfnet.enchanting2.platform.Services;
+import java.util.function.Supplier;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -22,7 +23,7 @@ public final class BulwarkEffect extends MobEffect {
 	/** Vanilla Absorption's color. */
 	private static final int COLOR = 0x2552A5;
 
-	private static Holder<MobEffect> holder;
+	private static Supplier<Holder<MobEffect>> holder;
 
 	private BulwarkEffect() {
 		super(MobEffectCategory.BENEFICIAL, COLOR);
@@ -33,7 +34,7 @@ public final class BulwarkEffect extends MobEffect {
 		if (holder == null) {
 			throw new IllegalStateException("BulwarkEffect.register() hasn't run");
 		}
-		return holder;
+		return holder.get();
 	}
 
 	/** Registers the effect. Call once from mod init. */

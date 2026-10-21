@@ -4,8 +4,10 @@
 // jar, a wrong entrypoint, a GameTest class left out of fabric.mod.json) also exits 0. verifyReport reads the file.
 def gameTestReport = new File(layout.buildDirectory.get().asFile.canonicalFile, 'gametest-report.xml')
 
-// Fabric's runner takes the file as a property; NeoForge's GameTest server is vanilla's GameTestMainUtil, whose
-// --report writes the same JUnit-style XML (Phase 13C). Exactly one of the two run systems is on a node.
+// Fabric's runner takes the file as a property; NeoForge's and Forge's GameTest servers are vanilla's GameTestMainUtil,
+// whose --report writes the same JUnit-style XML (Phase 13C/13D). Exactly one of the run systems is on a node.
+// The task that runs the server: on Forge, the one build.forge.gradle names (runGameTest is an alias there).
+def gameTestRunTask = 'runGameTest'
 if (project.extensions.findByName('loom') != null) {
     loom.runs.matching { it.name == 'gameTest' }.configureEach {
         property 'fabric-api.gametest.report-file', gameTestReport.absolutePath
@@ -15,8 +17,13 @@ if (project.extensions.findByName('loom') != null) {
         programArgument '--report'
         programArgument gameTestReport.absolutePath
     }
+} else if (project.findProperty('mod_loader') == 'forge') {
+    minecraft.runs.matching { it.name == 'gameTestServer' }.configureEach {
+        args '--report', gameTestReport.absolutePath
+    }
+    gameTestRunTask = project.forge_game_test_run_task
 } else {
-    throw new GradleException("${project.path}: gametest-report.gradle needs Loom or ModDevGradle runs")
+    throw new GradleException("${project.path}: gametest-report.gradle needs Loom, ModDevGradle or ForgeGradle runs")
 }
 
 def checkGameTestReport = tasks.register('checkGameTestReport') {
@@ -41,7 +48,8 @@ def checkGameTestReport = tasks.register('checkGameTestReport') {
         }
     }
 }
-tasks.named('runGameTest') {
+// matching, not named: ForgeGradle registers its run tasks after this script has run.
+tasks.matching { it.name == gameTestRunTask }.configureEach {
     // A report left by an earlier run must never pass for this one. Logged, so a report that vanishes after a passing
     // run (once under a loaded verifyAll, gotchas.md 2026-10-20) shows whether this delete is what removed it.
     def deletePath = project.path

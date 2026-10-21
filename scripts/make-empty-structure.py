@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Writes the GameTest mod's empty structure template for the NeoForge nodes (Phase 13C).
+"""Writes the GameTest mod's empty structure template for the NeoForge and Forge nodes (Phase 13C/13D).
 
 Fabric's GameTest API ships fabric-gametest-api-v1:empty as .snbt and loads it with its own mixin; a NeoForge datapack
-only loads binary .nbt structures, so the NeoForge GameTest mod carries the same template as
-src/neoforge/gametest/resources/data/enchanting2_gametest/structure/empty.nbt: 8x8x8, every block minecraft:air,
+only loads binary .nbt structures, so the NeoForge / Forge GameTest mod carries the same template as
+src/forgelike/gametest/resources/data/enchanting2_gametest/structure/empty.nbt: 8x8x8, every block minecraft:air,
 DataVersion 2730 like Fabric's (vanilla's data fixer upgrades it on load).
 
     python scripts/make-empty-structure.py            # rewrites the file
@@ -17,7 +17,7 @@ import struct
 import sys
 from pathlib import Path
 
-TARGET = Path(__file__).resolve().parent.parent / 'src/neoforge/gametest/resources/data/enchanting2_gametest/structure/empty.nbt'
+TARGET = Path(__file__).resolve().parent.parent / 'src/forgelike/gametest/resources/data/enchanting2_gametest/structure/empty.nbt'
 SIZE = 8
 DATA_VERSION = 2730
 

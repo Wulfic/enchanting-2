@@ -137,7 +137,22 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
     13F naming done (owner: loader in the version, `1.1.0+26.3-neoforge`; tables have a column per loader).
     **26.2-neoforge green** (9550c7d, loot modifier fixes, gotchas.md "NeoForge loot modifiers").
     **26.1.2-neoforge green** (verifyAll 2026-10-20: 445 JUnit + 340 GameTests on all 7 nodes). **13C done.**
-    **Now: 13D Forge, 26.3 first** (plan in TODO.md 13D). Owner: 13E screen
+    **13C committed 7e5baa1, pushed, CI dispatched (run 39495322387).**
+    **13D IN PROGRESS.** Plan: TODO.md 13D; decisions.md "13D attachments" + "13D owner rulings" (no hello on Forge;
+    Forge sees all client channels like Fabric). **Groundwork committed** (TODO.md 13D "Progress"): `Registration`
+    returns `Supplier<Holder<T>>`, `mixin/forgelike` + `platform/forgelike/EnchantmentLoad`, `src/forgelike/` empty.nbt;
+    verified on the 7 existing nodes. **Uncommitted, untested:** settings.gradle/stonecutter.gradle Forge plugin + node
+    `26.3-forge`, versions/26.3-forge/, build.forge.gradle, src/forge/ resources, platform/forge (ForgeBus, Entrypoint,
+    LoaderInfo, Registration, ServerEvents, DropsLootModifier, ItemHooks).
+    **Next:** ForgeAttachments (weak identity maps per attachment) + mixin/forge (Entity save/load, SerializableChunkData
+    parse/read/copyOf/write, LevelChunk(ProtoChunk) transfer; key `enchanting2:attachments`; Clone copy; owner sync
+    payload), ForgeNetworking (one optional payload channel, a child per payload, built at common setup — Forge locks the
+    network registry after FREEZE_DATA; canSend = `NetworkContext.get(conn).getRemoteChannels()`; config task from
+    `GatherLoginConfigurationTasksEvent` at lowest priority), client classes, Services/ClientServices `//? else if
+    forge`, ForgeGameTests (shared discovery; instances as an in-memory datapack — the GameTest server enables every
+    available pack), TestPlatform forge branches. Forge sources: scratchpad 7f5be36b.../forge-src (Forge + patches),
+    e3bcfb9d.../mc-src (vanilla 26.3).
+    Owner: 13E screen
     mirrors YACL (decisions.md "third round").
     **Only one session works this tree** (owner 2026-10-20); a second session's builds lock GameTest worlds (gotchas).
     13B committed 7fdae70 and pushed (`origin/port/loaders`). `ci.yml` only triggers on main/PRs, so each stage's CI

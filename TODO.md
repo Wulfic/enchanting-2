@@ -231,8 +231,67 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
       Owner check later (13E/C7): `runClient` on NeoForge (tooltips, HUD, table/anvil/grindstone panels, joining a
       vanilla server gets our message; singleplayer and a `runServer` join both reach the world, not stuck at
       "Joining world" — that is the hello round trip).
-- [ ] 13D — **Forge nodes** 26.1.2, 26.2, 26.3: `mods.toml`, `platform/forge` (capabilities for attachments, its
-      payload channel, Forge events). Same proof.
+- [ ] 13D — **Forge nodes** 26.1.2, 26.2, 26.3: `mods.toml`, `platform/forge`, Forge events. Same proof: JUnit +
+      340 server GameTests on each node, log free of foreign ERRORs.
+      **Plan (2026-10-20, read from the Forge 26.3-66.0.13 sources jar, not docs):** Forge 26.x = EventBus 7 (static
+      `XEvent.BUS` per game event; mod-bus events via `XEvent.getBus(context.getModBusGroup())`), still capabilities,
+      `ChannelBuilder` networking, `GatherLoginConfigurationTasksEvent`, `GatherComponentsEvent.Item`,
+      `IGlobalLootModifier` with the **old** list file (`data/forge/loot_modifiers/global_loot_modifiers.json`, condition
+      array like NeoForge 26.2), `ItemTooltipEvent`, `AddGuiOverlayLayersEvent`. What differs from the 13C design:
+      - **Attachments are ours, not capabilities.** Forge 26.3 never saves chunk capabilities (`LevelChunk.writeCapsToNBT`
+        has no caller in any patch, and `ChunkDataEvent.Load` is never posted), and `PlacedMarks` lives on chunks. So
+        Forge-only mixins (`mixin/forge/`) hold a value map on `Entity` and `ChunkAccess`, saved under one key
+        `enchanting2:attachments` (raw codec values, as Fabric), modelled on Fabric API's data-attachment mixins:
+        entity save/load, `SerializableChunkData` copyOf/write/parse/read, ProtoChunk → LevelChunk hand-over.
+        `copyOnDeath` / End return in `PlayerEvent.Clone`; `ownerSync` (Last Stand) by our own S2C payload, sent on
+        set and on join/respawn/dimension change. decisions.md "13D attachments".
+      - **GameTest instances have no runtime API** (Forge's `ForgeGameTestHooks.gatherTests` exists but nothing calls
+        it; `test_instance` is a datapack registry and Forge has no `RegisterGameTestsEvent`). Test *functions* go in
+        through `RegisterEvent` as on NeoForge; *instances* as an in-memory datapack from `AddPackFindersEvent` holding
+        one `test_instance/<id>.json` per test, encoded from the annotation. Spike that first (D6a); fallback is a
+        build-time generator writing the same JSON into the gametest resources. Discovery (class list, validation,
+        IDs, environment check) moves out of `NeoForgeGameTests` into a loader-neutral `GameTestDiscovery`, shared.
+      - D1. Build: `build.forge.gradle` (FG 7.0.40, from the spike + build.neoforge.gradle's source sets/excludes,
+        `run_root`, port 25566, `clearGameTestRunDir`, `check` → `runGameTest`, `--report`); `stonecutter.gradle`
+        adds the FG plugin `apply false` + Forge plugin repo; `settings.gradle` `vers('26.3-forge', '26.3')`; node
+        `gradle.properties` (`forge_version`, `forge_dependency`, `minecraft_dependency`); `common.gradle` requires
+        `forge_dependency` on Forge, expands `META-INF/mods.toml`; mixin `compatibilityLevel` `JAVA_21` on Forge
+        (gotchas.md "Forge's Mixin 0.8.7"), `MixinConfigs` manifest + `--mixin.config` run args.
+        Resources in `src/forge/resources` (`META-INF/mods.toml`, loot modifier list + `drops.json`) and
+        `src/forge/gametest/resources` (GameTest mod toml, `empty.nbt`). Mod IDs: `enchanting2`, `enchanting2_gametest`.
+      - D2. `platform/forge`: `ForgeEntrypoint` (`@Mod`, `FMLJavaModLoadingContext`), `ForgeBus` (mod BusGroup, set
+        before init, as `NeoForgeBus`), `ForgeLoaderInfo`, `ForgeRegistration` (`RegisterEvent`, holder bound after),
+        `ForgeServerEvents` (`ServerAboutToStartEvent`, `ServerStoppedEvent`, `OnDatapackSyncEvent`, `TickEvent`
+        server post, `EntityJoinLevelEvent`, `PlayerEvent.Clone`), `ForgeItemHooks` (`GatherComponentsEvent.Item`;
+        `acceptsEnchantment` by Forge's own rule), `ForgeAttachments` (above), `ForgeNetworking` (one optional
+        `ChannelBuilder` payload channel per direction or per payload — whichever lets `hasChannel` work per type;
+        configuration task from `GatherLoginConfigurationTasksEvent` at lowest priority; **no hello** (owner 2026-10-20:
+        Forge keeps every client channel, as Fabric; decisions.md "13D owner rulings")).
+      - D3. Drops: `platform/forge/DropsLootModifier` (codec in Forge's `GLOBAL_LOOT_MODIFIER_SERIALIZERS`).
+      - D4. Enchantment load: Forge's `ResourceManagerRegistryLoadTask.load` lambda still does `new PendingRegistration`
+        (with its conditions wrapper), so the NeoForge mixin should apply unchanged: list it for `loader != 'fabric'`
+        and move it to a shared `mixin/forgelike/` package if it does (lambda name checked by javap on Forge's jar).
+      - D5. Client: `ForgeClientEntrypoint`, `ForgeClientNetworking`, `ForgeClientHooks`. No config screen (13E).
+      - D6. GameTests: D6a spike above; then `ForgeGameTests` (`@Mod enchanting2_gametest`), `TestPlatform` Forge
+        branches (dist, attachments key, `FakePlayerFactory`, `BlockEvent.BreakEvent`).
+      - D7. Run the 340 on 26.3-forge; each failing mixin or test its own fix (budget 3 per failure), behind
+        `//? if forge` or the seam. Then 26.2-forge and 26.1.2-forge, README / wiki / CHANGELOG / release notes rows.
+      **Not doing:** capabilities; a Forge config screen (13E); client GameTests on Forge; Forge 62/63 runtime nodes
+      (13F); filing the chunk-capability issue upstream without the owner's go-ahead.
+      **Blast radius:** additive (new nodes, `platform/forge`, `mixin/forge`, resources) except edits to
+      `NeoForgeGameTests` (discovery moved out, NeoForge's 340 guard it), `mixins.json`, `common.gradle`,
+      `stonecutter.gradle`, `settings.gradle` — all git-restorable. Rollback: revert the 13D commit(s); one per node.
+      **Progress 2026-10-20:** shared groundwork committed on its own ("13D groundwork"): `Registration.register` returns
+      `Supplier<Holder<T>>` (Forge's `RegistryObject` binds its holder only after `RegisterEvent`); the enchantment-load
+      mixin + accessor moved `mixin/neoforge` → `mixin/forgelike`, its modifier list → `platform/forgelike/EnchantmentLoad`
+      (listed for `loader != 'fabric'`; Fabric excludes both `forgelike` packages); `empty.nbt` → `src/forgelike/`;
+      mixin `compatibilityLevel` from `mixin_java_level`; `gametest-report.gradle` Forge branch. Proof: verifyAll with
+      `:26.3-forge:build` skipped — 340/340 GameTests on all 7 nodes + matrix 26.1 / 26.1.1, JUnit 444/445 where the one
+      red is `ReleaseDocsTest` seeing the uncommitted `versions/26.3-forge/` (it lists nodes from `versions/`; the
+      committed tree has no such node).
+      Attachments as built: per attachment, a Guava weak-keys (identity) map holder → value, not a mixin field: typed
+      without casts, thread-safe for off-thread chunk reads, and identity-keyed (`Entity.equals` compares IDs, which a
+      singleplayer client and server share). Mixins only save/load/transfer.
 - [ ] 13E — **Config screen for NeoForge + Forge** on vanilla widgets (`client/config/`, drawn from the existing
       `ConfigView` / drafts / `TabRows`; every option the YACL screen has, per DESIGN §1). Owner 2026-10-20: it
       mirrors the YACL screen (categories as tab rows, scrolling option list, per-option reset, Save / Cancel). Entry: NeoForge

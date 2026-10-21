@@ -1700,3 +1700,47 @@ message names the exact file; a column per loader stays compact as loaders' band
 **Rejected:** loader in the file name only; one table per loader.
 **Affects:** gradle/common.gradle, ModIdentityTest, ReleaseDocsTest, scripts/release-collect.sh, release.yml, README,
 wiki/Installation.md
+
+## 2026-10-20 — 13D attachments: our own storage on Forge, not capabilities; GameTest instances as a datapack
+**Context:** 13D planned capabilities for Forge attachments. Forge 26.3-66.0.13's sources show chunk capabilities are
+never persisted: `LevelChunk.writeCapsToNBT` / `readCapsFromNBT` exist but no patch calls them, and
+`ForgeEventFactory.onChunkDataLoad` (`ChunkDataEvent.Load`) is never posted. `PlacedMarks` (Fortune's placed-block
+tracker) is a chunk attachment. Separately, Forge has no `RegisterGameTestsEvent`; `test_instance` is a datapack
+registry and `ForgeGameTestHooks.gatherTests` has no caller.
+**Choice:** (1) Forge-only mixins keep a value map on `Entity` and `ChunkAccess`, saved under `enchanting2:attachments`
+with raw codec values, modelled on Fabric API's data-attachment mixins (entity save/load, `SerializableChunkData`,
+ProtoChunk → LevelChunk). One mechanism for both holders. (2) Test functions via `RegisterEvent`; test instances as
+an in-memory datapack (`AddPackFindersEvent`) built from the annotations at startup, with a build-time JSON
+generator as the fallback if the GameTest server doesn't select that pack.
+**Why:** (1) a capability-backed chunk value would silently vanish on every chunk unload; entities alone on
+capabilities would mean two mechanisms plus Forge's revive-caps dance on clone. (2) keeps one runtime discovery path
+(`GameTestDiscovery`, shared with NeoForge) instead of committed or generated per-test JSON.
+**Rejected:** capabilities (chunk data lost); `getPersistentData()` for entities (no chunk counterpart, decode on
+every read); a mixin into the `test_instance` registry load (couples tests to loader internals more than a pack does).
+**Affects:** platform/forge/ForgeAttachments.java, mixin/forge/, src/gametest/.../platform/
+
+## 2026-10-20 — 13D owner rulings: no hello on Forge; don't file the chunk-capability bug upstream
+**Context:** the third-round ruling gave Forge the `enchanting2:hello` payload, on NeoForge's reasoning (NeoForge keeps
+only channels both sides share, so a mismatched client looks like one without the mod). Forge 26.x keeps every
+channel the client advertises (`NetworkContext.getRemoteChannels()`, filled from `forge:channel_registration`;
+the client re-sends its list whenever the server sends one, before it answers `ModVersionsTask`).
+**Choice (owner, 2026-10-20):** Forge judges joins from the client's full channel list, exactly like Fabric; no hello
+on Forge (NeoForge keeps it). Our configuration task is added at the lowest priority so it runs after Forge's own
+tasks, when that list is complete. The chunk-capability persistence bug (decisions "13D attachments") is noted in
+gotchas.md only; not filed upstream.
+**Why:** the versioned channel names (`v<N>/...`) already tell a mismatched client apart, so hello would add a
+configuration round trip for nothing.
+**Rejected:** hello on Forge too (uniform with NeoForge, but unneeded); filing the issue (owner may do it later).
+**Affects:** platform/forge/ForgeNetworking.java
+
+## 2026-10-20 — 13D attachment storage: a weak identity map per attachment, not a field on Entity / ChunkAccess
+**Context:** "13D attachments" planned a value map added to `Entity` and `ChunkAccess` by mixin. One map of mixed
+value types needs an unchecked cast per read (no suppressions here), chunks are read off the server thread, and
+`Entity.equals`/`hashCode` compare entity IDs, which a singleplayer client and server share.
+**Choice:** each `ForgeAttachments` attachment owns `new MapMaker().weakKeys().makeMap()` (Guava: concurrent, keys
+compared by identity, dropped with their holder). The mixins only save, load and hand values over (ProtoChunk →
+LevelChunk); `ImposterProtoChunk` is unwrapped with `getWrapped()` instead of a delegating mixin.
+**Why:** typed end to end, safe from worker threads, and no ID collisions between client and server entities.
+**Rejected:** a `@Unique` map field (casts, plus a delegating mixin for every chunk wrapper); `WeakHashMap` (uses
+`Entity.equals`, so a client entity and its server twin would share one slot).
+**Affects:** platform/forge/ForgeAttachments.java, mixin/forge/

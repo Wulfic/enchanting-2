@@ -1,4 +1,4 @@
-package com.wulfnet.enchanting2.mixin.neoforge;
+package com.wulfnet.enchanting2.mixin.forgelike;
 
 import java.util.List;
 import java.util.Map;
@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 /**
- * NeoForge only (Phase 13C): lets {@link ResourceManagerRegistryLoadTaskMixin} check that no enchantment modifier
+ * NeoForge and Forge only (Phase 13C/13D): lets {@link ResourceManagerRegistryLoadTaskMixin} check that no enchantment modifier
  * touched a builder's effects, which that hook doesn't carry over.
  */
 @Mixin(Enchantment.Builder.class)

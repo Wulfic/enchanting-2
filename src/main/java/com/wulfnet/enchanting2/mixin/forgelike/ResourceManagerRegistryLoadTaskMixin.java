@@ -1,4 +1,4 @@
-package com.wulfnet.enchanting2.mixin.neoforge;
+package com.wulfnet.enchanting2.mixin.forgelike;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -6,7 +6,7 @@ import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Lifecycle;
 import com.wulfnet.enchanting2.mixin.EnchantmentBuilderAccessor;
-import com.wulfnet.enchanting2.platform.neoforge.NeoForgeItemHooks;
+import com.wulfnet.enchanting2.platform.forgelike.EnchantmentLoad;
 import java.util.Map;
 import java.util.Optional;
 import net.minecraft.core.HolderGetter;
@@ -25,10 +25,12 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
 /**
- * NeoForge only (Phase 13C C4): its counterpart of Fabric API's {@code EnchantmentEvents.MODIFY_WITH_LOOKUP}, which
- * NeoForge lacks. Copied from Fabric item-api 14.1.0's own {@code ResourceManagerRegistryLoadTaskMixin}: each
- * enchantment decoded from a datapack goes through {@link NeoForgeItemHooks#modifyEnchantment} with the item lookup it
- * was parsed with. The lambda name was checked with javap on NeoForge 26.3.0.95's patched Minecraft.
+ * NeoForge and Forge only (Phase 13C C4, 13D D4): their counterpart of Fabric API's
+ * {@code EnchantmentEvents.MODIFY_WITH_LOOKUP}, which both lack. Copied from Fabric item-api 14.1.0's own
+ * {@code ResourceManagerRegistryLoadTaskMixin}: each enchantment decoded from a datapack goes through
+ * {@link EnchantmentLoad#modify} with the item lookup it was parsed with. The lambda name was checked with javap on
+ * NeoForge 26.3.0.95's and Forge 26.3-66.0.13's patched Minecraft (Forge's wraps the codec for its load conditions but
+ * still builds the {@code PendingRegistration} in the same lambda).
  *
  * <p>Our modifiers change only the definition and the exclusive set, so those two come from the builder and the
  * effects stay the JSON's; a modifier that touches effects fails the load rather than losing them. A changed
@@ -63,11 +65,11 @@ abstract class ResourceManagerRegistryLoadTaskMixin<T> extends RegistryLoadTask<
 			@Nullable HolderGetter<Item> items) {
 		Enchantment.Builder builder = Enchantment.enchantment(original.definition());
 		builder.exclusiveWith(original.exclusiveSet());
-		NeoForgeItemHooks.modifyEnchantment(key, builder, items);
+		EnchantmentLoad.modify(key, builder, items);
 		EnchantmentBuilderEffectsAccessor effects = (EnchantmentBuilderEffectsAccessor) builder;
 		if (!effects.enchanting2$getEffectLists().isEmpty() || !effects.enchanting2$getEffectMapBuilder().build().isEmpty()) {
 			throw new IllegalStateException("An Enchanting 2 modifier changed " + key.identifier() + "'s effects, which "
-					+ "the NeoForge enchantment hook doesn't carry over (ResourceManagerRegistryLoadTaskMixin)");
+					+ "the NeoForge / Forge enchantment hook doesn't carry over (ResourceManagerRegistryLoadTaskMixin)");
 		}
 		EnchantmentBuilderAccessor accessor = (EnchantmentBuilderAccessor) builder;
 		Enchantment.EnchantmentDefinition definition = accessor.enchanting2$getDefinition();

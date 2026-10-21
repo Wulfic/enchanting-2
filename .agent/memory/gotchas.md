@@ -934,3 +934,14 @@ GameTest log, 26.3 included, that no test had noticed (the drops still worked).
   failed on the stale list until then).
 - **Grep the NeoForge GameTest log for ERROR after a green run.** 340/340 doesn't mean a clean load.
 **Affects:** platform/neoforge/DropsLootModifier.java, src/neoforge/resources/data/
+
+## 2026-10-20 — Forge 26.3 never saves chunk capabilities; FG7 run tasks appear late
+- Forge 26.3-66.0.13: `LevelChunk.writeCapsToNBT` / `readCapsFromNBT` have no caller in any patch and
+  `ChunkDataEvent.Load` is never posted, so a chunk capability is lost on unload. Our Forge attachments use our own
+  mixin storage instead (decisions.md "13D attachments"). Owner: don't file upstream.
+- ForgeGradle 7 registers `run*` tasks after the build script: `tasks.named('runGameTestServer')` fails ("not
+  found"); use `tasks.matching { it.name == ... }`. It also makes one run task per source set
+  (`runGametestGameTestServer` = gametest classpath).
+- Forge has no runtime API for GameTest *instances* (`ForgeGameTestHooks.gatherTests` is unused); test_instance is a
+  datapack registry.
+**Affects:** build.forge.gradle, gradle/gametest-report.gradle, platform/forge/

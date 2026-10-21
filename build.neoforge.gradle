@@ -56,8 +56,10 @@ sourceSets.client.java.exclude fabricOnlyClient
 sourceSets.gametest.java.exclude fabricOnlyGameTests
 // NeoForge-only resources: neoforge.mods.toml and the global loot modifier that stands in for Fabric's MODIFY_DROPS.
 sourceSets.main.resources.srcDir rootProject.file('src/neoforge/resources')
-// ...and the GameTest mod's: its neoforge.mods.toml and the empty structure Fabric's API would provide.
+// ...and the GameTest mod's: its neoforge.mods.toml, and (shared with Forge) the empty structure Fabric's API would
+// provide.
 sourceSets.gametest.resources.srcDir rootProject.file('src/neoforge/gametest/resources')
+sourceSets.gametest.resources.srcDir rootProject.file('src/forgelike/gametest/resources')
 
 repositories {
     mavenCentral()
