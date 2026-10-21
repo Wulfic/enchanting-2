@@ -1,5 +1,6 @@
 package com.wulfnet.enchanting2.client;
 
+import com.wulfnet.enchanting2.client.config.FormWidgets;
 import com.wulfnet.enchanting2.config.form.ConfigForm;
 import com.wulfnet.enchanting2.config.form.ConfigForms;
 import com.wulfnet.enchanting2.config.form.FormCategory;
@@ -90,7 +91,7 @@ public final class ConfigScreen {
 				.available(option.editable());
 	}
 
-	static Component text(FormText text) {
-		return Component.translatable(text.key(), text.args().toArray());
+	private static Component text(FormText text) {
+		return FormWidgets.text(text);
 	}
 }
