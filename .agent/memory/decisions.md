@@ -1849,3 +1849,35 @@ production GameTests on each band). Quilt rows don't widen anything (the Fabric 
 **Rejected:** a separate "green rows" list written by the boot run (state the build would read from a run artifact);
 typing the widened range by hand without a row (nothing would hold it to a proof).
 **Affects:** gradle/common.gradle, src/test/.../Bands.java, BootMatrixTest.java, scripts/boot-matrix.txt, versions/26.1.2-forge
+
+## 2026-10-21 — 13G owner rulings (rung 5 on NeoForge/Forge, tag push, mod pages)
+**Context:** 1.2.0's release gate needs rung 5 (client creates + joins a world) on NeoForge and Forge, which have no
+client GameTest API; the tag push publishes a public GitHub release.
+**Choice:** (1) Rung 5 there = a gametest-side hook in the dev client (`:<node>:runClientBootCheck`): vanilla
+create-world flow, join, fingerprint, config screen, quit. (2) Tag push pre-authorized once every gate is exit 0 and
+recorded in TODO.md. (3) Modrinth/CurseForge pages are the owner's, by hand; we hand over the text.
+**Why:** scripted and repeatable on all six nodes; a headless-installed launcher client per loader is fragile for
+little extra signal (the built jar is already booted on real servers by rung 6).
+**Rejected:** built-jar client via installer `--installClient` + hand-built launch args; Modrinth upload in release.yml.
+**Affects:** TODO.md 13G, src/gametest/, build.neoforge.gradle, build.forge.gradle, scripts/
+
+## 2026-10-21 — 13G: Forge mod packs get a KnownPack (owner: fix the experimental-settings warning)
+**Context:** the client boot check on 26.3-forge stopped at vanilla's "Experimental settings" ConfirmScreen. Forge's
+`ResourcePackLoader` builds each mod pack's `PackLocationInfo` with `knownPackInfo = Optional.empty()`, and vanilla's
+`ResourceManagerRegistryLoadTask` gives entries from a pack with no KnownPack `Lifecycle.experimental()`: 52 of our
+entries (enchantments …) → `allRegistriesLifecycle` not stable → the warning on every new world. NeoForge names mod
+packs, so it never shows there; Fabric neither.
+**Choice (owner 2026-10-21):** fix it on Forge: a Forge-only mixin gives our own pack (`mod:enchanting2`) a KnownPack,
+as NeoForge does for every mod. Scoped to our pack id; nothing else changes.
+**Rejected:** accept + document (players would click through a scary warning every world); hold Forge back.
+**Affects:** src/main/java/.../mixin/forge/, enchanting2.mixins.json (Forge), ClientBootCheck's stable-registry guard
+
+## 2026-10-21 — 1.2.0 ships without the owner's manual NeoForge/Forge runClient checks
+**Context:** the owner's `runClient` checks on NeoForge/Forge (config screen, tooltips, HUD, panels, joins) were still
+open with every scripted gate green on the 1.2.0 tree.
+**Choice (owner, fifth round):** the scripted gates decide the tag; the manual checks stay open and anything they find
+goes into 1.2.1.
+**Why:** rung 5 (client boot + join on all six NeoForge/Forge nodes) and rung 6 (20/20 boot rows) already cover
+"creates and joins a world"; the manual checks look at feel and layout, which a patch release fixes.
+**Rejected:** holding the tag until the owner has played each loader.
+**Affects:** TODO.md 13G, release v1.2.0

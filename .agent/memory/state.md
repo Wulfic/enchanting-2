@@ -139,10 +139,20 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
     green; Forge B1 widened to 26.1–26.1.2; NeoForge 26.1.0/26.1.1 betas red (LootModifier API, gotchas) so NeoForge
     B1 stays 26.1.2; Quilt green on 26.x (340/340 production GameTests). ci.yml: build per loader (`-Ploaders`),
     `boot` job (shipped on push, all on dispatch). Committed 1826c34 + ed03d51, CI green on push (10 boot
-    rows) and on dispatch (20 rows). Next: **13G** (TODO.md draft; open question on what rung 5 means for
-    NeoForge/Forge): owner confirms the
-    release; scripted NeoForge/Forge client boot for rung 5 (owner 2026-10-21); release gate recorded in TODO.md.
-    Open owner checks: `runClient` on NeoForge + Forge (config screen, tooltips, HUD, panels, joins).
+    rows) and on dispatch (20 rows).
+    **13G (2026-10-21): every gate green on the 1.2.0 tree and recorded (TODO.md 13G session notes); committed in
+    four units. Resume: push main → CI green → push `v1.2.0` → release.yml 10 jars → mod-page text.** Owner rulings (decisions.md "13G owner rulings", "Forge mod packs get a
+    KnownPack"): rung 5 on NeoForge/Forge = dev-client hook (`scripts/client_boot_check.py`, `:<node>:runClientBootCheck`);
+    tag push pre-authorized once every gate is green and recorded; mod pages by the owner by hand (hand over text);
+    fix Forge's experimental-settings warning. Rung 5 found 3 defects, all fixed in the tree: NeoForge client crash
+    (`GuiGraphicsMixin` → `tooltip*`), NeoForge logoFile warning screen (`iconFile`), Forge experimental warning
+    (`ForgeKnownPacks` + `PackLocationInfoMixin`). **Evening:** whitelist fixed (vanilla 26.3 defaults
+    `white-list=true`); `--join` PASS on 26.3-forge and 26.3-neoforge; new GameTest
+    `BootGameTest.everyEntryOfOursLoadsStable`; G5 text done, `mod_version=1.2.0` in the tree. Gates on the 1.2.0 tree: verifyAll
+    exit 0 (341/341 ×10), client boot ×6 PASS, Fabric client GameTests ×4 exit 0, boot-all all 20/20, release dry run
+    10 jars.
+    Open owner checks: `runClient` on NeoForge + Forge (config screen, tooltips, HUD, panels, joins). Owner: they do
+    **not** block 1.2.0; findings go into 1.2.1.
     **Only one session works this tree** (owner 2026-10-20); a second session's builds lock GameTest worlds (gotchas).
 0. **v1.1.0 released 2026-10-19** (https://github.com/Wulfic/enchanting-2/releases/tag/v1.1.0): four jars,
    `enchanting2-1.1.0+{1.21.11,26.1-26.1.2,26.2,26.3}.jar`, from main 9246bc4. Phase 12 (12A–12G) done.

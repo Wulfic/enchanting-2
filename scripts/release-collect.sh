@@ -99,7 +99,15 @@ done
 needs=""
 for loader in $(printf '%s\n' "${loaders[@]}" | sort -u); do
 	case "$loader" in
-		fabric) needs+=$'\n'"- **Fabric:** [Fabric API](https://modrinth.com/mod/fabric-api) and Fabric Loader $(prop gradle.properties loader_version)+." ;;
+		fabric)
+			needs+=$'\n'"- **Fabric:** [Fabric API](https://modrinth.com/mod/fabric-api) and Fabric Loader $(prop gradle.properties loader_version)+."
+			# Quilt runs the Fabric jar where scripts/boot-matrix.txt has proven it (its quilt rows: Minecraft, loader).
+			quilt_mc=$(awk '$2 == "quilt" { print $3 }' scripts/boot-matrix.txt | sort -uV | paste -sd, - | sed 's/,/, /g')
+			quilt_loader=$(awk '$2 == "quilt" { print $4 }' scripts/boot-matrix.txt | sort -V | head -n1)
+			if [[ -n "$quilt_mc" ]]; then
+				needs+=$'\n'"- **Quilt** (Minecraft ${quilt_mc}): the Fabric jar, with Fabric API and Quilt Loader ${quilt_loader}+."
+			fi
+			;;
 		neoforge) needs+=$'\n'"- **NeoForge:** nothing else." ;;
 		forge) needs+=$'\n'"- **Forge:** nothing else." ;;
 	esac

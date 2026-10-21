@@ -81,10 +81,6 @@ on the [wiki](https://github.com/Wulfic/enchanting-2/wiki).
 
 ## Installing
 
-> **Until 1.2.0 is released:** the latest release, 1.1.0, is Fabric only, and its jars have no loader in the name
-> (`enchanting2-1.1.0+26.3.jar`). The NeoForge and Forge jars, the `-fabric` / `-neoforge` / `-forge` names below
-> and the config screen without YACL arrive with 1.2.0.
-
 Download the jar for your Minecraft version and loader from the
 [latest release](https://github.com/Wulfic/enchanting-2/releases/latest) (not a `-sources` jar) and put it in your
 `mods` folder, with Fabric API on Fabric and Quilt.

@@ -1044,3 +1044,41 @@ Fabric jar does. Boot check caught it; GameTests on the dev node never could.
 **Not done (owner rule: red leaves the claim at 26.1.2):** implementing `IGlobalLootModifier` directly with
 `LOOT_CONDITIONS_CODEC` (present in both) would likely span them.
 **Affects:** versions/26.1.2-neoforge/gradle.properties, scripts/boot-matrix.txt
+
+## 2026-10-21 — Mixin name-only selector picks the first overload; NeoForge/Forge add overloads (client never booted)
+**Context:** 13G's first client boot check on 26.3-neoforge: the mod failed to construct its client entry point,
+`Critical injection failure: ... GuiGraphicsMixin ... (0/1) succeeded. Scanned 0 target(s)`. A NeoForge client had never
+been launched in this repo; every earlier proof (server GameTests, real-server boots) never loads client mixins.
+**Cause:** `method = "tooltip"` (no descriptor) selects only the **first** method of that name. NeoForge patches
+`GuiGraphicsExtractor` with a second `tooltip(..., ItemStack)` overload; the first one just delegates to it, so the
+`positionTooltip` INVOKE is in the second and the wrap found nothing. Vanilla has one overload, so Fabric was fine.
+**Red herring:** "Scanned 0 target(s)" means nothing in sponge-mixin 0.17.4 — `InjectionInfo.targetCount` is never
+incremented (read the sources jar). The bytecode, the compiled annotation and `mixin.dumpTargetOnFailure`'s
+`.mixin.out/class/<target>.target.class` all showed the method and call present.
+**Fix:** `method = "renderTooltip*"` / `"tooltip*"` (every overload; only the one with the call gets wrapped).
+**Rule:** a client mixin into a class NeoForge/Forge patch needs `name*` or a full descriptor; audit with `javap -p` on
+`versions/<node>-neoforge/build/moddev/artifacts/minecraft-patched-*.jar` for overload counts per selector.
+
+## 2026-10-21 — First NeoForge/Forge client runs: loader screens, experimental registries, whitelist
+**Context:** 13G client boot check (`scripts/client_boot_check.py`).
+- NeoForge dev clients stop on `LoadingErrorScreen` for any mod-loading *warning* (here: `logoFile` without
+  `iconFile`/`bannerFile`, `LogoFileWarningsHandler`, dev only). The check now fails on that screen by name.
+- Forge 26.x `ResourcePackLoader` builds mod packs with `knownPackInfo = Optional.empty()`; vanilla
+  `ResourceManagerRegistryLoadTask` then gives their entries `Lifecycle.experimental()` → "Experimental settings"
+  ConfirmScreen on every new world. Fixed with `ForgeKnownPacks` (decisions.md). Forge's dev run also enables
+  GameTests on the client (`IS_RUNNING_IN_IDE`), so the GameTest mod's in-memory test_instance pack did the same.
+- Forge's dev client hits Realms (offline session → two ERROR lines); allowed by exact message in the checks files.
+- 26.1.2-neoforge once logged `ClosedChannelException` ("Exception caught in connection", NeoForge always logs it) at
+  Save and Quit while another Gradle build ran on the tree; green on a quiet rerun. A disconnect race, not our packets.
+- The real Forge server from server_boot_check ends up with `white-list=true`: a joining dev client is refused ("not
+  white-listed"). Cause (checked 2026-10-21 across build/boot/*): **vanilla 26.3's default is `white-list=true`**, on
+  every loader; 1.21.11 / 26.1.x / 26.2 default false. Any test server on 26.3+ must write `white-list=false`
+  (server_boot_check.py does, with `enforce-whitelist=false`).
+- Forge 26.x: entries registered from code (`RegisterEvent`: our `collected_spawner` component, `bulwark` effect, loot
+  modifier serializer) have **no `RegistrationInfo`** (`registry.registrationInfo(key)` is empty), yet their registries
+  stay `Lifecycle.stable()`. A per-entry stability check is false-red on Forge; vanilla's experimental warning goes by
+  `registryLifecycle()`, so check that first (BootGameTest, ClientBootCheck).
+- verifyAll 2026-10-21 evening died of **native** OOM (hs_err "malloc failed") with `gametest_max_parallel` 4: the
+  box had ~9 GB commit headroom at idle (WSL, Plex, VS Code, other Gradle daemons). Use
+  `-Pgametest_max_parallel=2 --max-workers=4` when free virtual memory is under ~15 GB.
+- "Scanned N target(s)" in a Critical injection failure is always 0 in sponge-mixin 0.17.4 (see the entry above).

@@ -5,6 +5,8 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-21
+
 ### Added
 - **NeoForge** for Minecraft 26.1.2, 26.2 and 26.3, with every feature the Fabric jar has, the config screen included.
 - **Quilt** for Minecraft 26.1.2, 26.2 and 26.3: the Fabric jar, with Fabric API.
@@ -69,7 +71,8 @@ First release, for Minecraft 1.21.11 (Fabric). Needed on both the server and the
   through Mod Menu and YACL (optional), server settings synced to players, `/reload` support and a `.bak` on every
   in-game save. See [Configuration](https://github.com/Wulfic/enchanting-2/wiki/Configuration).
 
-[Unreleased]: https://github.com/Wulfic/enchanting-2/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/Wulfic/enchanting-2/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/Wulfic/enchanting-2/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Wulfic/enchanting-2/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/Wulfic/enchanting-2/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/Wulfic/enchanting-2/releases/tag/v1.0.0

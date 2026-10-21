@@ -504,11 +504,114 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
       then quits through `Minecraft.stop()`. G2. `scripts/client_boot_check.sh NODE=<node>` runs `:<node>:runClient`
       with that property in a fresh run dir, `@expect`s the line, exit 0/1/2 as the server check. G3. run on the 6
       NeoForge/Forge nodes; Fabric keeps its client GameTests. Rung 6 = `boot-all.sh all` (13F) on the release jars.
-      **Open (ask the owner):** this proves the dev client with our jar's classes, not the built jar in a launcher
-      instance; the latter means installing NeoForge/Forge clients headless (installer `--installClient`) and launching
-      with hand-built args. Which one counts as rung 5 here?
-      In the release commit: remove the "Until 1.2.0 is released" notes from README.md, wiki/Installation.md and
-      wiki/Home.md (owner 2026-10-21: main is pushed, and with it the wiki, before 1.2.0 ships).
+      **Owner 2026-10-21 (fourth round, decisions.md "13G owner rulings"):** rung 5 on NeoForge/Forge = the dev-client
+      hook (not a built jar in a headless-installed client). Tag push is pre-authorized: once every gate below is exit 0
+      and recorded, bump, push main, push `v1.2.0`. Mod pages (Modrinth/CurseForge) are updated by the owner by hand:
+      I hand over the loader/version list and changelog text; no upload automation.
+      **Plan (2026-10-21):**
+      - G1. `src/gametest/.../ClientBootCheck.java` (loader-neutral, gametest source set, never shipped), driven by a
+        client tick. Off unless `-Denchanting2.clientBootCheck=true`. Stages: title screen → `CreateWorldScreen.openFresh`
+        → press its "Create New World" button (the player's click, found by its `selectWorld.create` label) → in the
+        world (player + level + integrated server) → log `enchanting2 client boot: joined world <name>, <n> enchanting2
+        enchantments, <m> curses` from the client's registry → open the loader's registered config screen (the factory
+        the mod registered, not `new FormScreen`), check it is our screen, close it → log `... config screen opened
+        (<class>)` → disconnect → `Minecraft.stop()`. Any stage past a 5-minute wall-clock watchdog, or an exception,
+        logs `enchanting2 client boot: FAILED at <stage>: <why>` at ERROR and stops the game.
+      - G1b. Wiring per loader, inside the gametest mods: `NeoForgeGameTests` / `ForgeGameTests` register a client tick
+        listener + config-factory lookup in a client-only class, only on the client dist with the property set.
+      - G2. Build: run `clientBootCheck` on NeoForge (MDG `client()`, gametest source set, both mods) and Forge
+        (`register('clientBootCheck')`, gametest mixins), game dir `<node>/build/run/clientBoot`, cleared before each
+        run with the guard `clearGameTestRunDir` uses; task `:<node>:runClientBootCheck` with a 15-minute timeout.
+      - G3. `scripts/client_boot_check.py --node N [--node N…]`: refuses a non-NeoForge/Forge node, runs the task per node
+        (sequential), judges `build/run/clientBoot/logs/latest.log` against `scripts/checks/client-boot.txt` (`@expect`,
+        `@allow-error`, via `server_boot_check`'s parser and ERROR rule), table, exit = worst (0 proven · 1 bad · 2
+        nothing proven: Gradle failed before the game logged its launch). `--self-test` on synthetic logs.
+      - G4. Mutation check: the NeoForge client entry with its config factory registration removed → red; restore.
+      - G5. Release 1.2.0: `mod_version=1.2.0`, CHANGELOG [Unreleased] → [1.2.0] - date, remove the "Until 1.2.0 is
+        released" notes (README.md, wiki/Installation.md, wiki/Home.md). Gates on that tree, recorded here: verifyAll;
+        `runClientGameTest` on the 4 Fabric nodes; client boot on the 6 NeoForge/Forge nodes; `boot-all.sh all` on the
+        1.2.0 jars; release-collect dry run (10 jars). Then commit, push main, CI green, push `v1.2.0`, `release.yml`
+        green with 10 jars attached. Then the mod-page text for the owner.
+      **Results (2026-10-21; committed 884492c, 29548ea, 4f2c0b1 + the 1.2.0 release commit; gates below):**
+      - G1–G3 built: `ClientBootCheck` (+ `NeoForgeClientBootCheck` `@Mod(dist=CLIENT)`, `ForgeClientBootCheck` armed
+        from `ForgeGameTests`), `gradle/client-boot.gradle`, `scripts/client_boot_check.py` (`--self-test` 14/14),
+        `scripts/checks/client-boot.txt`. Guards added after real runs: fails on the loader's `LoadingErrorScreen`, on a
+        `DisconnectedScreen` (quotes the reason), and on any registry entry that isn't `Lifecycle.stable()` (the
+        experimental-settings warning), naming the entries.
+      - **Rung 5 found three real defects** (none visible to server GameTests or real-server boots):
+        1. NeoForge client crashed at mod construction: `GuiGraphicsMixin` name-only selector hit NeoForge's first
+           `tooltip` overload (gotchas.md). Fix `"renderTooltip*"` / `"tooltip*"` (common.gradle replacement too).
+        2. NeoForge dev client stopped on the `logoFile` deprecation warning screen (dev-only, `LogoFileWarningsHandler`):
+           `iconFile` added beside `logoFile` (26.1.2 reads only logoFile).
+        3. **Forge: every new world behind vanilla's "Experimental settings" warning** (Forge gives mod packs no
+           KnownPack). Owner: fix it. `platform/forge/ForgeKnownPacks` + `mixin/forge/PackLocationInfoMixin`
+           (`@ModifyReturnValue` on `knownPackInfo()`, our pack id only), claimed in `ForgeEntrypoint`. Forge's client
+           KnownPacksManager knows vanilla packs only, so servers still send our entries in full. The GameTest mod skips
+           test registration on a boot-check client and claims its own pack.
+      - Single-player client boot, `python scripts/client_boot_check.py --node <n>`: **26.3-neoforge PASS** (92 s),
+        **26.2-neoforge PASS** (109 s), **26.1.2-neoforge PASS** (88 s; one earlier run red on a ClosedChannelException
+        at Save and Quit while I compiled Forge concurrently, green on a quiet tree, gotchas), **26.3-forge PASS** (117 s,
+        log: "mod:enchanting2 named as known pack"). Not yet run: **26.1.2-forge, 26.2-forge**.
+      - Mutation (G4): NeoForge config-factory registration commented out → exit 1 "the mod registered no config
+        screen factory", restored from HEAD. The pre-fix runs are the reds for fixes 1 and 3.
+      - Join mode (`--join`, owner-asked proof that Forge joins still work with the KnownPack change): built jar on a
+        real Forge 66.0.13 server + dev client. **Red, not a mod bug:** "You are not white-listed on this server!" —
+        the server's `server.properties` ends up with `white-list=true`. Next: have server_boot_check write
+        `white-list=false` (+ `enforce-whitelist=false`) for this run, rerun `--join --node 26.3-forge`, then NeoForge.
+      **Next session, in order:** fix whitelist → `--join` on 26.3-forge (+ one NeoForge node); client boot on
+      26.1.2-forge / 26.2-forge; JUnit for `ForgeKnownPacks` if cheap; `scripts/verify-all.sh` (shipped code changed:
+      GuiGraphicsMixin selector, PackLocationInfoMixin, mods.toml); Fabric `runClientGameTest` ×4 (tooltip mixin);
+      self-review + commit in units (G1–G3 tooling; fix 1; fix 2; fix 3); then G5.
+      **Owner 2026-10-21 (fifth round):** the open `runClient` owner checks on NeoForge/Forge do **not** block the tag:
+      v1.2.0 goes out once the scripted gates are green and recorded; whatever those checks find goes into 1.2.1.
+      Game windows (Fabric client GameTests, client boot) may run now, one at a time.
+      **Session 2026-10-21 (evening):**
+      - Whitelist cause: **vanilla 26.3 defaults `white-list=true`** (every 26.3 boot row, all four loaders, wrote
+        true; every 1.21.11/26.1.x/26.2 row false). `server_boot_check.py` now writes `white-list=false` +
+        `enforce-whitelist=false` (loopback, offline mode).
+      - `python scripts/client_boot_check.py --join --node 26.3-forge`: **exit 0**, PASS (6 @expect, 90 s); built jar
+        on Forge 66.0.13 server, server check exit 0; matched "joined server 127.0.0.1:25567: 49 enchanting2
+        enchantments, Knockback max level 5, server config received", "config screen opened and closed (FormScreen)".
+      - `--join --node 26.3-neoforge`: **exit 0**, PASS (6 @expect, 105 s), server check exit 0, same matched lines.
+      - New guard `BootGameTest.everyEntryOfOursLoadsStable` (every `enchanting2:*` registry entry `Lifecycle.stable()`,
+        test registries skipped): puts fix 3 under verifyAll/CI on every node.
+      - verifyAll #1 on the 1.2.0 tree (`bash scripts/verify-all.sh`): **exit 1**. (a) The new GameTest red on both
+        Forge nodes (340/341): it flagged Forge's code-registered entries (`collected_spawner`, `bulwark`,
+        `global_loot_modifier_serializers/drops`) with no RegistrationInfo, in registries that stay stable; vanilla
+        warns per registry lifecycle, so the test now skips stable registries (as `ClientBootCheck` does). (b) Native
+        OOM ("insufficient memory... malloc failed", hs_err) killed the 26.2-forge / 26.2-neoforge / 26.1.2-neoforge
+        GameTest servers, three matrix link checks and JUnit forks: ~9 GB commit headroom at idle (41 GB limit).
+        Rerun with `-Pgametest_max_parallel=2 --max-workers=4`.
+      - verifyAll #2 (`bash scripts/verify-all.sh -Pgametest_max_parallel=2 --max-workers=4`): **exit 0**, "verify-all:
+        passed". 469 JUnit + **341/341** GameTests (was 340: the new test counted) on all 10 nodes; matrix 26.1 / 26.1.1
+        claimed 341/341; 5 link checks 0 problems; no OOM.
+      - Mutation: `ForgeKnownPacks.claim` disabled in `ForgeEntrypoint` → `:26.3-forge:runGameTest` exit 1, 341 cases,
+        1 failure: `boot_game_test_every_entry_of_ours_loads_stable`, "49 enchanting2 registry entries aren't
+        Lifecycle.stable() ... Experimental". Restored from a scratchpad copy (cmp identical).
+      - **Rung 5, NeoForge/Forge (G5 gate):** `python scripts/client_boot_check.py --node` ×6 on the 1.2.0 tree:
+        **exit 0**, PASS (7 @expect each): 26.1.2-neoforge 116 s, 26.2-neoforge 93 s, 26.3-neoforge 98 s,
+        26.1.2-forge 100 s, 26.2-forge 103 s, 26.3-forge 116 s; each "joined world New World: 49 enchanting2
+        enchantments, Knockback max level 5, server config received" ... "PASS (world New World saved, back on the
+        title screen)".
+      - **Rung 5, Fabric:** `./gradlew :<n>:runClientGameTest` on 1.21.11, 26.1.2, 26.2, 26.3, one at a time:
+        **exit 0 ×4** (BUILD SUCCESSFUL, 5m52s / 4m02s / 3m58s / 4m18s). Fabric logs no per-test count: 11 client
+        classes in the entrypoint; each node wrote 27 fresh screenshots and closed 9 worlds (identical across nodes).
+      - **Rung 6:** `./gradlew assemble` exit 0, then `bash scripts/boot-all.sh all` on the 1.2.0 jars (run
+        build/boot/20261021-190728): **20/20 PASS, exit 0** (10 shipped rows; Fabric 26.1/26.1.1, Forge 62.0.9/63.0.2 on
+        26.1/26.1.1; Quilt boot ×3; Quilt production GameTests 341/341 ×3).
+      - Release dry run: `CHANGELOG [1.2.0]` → changes.md (release.yml's awk), `VERSION=1.2.0 ... scripts/release-collect.sh`
+        **exit 0**, 10 jars + 10 sources, metadata = names. Notes had no Quilt line: added one derived from the
+        boot-matrix quilt rows ("Quilt (Minecraft 26.1.2, 26.2, 26.3) ... Quilt Loader 0.31.0-beta.4+"); rerun exit 0.
+      - Commits: 884492c fix (NeoForge tooltip selector, iconFile), 29548ea fix (Forge KnownPack + BootGameTest guard),
+        4f2c0b1 test (client boot tooling + whitelist), then `chore(release): 1.2.0`. Next: push main, CI green, push
+        `v1.2.0`, release.yml green with 10 jars, mod-page text to the owner.
+      - G5 text: CHANGELOG `[1.2.0] - 2026-10-21` + compare links; "Until 1.2.0" notes removed (README, wiki
+        Installation, Home).
+      **Not doing:** client boot in CI (local release gate only; CI keeps Fabric client GameTests); a built-jar client
+      install; Modrinth/CurseForge upload; client checks on Quilt (it runs the Fabric jar, already client-tested).
+      **Blast radius:** G1–G4 additive (gametest code never ships, a run task, a script). The run-dir clear deletes
+      only `<node>/build/run/clientBoot` (guarded, rebuilt by every run). G5 is outward-facing: a public tag + release,
+      never moved or deleted; a bad release gets a patch release.
 
 **Rollback:** `git revert` the stage's commit(s) on main (Phase 13 is per-stage commits, no squash). A bad release is fixed by a patch release, never by deleting tags.
 
