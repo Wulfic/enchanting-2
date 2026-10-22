@@ -495,7 +495,7 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
       dropped claim. 13G: rung 5 on NeoForge/Forge is a scripted client boot (create + join a world, fingerprint).
       **Blast radius:** additive (scripts, a CI job, docs). Work dirs are new scratch dirs under `build/boot/` (refused
       unless empty). Nothing in the owner's saves or instances. Rollback: revert the commits.
-- [ ] 13G — **Release 1.2.0.** Owner confirms first (outward-facing). Tag, ten jars, mod pages list the loaders.
+- [x] 13G — **Release 1.2.0.** (done 2026-10-21: https://github.com/Wulfic/enchanting-2/releases/tag/v1.2.0) Owner confirms first (outward-facing). Tag, ten jars, mod pages list the loaders.
       **Draft plan, rung 5 on NeoForge/Forge (owner 2026-10-21: scripted client boot).** NeoForge and Forge have no
       client GameTest API, and a client has no console to type into. Proposal: G1. a `gametest`-side (never shipped)
       client hook, enabled by `-Denchanting2.clientBootCheck=<world>`: on the title screen it creates a new world through
@@ -603,8 +603,10 @@ CI jobs). No release, tag or publish until 13G, and 13G gets its own confirmatio
         **exit 0**, 10 jars + 10 sources, metadata = names. Notes had no Quilt line: added one derived from the
         boot-matrix quilt rows ("Quilt (Minecraft 26.1.2, 26.2, 26.3) ... Quilt Loader 0.31.0-beta.4+"); rerun exit 0.
       - Commits: 884492c fix (NeoForge tooltip selector, iconFile), 29548ea fix (Forge KnownPack + BootGameTest guard),
-        4f2c0b1 test (client boot tooling + whitelist), then `chore(release): 1.2.0`. Next: push main, CI green, push
-        `v1.2.0`, release.yml green with 10 jars, mod-page text to the owner.
+        4f2c0b1 test (client boot tooling + whitelist), then `chore(release): 1.2.0`. Pushed 0de98cd: CI run 39694973180
+        **success**, 14/14 jobs (build ×3 loaders, client GameTests ×4, real-server boot ×4, gitleaks). Annotated tag
+        `v1.2.0` on 0de98cd pushed; release.yml run 39696217353 **success**: release v1.2.0 (not draft/pre), 10 jars +
+        10 sources. Mod-page text handed to the owner (loaders/versions per jar, changelog).
       - G5 text: CHANGELOG `[1.2.0] - 2026-10-21` + compare links; "Until 1.2.0" notes removed (README, wiki
         Installation, Home).
       **Not doing:** client boot in CI (local release gate only; CI keeps Fabric client GameTests); a built-jar client

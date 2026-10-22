@@ -140,8 +140,9 @@ Phases 1–9, 10a, 10b, 10e, 10f, 10g, 10h, 10i, 10j, 10k, 10cA, 10cB, 10cC (CA,
     B1 stays 26.1.2; Quilt green on 26.x (340/340 production GameTests). ci.yml: build per loader (`-Ploaders`),
     `boot` job (shipped on push, all on dispatch). Committed 1826c34 + ed03d51, CI green on push (10 boot
     rows) and on dispatch (20 rows).
-    **13G (2026-10-21): every gate green on the 1.2.0 tree and recorded (TODO.md 13G session notes); committed in
-    four units. Resume: push main → CI green → push `v1.2.0` → release.yml 10 jars → mod-page text.** Owner rulings (decisions.md "13G owner rulings", "Forge mod packs get a
+    **13G done: v1.2.0 released 2026-10-21** (https://github.com/Wulfic/enchanting-2/releases/tag/v1.2.0, tag on
+    0de98cd, ten jars: Fabric 1.21.11/26.1-26.1.2/26.2/26.3, NeoForge 26.1.2/26.2/26.3, Forge 26.1-26.1.2/26.2/26.3).
+    Phase 13 complete. Mod pages: the owner, by hand. Owner rulings (decisions.md "13G owner rulings", "Forge mod packs get a
     KnownPack"): rung 5 on NeoForge/Forge = dev-client hook (`scripts/client_boot_check.py`, `:<node>:runClientBootCheck`);
     tag push pre-authorized once every gate is green and recorded; mod pages by the owner by hand (hand over text);
     fix Forge's experimental-settings warning. Rung 5 found 3 defects, all fixed in the tree: NeoForge client crash
